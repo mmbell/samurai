@@ -1,0 +1,541 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
+		09B3F4640EDB68AB00F98F74 /* tcvar.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 09B3F4610EDB68AB00F98F74 /* tcvar.app */; };
+		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
+		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
+		2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 118FCBAABA162BA17933C789 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
+		30210C7C56337BC4E9BB47D2 /* MetObs.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E7EF8886CDC5FC80E4E17CD6 /* MetObs.cpp */; settings = {ATTRIBUTES = (); }; };
+		401ACE1C1C7843A8372B89E5 /* BSplineF.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 63B6940BE108A6F521B4684C /* BSplineF.cpp */; settings = {ATTRIBUTES = (); }; };
+		4A7893106E40B5DE08D374DC /* CostFunctionRZ.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 5DB668FB15AA47C8A9C4CBF0 /* CostFunctionRZ.cpp */; settings = {ATTRIBUTES = (); }; };
+		4A921221EF30A7DBEDF804F5 /* VarDriver1d.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */; settings = {ATTRIBUTES = (); }; };
+		501667F26B3C1FF6767A7C12 /* QtGui.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 9B36DA7E32F0304E780E7972 /* QtGui.framework */; };
+		51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 821416211D63F190AAAD016A /* AppKit.framework */; };
+		5D95626873C7C04D1C4B5671 /* Observation.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */; settings = {ATTRIBUTES = (); }; };
+		782B6788D61FA49990A796F9 /* VarDriver2d.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 9356464C64678A879AF79690 /* VarDriver2d.cpp */; settings = {ATTRIBUTES = (); }; };
+		7999E42EF268C0234E0FB8BD /* VarDriver.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = F23D90239C967BE28A8911C1 /* VarDriver.cpp */; settings = {ATTRIBUTES = (); }; };
+		9B11448EA053E1EE217C6DD0 /* ParametricVortex.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = FBD6C342AFEE376FF81E4834 /* ParametricVortex.cpp */; settings = {ATTRIBUTES = (); }; };
+		A3B3C90BFE730DB07194C33A /* CostFunction.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 00281B2985F19D1494BEBCA4 /* CostFunction.cpp */; settings = {ATTRIBUTES = (); }; };
+		B0E95684AFE35B895CDF9E7A /* BSplineD.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = FF5E0688054A1788E623229F /* BSplineD.cpp */; settings = {ATTRIBUTES = (); }; };
+		BF2DBD523D89A5B1D20EC5DE /* TCcenter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 0509C1DA3ED2374001201C0E /* TCcenter.cpp */; settings = {ATTRIBUTES = (); }; };
+		C812174DDF388E53DFDE91E1 /* Dorade.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 73B6AF878ED1B79DB61B4B9C /* Dorade.cpp */; settings = {ATTRIBUTES = (); }; };
+		C8FD4A1AAA37CF2CA2824CCF /* Carbon.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = DA138F75C9F545CDAE7FB264 /* Carbon.framework */; };
+		D3F2EA694189C594A2AA622B /* CostFunctionR.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 44A575D986E0B2CF83C28958 /* CostFunctionR.cpp */; settings = {ATTRIBUTES = (); }; };
+		F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /Users/mbell/Development/tcvar/trunk;
+			dstSubfolderSpec = 0;
+			files = (
+				09B3F4640EDB68AB00F98F74 /* tcvar.app in Project Copy */,
+			);
+			name = "Project Copy";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00281B2985F19D1494BEBCA4 /* CostFunction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunction.cpp; sourceTree = "<group>"; };
+		0137A8775B3EEF11BE16A2FE /* TCcenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TCcenter.h; sourceTree = "<group>"; };
+		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
+		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
+		09B3F4610EDB68AB00F98F74 /* tcvar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tcvar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
+		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
+		1EB3971C34CB5BAC13ECA713 /* tcvar.pro */ = {isa = PBXFileReference; lastKnownFileType = text; path = tcvar.pro; sourceTree = "<group>"; };
+		233807245A73AD7DA9E73F7F /* BandedMatrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BandedMatrix.h; sourceTree = "<group>"; };
+		242670B24EA6ACAC229EFACA /* RecursiveFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RecursiveFilter.h; sourceTree = "<group>"; };
+		27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
+		2C89AB577D4EA5F2C3A1C105 /* Dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Dorade.h; sourceTree = "<group>"; };
+		2F8BE63731B13C5153AF964D /* BSpline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BSpline.h; path = BSpline/BSpline.h; sourceTree = "<group>"; };
+		39B09DD57B6A203B3091DF09 /* CostFunction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunction.h; sourceTree = "<group>"; };
+		3A6248A759205B2DBE5F98CA /* VarDriver1d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver1d.h; sourceTree = "<group>"; };
+		44A575D986E0B2CF83C28958 /* CostFunctionR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionR.cpp; sourceTree = "<group>"; };
+		4544D20D0CDBB4D1D4F8BAC6 /* CostFunctionR.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionR.h; sourceTree = "<group>"; };
+		5B7B571949CEC1350CF0E9E9 /* MetObs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetObs.h; sourceTree = "<group>"; };
+		5DB668FB15AA47C8A9C4CBF0 /* CostFunctionRZ.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionRZ.cpp; sourceTree = "<group>"; };
+		63B6940BE108A6F521B4684C /* BSplineF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BSplineF.cpp; sourceTree = "<group>"; };
+		73B6AF878ED1B79DB61B4B9C /* Dorade.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Dorade.cpp; sourceTree = "<group>"; };
+		786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionAnalytic.cpp; sourceTree = "<group>"; };
+		7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtCore.framework; path = /Library/Frameworks/QtCore.framework; sourceTree = "<absolute>"; };
+		821416211D63F190AAAD016A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
+		85EB71E17842DA156B973F57 /* CostFunctionRZ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionRZ.h; sourceTree = "<group>"; };
+		9356464C64678A879AF79690 /* VarDriver2d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver2d.cpp; sourceTree = "<group>"; };
+		9B36DA7E32F0304E780E7972 /* QtGui.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtGui.framework; path = /Library/Frameworks/QtGui.framework; sourceTree = "<absolute>"; };
+		A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Observation.cpp; sourceTree = "<group>"; };
+		A88ACCD415D491DEA1E4444B /* VarDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver.h; sourceTree = "<group>"; };
+		B555B4ABF2BC343B39C7EA21 /* CostFunctionAnalytic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionAnalytic.h; sourceTree = "<group>"; };
+		DA138F75C9F545CDAE7FB264 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
+		E0C982CFD14C983856160810 /* ParametricVortex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ParametricVortex.h; sourceTree = "<group>"; };
+		E7EF8886CDC5FC80E4E17CD6 /* MetObs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MetObs.cpp; sourceTree = "<group>"; };
+		E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RecursiveFilter.cpp; sourceTree = "<group>"; };
+		F23D90239C967BE28A8911C1 /* VarDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver.cpp; sourceTree = "<group>"; };
+		F377C3CB5826E3EFA3EF9FAD /* Observation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Observation.h; sourceTree = "<group>"; };
+		FBD6C342AFEE376FF81E4834 /* ParametricVortex.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ParametricVortex.cpp; sourceTree = "<group>"; };
+		FF5E0688054A1788E623229F /* BSplineD.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BSplineD.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2A1043669E6E5A7426EA502A /* Frameworks & Libraries */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				501667F26B3C1FF6767A7C12 /* QtGui.framework in Frameworks & Libraries */,
+				C8FD4A1AAA37CF2CA2824CCF /* Carbon.framework in Frameworks & Libraries */,
+				51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */,
+				069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */,
+				F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */,
+			);
+			name = "Frameworks & Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		05596AB53D8D521C69802C27 /* tcvar */ = {
+			isa = PBXGroup;
+			children = (
+				FB61758D0F0FDA4BA867C3D5 /* Sources */,
+				883D7615C4D2DE3FA1218F12 /* Headers */,
+				7CABE3C80E79AD2B307756D2 /* Sources [qmake] */,
+				ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */,
+				09B3F4620EDB68AB00F98F74 /* Products */,
+			);
+			name = tcvar;
+			sourceTree = "<group>";
+		};
+		09B3F4620EDB68AB00F98F74 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				09B3F4610EDB68AB00F98F74 /* tcvar.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		252E6F29C11257C329099270 /* BSpline */ = {
+			isa = PBXGroup;
+			children = (
+				2F8BE63731B13C5153AF964D /* BSpline.h */,
+			);
+			name = BSpline;
+			sourceTree = "<group>";
+		};
+		7CABE3C80E79AD2B307756D2 /* Sources [qmake] */ = {
+			isa = PBXGroup;
+			children = (
+				1EB3971C34CB5BAC13ECA713 /* tcvar.pro */,
+			);
+			name = "Sources [qmake]";
+			sourceTree = "<group>";
+		};
+		883D7615C4D2DE3FA1218F12 /* Headers */ = {
+			isa = PBXGroup;
+			children = (
+				233807245A73AD7DA9E73F7F /* BandedMatrix.h */,
+				39B09DD57B6A203B3091DF09 /* CostFunction.h */,
+				B555B4ABF2BC343B39C7EA21 /* CostFunctionAnalytic.h */,
+				4544D20D0CDBB4D1D4F8BAC6 /* CostFunctionR.h */,
+				85EB71E17842DA156B973F57 /* CostFunctionRZ.h */,
+				5B7B571949CEC1350CF0E9E9 /* MetObs.h */,
+				F377C3CB5826E3EFA3EF9FAD /* Observation.h */,
+				E0C982CFD14C983856160810 /* ParametricVortex.h */,
+				242670B24EA6ACAC229EFACA /* RecursiveFilter.h */,
+				A88ACCD415D491DEA1E4444B /* VarDriver.h */,
+				3A6248A759205B2DBE5F98CA /* VarDriver1d.h */,
+				0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */,
+				252E6F29C11257C329099270 /* BSpline */,
+				2C89AB577D4EA5F2C3A1C105 /* Dorade.h */,
+				05C01B8803092063635BE2FA /* read_dorade.h */,
+				0137A8775B3EEF11BE16A2FE /* TCcenter.h */,
+			);
+			name = Headers;
+			sourceTree = "<group>";
+		};
+		ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				9B36DA7E32F0304E780E7972 /* QtGui.framework */,
+				DA138F75C9F545CDAE7FB264 /* Carbon.framework */,
+				821416211D63F190AAAD016A /* AppKit.framework */,
+				7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */,
+				27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */,
+			);
+			name = "External Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		FB61758D0F0FDA4BA867C3D5 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				FF5E0688054A1788E623229F /* BSplineD.cpp */,
+				63B6940BE108A6F521B4684C /* BSplineF.cpp */,
+				00281B2985F19D1494BEBCA4 /* CostFunction.cpp */,
+				786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */,
+				44A575D986E0B2CF83C28958 /* CostFunctionR.cpp */,
+				5DB668FB15AA47C8A9C4CBF0 /* CostFunctionRZ.cpp */,
+				118FCBAABA162BA17933C789 /* main.cpp */,
+				E7EF8886CDC5FC80E4E17CD6 /* MetObs.cpp */,
+				A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */,
+				FBD6C342AFEE376FF81E4834 /* ParametricVortex.cpp */,
+				E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */,
+				F23D90239C967BE28A8911C1 /* VarDriver.cpp */,
+				1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */,
+				9356464C64678A879AF79690 /* VarDriver2d.cpp */,
+				73B6AF878ED1B79DB61B4B9C /* Dorade.cpp */,
+				0509C1DA3ED2374001201C0E /* TCcenter.cpp */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BCD0948322903A03CF04C8A3 /* tcvar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 09B3F46C0EDB68CA00F98F74 /* Build configuration list for PBXNativeTarget "tcvar" */;
+			buildPhases = (
+				D7BA7D76DAB5DD13389D6332 /* Qt Qmake */,
+				A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */,
+				F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */,
+				C29B8785722055ED95EF7B57 /* Build Sources */,
+				2A1043669E6E5A7426EA502A /* Frameworks & Libraries */,
+				3787F99312C85FF0073FD7BA /* Bundle Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = tcvar;
+			productName = tcvar;
+			productReference = 09B3F4610EDB68AB00F98F74 /* tcvar.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		91B15E841AA80083484172DE /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "tcvar" */;
+			compatibilityVersion = "Xcode 2.4";
+			hasScannedForEncodings = 1;
+			mainGroup = 05596AB53D8D521C69802C27 /* tcvar */;
+			productRefGroup = 09B3F4620EDB68AB00F98F74 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BCD0948322903A03CF04C8A3 /* tcvar */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3787F99312C85FF0073FD7BA /* Bundle Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Bundle Resources";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Qt Preprocessors";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/qt_preprocess.mak";
+		};
+		D7BA7D76DAB5DD13389D6332 /* Qt Qmake */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Qt Qmake";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/qt_makeqmake.mak";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C29B8785722055ED95EF7B57 /* Build Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0E95684AFE35B895CDF9E7A /* BSplineD.cpp in Build Sources */,
+				401ACE1C1C7843A8372B89E5 /* BSplineF.cpp in Build Sources */,
+				A3B3C90BFE730DB07194C33A /* CostFunction.cpp in Build Sources */,
+				171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */,
+				D3F2EA694189C594A2AA622B /* CostFunctionR.cpp in Build Sources */,
+				4A7893106E40B5DE08D374DC /* CostFunctionRZ.cpp in Build Sources */,
+				2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */,
+				30210C7C56337BC4E9BB47D2 /* MetObs.cpp in Build Sources */,
+				5D95626873C7C04D1C4B5671 /* Observation.cpp in Build Sources */,
+				9B11448EA053E1EE217C6DD0 /* ParametricVortex.cpp in Build Sources */,
+				12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */,
+				7999E42EF268C0234E0FB8BD /* VarDriver.cpp in Build Sources */,
+				4A921221EF30A7DBEDF804F5 /* VarDriver1d.cpp in Build Sources */,
+				782B6788D61FA49990A796F9 /* VarDriver2d.cpp in Build Sources */,
+				C812174DDF388E53DFDE91E1 /* Dorade.cpp in Build Sources */,
+				BF2DBD523D89A5B1D20EC5DE /* TCcenter.cpp in Build Sources */,
+			);
+			name = "Build Sources";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		09B3F4670EDB68AC00F98F74 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				COPY_PHASE_STRIP = NO;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					BSpline,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.4/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.3;
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-F/Library/Frameworks",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = tcvar;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Debug;
+		};
+		09B3F4680EDB68AC00F98F74 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				COPY_PHASE_STRIP = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					BSpline,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.4/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.3;
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-F/Library/Frameworks",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = tcvar;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Release;
+		};
+		09B3F4690EDB68AC00F98F74 /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					BSpline,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.4/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.3;
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-F/Library/Frameworks",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = tcvar;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Default;
+		};
+		8DB1DD96F65B1BF1FFC506E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = 4.2;
+			};
+			name = Debug;
+		};
+		95E1EB2E5DDD587BE5B3E548 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				ENABLE_OPENMP_SUPPORT = YES;
+				GCC_AUTO_VECTORIZATION = YES;
+				GCC_ENABLE_SSE3_EXTENSIONS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_UNROLL_LOOPS = YES;
+				GCC_VERSION = 4.2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		09B3F46C0EDB68CA00F98F74 /* Build configuration list for PBXNativeTarget "tcvar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				09B3F4670EDB68AC00F98F74 /* Debug */,
+				09B3F4680EDB68AC00F98F74 /* Release */,
+				09B3F4690EDB68AC00F98F74 /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+		2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "tcvar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8DB1DD96F65B1BF1FFC506E0 /* Debug */,
+				95E1EB2E5DDD587BE5B3E548 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 91B15E841AA80083484172DE /* Project object */;
+}
