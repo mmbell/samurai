@@ -87,7 +87,7 @@ bool VarDriver2d::initVortexBG()
 	int zi = 0;
 	vector<double> vIn, vBG, psiBG, hBG, qBG, rpBG;
 	vector<double>* vInit = new vector<double>[maxHeights];
-	ifstream vdata("/Users/mbell/Development/tcvar/v2data.txt");
+	ifstream vdata("./v2data.txt");
 	vdata.width(14);
 	while (vdata >> height >> radius >> v >> psi >> h >> q >> rho)
 	{
@@ -111,7 +111,7 @@ bool VarDriver2d::initVortexBG()
 		if (v < 0)  v = 0;
 		vIn.push_back (v);
 		vBG.push_back (v*rho);
-		psiBG.push_back (psi);
+		psiBG.push_back (psi/1e6);
 		hBG.push_back (h/1e3);
 		// cout << "H: " << h/1e3 << endl;
 		qBG.push_back (q);
@@ -413,7 +413,7 @@ bool VarDriver2d::finalizeVortexBG()
 		for (unsigned int ri = 0; ri < r.size(); ri++) {
 			double rad = r[ri];
 			if (rad != 0) {
-				double wwind = (vecSpline[zi].slope(rad) / 1000) / (scalarAnalysisSpline->evaluate(rad) * rad * 1000);
+				double wwind = 1e6 * (vecSpline[zi].slope(rad) / 1000) / (scalarAnalysisSpline->evaluate(rad) * rad * 1000);
 				wz[zi].push_back(wwind);
 			} else {
 				wz[zi].push_back(0.0);
@@ -430,7 +430,7 @@ bool VarDriver2d::finalizeVortexBG()
 			double alt = z[zi];
 			scalarAnalysisSpline->solveGQ(&rhoz[zi].front());
 			if (rad != 0) {
-				double uwind = -zSplinePsi->slope(alt) / (scalarAnalysisSpline->evaluate(rad) * rad * 1000);
+				double uwind = 1e6 * -zSplinePsi->slope(alt) / (scalarAnalysisSpline->evaluate(rad) * rad * 1000);
 				uz[zi].push_back(uwind);
 			} else {
 				uz[zi].push_back(0.0);
@@ -556,7 +556,7 @@ bool VarDriver2d::finalizeVortexBG()
 			double rad = r[ri];
 			if (rad != 0) {
 				double rho = scalarAnalysisSpline->evaluate(rad) + 1.1646*exp(-1.068e-4*alt);													
-				double wwind = (vecSpline[zi].slope(rad) / 1000) / (rho * rad * 1000);
+				double wwind = 1e6 * (vecSpline[zi].slope(rad) / 1000) / (rho * rad * 1000);
 				wz[zi].at(ri) -= wwind;
 			} 
 		}
@@ -572,7 +572,7 @@ bool VarDriver2d::finalizeVortexBG()
 			vecAnalysisSpline->solveGQ(&BGsave[zi][4].front());
 			if (rad != 0) {
 				double rho = scalarAnalysisSpline->evaluate(rad) + 1.1646*exp(-1.068e-4*alt);
-				double uwind = -zSplinePsi->slope(alt) / (rho * rad * 1000);
+				double uwind = 1e6 * -zSplinePsi->slope(alt) / (rho * rad * 1000);
 				uz[zi].at(ri) -= uwind;
 			} 
 		}
@@ -885,7 +885,7 @@ void VarDriver2d::processMetObs()
 	vector<double> rhoP;
 	
 	// Check the data directory for files
-	QDir dataPath("/Users/mbell/Development/tcvar/vardata");
+	QDir dataPath("./vardata");
 	dataPath.setFilter(QDir::Files);
 	dataPath.setSorting(QDir::Name);
 	QStringList filenames = dataPath.entryList();

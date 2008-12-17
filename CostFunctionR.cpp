@@ -135,7 +135,7 @@ double CostFunctionR::funcValue(double* state)
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
 	for (int m = 0; m < mObs; m++) {
-		obIP += (HCq[m]-innovation[m])*(obsVector[m].getError())*(HCq[m]-innovation[m]);
+		obIP += (HCq[m]-innovation[m])*(obsVector[m].getInverseError())*(HCq[m]-innovation[m]);
 	}	
 	
 	double J = 0.5*qIP + 0.5*obIP;
@@ -164,7 +164,7 @@ void CostFunctionR::funcGradient(double* state, double* gradient)
 				// Multiply state by H weights
 				double basis = bgSpline->getBasis(p, obsVector[m].getRadius());
 				double weight = obsVector[m].getWeight(var);
-				double R = obsVector[m].getError();
+				double R = obsVector[m].getInverseError();
 				double nodeWeight = basis*weight*R;
 				HTHCq[p] += HCq[m]*(nodeWeight);
 				HTd[p] += innovation[m]*(nodeWeight);

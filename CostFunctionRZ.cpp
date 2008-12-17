@@ -28,7 +28,7 @@ CostFunctionRZ::CostFunctionRZ(const int& numObs, const int& stateSize)
 	bgError[4] = 0.1; */
 
 	bgError[0] = 0.1;
-	bgError[1] = 1.;
+	bgError[1] = 0.2;
 	bgError[2] = 0.1;
 	bgError[3] = 0.1;
 	bgError[4] = 0.1;
@@ -183,7 +183,7 @@ void CostFunctionRZ::initState() {
 			}
 		}
 		varScale[var] = sqrt(varScale[var]/(bgradii->size()*bgheights->size()));
-		if ((var == 1) and (varScale[var] == 0)) varScale[var] = 2.4e8;
+		if ((var == 1) and (varScale[var] == 0)) varScale[var] = 240;
 		cout << "Variable RMS scale factor = " << var << "\t" << varScale[var] << endl;
 	}
 	
@@ -212,7 +212,7 @@ void CostFunctionRZ::initState() {
 					for (unsigned int z = 0; z < zState; z++) {								
 						zSplinePsi->setCoefficient(z, bgSpline[z].evaluate(obsVector[m].getRadius()));
 					}
-					double yhat =  -(zSplinePsi->slope(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000));
+					double yhat =  1e6 * -(zSplinePsi->slope(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000));
 					innovation[m] -= yhat*weight;
 				}
 				weight =  obsVector[m].getWeight(var+1);
@@ -220,7 +220,7 @@ void CostFunctionRZ::initState() {
 				for (unsigned int z = 0; z < zState; z++) {								
 					zSplinePsi->setCoefficient(z, (bgSpline[z].slope(obsVector[m].getRadius()) / 1000));
 				}
-				double yhat =  zSplinePsi->evaluate(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000);
+				double yhat =  1e6 * zSplinePsi->evaluate(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000);
 				innovation[m] -= yhat*weight;
 				
 			} else {
@@ -258,8 +258,8 @@ void CostFunctionRZ::initState() {
 						if (!rbasis) continue;
 						double zbasis = zSpline->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/error;
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = rbasis*zbasis*weight*invError;
 						HTsum += innovation[m]*(nodeWeight);
 					} else if (var == 1) {
 						double weight = obsVector[m].getWeight(var);
@@ -268,8 +268,8 @@ void CostFunctionRZ::initState() {
 							if (rbasis) {
 								double zbasis = zSplinePsi->getDBasis(z, obsVector[m].getAltitude());
 								if (zbasis) {
-									double error = obsVector[m].getError();
-									double nodeWeight = -(rbasis*zbasis*weight/(error * obsVector[m].getRadius() * 1000));
+									double invError = obsVector[m].getInverseError();
+									double nodeWeight = 1e6 * -(rbasis*zbasis*weight*invError/(obsVector[m].getRadius() * 1000));
 									HTsum += innovation[m]*(nodeWeight);
 								}
 							}
@@ -281,8 +281,8 @@ void CostFunctionRZ::initState() {
 						if (!rbasis) continue;
 						double zbasis = zSplinePsi->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/(error * obsVector[m].getRadius() * 1000);
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = 1e6 * rbasis*zbasis*weight*invError/(obsVector[m].getRadius() * 1000);
 						HTsum += innovation[m]*(nodeWeight);
 					} else {
 						double weight = obsVector[m].getWeight(var+1);
@@ -291,8 +291,8 @@ void CostFunctionRZ::initState() {
 						if (!rbasis) continue;
 						double zbasis = zSpline->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/error;
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = rbasis*zbasis*weight*invError;
 						HTsum += innovation[m]*(nodeWeight);
 					}
 				}
@@ -358,7 +358,7 @@ double CostFunctionRZ::funcValue(double* state)
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
 	for (int m = 0; m < mObs; m++) {
-		obIP += (HCq[m]-innovation[m])*(1/obsVector[m].getError())*(HCq[m]-innovation[m]);
+		obIP += (HCq[m]-innovation[m])*(obsVector[m].getInverseError())*(HCq[m]-innovation[m]);
 		//cout << m << "\t" << HCq[m] << "\t" << innovation[m] << endl;
 	}
 	double J = 0.5*qIP + 0.5*obIP;
@@ -394,8 +394,8 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 						if (!rbasis) continue;
 						double zbasis = zSpline->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/error;
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = rbasis*zbasis*weight*invError;
 						HTsum += HCq[m]*(nodeWeight);
 					} else if (var == 1) {
 						double weight = obsVector[m].getWeight(var);
@@ -404,8 +404,8 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 							if (rbasis) {
 								double zbasis = zSplinePsi->getDBasis(z, obsVector[m].getAltitude());
 								if (zbasis) {
-									double error = obsVector[m].getError();
-									double nodeWeight = -(rbasis*zbasis*weight/(error * obsVector[m].getRadius() * 1000));
+									double invError = obsVector[m].getInverseError();
+									double nodeWeight = 1e6 * -(rbasis*zbasis*weight*invError)/(obsVector[m].getRadius() * 1000);
 									HTsum += HCq[m]*(nodeWeight);
 								}
 							}
@@ -417,8 +417,8 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 						if (!rbasis) continue;
 						double zbasis = zSplinePsi->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/(error * obsVector[m].getRadius() * 1000);
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = 1e6 * (rbasis*zbasis*weight*invError)/(obsVector[m].getRadius() * 1000);
 						HTsum += HCq[m]*(nodeWeight);
 					} else {
 						double weight = obsVector[m].getWeight(var+1);
@@ -427,8 +427,8 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 						if (!rbasis) continue;
 						double zbasis = zSpline->getBasis(z, obsVector[m].getAltitude());
 						if (!zbasis) continue;
-						double error = obsVector[m].getError();
-						double nodeWeight = rbasis*zbasis*weight/error;
+						double invError = obsVector[m].getInverseError();
+						double nodeWeight = rbasis*zbasis*weight*invError;
 						HTsum += HCq[m]*(nodeWeight);
 					}
 				}
@@ -577,7 +577,7 @@ void CostFunctionRZ::updateHCq(double* state)
 					for (unsigned int z = 0; z < zState; z++) {								
 						zSplinePsi->setCoefficient(z, bgSpline[z].evaluate(obsVector[m].getRadius()));
 					}
-					double yhat =  -(zSplinePsi->slope(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000));
+					double yhat =  1e6 * -(zSplinePsi->slope(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000));
 					HCq[m] += yhat*weight;
 				}
 				weight =  obsVector[m].getWeight(var+1);
@@ -585,7 +585,7 @@ void CostFunctionRZ::updateHCq(double* state)
 				for (unsigned int z = 0; z < zState; z++) {								
 					zSplinePsi->setCoefficient(z, (bgSpline[z].slope(obsVector[m].getRadius()) / 1000));
 				}
-				double yhat =  zSplinePsi->evaluate(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000);
+				double yhat =  1e6 * zSplinePsi->evaluate(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000);
 				HCq[m] += yhat*weight;
 				
 			} else {

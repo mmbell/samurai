@@ -33,7 +33,7 @@ VarDriver::~VarDriver()
 
 bool VarDriver::readTCcenters()
 {
-	QFile centerFile("/Users/mbell/Development/tcvar/centerfile.txt");
+	QFile centerFile("./centerfile.txt");
 	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 	

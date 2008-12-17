@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
-		09B3F4640EDB68AB00F98F74 /* tcvar.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 09B3F4610EDB68AB00F98F74 /* tcvar.app */; };
+		099C4A5E0EF8CE5E0037D0D6 /* tcvar.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
 		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
 		2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 118FCBAABA162BA17933C789 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -38,7 +38,7 @@
 			dstPath = /Users/mbell/Development/tcvar/trunk;
 			dstSubfolderSpec = 0;
 			files = (
-				09B3F4640EDB68AB00F98F74 /* tcvar.app in Project Copy */,
+				099C4A5E0EF8CE5E0037D0D6 /* tcvar.app in Project Copy */,
 			);
 			name = "Project Copy";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -50,7 +50,7 @@
 		0137A8775B3EEF11BE16A2FE /* TCcenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TCcenter.h; sourceTree = "<group>"; };
 		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
 		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
-		09B3F4610EDB68AB00F98F74 /* tcvar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tcvar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tcvar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
@@ -111,15 +111,15 @@
 				883D7615C4D2DE3FA1218F12 /* Headers */,
 				7CABE3C80E79AD2B307756D2 /* Sources [qmake] */,
 				ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */,
-				09B3F4620EDB68AB00F98F74 /* Products */,
+				099C4A5C0EF8CE5E0037D0D6 /* Products */,
 			);
 			name = tcvar;
 			sourceTree = "<group>";
 		};
-		09B3F4620EDB68AB00F98F74 /* Products */ = {
+		099C4A5C0EF8CE5E0037D0D6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				09B3F4610EDB68AB00F98F74 /* tcvar.app */,
+				099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -203,7 +203,7 @@
 /* Begin PBXNativeTarget section */
 		BCD0948322903A03CF04C8A3 /* tcvar */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 09B3F46C0EDB68CA00F98F74 /* Build configuration list for PBXNativeTarget "tcvar" */;
+			buildConfigurationList = 099C4A670EF8CE8F0037D0D6 /* Build configuration list for PBXNativeTarget "tcvar" */;
 			buildPhases = (
 				D7BA7D76DAB5DD13389D6332 /* Qt Qmake */,
 				A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */,
@@ -218,7 +218,7 @@
 			);
 			name = tcvar;
 			productName = tcvar;
-			productReference = 09B3F4610EDB68AB00F98F74 /* tcvar.app */;
+			productReference = 099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -230,7 +230,7 @@
 			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
 			mainGroup = 05596AB53D8D521C69802C27 /* tcvar */;
-			productRefGroup = 09B3F4620EDB68AB00F98F74 /* Products */;
+			productRefGroup = 099C4A5C0EF8CE5E0037D0D6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -301,7 +301,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		09B3F4670EDB68AC00F98F74 /* Debug */ = {
+		099C4A610EF8CE5E0037D0D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
@@ -365,7 +365,7 @@
 			};
 			name = Debug;
 		};
-		09B3F4680EDB68AC00F98F74 /* Release */ = {
+		099C4A620EF8CE5E0037D0D6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
@@ -428,7 +428,7 @@
 			};
 			name = Release;
 		};
-		09B3F4690EDB68AC00F98F74 /* Default */ = {
+		099C4A630EF8CE5E0037D0D6 /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
@@ -508,7 +508,6 @@
 				GCC_ENABLE_SSE3_EXTENSIONS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_UNROLL_LOOPS = YES;
 				GCC_VERSION = 4.2;
 			};
 			name = Release;
@@ -516,12 +515,12 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		09B3F46C0EDB68CA00F98F74 /* Build configuration list for PBXNativeTarget "tcvar" */ = {
+		099C4A670EF8CE8F0037D0D6 /* Build configuration list for PBXNativeTarget "tcvar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				09B3F4670EDB68AC00F98F74 /* Debug */,
-				09B3F4680EDB68AC00F98F74 /* Release */,
-				09B3F4690EDB68AC00F98F74 /* Default */,
+				099C4A610EF8CE5E0037D0D6 /* Debug */,
+				099C4A620EF8CE5E0037D0D6 /* Release */,
+				099C4A630EF8CE5E0037D0D6 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Default;
