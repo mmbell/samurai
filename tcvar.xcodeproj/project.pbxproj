@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
 		099C4A5E0EF8CE5E0037D0D6 /* tcvar.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */; };
+		099C4A890EFC0D680037D0D6 /* HCq_kernel.cu in Bundle Resources */ = {isa = PBXBuildFile; fileRef = 099C4A880EFC0D680037D0D6 /* HCq_kernel.cu */; };
+		099C4A8D0EFC0D760037D0D6 /* GPUdriver.cu in Bundle Resources */ = {isa = PBXBuildFile; fileRef = 099C4A8C0EFC0D760037D0D6 /* GPUdriver.cu */; };
+		099C4A930EFC0F3F0037D0D6 /* libcudart.dylib in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 099C4A920EFC0F3F0037D0D6 /* libcudart.dylib */; };
+		099C4ACB0EFC13A20037D0D6 /* GPUdriver.cu.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 099C4ACA0EFC13A20037D0D6 /* GPUdriver.cu.cpp */; };
+		099C4AD50EFC14370037D0D6 /* libcutil.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 099C4AD40EFC14370037D0D6 /* libcutil.a */; };
+		099C4B1C0EFC30050037D0D6 /* BSpline.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 099C4B1B0EFC30050037D0D6 /* BSpline.cpp */; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
 		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
 		2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 118FCBAABA162BA17933C789 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -51,6 +57,12 @@
 		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
 		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
 		099C4A5B0EF8CE5E0037D0D6 /* tcvar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tcvar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		099C4A880EFC0D680037D0D6 /* HCq_kernel.cu */ = {isa = PBXFileReference; explicitFileType = sourcecode.c; fileEncoding = 4; path = HCq_kernel.cu; sourceTree = "<group>"; };
+		099C4A8C0EFC0D760037D0D6 /* GPUdriver.cu */ = {isa = PBXFileReference; explicitFileType = sourcecode.c; fileEncoding = 4; path = GPUdriver.cu; sourceTree = "<group>"; };
+		099C4A920EFC0F3F0037D0D6 /* libcudart.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcudart.dylib; path = /usr/local/cuda/lib/libcudart.dylib; sourceTree = "<absolute>"; };
+		099C4ACA0EFC13A20037D0D6 /* GPUdriver.cu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GPUdriver.cu.cpp; sourceTree = "<group>"; };
+		099C4AD40EFC14370037D0D6 /* libcutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcutil.a; path = CUDA/lib/libcutil.a; sourceTree = SYSTEM_DEVELOPER_DIR; };
+		099C4B1B0EFC30050037D0D6 /* BSpline.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BSpline.cpp; sourceTree = "<group>"; };
 		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
@@ -97,6 +109,8 @@
 				51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */,
 				069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */,
 				F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */,
+				099C4A930EFC0F3F0037D0D6 /* libcudart.dylib in Frameworks & Libraries */,
+				099C4AD50EFC14370037D0D6 /* libcutil.a in Frameworks & Libraries */,
 			);
 			name = "Frameworks & Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -166,6 +180,8 @@
 		ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				099C4AD40EFC14370037D0D6 /* libcutil.a */,
+				099C4A920EFC0F3F0037D0D6 /* libcudart.dylib */,
 				9B36DA7E32F0304E780E7972 /* QtGui.framework */,
 				DA138F75C9F545CDAE7FB264 /* Carbon.framework */,
 				821416211D63F190AAAD016A /* AppKit.framework */,
@@ -187,8 +203,12 @@
 				118FCBAABA162BA17933C789 /* main.cpp */,
 				E7EF8886CDC5FC80E4E17CD6 /* MetObs.cpp */,
 				A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */,
+				099C4A8C0EFC0D760037D0D6 /* GPUdriver.cu */,
+				099C4A880EFC0D680037D0D6 /* HCq_kernel.cu */,
+				099C4ACA0EFC13A20037D0D6 /* GPUdriver.cu.cpp */,
 				FBD6C342AFEE376FF81E4834 /* ParametricVortex.cpp */,
 				E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */,
+				099C4B1B0EFC30050037D0D6 /* BSpline.cpp */,
 				F23D90239C967BE28A8911C1 /* VarDriver.cpp */,
 				1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */,
 				9356464C64678A879AF79690 /* VarDriver2d.cpp */,
@@ -205,6 +225,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 099C4A670EF8CE8F0037D0D6 /* Build configuration list for PBXNativeTarget "tcvar" */;
 			buildPhases = (
+				099C4AB00EFC107A0037D0D6 /* CUDA Preprocessor */,
 				D7BA7D76DAB5DD13389D6332 /* Qt Qmake */,
 				A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */,
 				F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */,
@@ -244,6 +265,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				099C4A890EFC0D680037D0D6 /* HCq_kernel.cu in Bundle Resources */,
+				099C4A8D0EFC0D760037D0D6 /* GPUdriver.cu in Bundle Resources */,
 			);
 			name = "Bundle Resources";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -251,6 +274,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		099C4AB00EFC107A0037D0D6 /* CUDA Preprocessor */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "CUDA Preprocessor";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/CUDA_preprocess.mak";
+		};
 		A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -294,6 +331,8 @@
 				782B6788D61FA49990A796F9 /* VarDriver2d.cpp in Build Sources */,
 				C812174DDF388E53DFDE91E1 /* Dorade.cpp in Build Sources */,
 				BF2DBD523D89A5B1D20EC5DE /* TCcenter.cpp in Build Sources */,
+				099C4ACB0EFC13A20037D0D6 /* GPUdriver.cu.cpp in Build Sources */,
+				099C4B1C0EFC30050037D0D6 /* BSpline.cpp in Build Sources */,
 			);
 			name = "Build Sources";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -329,7 +368,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					/Library/Frameworks,
 					/System/Library/Frameworks/,
+					/usr/local/cuda/lib,
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/CUDA/lib\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.3;
 				OTHER_CFLAGS = (
 					"-pipe",
@@ -392,7 +434,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					/Library/Frameworks,
 					/System/Library/Frameworks/,
+					/usr/local/cuda/lib,
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/CUDA/lib\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.3;
 				OTHER_CFLAGS = (
 					"-pipe",
@@ -453,7 +498,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					/Library/Frameworks,
 					/System/Library/Frameworks/,
+					/usr/local/cuda/lib,
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/CUDA/lib\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.3;
 				OTHER_CFLAGS = (
 					"-pipe",

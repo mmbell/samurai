@@ -20,6 +20,9 @@
 #include <vector>
 #include <string>
 
+// Define this to run on GPU
+//#define CSTGPU
+
 class CostFunctionRZ: public CostFunction
 {
 	
@@ -58,7 +61,7 @@ private:
 	Observation* obsVector;
 	RecursiveFilter* filterR;
 	RecursiveFilter* filterZ;
-	double* HCq;
+
 	double* HT;
 	double* zHT;
 	double* stateMod;
@@ -75,6 +78,17 @@ private:
 	unsigned int numVars;
 	double varScale[6];
 	double bgError[6];
+
+	// GPU Variables
+	float* coeffHost;
+	void updateHCq_GPU(double* state);
+#ifdef CSTGPU
+	float* HCq;
+#else
+	float* HCq;
+	//double* HCq;
+#endif
+	
 };
 
 #endif

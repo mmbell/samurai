@@ -9,6 +9,13 @@
 #include "CostFunctionRZ.h"
 #include <cmath>
 
+// Global CUDA declarations
+extern "C" {
+	int cstGPU_init (float* obs_h, int mObs);
+	void loadSplineCoeffs_GPU(float* coeffHost, int numCoeffs);
+	void HCq_GPU(int mObs, float rmax, float rmin, float zmax, float zmin, float* HCq_h, int pState, int zState);
+}
+
 /* First, compute HCq and Hxb via recursive filter on q, followed by loop over M observations
  yielding 2 y-estimate M x 1 vectors. Solve for innovation vector d by subtracting from y.
  For function, subtract from HCq and take inner product (with R-1), add to i.p. of q vector.
@@ -77,6 +84,12 @@ void CostFunctionRZ::finalize()
 	delete[] fieldR;
 	delete[] fieldZ;
 	delete[] zBuffer;
+	
+#ifdef CSTGPU
+	// GPU variables
+	delete[] coeffHost;
+#endif
+	
 }
 
 void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls, SplineD* zs, SplineD* zpsi, 
@@ -115,7 +128,6 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 	df = new double[nState];
 	stateMod = new double[nState];
 
-	HCq = new double[mObs];
 	innovation = new double[mObs];
 
 	HT = new double[pState];
@@ -150,6 +162,28 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 		field[z] = new double[maxRadius];
 	}
 	zBuffer = new double[heightSize];
+	
+#ifdef CSTGPU
+	// GPU variables
+	HCq = new float[mObs];
+	coeffHost = new float[numVars*pState*zState];
+	// Load the Observations
+	float* obs_h = new float[mObs*9];
+	for (int m = 0; m < mObs; m++) {
+		int n = m*9;
+		for (int var = 0; var < 6; var++) {
+			obs_h[n+var] = obs[m].getWeight(var);
+		}
+		obs_h[n+6] = obs[m].getRadius();
+		obs_h[n+7] = obs[m].getAltitude();
+		obs_h[n+8] = obs[m].getInverseError();
+	}
+	cstGPU_init(obs_h, mObs);
+	
+#else
+	HCq = new float[mObs];
+	//HCq = new double[mObs];	
+#endif
 	
 	initState();
 }	
@@ -346,8 +380,11 @@ void CostFunctionRZ::initState() {
 double CostFunctionRZ::funcValue(double* state)
 {
 	// Update the Y hat vector
+#ifdef CSTGPU
+	updateHCq_GPU(state);
+#else
 	updateHCq(state);
-	
+#endif
 	double qIP, obIP;
 	qIP = 0;
 	obIP = 0;
@@ -357,6 +394,7 @@ double CostFunctionRZ::funcValue(double* state)
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
+	#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m].getInverseError())*(HCq[m]-innovation[m]);
 		//cout << m << "\t" << HCq[m] << "\t" << innovation[m] << endl;
@@ -370,7 +408,12 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 {
 	
 	// Update the Y hat vector
+#ifdef CSTGPU
+	updateHCq_GPU(state);
+#else
 	updateHCq(state);
+#endif
+
 	// Calculate HTd	
 	for (unsigned int var = 0; var < numVars; var++) {
 		SplineD* bgSpline;
@@ -577,15 +620,15 @@ void CostFunctionRZ::updateHCq(double* state)
 					for (unsigned int z = 0; z < zState; z++) {								
 						zSplinePsi->setCoefficient(z, bgSpline[z].evaluate(obsVector[m].getRadius()));
 					}
-					double yhat =  1e6 * -(zSplinePsi->slope(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000));
+					double yhat =  1e3 * -(zSplinePsi->slope(obsVector[m].getAltitude()) / ( obsVector[m].getRadius() ));
 					HCq[m] += yhat*weight;
 				}
 				weight =  obsVector[m].getWeight(var+1);
 				if (!weight) continue;
 				for (unsigned int z = 0; z < zState; z++) {								
-					zSplinePsi->setCoefficient(z, (bgSpline[z].slope(obsVector[m].getRadius()) / 1000));
+					zSplinePsi->setCoefficient(z, (bgSpline[z].slope(obsVector[m].getRadius()) ));
 				}
-				double yhat =  1e6 * zSplinePsi->evaluate(obsVector[m].getAltitude()) / (obsVector[m].getRadius() * 1000);
+				double yhat =  zSplinePsi->evaluate(obsVector[m].getAltitude()) / ( obsVector[m].getRadius() );
 				HCq[m] += yhat*weight;
 				
 			} else {
@@ -604,6 +647,89 @@ void CostFunctionRZ::updateHCq(double* state)
 	delete[] Cq;
 	
 }
+
+void CostFunctionRZ::updateHCq_GPU(double* state)
+{
+		
+	unsigned int radSize = bgradii->size();
+	double* Cq = new double[radSize];
+	for (unsigned int var = 0; var < numVars; var++) {
+		unsigned int zi = 0;
+		SplineD* bgSpline;
+		if (var > 1) {
+			bgSpline = scalarSpline;
+		} else {
+			bgSpline = vecSpline;
+		}		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				unsigned int Ri = R + var*RState[z] + zi;
+				field[z][R] = state[Ri];
+			}			
+			// Increment the state array index
+			zi += numVars*RState[z];
+		}
+		for (unsigned int R = 0; R < maxRadius; R++) {
+			for (unsigned int z = 0; z < zState; z++) {
+				// Pad the field with zeroes if it is outside the domain
+				if (R < RState[z]) {
+					fieldZ[z] = field[z][R];
+				} else {
+					fieldZ[z] = 0;
+				}
+			}
+			
+			// FZ
+			filterZ->filterArray(fieldZ, zState);
+			for (unsigned int z = 0; z < zState; z++) {
+				field[z][R] = fieldZ[z];
+			}
+			
+		}
+		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				if ((var == 1) and (z == 0)) {
+					// Force Psi delta to zero
+					field[z][R]= 0;
+				}			
+				fieldR[R] = field[z][R];
+			}
+			// FR
+			filterR->filterArray(fieldR, RState[z]);
+			
+			// D
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				double coeff = fieldR[R] * bgError[var] * varScale[var];
+				ctrlSpline[z].setCoefficient(R, coeff);
+			}
+			
+			// P
+			for (unsigned int r = 0; r < radSize; r++) {
+				double potRad = RXform[z].at(r);
+				Cq[r] = ctrlSpline[z].evaluate(potRad);
+				//cout << z << "\t" << r << "\t" << var << "\t" << Cq[r] << endl;
+			}
+			
+			// S
+			bgSpline[z].solveGQ(Cq);
+		}
+		
+		// Load the spline coefficients onto the GPU
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int p = 0; p < pState; p++) {
+				coeffHost[var*zState*pState +z*pState + p] = bgSpline[z].getCoefficient(p);
+			}
+		}
+	}
+	
+	loadSplineCoeffs_GPU(coeffHost, numVars*pState*zState);
+	delete[] Cq;
+	
+	// H
+	HCq_GPU(mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState);
+}
+
 
 void CostFunctionRZ::getCq(double* Cq)
 {
