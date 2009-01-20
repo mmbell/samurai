@@ -318,7 +318,7 @@ void VarDriver2d::runVortexBG()
 	double CQTOL = 0.5;
 	double CQRMS = 999;
 	int iter=0;
-	while ((CQRMS > CQTOL) and (iter < 5)) {
+	while ((CQRMS > CQTOL) and (iter < 1)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		cost2d->minimize();
@@ -945,7 +945,10 @@ void VarDriver2d::processMetObs()
 		for (int i = 0; i < metData->size(); ++i) {
 			MetObs metOb = metData->at(i);
 			QDateTime obTime = metOb.getTime();
-			if ((obTime < startTime) and (obTime > endTime)) continue;
+			/* cout << startTime.toString(Qt::ISODate).toAscii().data()
+			<< "\t" << obTime.toString(Qt::ISODate).toAscii().data()
+			<< "\t" << endTime.toString(Qt::ISODate).toAscii().data() << endl; */
+			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int tci = startTime.secsTo(obTime);
 			if ((tci < 0) or (tci > (int)tcVector.size())) {
 				cout << "Time problem with observation " << tci << endl;

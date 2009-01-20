@@ -39,12 +39,16 @@ bool VarDriver::readTCcenters()
 	
 	QTextStream in(&centerFile);
 	while (!in.atEnd()) {
+		// Hard code for now
+		QDate date(2003, 9, 12);
+		
 		QString line = in.readLine();
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		QString timestr = lineparts[0];
+		if (timestr.left(2).toInt() > 23) {
+			date = date.addDays(1);
+		}
 		QTime time = QTime::fromString(timestr, "HHmmss");
-		// Hard code for now
-		QDate date(2003, 9, 12);
 		QDateTime datetime = QDateTime(date, time, Qt::UTC);
 		float lat = lineparts[1].toFloat();
 		float lon = lineparts[2].toFloat();
@@ -111,7 +115,85 @@ bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 {
-	return 0;
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr, aircraft;
+	QDateTime datetime;
+	bool start = false;
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		if (line.startsWith("Launch Site Type")) {
+			QStringList lineparts = line.split(":");
+			aircraft = lineparts[1].trimmed();
+		} else if (line.startsWith("GMT")) {
+			datestr = line.mid(35,12);
+			timestr = line.mid(49,8);
+			QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
+			QTime time = QTime::fromString(timestr, "HH:mm:ss");
+			datetime = QDateTime(date, time, Qt::UTC);
+		} else if (line.startsWith("------")) {
+			// Start reading data
+			start = true;
+		} else if (start) {
+			MetObs ob;
+			ob.setStationName(aircraft);
+			QStringList lineparts = line.split(QRegExp("\\s+"));
+			int msec = (int)lineparts[1].toFloat()*1000;
+			ob.setTime(datetime.addMSecs(msec));
+			if (lineparts[11].toFloat() != 999.) { 
+				ob.setLon(lineparts[11].toFloat());
+			} else {
+				ob.setLon(-999.);
+			}
+			if (lineparts[12].toFloat() != 999.) { 
+				ob.setLat(lineparts[12].toFloat());
+			} else {
+				ob.setLat(-999.);
+			}
+			if (lineparts[15].toFloat() != 99999.0) { 
+				ob.setAltitude(lineparts[15].toFloat());
+			} else {
+				ob.setAltitude(99999.0);
+			}
+			if (lineparts[2].toFloat() != 9999.0) { 
+				ob.setPressure(lineparts[2].toFloat());
+			} else {
+				ob.setPressure(9999.0);
+			}
+			if (lineparts[3].toFloat() != 999.0) {
+				ob.setTemperature(lineparts[3].toFloat() + 273.15);
+			} else {
+				ob.setTemperature(-999.);
+			}
+			if (lineparts[5].toFloat() != 999.0) {
+				ob.setRH(lineparts[5].toFloat());
+			} else {
+				ob.setRH(-999.);
+			}
+			if (lineparts[9].toFloat() != 999.0) {
+				ob.setWindDirection(lineparts[9].toFloat());
+			} else {
+				ob.setWindDirection(-999.);
+			}
+			if (lineparts[8].toFloat() != 999.0) {
+				ob.setWindSpeed(lineparts[8].toFloat());
+			} else {
+				ob.setWindSpeed(-999.);
+			}
+			if ((lineparts[10].toFloat() != 99.0) and (lineparts[2].toFloat() != 9999.0)) {
+				float w = lineparts[10].toFloat()+(-0.01*lineparts[2].toFloat()+22.);
+				ob.setVerticalVelocity(w);
+			} else {
+				ob.setVerticalVelocity(-999.);
+			}
+			ob.setObType(MetObs::dropsonde);
+			metObVector->push_back(ob);
+		}
+	}
+	metFile.close();
+	return true;
 }
 
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)

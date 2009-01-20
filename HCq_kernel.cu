@@ -1,7 +1,7 @@
 #include <stdio.h>
 #ifndef _CSTGPU_KERNEL_H
 #define _CSTGPU_KERNEL_H
-#define BLOCKSIZE 64
+#define BLOCKSIZE 6
 
 // Declare some variables
 __constant__ float BC[9][4];
@@ -144,7 +144,7 @@ __global__ void HCq_kernel(float* obs_d,float* HCq_d, int R, int Z, float rmin, 
 	float br = 0;
 	float bzp = 0;
 	float brp = 0;
-	int bc = 0;
+	int bc = 1;
 	// rhoV = BC_LZERO_RSECOND, r & BC_ZERO_SECOND, z
 	for (int r = m-1; r <= m+2; ++r) {
 		for (int z = n-1; z <= n+2; ++z) {				
@@ -156,42 +156,50 @@ __global__ void HCq_kernel(float* obs_d,float* HCq_d, int R, int Z, float rmin, 
 				brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 				bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
 				bc = 0;
-			}
-			if (w1) {
-				if (bc) { 
-					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
-					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
-				}
-				HCq += coeffDevice[z*R+r] * br * bz * w1;
-			}
-			float coeff;
-			if (w2 or w3) coeff = coeffDevice[Z*R + z*R +r];
-			if (w2) {
-				if (bc) {
-					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
-					bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
-				}
+				HCq += coeffDevice[z*5*R + r*5] * br * bz * w1;
+				float coeff = coeffDevice[z*5*R + r*5 +1];
 				HCq += coeff * br * (-bzp) * w2 * 1e3 * invRadius;
-			}
-			if (w3) {
-				if (bc) {
-					brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
-					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
-				}
 				HCq += coeff * brp * bz * w3 * invRadius;
-			}
-			if (w4 or w5 or w6) {
-				if (bc) {
-					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
-					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+				HCq += coeffDevice[z*5*R + r*5 +2] * br * bz * w4;
+				HCq += coeffDevice[z*5*R + r*5 +3] * br * bz * w5;
+				HCq += coeffDevice[z*5*R + r*5 +4] * br * bz * w6;
+			} else {
+				if (w1) {
+					if (bc) { 
+						br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+						bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+					}
+					HCq += coeffDevice[z*5*R + r*5] * br * bz * w1;
 				}
+				float coeff;
+				if (w2 or w3) coeff = coeffDevice[z*5*R + r*5 +1];
+				if (w2) {
+					if (bc) {
+						br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+						bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+					}
+					HCq += coeff * br * (-bzp) * w2 * 1e3 * invRadius;
+				}
+				if (w3) {
+					if (bc) {
+						brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+						bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+					}
+					HCq += coeff * brp * bz * w3 * invRadius;
+				}
+				if (w4 or w5 or w6) {
+					if (bc) {
+						br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
+						bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+					}
+				}
+				if (w4)
+					HCq += coeffDevice[z*5*R + r*5 +2] * br * bz * w4;
+				if (w5)
+					HCq += coeffDevice[z*5*R + r*5 +3] * br * bz * w5;
+				if (w6)
+					HCq += coeffDevice[z*5*R + r*5 +4] * br * bz * w6;
 			}
-			if (w4)
-				HCq += coeffDevice[2*Z*R + z*R +r] * br * bz * w4;
-			if (w5)
-				HCq += coeffDevice[3*Z*R + z*R +r] * br * bz * w5;
-			if (w6)
-				HCq += coeffDevice[4*Z*R + z*R +r] * br * bz * w6;
 		}
 	}
 	HCq_d[xi] = HCq;

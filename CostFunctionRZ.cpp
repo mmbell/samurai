@@ -351,7 +351,7 @@ void CostFunctionRZ::initState() {
 			for (unsigned int R = 0; R < RState[z]; R++) {
 				if ((var == 1) and (z == 0)) {
 					// Force Psi delta to zero
-					rCTHT[R]= 0;
+					//rCTHT[R]= 0;
 				}			
 				rzCTHT[z][R] = rCTHT[R];
 			}
@@ -496,7 +496,7 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 			for (unsigned int R = 0; R < RState[z]; R++) {
 				if ((var == 1) and (z == 0)) {
 					// Force Psi delta to zero
-					rCTHT[R]= 0;
+					//rCTHT[R]= 0;
 				}							
 				rzCTHT[z][R] = rCTHT[R];
 			}
@@ -580,7 +580,7 @@ void CostFunctionRZ::updateHCq(double* state)
 			for (unsigned int R = 0; R < RState[z]; R++) {
 				if ((var == 1) and (z == 0)) {
 					// Force Psi delta to zero
-					field[z][R]= 0;
+					//field[z][R]= 0;
 				}			
 				fieldR[R] = field[z][R];
 			}
@@ -691,7 +691,7 @@ void CostFunctionRZ::updateHCq_GPU(double* state)
 			for (unsigned int R = 0; R < RState[z]; R++) {
 				if ((var == 1) and (z == 0)) {
 					// Force Psi delta to zero
-					field[z][R]= 0;
+					//field[z][R]= 0;
 				}			
 				fieldR[R] = field[z][R];
 			}
@@ -718,7 +718,7 @@ void CostFunctionRZ::updateHCq_GPU(double* state)
 		// Load the spline coefficients onto the GPU
 		for (unsigned int z = 0; z < zState; z++) {
 			for (unsigned int p = 0; p < pState; p++) {
-				coeffHost[var*zState*pState +z*pState + p] = bgSpline[z].getCoefficient(p);
+				coeffHost[z*numVars*pState +p*numVars + var] = bgSpline[z].getCoefficient(p);
 			}
 		}
 	}
@@ -766,7 +766,7 @@ void CostFunctionRZ::getCq(double* Cq)
 			for (unsigned int R = 0; R < RState[z]; R++) {
 				if ((var == 1) and (z == 0)) {
 					// Force Psi delta to zero
-					field[z][R]= 0;
+					//field[z][R]= 0;
 				}			
 				fieldR[R] = field[z][R];
 			}

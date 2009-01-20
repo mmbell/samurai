@@ -295,35 +295,42 @@ float  MetObs::getCartesianVwind() const
 
 float MetObs::getPolarUwind(const float& centerLat, const float& centerLon) const
 {
-	
-	float centerLatRadians = centerLat * acos(-1.0)/180.0;
-	float fac_lat = 111.13209 - 0.56605 * cos(2.0 * centerLatRadians)
-	+ 0.00012 * cos(4.0 * centerLatRadians) - 0.000002 * cos(6.0 * centerLatRadians);
-	float fac_lon = 111.41513 * cos(centerLatRadians)
-	- 0.09455 * cos(3.0 * centerLatRadians) + 0.00012 * cos(5.0 * centerLatRadians);
-	float relX = (longitude - centerLon) * fac_lon;
-	float relY = (latitude - centerLat) * fac_lat;
-	float dist = sqrt(relX*relX + relY*relY);
-	float cs = relY/dist;
-	float sn = -relX/dist;
-	float vr = -(getCartesianUwind())*sn + getCartesianVwind()*cs;
-	return vr;
+	if (windSpeed != -999) {
+		float centerLatRadians = centerLat * acos(-1.0)/180.0;
+		float fac_lat = 111.13209 - 0.56605 * cos(2.0 * centerLatRadians)
+		+ 0.00012 * cos(4.0 * centerLatRadians) - 0.000002 * cos(6.0 * centerLatRadians);
+		float fac_lon = 111.41513 * cos(centerLatRadians)
+		- 0.09455 * cos(3.0 * centerLatRadians) + 0.00012 * cos(5.0 * centerLatRadians);
+		float relX = (longitude - centerLon) * fac_lon;
+		float relY = (latitude - centerLat) * fac_lat;
+		float dist = sqrt(relX*relX + relY*relY);
+		float cs = relY/dist;
+		float sn = -relX/dist;
+		float vr = -(getCartesianUwind())*sn + getCartesianVwind()*cs;
+		return vr;
+	} else {
+		return -999;
+	}
 }
 
 float MetObs::getPolarVwind(const float& centerLat, const float& centerLon) const
 {
-	float centerLatRadians = centerLat * acos(-1.0)/180.0;
-	float fac_lat = 111.13209 - 0.56605 * cos(2.0 * centerLatRadians)
-	+ 0.00012 * cos(4.0 * centerLatRadians) - 0.000002 * cos(6.0 * centerLatRadians);
-	float fac_lon = 111.41513 * cos(centerLatRadians)
-	- 0.09455 * cos(3.0 * centerLatRadians) + 0.00012 * cos(5.0 * centerLatRadians);
-	float relX = (longitude - centerLon) * fac_lon;
-	float relY = (latitude - centerLat) * fac_lat;
-	float dist = sqrt(relX*relX + relY*relY);
-	float cs = relY/dist;
-	float sn = -relX/dist;
-	float vt = -(getCartesianUwind())*cs - getCartesianVwind()*sn;
-	return vt;
+	if (windSpeed != -999) {
+		float centerLatRadians = centerLat * acos(-1.0)/180.0;
+		float fac_lat = 111.13209 - 0.56605 * cos(2.0 * centerLatRadians)
+		+ 0.00012 * cos(4.0 * centerLatRadians) - 0.000002 * cos(6.0 * centerLatRadians);
+		float fac_lon = 111.41513 * cos(centerLatRadians)
+		- 0.09455 * cos(3.0 * centerLatRadians) + 0.00012 * cos(5.0 * centerLatRadians);
+		float relX = (longitude - centerLon) * fac_lon;
+		float relY = (latitude - centerLat) * fac_lat;
+		float dist = sqrt(relX*relX + relY*relY);
+		float cs = relY/dist;
+		float sn = -relX/dist;
+		float vt = -(getCartesianUwind())*cs - getCartesianVwind()*sn;
+		return vt;
+	} else {
+		return -999;
+	}
 }
 
 float MetObs::getDryDensity() const
