@@ -427,7 +427,7 @@ void Dorade::read_celv(FILE *fp,struct celv_info *cptr,int desc_len)
 	/*
 	 cptr->gate_spacing=calloc(cptr->total_gates,sizeof(float));
 	 if (!cptr->gate_spacing) {
-		 printf ("Reallocation error..aborting..\n");
+		 printf ("doublelocation error..aborting..\n");
 		 exit(1);
 	 } 
 	 */

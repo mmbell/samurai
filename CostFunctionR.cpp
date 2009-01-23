@@ -49,9 +49,9 @@ void CostFunctionR::finalize()
 	delete[] HTd;
 }
 
-void CostFunctionR::initialize(SplineD* bgs, vector<double>* bgr, vector<double>* bgf,
-							   SplineD* ctrl, vector<double>* ctrlR,
-							   vector<double>* RX, vector<double>* rX, 
+void CostFunctionR::initialize(SplineD* bgs, vector<real>* bgr, vector<real>* bgf,
+							   SplineD* ctrl, vector<real>* ctrlR,
+							   vector<real>* RX, vector<real>* rX, 
 							   Observation* obs)
 {
 
@@ -80,11 +80,11 @@ void CostFunctionR::initialize(SplineD* bgs, vector<double>* bgr, vector<double>
 	df = new double[nState];
 	stateMod = new double[nState];
 
-	HCq = new double[mObs];
+	HCq = new real[mObs];
 	innovation = new double[mObs];
 	int pState = bgSpline->nNodes();
-	HTHCq = new double[pState];
-	HTd = new double[pState];
+	HTHCq = new real[pState];
+	HTd = new real[pState];
 	
 	initState();
 }	
@@ -216,7 +216,7 @@ void CostFunctionR::updateHCq(double* state)
 	double* field = new double[fieldSize];
 	
 	unsigned int bgSize = bgradii->size();
-	double* Cq = new double[bgSize];
+	real* Cq = new real[bgSize];
 	
 	for (unsigned int var = 0; var < numVars; var++) {
 		for (unsigned int R = 0; R < fieldSize; R++) {
@@ -228,12 +228,11 @@ void CostFunctionR::updateHCq(double* state)
 		filter1d->filterArray(field, fieldSize);
 		
 		// D
+		//ctrlSpline->solve(field);
 		for (unsigned int R = 0; R < fieldSize; R++) {
-			field[R] *= bgError[var];
+			double coeff = field[R] * bgError[var];
+			ctrlSpline->setCoefficient(R, coeff);
 		}
-		
-		// S
-		ctrlSpline->solve(field);
 		
 		// P
 		for (unsigned int r = 0; r < bgradii->size(); r++) {
@@ -271,12 +270,11 @@ void CostFunctionR::getCq(double* Cq)
 		filter1d->filterArray(field, fieldSize);
 		
 		// D		
+		//ctrlSpline->solve(field);
 		for (unsigned int R = 0; R < fieldSize; R++) {
-			field[R] *= bgError[var];
+			double coeff = field[R] * bgError[var];
+			ctrlSpline->setCoefficient(R, coeff);
 		}
-		
-		// S
-		ctrlSpline->solve(field);
 		
 		// P
 		for (unsigned int r = 0; r < bgradii->size(); r++) {

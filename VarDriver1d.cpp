@@ -18,8 +18,8 @@ VarDriver1d::VarDriver1d()
 	: VarDriver()
 {
 	numVars = 6;
-	BG = new vector<double>[numVars];
-	BGsave = new vector<double>[numVars];
+	BG = new vector<real>[numVars];
+	BGsave = new vector<real>[numVars];
 		
 }
 
@@ -68,7 +68,7 @@ bool VarDriver1d::initParametricBG()
 	double f, v, u, w, h, q, rho;
 	double base = 0;
 	int i = 0;
-	vector<double> vIn, vBG, uBG, wBG, hBG, qBG, rpBG;
+	vector<real> vIn, vBG, uBG, wBG, hBG, qBG, rpBG;
 	ifstream vdata("/Users/mbell/Development/tcvar/vdata.txt");
 	vdata.width(14);
 	while (vdata >> f >> v >> u >> w >> h >> q >> rho)
@@ -132,7 +132,7 @@ bool VarDriver1d::initParametricBG()
 	// Get the parametric winds from the input winds if data does not extend through domain
 	// ParametricVortex parmVortex (&vIn[0], &r[0],  r.size());
 	
-	vector<double> parmWinds;
+	vector<real> parmWinds;
 	r.clear();
 	bgSpline->solve(&vIn[0]);
 	for (double rad = rMin; rad< rMax; rad+= rincr)
@@ -190,7 +190,7 @@ bool VarDriver1d::initParametricBG()
 	<< ", number of nodes " << RnumGridpts
 	<< ", and boundary condition type " << bc << "\n";
 	
-	vector<double> initCtrl;
+	vector<real> initCtrl;
 	initCtrl.assign(RnumGridpts, 0.0);
 	R.clear();
 	bgSpline->solve(&BG[0].front());
@@ -368,10 +368,10 @@ bool VarDriver1d::finalizeParametricBG()
 	// Get the temperature, pressure, and E
 	bgSpline->solve(&BG[3].front());
 	analysisSpline->solve(&BG[5].front());
-	vector<double> temp;
-	vector<double> press;
-	vector<double> h;
-	vector<double> hstarfwd;
+	vector<real> temp;
+	vector<real> press;
+	vector<real> h;
+	vector<real> hstarfwd;
 	for (unsigned int T = 235; T < 315; T++) {
 		temp.push_back(T);
 		hstarfwd.push_back(0.0);
@@ -476,7 +476,7 @@ double VarDriver1d::updateXforms()
 	double *Cq = new double[num_nodes*numVars];
 	cost1d->getCq(Cq);
 	double RMS = 0;
-	vector<double> incr; 
+	vector<real> incr; 
 	// Need to update rho with perturbation
 	double rhoBar = 1.1646*exp(-1.068e-4*2000);
 	for (unsigned int p = 0; p < r.size(); p++) {
@@ -852,7 +852,7 @@ void VarDriver1d::processMetObs()
 					 Adjusted to use Jordan hydrostatic scale height -MB */
 					double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
 					//C The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
-					double VTS=-DCOR * (0.817*pow(ZZ,0.063));
+					double VTS=-DCOR * (0.817*pow(ZZ,(double)0.063));
 					/* if(irsw.gt.0) then
 					C The rain relationship --- from Willis analytical-gamma distribution 
 					TERM1=7.331/ZZ**0.010022 
@@ -860,7 +860,7 @@ void VarDriver1d::processMetObs()
 					VTR=-DCOR * (5.5011E+09/(TERM1+TERM2)**10.5) 
 					else 
 					C The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
-					double VTR=-DCOR * (2.6*pow(ZZ,.107));
+					double VTR=-DCOR * (2.6*pow(ZZ,(double).107));
 					/* endif 
 					C test if height is in the transition region between SNOW and RAIN
 					C  defined as hlow in km < H < hhi in km

@@ -22,6 +22,8 @@
 #include <QDir>
 #include <QList>
 #include <QString>
+#include "precision.h"
+
 
 using namespace std;
 

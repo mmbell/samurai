@@ -35,8 +35,8 @@ public:
 	bool run();
 
 private:
-	typedef BSplineBase<double> SplineBase;
-	typedef BSpline<double> SplineD;
+	typedef BSplineBase<real> SplineBase;
+	typedef BSpline<real> SplineD;
 
 	// Different cases
 	bool initVortexBG();
@@ -52,7 +52,7 @@ private:
 	void bgOut();
 	void processMetObs();
 	double updateXforms();
-	bool writeAsi(const QString& fileName, vector<double>** fields, SplineD* scalar, SplineD* vector);	
+	bool writeAsi(const QString& fileName, vector<real>** fields, SplineD* scalar, SplineD* vector);	
 	
 	SplineD* scalarSpline;
 	SplineD* vecSpline;
@@ -60,18 +60,18 @@ private:
 	SplineD* zSplinePsi;
 	SplineD* ctrlSpline;
 	SplineD* rXformSpline;
-	vector<double> r;
-	vector<double> R;
-	vector<double> z;
-	vector<double> initCtrl;
-	vector<double>* RXform;
-	vector<double>* rXform;
+	vector<real> r;
+	vector<real> R;
+	vector<real> z;
+	vector<real> initCtrl;
+	vector<real>* RXform;
+	vector<real>* rXform;
 	unsigned int* RnumGridpts;
 	vector<Observation> obVector;
 	int bc;
 	
-	vector<double>** BG;
-	vector<double>** BGsave;
+	vector<real>** BG;
+	vector<real>** BGsave;
 		
 	// Cost Functions
 	CostFunctionRZ* cost2d;

@@ -24,13 +24,13 @@ class CostFunctionR : public CostFunction
 {
 	
 public:
-	typedef BSplineBase<double> SplineBase;
-	typedef BSpline<double> SplineD;
+	typedef BSplineBase<real> SplineBase;
+	typedef BSpline<real> SplineD;
 	CostFunctionR(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionR();
-    void initialize(SplineD* bgs, vector<double>* bgr, vector<double>* bgf,
-					SplineD* ctrl, vector<double>* ctrlR, 
-					vector<double>* RXform, vector<double>* rXform,  Observation* ob);
+    void initialize(SplineD* bgs, vector<real>* bgr, vector<real>* bgf,
+					SplineD* ctrl, vector<real>* ctrlR, 
+					vector<real>* RXform, vector<real>* rXform,  Observation* ob);
 	void finalize();
 	// Should this return an object, not a pointer?
 	void getCq(double* Cq);
@@ -43,16 +43,16 @@ private:
 	SplineD* bgSpline;
 	SplineD* ctrlSpline;
 	SplineD* CqSpline;
-	vector<double>* bgradii;
-	vector<double>* bgFields;
-	vector<double>* ctrlRadii;
-	vector<double>* RXform;
-	vector<double>* rXform;
+	vector<real>* bgradii;
+	vector<real>* bgFields;
+	vector<real>* ctrlRadii;
+	vector<real>* RXform;
+	vector<real>* rXform;
 	Observation* obsVector;
 	RecursiveFilter* filter1d;
-	double* HCq;
-	double* HTHCq;
-	double* HTd;
+	real* HCq;
+	real* HTHCq;
+	real* HTd;
 	double* stateMod;
 	double* innovation;
 	unsigned int numVars;

@@ -26,6 +26,8 @@
 #ifndef _BSPLINEBASE_IFACE_ID
 #define _BSPLINEBASE_IFACE_ID "$Id: BSpline.h 3990 2005-12-02 20:06:13Z granger $"
 
+#include "precision.h"
+
 /**
  * @file
  *
@@ -142,7 +144,7 @@ template <class T> struct BSplineBaseP;
  * static library or Windows DLL, source files should only include the 
  * interface file.  On Windows, applications should link with the import
  * library BSpline.lib and make sure BSpline.dll is on the path.  The DLL
- * contains an implementation for BSpline<float> and BSpline<double>.
+ * contains an implementation for BSpline<float> and BSpline<real>.
  * For debugging, an application can include the implementation to get its
  * own instantiation.
  *
@@ -238,7 +240,7 @@ public:
      * setup succeeded after construction.
      */
     BSplineBase (const T *x, int nx, 
-		 double wl, int bc_type = BC_ZERO_SECOND,
+		 real wl, int bc_type = BC_ZERO_SECOND,
 		 int num_nodes = 0);
 
     /// Copy constructor
@@ -269,10 +271,10 @@ public:
      *
      * @see ok().
      */
-    bool setDomain (const T *x, int nx, double wl, 
+    bool setDomain (const T *x, int nx, real wl, 
 		    int bc_type = BC_ZERO_SECOND,
 		    int num_nodes = 0);
-    bool setDomainGQ (const T *x, int nx, double wl, 
+    bool setDomainGQ (const T *x, int nx, real wl, 
 					int bc_type = BC_ZERO_SECOND,
 					int num_nodes = 0);
     /**
@@ -311,12 +313,12 @@ public:
      * Return the Alpha value for a given wavelength.  Note that this
      * depends on the current node interval length (DX).
      */
-    double Alpha (double wavelength);
-	double AlphaGQ (double wavelength);
+    real Alpha (real wavelength);
+	real AlphaGQ (real wavelength);
     /**
      * Return alpha currently in use by this domain.
      */
-    double Alpha () { return alpha; }
+    real Alpha () { return alpha; }
 
     /**
      * Return the current state of the object, either ok or not ok.
@@ -335,7 +337,7 @@ protected:
     typedef BSplineBaseP<T> Base;
 
     // Provided
-    double waveLength;	// Cutoff wavelength (l sub c)
+    real waveLength;	// Cutoff wavelength (l sub c)
     int NX;
     int K;	// Degree of derivative constraint (currently fixed at 2)
     int BC;			// Boundary conditions type (0,1,2)
@@ -344,28 +346,28 @@ protected:
     T xmax;
     T xmin;
     int M;			// Number of intervals (M+1 nodes)
-    double DX;			// Interval length in same units as X
-	double DXrecip;
-    double alpha;
+    real DX;			// Interval length in same units as X
+	real DXrecip;
+    real alpha;
     bool OK;
     Base *base;			// Hide more complicated state members
     				// from the public interface.
 
     bool Setup (int num_nodes = 0);
     void calculateQ ();
-    double qDelta (int m1, int m2);
-    double Beta (int m);
+    real qDelta (int m1, int m2);
+    real Beta (int m);
     void addP ();
 	void addPGQ ();
     bool factor ();
-    double Basis (int m, T x);
-    double DBasis (int m, T x);
+    real Basis (int m, T x);
+    real DBasis (int m, T x);
 
-    static const double BoundaryConditions[9][4];
-    static const double PI;
-	static const double ONESIXTH;
+    static const real BoundaryConditions[9][4];
+    static const real PI;
+	static const real ONESIXTH;
 	
-    double Ratiod (int&, double &, double &);
+    real Ratiod (int&, real &, real &);
 };
 
 
@@ -406,7 +408,7 @@ public:
      */
     BSpline (const T *x, int nx, 		/* independent variable */
 	     const T *y,			/* dependent values @ ea X */
-	     double wl,				/* cutoff wavelength */
+	     real wl,				/* cutoff wavelength */
 	     int bc_type = BSplineBase<T>::BC_ZERO_SECOND,
 	     int num_nodes = 0);
 

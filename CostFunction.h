@@ -8,6 +8,7 @@
 
 #ifndef COSTFUNC_H
 #define COSTFUNC_H
+#include "precision.h"
 
 using namespace std;
 

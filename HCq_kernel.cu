@@ -128,6 +128,7 @@ __global__ void HCq_kernel(float* obs_d,float* HCq_d, int R, int Z, float rmin, 
 	//int tx = threadIdx.x;
 	int xi = blockIdx.x*BLOCKSIZE + threadIdx.x;
 	int mi = xi*9;
+	int R1 = R+1;
 	float w1 = obs_d[mi];
 	float w2 = obs_d[mi+1];
 	float w3 = obs_d[mi+2];
@@ -155,24 +156,25 @@ __global__ void HCq_kernel(float* obs_d,float* HCq_d, int R, int Z, float rmin, 
 				bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
 				brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 				bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+				//printf("%d,  %d, %f, %f\n", r, z, br, bz);
 				bc = 0;
-				HCq += coeffDevice[z*5*R + r*5] * br * bz * w1;
-				float coeff = coeffDevice[z*5*R + r*5 +1];
+				HCq += coeffDevice[z*5*R1 + r*5] * br * bz * w1;
+				float coeff = coeffDevice[z*5*R1 + r*5 +1];
 				HCq += coeff * br * (-bzp) * w2 * 1e3 * invRadius;
 				HCq += coeff * brp * bz * w3 * invRadius;
-				HCq += coeffDevice[z*5*R + r*5 +2] * br * bz * w4;
-				HCq += coeffDevice[z*5*R + r*5 +3] * br * bz * w5;
-				HCq += coeffDevice[z*5*R + r*5 +4] * br * bz * w6;
+				HCq += coeffDevice[z*5*R1 + r*5 +2] * br * bz * w4;
+				HCq += coeffDevice[z*5*R1 + r*5 +3] * br * bz * w5;
+				HCq += coeffDevice[z*5*R1 + r*5 +4] * br * bz * w6;
 			} else {
 				if (w1) {
 					if (bc) { 
 						br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 						bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
 					}
-					HCq += coeffDevice[z*5*R + r*5] * br * bz * w1;
+					HCq += coeffDevice[z*5*R1 + r*5] * br * bz * w1;
 				}
 				float coeff;
-				if (w2 or w3) coeff = coeffDevice[z*5*R + r*5 +1];
+				if (w2 or w3) coeff = coeffDevice[z*5*R1 + r*5 +1];
 				if (w2) {
 					if (bc) {
 						br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
@@ -194,11 +196,11 @@ __global__ void HCq_kernel(float* obs_d,float* HCq_d, int R, int Z, float rmin, 
 					}
 				}
 				if (w4)
-					HCq += coeffDevice[z*5*R + r*5 +2] * br * bz * w4;
+					HCq += coeffDevice[z*5*R1 + r*5 +2] * br * bz * w4;
 				if (w5)
-					HCq += coeffDevice[z*5*R + r*5 +3] * br * bz * w5;
+					HCq += coeffDevice[z*5*R1 + r*5 +3] * br * bz * w5;
 				if (w6)
-					HCq += coeffDevice[z*5*R + r*5 +4] * br * bz * w6;
+					HCq += coeffDevice[z*5*R1 + r*5 +4] * br * bz * w6;
 			}
 		}
 	}

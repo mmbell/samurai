@@ -12,6 +12,7 @@
 
 #include "CostFunction.h"
 
+
 class CostFunctionAnalytic : public CostFunction
 {
 		

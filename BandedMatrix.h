@@ -28,6 +28,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include "precision.h"
 
 template <class T> class BandedMatrixRow;
 

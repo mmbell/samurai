@@ -124,7 +124,7 @@ struct BSplineBaseP
 // For now, hardcoding type 1 boundary conditions, 
 // which constrains the derivative to zero at the endpoints.
 template <class T>
-const double BSplineBase<T>::BoundaryConditions[9][4] = 
+const real BSplineBase<T>::BoundaryConditions[9][4] = 
 { 
     //	0		1		M-1		M
     {	-4,		-1,		-1,		-4 },
@@ -150,10 +150,10 @@ inline bool BSplineBase<T>::Debug (int on)
 
 
 template <class T>
-const double BSplineBase<T>::PI = 3.141592653589793;
+const real BSplineBase<T>::PI = 3.141592653589793;
 
 template <class T>
-const double BSplineBase<T>::ONESIXTH = 1.0/6.0;
+const real BSplineBase<T>::ONESIXTH = 1.0/6.0;
 
 template <class T>
 const char *
@@ -203,7 +203,7 @@ BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) :
 
 
 template <class T>
-BSplineBase<T>::BSplineBase (const T *x, int nx, double wl, int bc,
+BSplineBase<T>::BSplineBase (const T *x, int nx, real wl, int bc,
 			     int num_nodes) : 
     K(3), OK(false), base(new BSplineBaseP<T>)
 {
@@ -216,7 +216,7 @@ BSplineBase<T>::BSplineBase (const T *x, int nx, double wl, int bc,
 
 template <class T>
 bool
-BSplineBase<T>::setDomain (const T *x, int nx, double wl, int bc,
+BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
 			   int num_nodes)
 {
     if (nx <= 0 || x == 0 || wl < 0 || bc < 0 || bc > 8)
@@ -295,7 +295,7 @@ BSplineBase<T>::setDomain (const T *x, int nx, double wl, int bc,
 
 template <class T>
 bool
-BSplineBase<T>::setDomainGQ (const T *x, int nx, double wl, int bc,
+BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
 						   int num_nodes)
 {
     if (nx <= 0 || x == 0 || wl < 0 || bc < 0 || bc > 8)
@@ -377,11 +377,11 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, double wl, int bc,
  * Calculate the alpha parameter given a wavelength.
  */
 template <class T>
-double
-BSplineBase<T>::Alpha (double wl)
+real
+BSplineBase<T>::Alpha (real wl)
 {
     // K is the degree of the derivative constraint: 1, 2, or 3
-    double a = (double) (wl / (2 * PI * DX));
+    real a = (real) (wl / (2 * PI * DX));
     a *= a;			// a^2
     if (K == 2)
 	a = a * a;		// a^4
@@ -391,11 +391,11 @@ BSplineBase<T>::Alpha (double wl)
 }
 
 template <class T>
-double
-BSplineBase<T>::AlphaGQ (double wl)
+real
+BSplineBase<T>::AlphaGQ (real wl)
 {
     // K is the degree of the derivative constraint: 1, 2, or 3
-    double a = (double) (wl / (2 * PI * DX));
+    real a = (real) (wl / (2 * PI * DX));
     a *= a;			// a^2
     if (K == 2)
 		a = a * a;		// a^4
@@ -410,7 +410,7 @@ BSplineBase<T>::AlphaGQ (double wl)
  * on the node index and the current boundary condition type.
  */
 template <class T>
-inline double
+inline real
 BSplineBase<T>::Beta (int m)
 {
     if (m > 1 && m < M-1)
@@ -442,14 +442,14 @@ BSplineBase<T>::apply (const T *y)
  * using the parameters for the current boundary conditions.
  */
 template <class T>
-double
+real
 BSplineBase<T>::Basis (int m, T x)
 {
-    double y = 0;
-    double xm = xmin + (m * DX);
-	double delta = (double)(x - xm) * (double)DXrecip;
-    double z = my::abs(delta);
-	//double z = abs(delta);
+    real y = 0;
+    real xm = xmin + (m * DX);
+	real delta = (real)(x - xm) * (real)DXrecip;
+    real z = my::abs(delta);
+	//real z = abs(delta);
     if (z < 2.0)
     {
 	z = 2 - z;
@@ -475,13 +475,13 @@ BSplineBase<T>::Basis (int m, T x)
  * value x, using the parameters for the current boundary conditions.
  */
 template <class T>
-double
+real
 BSplineBase<T>::DBasis (int m, T x)
 {
-    double dy = 0;
-    double xm = xmin + (m * DX);
-    double delta = (double)(x - xm) * (double)DXrecip;
-    double z = my::abs(delta);
+    real dy = 0;
+    real xm = xmin + (m * DX);
+    real delta = (real)(x - xm) * (real)DXrecip;
+    real z = my::abs(delta);
     if (z < 2.0)
     {
 	z = 2.0 - z;
@@ -508,7 +508,7 @@ BSplineBase<T>::DBasis (int m, T x)
 
 
 template <class T>
-double
+real
 BSplineBase<T>::qDelta (int m1, int m2)
 /*
  * Return the integral of the product of the basis function derivative
@@ -519,7 +519,7 @@ BSplineBase<T>::qDelta (int m1, int m2)
     // normalized basis functions
     // given a distance m nodes apart, qparts[K-1][m], 0 <= m <= 3
     // Each column is the integral over each unit domain, -2 to 2
-    static const double qparts[3][4][4] = 
+    static const real qparts[3][4][4] = 
     {
 	{
 	    { 0.11250,   0.63750,   0.63750,   0.11250 },
@@ -547,7 +547,7 @@ BSplineBase<T>::qDelta (int m1, int m2)
     if (m2 - m1 > 3)
 	return 0.0;
 
-    double q = 0;
+    real q = 0;
     for (int m = my::max (m1-2,0); m < my::min (m1+2, M); ++m)
 	q += qparts[K-1][m2-m1][m-m1+2];
     return q * alpha;
@@ -708,12 +708,12 @@ BSplineBase<T>::factor ()
 	
 
 template <class T>
-inline double
-BSplineBase<T>::Ratiod (int &ni, double &deltax, double &ratiof)
+inline real
+BSplineBase<T>::Ratiod (int &ni, real &deltax, real &ratiof)
 {
     deltax = (xmax - xmin) / ni;
     ratiof = waveLength / deltax;
-    double ratiod = (double) NX / (double) (ni + 1);
+    real ratiod = (real) NX / (real) (ni + 1);
     return ratiod;
 }
 
@@ -753,7 +753,7 @@ BSplineBase<T>::Setup(int num_nodes)
     }
 
     int ni = 9;			// Number of node intervals (NX - 1)
-    double deltax;
+    real deltax;
 
     if (num_nodes >= 2)
     {
@@ -778,10 +778,10 @@ BSplineBase<T>::Setup(int num_nodes)
     else
     {
 	// Minimum acceptable number of node intervals per cutoff wavelength.
-	static const double fmin = 2.0;
+	static const real fmin = 2.0;
 
-	double ratiof;	// Nodes per wavelength for current deltax
-	double ratiod;	// Points per node interval
+	real ratiof;	// Nodes per wavelength for current deltax
+	real ratiod;	// Points per node interval
 
 	// Increase the number of node intervals until we reach the minimum
 	// number of intervals per cutoff wavelength, but only as long as 
@@ -874,7 +874,7 @@ struct BSplineP
  */
 template <class T>
 BSpline<T>::BSpline (const T *x, int nx, const T *y,
-		     double wl, int bc_type, int num_nodes) :
+		     real wl, int bc_type, int num_nodes) :
     BSplineBase<T>(x, nx, wl, bc_type, num_nodes), s(new BSplineP<T>)
 {
     solve (y);
@@ -932,7 +932,7 @@ BSpline<T>::solve (const T *y)
     {
 	mean += y[i];
     }
-    mean = mean / (double)NX; */
+    mean = mean / (real)NX; */
     if (Debug())
 	std::cerr << "Mean for y: " << mean << std::endl;
 
@@ -1006,7 +1006,7 @@ BSpline<T>::solveGQ (const T *y)
 	 {
 	 mean += y[i];
 	 }
-	 mean = mean / (double)NX; */
+	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
 	
@@ -1080,7 +1080,7 @@ BSpline<T>::solveInverseGQ (const T *b)
 	 {
 	 mean += y[i];
 	 }
-	 mean = mean / (double)NX; */
+	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
 	

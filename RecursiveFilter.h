@@ -8,6 +8,8 @@
 
 #ifndef RECURSIVEF_H
 #define RECURSIVEF_H
+#include "precision.h"
+
 
 class RecursiveFilter
 {

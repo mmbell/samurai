@@ -84,17 +84,13 @@ void CostFunctionRZ::finalize()
 	delete[] fieldR;
 	delete[] fieldZ;
 	delete[] zBuffer;
-	
-#ifdef CSTGPU
-	// GPU variables
+	delete[] obs_h;
 	delete[] coeffHost;
-#endif
-	
 }
 
 void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls, SplineD* zs, SplineD* zpsi, 
-								vector<double>* bgr, vector<double>* bgz, vector<double>** bgf, 
-								unsigned int* ctrlR, vector<double>* RX, Observation* obs)
+								vector<real>* bgr, vector<real>* bgz, vector<real>** bgf, 
+								unsigned int* ctrlR, vector<real>* RX, Observation* obs)
 {
 
 	// Initialize number of control variables -- one less than physical variables
@@ -130,7 +126,7 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 
 	innovation = new double[mObs];
 
-	HT = new double[pState];
+	HT = new real[pState];
 	zHT = new double[zState];
 	
 	unsigned int heightSize = bgheights->size();
@@ -163,12 +159,8 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 	}
 	zBuffer = new double[heightSize];
 	
-#ifdef CSTGPU
-	// GPU variables
-	HCq = new float[mObs];
-	coeffHost = new float[numVars*pState*zState];
 	// Load the Observations
-	float* obs_h = new float[mObs*9];
+	obs_h = new float[mObs*9];
 	for (int m = 0; m < mObs; m++) {
 		int n = m*9;
 		for (int var = 0; var < 6; var++) {
@@ -178,12 +170,13 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 		obs_h[n+7] = obs[m].getAltitude();
 		obs_h[n+8] = obs[m].getInverseError();
 	}
+#ifdef CSTGPU
 	cstGPU_init(obs_h, mObs);
+#endif	
 	
-#else
 	HCq = new float[mObs];
 	//HCq = new double[mObs];	
-#endif
+	coeffHost = new float[numVars*pState*zState];	
 	
 	initState();
 }	
@@ -334,7 +327,7 @@ void CostFunctionRZ::initState() {
 			}
 			
 			// S^T
-			const double* STHT = bgSpline[z].solveInverseGQ(&HT[0]);
+			const real* STHT = bgSpline[z].solveInverseGQ(&HT[0]);
 
 			// P^T
 			for (unsigned int R = 0; R < RState[z]; R++) {
@@ -383,7 +376,7 @@ double CostFunctionRZ::funcValue(double* state)
 #ifdef CSTGPU
 	updateHCq_GPU(state);
 #else
-	updateHCq(state);
+	updateHCq_CPU(state);
 #endif
 	double qIP, obIP;
 	qIP = 0;
@@ -397,7 +390,7 @@ double CostFunctionRZ::funcValue(double* state)
 	#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m].getInverseError())*(HCq[m]-innovation[m]);
-		//cout << m << "\t" << HCq[m] << "\t" << innovation[m] << endl;
+		//cout << m << ",\t" << HCq[m] << ",\t" << innovation[m] << endl;
 	}
 	double J = 0.5*qIP + 0.5*obIP;
 	return J;
@@ -411,7 +404,7 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 #ifdef CSTGPU
 	updateHCq_GPU(state);
 #else
-	updateHCq(state);
+	updateHCq_CPU(state);
 #endif
 
 	// Calculate HTd	
@@ -479,7 +472,7 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 			}
 			
 			// S^T
-			const double* STHT = bgSpline[z].solveInverseGQ(&HT[0]);
+			const real* STHT = bgSpline[z].solveInverseGQ(&HT[0]);
 			
 			// P^T
 			for (unsigned int R = 0; R < RState[z]; R++) {
@@ -541,7 +534,7 @@ void CostFunctionRZ::updateHCq(double* state)
 	}
 	
 	unsigned int radSize = bgradii->size();
-	double* Cq = new double[radSize];
+	real* Cq = new real[radSize];
 	for (unsigned int var = 0; var < numVars; var++) {
 		unsigned int zi = 0;
 		SplineD* bgSpline;
@@ -641,6 +634,7 @@ void CostFunctionRZ::updateHCq(double* state)
 				HCq[m] += yhat*weight;
 			}				
 			//cout << var << ", HCq: " << m << "\t" << HCq[m] << endl;
+					 
 		}
 	}
 
@@ -652,7 +646,7 @@ void CostFunctionRZ::updateHCq_GPU(double* state)
 {
 		
 	unsigned int radSize = bgradii->size();
-	double* Cq = new double[radSize];
+	real* Cq = new real[radSize];
 	for (unsigned int var = 0; var < numVars; var++) {
 		unsigned int zi = 0;
 		SplineD* bgSpline;
@@ -730,6 +724,330 @@ void CostFunctionRZ::updateHCq_GPU(double* state)
 	HCq_GPU(mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState);
 }
 
+void CostFunctionRZ::updateHCq_CPU(double* state)
+{
+	unsigned int radSize = bgradii->size();
+	real* Cq = new real[radSize];
+	for (unsigned int var = 0; var < numVars; var++) {
+		unsigned int zi = 0;
+		SplineD* bgSpline;
+		if (var > 1) {
+			bgSpline = scalarSpline;
+		} else {
+			bgSpline = vecSpline;
+		}		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				unsigned int Ri = R + var*RState[z] + zi;
+				field[z][R] = state[Ri];
+			}			
+			// Increment the state array index
+			zi += numVars*RState[z];
+		}
+		for (unsigned int R = 0; R < maxRadius; R++) {
+			for (unsigned int z = 0; z < zState; z++) {
+				// Pad the field with zeroes if it is outside the domain
+				if (R < RState[z]) {
+					fieldZ[z] = field[z][R];
+				} else {
+					fieldZ[z] = 0;
+				}
+			}
+			
+			// FZ
+			filterZ->filterArray(fieldZ, zState);
+			for (unsigned int z = 0; z < zState; z++) {
+				field[z][R] = fieldZ[z];
+			}
+			
+		}
+		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				if ((var == 1) and (z == 0)) {
+					// Force Psi delta to zero
+					//field[z][R]= 0;
+				}			
+				fieldR[R] = field[z][R];
+			}
+			// FR
+			filterR->filterArray(fieldR, RState[z]);
+			
+			// D
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				double coeff = fieldR[R] * bgError[var] * varScale[var];
+				ctrlSpline[z].setCoefficient(R, coeff);
+			}
+			
+			// P
+			for (unsigned int r = 0; r < radSize; r++) {
+				double potRad = RXform[z].at(r);
+				Cq[r] = ctrlSpline[z].evaluate(potRad);
+				//cout << z << "\t" << r << "\t" << var << "\t" << Cq[r] << endl;
+			}
+			
+			// S
+			bgSpline[z].solveGQ(Cq);
+		}
+		
+		// Load the spline coefficients onto the GPU
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int p = 0; p < pState; p++) {
+				coeffHost[z*numVars*pState +p*numVars + var] = bgSpline[z].getCoefficient(p);
+			}
+		}
+	}
+		
+	delete[] Cq;
+	
+	/*mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState
+	int mObs, float rmax, float rmin, float zmax, float zmin, float* HCq_h, int pState, int zState
+	
+	obs_d, HCq_d, pState, zState, rmin, dr, drrecip, zmin, dz, dzrecip, onesixth
+	float* obs_d,float* HCq_d, int R, int Z, float rmin, float DR, float DRrecip, float zmin, float DZ, float DZrecip, float ONESIXTH*/
+	// H
+	float rmin =  bgradii->front();
+	float rmax =  bgradii->back();
+	float zmin =  bgheights->front();
+	float zmax =  bgheights->back();
+	int R = pState-1;
+	int R1 = pState;
+	int Z = zState-1;	
+	#pragma omp parallel for
+	for (int xi = 0; xi < mObs; xi++) {
+		int mi = xi*9;
+		float w1 = obs_h[mi];
+		float w2 = obs_h[mi+1];
+		float w3 = obs_h[mi+2];
+		float w4 = obs_h[mi+3];
+		float w5 = obs_h[mi+4];
+		float w6 = obs_h[mi+5];
+		float radius = obs_h[mi+6];
+		float height = obs_h[mi+7];
+		float invRadius = 1./radius;
+		float DR = (rmax - rmin) / R;
+		float DRrecip = 1./DR;
+		float DZ = (zmax - zmin) / Z;
+		float DZrecip = 1./DZ;
+		float ONESIXTH = 1./6.;
+		float HCq_temp = 0;
+		int m = (int)((radius - rmin)*DRrecip);
+		int n = (int)((height - zmin)*DZrecip);
+		float bz = 0;
+		float br = 0;
+		float bzp = 0;
+		float brp = 0;
+		int bc = 1;
+		// rhoV = BC_LZERO_RSECOND, r & BC_ZERO_SECOND, z
+		for (int r = m-1; r <= m+2; ++r) {
+			for (int z = n-1; z <= n+2; ++z) {				
+				if ((r < 0) or (r > R) or (z < 0) or (z > Z)) continue;
+				if ((r > 1) and (r < R-1) and (z > 1) and (z < Z-1)) {
+					// No BCs to worry about, calculate the basis once
+					br = scalarSpline[0].getBasis(r, radius);
+					bz = zSpline->getBasis(z, height);
+					brp = vecSpline[0].getDBasis(r, radius);
+					bzp = zSpline->getDBasis(z, height);
+					//cout << "CPU: "<< r << ",\t" << z << ",\t" << br << ",\t" << bz << endl;
+					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
+					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+					brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+					bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+					//cout << "GCPU: "<< r << ",\t" << z << ",\t" << br << ",\t" << bz << endl << endl;
+					bc = 0;
+					HCq_temp += coeffHost[z*5*R1 + r*5] * br * bz * w1;
+					float coeff = coeffHost[z*5*R1 + r*5 +1];
+					HCq_temp += coeff * br * (-bzp) * w2 * 1e3 * invRadius;
+					HCq_temp += coeff * brp * bz * w3 * invRadius;
+					HCq_temp += coeffHost[z*5*R1 + r*5 +2] * br * bz * w4;
+					HCq_temp += coeffHost[z*5*R1 + r*5 +3] * br * bz * w5;
+					HCq_temp += coeffHost[z*5*R1 + r*5 +4] * br * bz * w6;
+				} else {
+					if (w1) {
+						if (bc) { 
+							br = vecSpline[0].getBasis(r, radius);
+							bz = zSpline->getBasis(z, height);
+							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+
+						}
+						HCq_temp += coeffHost[z*5*R1 + r*5] * br * bz * w1;
+					}
+					float coeff;
+					if (w2 or w3) coeff = coeffHost[z*5*R1 + r*5 +1];
+					if (w2) {
+						if (bc) {
+							br = vecSpline[0].getBasis(r, radius);
+							bzp = zSplinePsi->getDBasis(z, height);
+							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+							bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+
+						}
+						HCq_temp += coeff * br * (-bzp) * w2 * 1e3 * invRadius;
+					}
+					if (w3) {
+						if (bc) {
+							brp = vecSpline[0].getDBasis(r, radius);
+							bz = zSplinePsi->getBasis(z, height);
+							brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+						}
+						HCq_temp += coeff * brp * bz * w3 * invRadius;
+					}
+					if (w4 or w5 or w6) {
+						if (bc) {
+							br = scalarSpline[0].getBasis(r, radius);
+							bz = zSpline->getBasis(z, height);
+							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
+							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+
+						}
+					}
+					if (w4)
+						HCq_temp += coeffHost[z*5*R1 + r*5 +2] * br * bz * w4;
+					if (w5)
+						HCq_temp += coeffHost[z*5*R1 + r*5 +3] * br * bz * w5;
+					if (w6)
+						HCq_temp += coeffHost[z*5*R1 + r*5 +4] * br * bz * w6;
+				}
+			}
+		}
+		HCq[xi] = HCq_temp;
+	}		
+
+}
+
+// Basis Functions
+float CostFunctionRZ::Basis(int m, float x, int M, float xmin, 
+					   float DX, float DXrecip, float ONESIXTH, int C)
+{
+
+	float b = 0;
+	float xm = xmin + (m * DX);
+	float delta = (x - xm) * DXrecip;
+	float z = fabsf(delta);
+	float BC[9][4] = 
+	//	0		1		M-1		M
+	{{	-4,		-1,		-1,		-4 },
+		{	0,		1,		1,		0 },
+		{	2,		-1,		-1,		2 },
+		{   -4,     -1,     1,      0 },
+		{   -4,     -1,     -1,     2 },
+		{   0,      1,      -1,     -4 },
+		{   0,      1,      -1,     2 },
+		{   2,      -1,     -1,     -4 },
+		{   2,      -1,     1,      0 }};
+	
+	if (z < 2.0)
+	{
+		z = 2 - z;
+		b = (z*z*z) * ONESIXTH;
+		z -= 1.0;
+		if (z > 0)
+			b -= (z*z*z) * 4 * ONESIXTH;
+	}
+	
+	// Boundary conditions, if any, are an additional addend.
+	if (m == 0 || m == 1) {
+		float l = 0;
+		xm = xmin + (-1 * DX);
+		delta = (x - xm) * DXrecip;
+		z = fabsf(delta);
+		
+		if (z < 2.0)
+		{
+			z = 2 - z;
+			l = (z*z*z) * ONESIXTH;
+			z -= 1.0;
+			if (z > 0)
+				l -= (z*z*z) * 4 * ONESIXTH;
+		}
+		b += BC[C][m] * l;
+	} else if (m == M-1 || m == M) {
+		float r = 0;
+		xm = xmin + ((M+1) * DX);
+		delta = (x - xm) * DXrecip;
+		z = fabsf(delta);
+		
+		if (z < 2.0)
+		{
+			z = 2 - z;
+			r = (z*z*z) * ONESIXTH;
+			z -= 1.0;
+			if (z > 0)
+				r -= (z*z*z) * 4 * ONESIXTH;
+		}
+		b += BC[C][m+3-M] * r;
+	}
+	return b;
+}
+
+float CostFunctionRZ::DBasis(int m, float x, int M, float xmin, 
+						float DX, float DXrecip, float ONESIXTH, int C)
+{
+	float b = 0;
+	float xm = xmin + (m * DX);
+	float delta = (x - xm) * DXrecip;
+	float z = fabsf(delta);
+	float BC[9][4] = 
+	//	0		1		M-1		M
+	{{	-4,		-1,		-1,		-4 },
+		{	0,		1,		1,		0 },
+		{	2,		-1,		-1,		2 },
+		{   -4,     -1,     1,      0 },
+		{   -4,     -1,     -1,     2 },
+		{   0,      1,      -1,     -4 },
+		{   0,      1,      -1,     2 },
+		{   2,      -1,     -1,     -4 },
+		{   2,      -1,     1,      0 }};
+	
+	if (z < 2.0)
+	{
+		z = 2.0 - z;
+		b = (z*z) * ONESIXTH;
+		z -= 1.0;
+		if (z > 0)
+			b -= (z*z) * 4 * ONESIXTH;
+		b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 / DX;
+	}
+	
+	// Boundary conditions, if any, are an additional addend.
+	if (m == 0 || m == 1) {
+		float l = 0;
+		xm = xmin + (-1 * DX);
+		delta = (x - xm) * DXrecip;
+		z = fabsf(delta);
+		
+		if (z < 2.0)
+		{
+			z = 2 - z;
+			l = (z*z) * ONESIXTH;
+			z -= 1.0;
+			if (z > 0)
+				l -= (z*z) * 4 * ONESIXTH;
+			l *= ((delta > 0) ? -1.0 : 1.0) * 3.0 / DX;
+		}
+		
+		b += BC[C][m] * l;
+	} else if (m == M-1 || m == M) {
+		float r = 0;
+		xm = xmin + ((M+1) * DX);
+		delta = (x - xm) * DXrecip;
+		z = fabsf(delta);
+		
+		if (z < 2.0)
+		{
+			z = 2 - z;
+			r = (z*z) * ONESIXTH;
+			z -= 1.0;
+			if (z > 0)
+				r -= (z*z) * 4 * ONESIXTH;
+			r *= ((delta > 0) ? -1.0 : 1.0) * 3.0 / DX;	
+		}
+		b += BC[C][m+3-M] * r;
+	}
+	return b;
+}
 
 void CostFunctionRZ::getCq(double* Cq)
 {

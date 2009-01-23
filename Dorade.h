@@ -15,6 +15,8 @@
 #include <QDir>
 #include <QDateTime>
 #include <cmath>
+#include "precision.h"
+
 
 class Dorade
 {

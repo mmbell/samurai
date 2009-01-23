@@ -63,6 +63,7 @@
 		099C4ACA0EFC13A20037D0D6 /* GPUdriver.cu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GPUdriver.cu.cpp; sourceTree = "<group>"; };
 		099C4AD40EFC14370037D0D6 /* libcutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcutil.a; path = CUDA/lib/libcutil.a; sourceTree = SYSTEM_DEVELOPER_DIR; };
 		099C4B1B0EFC30050037D0D6 /* BSpline.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BSpline.cpp; sourceTree = "<group>"; };
+		09F1D7E00F268AEA00992FE1 /* precision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precision.h; sourceTree = "<group>"; };
 		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
@@ -157,6 +158,7 @@
 		883D7615C4D2DE3FA1218F12 /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				09F1D7E00F268AEA00992FE1 /* precision.h */,
 				233807245A73AD7DA9E73F7F /* BandedMatrix.h */,
 				39B09DD57B6A203B3091DF09 /* CostFunction.h */,
 				B555B4ABF2BC343B39C7EA21 /* CostFunctionAnalytic.h */,

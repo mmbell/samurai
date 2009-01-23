@@ -1,4 +1,5 @@
 
+#include "precision.h"
 #include "VarDriver1d.h"
 #include "VarDriver2d.h"
 #include <iostream>

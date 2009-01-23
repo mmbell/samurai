@@ -3,6 +3,7 @@
 #include <vector_types.h>
 #include <math.h>
 #include <cutil.h>
+#include "precision.h"
 
 // includes, kernels
 #include <HCq_kernel.cu>
@@ -104,9 +105,11 @@ extern "C" {
 	{
 		
 		// Constants and boundary conditions
-		float dr = (rmax - rmin) / pState;
+		int R = pState-1;
+		float dr = (rmax - rmin) / R;
 		float drrecip = 1./dr;
-		float dz = (zmax - zmin) / zState;
+		int Z = zState-1;
+		float dz = (zmax - zmin) / Z;
 		float dzrecip = 1./dz;
 		float onesixth = 1./6.;
 		
@@ -121,7 +124,7 @@ extern "C" {
 		dim3 grid(mObs / BLOCKSIZE + rem);
 		
 		// execute the kernel
-		HCq_kernel<<< grid, threads >>>(obs_d, HCq_d, pState, zState, rmin, dr, drrecip, zmin, dz, dzrecip, onesixth);
+		HCq_kernel<<< grid, threads >>>(obs_d, HCq_d, R, Z, rmin, dr, drrecip, zmin, dz, dzrecip, onesixth);
 		
 		// check if kernel execution generated and error
 		CUT_CHECK_ERROR("Kernel execution failed");

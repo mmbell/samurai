@@ -74,19 +74,19 @@ bool VarDriver2d::initVortexBG()
 	cout << "Initializing Vortex Background" << endl;
 
 	unsigned int maxHeights = 35; // Can I make this dynamic?
-	BG = new vector<double>*[maxHeights];
-	BGsave = new vector<double>*[maxHeights];
+	BG = new vector<real>*[maxHeights];
+	BGsave = new vector<real>*[maxHeights];
 	for (unsigned int zi = 0; zi < maxHeights; zi++) {
-		BG[zi] = new vector<double>[numVars];
-		BGsave[zi] = new vector<double>[numVars];
+		BG[zi] = new vector<real>[numVars];
+		BGsave[zi] = new vector<real>[numVars];
 	}
 	
 	// Read in the background state
 	// Read the r and v pairs from a file
 	double height, radius, v, psi, h, q, rho;
 	int zi = 0;
-	vector<double> vIn, vBG, psiBG, hBG, qBG, rpBG;
-	vector<double>* vInit = new vector<double>[maxHeights];
+	vector<real> vIn, vBG, psiBG, hBG, qBG, rpBG;
+	vector<real>* vInit = new vector<real>[maxHeights];
 	ifstream vdata("./v2data.txt");
 	vdata.width(14);
 	while (vdata >> height >> radius >> v >> psi >> h >> q >> rho)
@@ -137,7 +137,7 @@ bool VarDriver2d::initVortexBG()
 	double wl = 2; 
 	bc = SplineBase::BC_ZERO_SECOND;
 	int num_nodes = z.size();
-	vector<double> zBuffer;
+	vector<real> zBuffer;
 	zBuffer.assign(z.size(), 0.0);	
 	zSpline = new SplineD(&z.front(), z.size(), &zBuffer.front(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
 	zSplinePsi = new SplineD(&z.front(), z.size(), &zBuffer.front(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
@@ -148,7 +148,7 @@ bool VarDriver2d::initVortexBG()
 		cerr << "Vertical spline has a problem :(" << endl;
 	numHeights = z.size();
 
-	/* Realign the vertical grid on the Gaussian points
+	/* doubleign the vertical grid on the Gaussian points
 	double zincr = 250;
 	double zMin = 0.;
 	double zMax = z.back();
@@ -203,8 +203,8 @@ bool VarDriver2d::initVortexBG()
 	num_nodes = (int)((rMax - rMin)/rincr) + 1;
 	r.clear();
 	// And Set up the transform array for physical to potential radius
-	vector<double> parmWinds;	
-	RXform = new vector<double>[numHeights];
+	vector<real> parmWinds;	
+	RXform = new vector<real>[numHeights];
 	for (unsigned int i = 0; i< numVars; i++) {
 		SplineD* bgSpline;
 		if (i > 1) {
@@ -289,7 +289,7 @@ bool VarDriver2d::initVortexBG()
 			R.push_back(potRad);
 		}
 		ctrlSpline[zi].setDomain(&R.front(), R.size(), wl, bc, RnumGridpts[zi]);
-		vector<double> initCtrl(R.size(), 0.);
+		vector<real> initCtrl(R.size(), 0.);
 		ctrlSpline[zi].solve(&initCtrl.front());
 	}
 	
@@ -333,7 +333,7 @@ bool VarDriver2d::finalizeVortexBG()
 {
 	double wl = 2; 
 	int num_nodes = vecSpline[0].nNodes();
-	vector<double> empty(r.size(), 0.); 
+	vector<real> empty(r.size(), 0.); 
 	SplineD* vecAnalysisSpline = new SplineD(&r.front(), r.size(), &empty.front(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 	vecAnalysisSpline->setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 	SplineD* scalarAnalysisSpline = new SplineD(&r.front(), r.size(), &empty.front(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
@@ -344,13 +344,13 @@ bool VarDriver2d::finalizeVortexBG()
 		return false;
 	}
 
-	vector<double>* temp = new vector<double>[numHeights];
-	vector<double>* press = new vector<double>[numHeights];
-	vector<double>* hstarfwd = new vector<double>[numHeights];
-	vector<double>* rhoz = new vector<double>[numHeights];
-	vector<double>* uz = new vector<double>[numHeights];
-	vector<double>* vz = new vector<double>[numHeights];
-	vector<double>* wz = new vector<double>[numHeights];
+	vector<real>* temp = new vector<real>[numHeights];
+	vector<real>* press = new vector<real>[numHeights];
+	vector<real>* hstarfwd = new vector<real>[numHeights];
+	vector<real>* rhoz = new vector<real>[numHeights];
+	vector<real>* uz = new vector<real>[numHeights];
+	vector<real>* vz = new vector<real>[numHeights];
+	vector<real>* wz = new vector<real>[numHeights];
 	
 	for (unsigned int T = 235; T < 315; T++) {
 		temp[0].push_back(T);
@@ -383,7 +383,7 @@ bool VarDriver2d::finalizeVortexBG()
 			double T = 280;
 			double hmin = 1e34;
 			int iter = 0;
-			while ((fabs(hmin) > 0.01) or (iter < 1000)) {
+			while ((fabs(hmin) > 0.01) and (iter < 1000)) {
 				double h = tSpline->evaluate(T);
 				double hprime = tSpline->slope(T);
 				if (hprime != 0) {
@@ -438,9 +438,9 @@ bool VarDriver2d::finalizeVortexBG()
 		}
 	}
 	
-	vector<double>** final = new vector<double>*[numHeights];
+	vector<real>** final = new vector<real>*[numHeights];
 	for (unsigned int zi = 0; zi < z.size(); zi++) {
-		final[zi] = new vector<double>[11];
+		final[zi] = new vector<real>[11];
 		for (unsigned int var = 0; var < numVars-1; var++) {
 			final[zi][var] = BG[zi][var];
 		}
@@ -520,7 +520,7 @@ bool VarDriver2d::finalizeVortexBG()
 			double T = 280;
 			double hmin = 1e34;
 			int iter = 0;
-			while ((fabs(hmin) > 0.01) or (iter < 1000)) {
+			while ((fabs(hmin) > 0.01) and (iter < 1000)) {
 				double h = tSpline->evaluate(T);
 				double hprime = tSpline->slope(T);
 				if (hprime != 0) {
@@ -577,9 +577,9 @@ bool VarDriver2d::finalizeVortexBG()
 			} 
 		}
 	}
-	vector<double>** increment = new vector<double>*[numHeights];
+	vector<real>** increment = new vector<real>*[numHeights];
 	for (unsigned int zi = 0; zi < z.size(); zi++) {
-		increment[zi] = new vector<double>[11];
+		increment[zi] = new vector<real>[11];
 		for (unsigned int var = 0; var < numVars-1; var++) {
 			increment[zi][var] = BG[zi][var];
 		}
@@ -733,7 +733,7 @@ double VarDriver2d::updateXforms()
 	double *Cq = new double[r.size()*z.size()*numVars-1];
 	cost2d->getCq(Cq);
 	double RMS = 0;
-	vector<double> incr(r.size(), 0.); 
+	vector<real> incr(r.size(), 0.); 
 	// Need to update rho with perturbation
 	SplineD* vecIncrSpline = new SplineD(&r.front(), r.size(), &incr.front(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 	vecIncrSpline->setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
@@ -882,7 +882,7 @@ void VarDriver2d::EvalSpline (SplineD* spline, ostream &out)
 void VarDriver2d::processMetObs()
 {
 
-	vector<double> rhoP;
+	vector<real> rhoP;
 	
 	// Check the data directory for files
 	QDir dataPath("./vardata");
@@ -1140,7 +1140,7 @@ void VarDriver2d::processMetObs()
 					 Adjusted to use Jordan hydrostatic scale height -MB */
 					double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
 					//C The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
-					double VTS=-DCOR * (0.817*pow(ZZ,0.063));
+					double VTS=-DCOR * (0.817*pow(ZZ,(double)0.063));
 					/* if(irsw.gt.0) then
 					C The rain relationship --- from Willis analytical-gamma distribution 
 					TERM1=7.331/ZZ**0.010022 
@@ -1148,7 +1148,7 @@ void VarDriver2d::processMetObs()
 					VTR=-DCOR * (5.5011E+09/(TERM1+TERM2)**10.5) 
 					else 
 					C The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
-					double VTR=-DCOR * (2.6*pow(ZZ,.107));
+					double VTR=-DCOR * (2.6*pow(ZZ,(double).107));
 					/* endif 
 					C test if height is in the transition region between SNOW and RAIN
 					C  defined as hlow in km < H < hhi in km
@@ -1191,7 +1191,7 @@ void VarDriver2d::processMetObs()
 		
 }
 
-bool VarDriver2d::writeAsi(const QString& fileName, vector<double>** fields, SplineD* scalar, SplineD* vectorSpline)
+bool VarDriver2d::writeAsi(const QString& fileName, vector<real>** fields, SplineD* scalar, SplineD* vectorSpline)
 {
 	QString outFileName;
 	if(QDir::isAbsolutePath(fileName)) {
@@ -1318,7 +1318,7 @@ bool VarDriver2d::writeAsi(const QString& fileName, vector<double>** fields, Spl
 				}
 				out << reset << left << fieldNames.at(n) << endl;
 				int line = 0;
-				const double* curve;
+				const real* curve;
 				if (n > 1) {
 					curve = scalar->curve();
 				} else {

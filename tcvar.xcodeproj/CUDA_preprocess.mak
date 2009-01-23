@@ -9,11 +9,14 @@ LIBCUBLASEMU = $(CUDALIBPATH)/libcudart.dylib -L/Developer/CUDA/lib -lcutil
 #DEVICEEMU_NVCC  = -deviceemu $(DEVICEEMU) -D_DEBUG
 #LIBCUBLAS = $(LIBCUBLASEMU)
 
+# uncomment to use faster (less precise) math functions
+FASTMATH = --use_fast_math
+
 NVCC    = /usr/local/cuda/bin/nvcc -DCUDA -ccbin /usr/bin --ptxas-options=-v
 PHASE   = -ptx
 PHASE   = -cuda
-NVOPT   = $(DEVICEEMU_NVCC) $(PROMOTE) $(DEBUGDEBUG) $(DEBUGOUTPUT) \
-          --host-compilation 'C++' --use_fast_math -I/Developer/CUDA/common/inc
+NVOPT   = $(DEVICEEMU_NVCC) $(PROMOTE) $(DEBUGDEBUG) $(DEBUGOUTPUT) $(FASTMATH) \
+          --host-compilation 'C++' -I/Developer/CUDA/common/inc
 
 SRCS = GPUdriver.cu.cpp
 

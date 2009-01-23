@@ -27,13 +27,13 @@ class CostFunctionRZ: public CostFunction
 {
 	
 public:
-	typedef BSplineBase<double> SplineBase;
-	typedef BSpline<double> SplineD;
+	typedef BSplineBase<real> SplineBase;
+	typedef BSpline<real> SplineD;
 	CostFunctionRZ(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionRZ();
     void initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls, SplineD* zs, SplineD* zpsi, 
-					vector<double>* bgr, vector<double>* bgz, vector<double>** bgf, 
-					unsigned int* ctrlR, vector<double>* RX, Observation* obs);
+					vector<real>* bgr, vector<real>* bgz, vector<real>** bgf, 
+					unsigned int* ctrlR, vector<real>* RX, Observation* obs);
 	void finalize();
 	// Should this return an object, not a pointer?
 	void getCq(double* Cq);
@@ -49,20 +49,20 @@ private:
 	SplineD* CqSpline;
 	SplineD* zSpline;
 	SplineD* zSplinePsi;
-	vector<double>* bgradii;
-	vector<double>* bgheights;
-	vector<double>** bgFields;
+	vector<real>* bgradii;
+	vector<real>* bgheights;
+	vector<real>** bgFields;
 	unsigned int* RState;
 	unsigned int maxRadius;
 	unsigned int pState;
 	unsigned int zState;
-	vector<double>* RXform;
-	vector<double>* rXform;
+	vector<real>* RXform;
+	vector<real>* rXform;
 	Observation* obsVector;
 	RecursiveFilter* filterR;
 	RecursiveFilter* filterZ;
 
-	double* HT;
+	real* HT;
 	double* zHT;
 	double* stateMod;
 	double* innovation;
@@ -81,7 +81,15 @@ private:
 
 	// GPU Variables
 	float* coeffHost;
+	float* obs_h;
+	float BoundaryConditions[9][4];
 	void updateHCq_GPU(double* state);
+	void updateHCq_CPU(double* state);
+	float Basis(int m, float x, int M, float xmin, 
+				float DX, float DXrecip, float ONESIXTH, int C);
+	float DBasis(int m, float x, int M, float xmin, 
+				 float DX, float DXrecip, float ONESIXTH, int C);
+
 #ifdef CSTGPU
 	float* HCq;
 #else

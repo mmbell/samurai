@@ -35,8 +35,8 @@ public:
 	bool run();
 
 private:
-	typedef BSplineBase<double> SplineBase;
-	typedef BSpline<double> SplineD;
+	typedef BSplineBase<real> SplineBase;
+	typedef BSpline<real> SplineD;
 
 	// Different cases
 	bool initParametricBG();
@@ -56,16 +56,16 @@ private:
 	SplineD* bgSpline;
 	SplineD* ctrlSpline;
 	SplineD* RXformSpline;
-	vector<double> r;
-	vector<double> R;
-	vector<double> initCtrl;
-	vector<double> RXform;
-	vector<double> rXform;
+	vector<real> r;
+	vector<real> R;
+	vector<real> initCtrl;
+	vector<real> RXform;
+	vector<real> rXform;
 	vector<Observation> obVector;
 	int bc;
 		
-	vector<double>* BG;
-	vector<double>* BGsave;
+	vector<real>* BG;
+	vector<real>* BGsave;
 		
 	// Cost Functions
 	CostFunctionR* cost1d;

@@ -8,6 +8,8 @@
 
 #ifndef PARMVORTEX_H
 #define PARMVORTEX_H
+#include "precision.h"
+
 
 class ParametricVortex
 {

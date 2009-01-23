@@ -8,6 +8,8 @@
 
 #ifndef OBSERVATION_H
 #define OBSERVATION_H
+#include "precision.h"
+
 
 class Observation
 {
