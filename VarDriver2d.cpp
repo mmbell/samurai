@@ -112,6 +112,7 @@ bool VarDriver2d::initVortexBG()
 		vIn.push_back (v);
 		vBG.push_back (v*rho);
 		psiBG.push_back (psi/1e6);
+		//psiBG.push_back(0.);
 		hBG.push_back (h/1e3);
 		// cout << "H: " << h/1e3 << endl;
 		qBG.push_back (q);
@@ -318,7 +319,7 @@ void VarDriver2d::runVortexBG()
 	double CQTOL = 0.5;
 	double CQRMS = 999;
 	int iter=0;
-	while ((CQRMS > CQTOL) and (iter < 1)) {
+	while ((CQRMS > CQTOL) and (iter < 5)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		cost2d->minimize();

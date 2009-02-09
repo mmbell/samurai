@@ -84,7 +84,7 @@ private:
 	float* obs_h;
 	float BoundaryConditions[9][4];
 	void updateHCq_GPU(double* state);
-	void updateHCq_CPU(double* state);
+	void updateHCq_parallel(double* state);
 	float Basis(int m, float x, int M, float xmin, 
 				float DX, float DXrecip, float ONESIXTH, int C);
 	float DBasis(int m, float x, int M, float xmin, 

@@ -307,38 +307,51 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 		QDateTime rayTime = swpfile.getRayTime(i);
 
 		float* gatesp = swpfile.getGateSpacing();
-		for (int n=0; n < swpfile.getNumGates(); n+=4) {
+		int stride = 5;
+		for (int n=0; n < swpfile.getNumGates()-stride; n+=stride) {
 		//for (int n=0; n < swpfile.getNumGates(); n++) {
 			MetObs ob;
-			float dz = refdata[n];
-			float vr = veldata[n];
-			if (vr == -32768) continue;
-			float sw = swdata[n];
-			float range = gatesp[n];
-			if (range <= 0) continue;
-			
-			double relX = -range*sin(az*Pi/180.)*cos(el*Pi/180.);
-			double relY = -range*cos(az*Pi/180.)*cos(el*Pi/180.);
-			double relZ = range*sin(el*Pi/180.);
-			double latrad = radarLat * Pi/180.0;
-			double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-			+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-			double fac_lon = 111.41513 * cos(latrad)
-			- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-			double gateLon = radarLon - (relX/1000)/fac_lon;
-			double gateLat = radarLat - (relY/1000)/fac_lat;
-			double gateAlt = relZ + radarAlt*1000;
-			ob.setObType(MetObs::radar);
-			ob.setLat(gateLat);
-			ob.setLon(gateLon);
-			ob.setAltitude(gateAlt);
-			ob.setAzimuth(az);
-			ob.setElevation(el);
-			ob.setRadialVelocity(vr);
-			ob.setReflectivity(dz);
-			ob.setSpectrumWidth(sw);
-			ob.setTime(rayTime);
-			metObVector->push_back(ob);
+			float dz = 0;
+			float vr = 0;
+			float sw = 0;
+			float range = gatesp[n+2];
+			float count = 0;
+			for (int i=n; i<(n+stride); i++) {
+				if (veldata[i] == -32768) continue;
+				if (gatesp[i] <= 0) continue;
+				dz += pow(10.0,(refdata[i]*0.1));
+				vr += veldata[i];
+				sw += swdata[i];
+				count++;
+			}
+			if (count > 0) {
+				dz = dz/count;
+				dz = 10*log10(dz);
+				vr = vr/count;
+				sw = sw/count;
+				double relX = -range*sin(az*Pi/180.)*cos(el*Pi/180.);
+				double relY = -range*cos(az*Pi/180.)*cos(el*Pi/180.);
+				double relZ = range*sin(el*Pi/180.);
+				double latrad = radarLat * Pi/180.0;
+				double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
+				+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
+				double fac_lon = 111.41513 * cos(latrad)
+				- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+				double gateLon = radarLon - (relX/1000)/fac_lon;
+				double gateLat = radarLat - (relY/1000)/fac_lat;
+				double gateAlt = relZ + radarAlt*1000;
+				ob.setObType(MetObs::radar);
+				ob.setLat(gateLat);
+				ob.setLon(gateLon);
+				ob.setAltitude(gateAlt);
+				ob.setAzimuth(az);
+				ob.setElevation(el);
+				ob.setRadialVelocity(vr);
+				ob.setReflectivity(dz);
+				ob.setSpectrumWidth(sw);
+				ob.setTime(rayTime);
+				metObVector->push_back(ob);
+			}
 		}
 	}
 	
