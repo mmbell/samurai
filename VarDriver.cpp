@@ -221,7 +221,7 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		ob.setLat(lineparts[1].toFloat());
-		ob.setLon(lineparts[2].toFloat());
+		ob.setLon(-lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
 		ob.setPressure(lineparts[8].toFloat());
 		ob.setTemperature(lineparts[11].toFloat() + 273.15);
@@ -299,6 +299,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	float radarAlt = swpfile.getRadarAlt();
 	
 	for (int i=0; i < swpfile.getNumRays(); i++) {
+	//for (int i=0; i < swpfile.getNumRays(); i+=5) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -308,13 +309,16 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 
 		float* gatesp = swpfile.getGateSpacing();
 		int stride = 5;
+		float beamwidth = sin(Pi*0.01);
 		for (int n=0; n < swpfile.getNumGates()-stride; n+=stride) {
 		//for (int n=0; n < swpfile.getNumGates(); n++) {
 			MetObs ob;
+			float range = gatesp[n+stride/2];
+			stride = (range*beamwidth)/75;
+			if (stride < 5) stride = 5;
 			float dz = 0;
 			float vr = 0;
 			float sw = 0;
-			float range = gatesp[n+2];
 			float count = 0;
 			for (int i=n; i<(n+stride); i++) {
 				if (veldata[i] == -32768) continue;

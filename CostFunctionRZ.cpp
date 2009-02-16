@@ -377,6 +377,7 @@ double CostFunctionRZ::funcValue(double* state)
 	updateHCq_GPU(state);
 #else
 	updateHCq_parallel(state);
+	//updateHCq(state);
 #endif
 	double qIP, obIP;
 	qIP = 0;
@@ -405,6 +406,7 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 	updateHCq_GPU(state);
 #else
 	updateHCq_parallel(state);
+	//updateHCq(state);
 #endif
 
 	// Calculate HTd	

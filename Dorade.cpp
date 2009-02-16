@@ -238,6 +238,7 @@ void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
 	/* OPEN THE SWEEP FILE */
 	if ( (fp = fopen(swp_fname,"rb"))==NULL) {
 		printf("Can't open %s\n",swp_fname);
+		return;
 	}
 	
 	while ( !feof(fp) ) {
@@ -360,6 +361,8 @@ void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
 
 	} /* endwhile */
 
+	fclose(fp);
+	
 	if (rptr->scan_mode == 9) {
 		// Airborne data, need to calculate ground relative azimuth and elevation
 		for (int i=0; i < sptr->num_rays; i++) {
