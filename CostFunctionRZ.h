@@ -37,6 +37,7 @@ public:
 	void finalize();
 	// Should this return an object, not a pointer?
 	void getCq(double* Cq);
+	void updateBG();
 	void initState();
 	
 private:

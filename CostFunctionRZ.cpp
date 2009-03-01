@@ -112,8 +112,8 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 	RState = ctrlR;
 		
 	// Set up the recursive filter
-	filterR = new RecursiveFilter(4,8);
-	filterZ = new RecursiveFilter(4,4);
+	filterR = new RecursiveFilter(4,5);
+	filterZ = new RecursiveFilter(4,2);
 	
 	// Allocate memory for the needed arrays
 	currState = new double[nState];
@@ -846,10 +846,10 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 				if ((r < 0) or (r > R) or (z < 0) or (z > Z)) continue;
 				if ((r > 1) and (r < R-1) and (z > 1) and (z < Z-1)) {
 					// No BCs to worry about, calculate the basis once
-					br = scalarSpline[0].getBasis(r, radius);
-					bz = zSpline->getBasis(z, height);
-					brp = vecSpline[0].getDBasis(r, radius);
-					bzp = zSpline->getDBasis(z, height);
+					//br = scalarSpline[0].getBasis(r, radius);
+					//bz = zSpline->getBasis(z, height);
+					//brp = vecSpline[0].getDBasis(r, radius);
+					//bzp = zSpline->getDBasis(z, height);
 					//cout << "CPU: "<< r << ",\t" << z << ",\t" << br << ",\t" << bz << endl;
 					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
 					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
@@ -867,8 +867,8 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 				} else {
 					if (w1) {
 						if (bc) { 
-							br = vecSpline[0].getBasis(r, radius);
-							bz = zSpline->getBasis(z, height);
+							//br = vecSpline[0].getBasis(r, radius);
+							//bz = zSpline->getBasis(z, height);
 							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
 
@@ -879,8 +879,8 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 					if (w2 or w3) coeff = coeffHost[z*5*R1 + r*5 +1];
 					if (w2) {
 						if (bc) {
-							br = vecSpline[0].getBasis(r, radius);
-							bzp = zSplinePsi->getDBasis(z, height);
+							//br = vecSpline[0].getBasis(r, radius);
+							//bzp = zSplinePsi->getDBasis(z, height);
 							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 							bzp = DBasis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
 
@@ -889,8 +889,8 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 					}
 					if (w3) {
 						if (bc) {
-							brp = vecSpline[0].getDBasis(r, radius);
-							bz = zSplinePsi->getBasis(z, height);
+							//brp = vecSpline[0].getDBasis(r, radius);
+							//bz = zSplinePsi->getBasis(z, height);
 							brp = DBasis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
 							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
 						}
@@ -898,8 +898,8 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 					}
 					if (w4 or w5 or w6) {
 						if (bc) {
-							br = scalarSpline[0].getBasis(r, radius);
-							bz = zSpline->getBasis(z, height);
+							//br = scalarSpline[0].getBasis(r, radius);
+							//bz = zSpline->getBasis(z, height);
 							br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
 							bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
 
@@ -1114,4 +1114,129 @@ void CostFunctionRZ::getCq(double* Cq)
 }
 
 
+void CostFunctionRZ::updateBG()
+{
+	unsigned int radSize = bgradii->size();
+	real* Cq = new real[radSize];
+	for (unsigned int var = 0; var < numVars; var++) {
+		unsigned int zi = 0;
+		SplineD* bgSpline;
+		if (var > 1) {
+			bgSpline = scalarSpline;
+		} else {
+			bgSpline = vecSpline;
+		}		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				unsigned int Ri = R + var*RState[z] + zi;
+				field[z][R] = currState[Ri];
+			}			
+			// Increment the state array index
+			zi += numVars*RState[z];
+		}
+		for (unsigned int R = 0; R < maxRadius; R++) {
+			for (unsigned int z = 0; z < zState; z++) {
+				// Pad the field with zeroes if it is outside the domain
+				if (R < RState[z]) {
+					fieldZ[z] = field[z][R];
+				} else {
+					fieldZ[z] = 0;
+				}
+			}
+			
+			// FZ
+			filterZ->filterArray(fieldZ, zState);
+			for (unsigned int z = 0; z < zState; z++) {
+				field[z][R] = fieldZ[z];
+			}
+			
+		}
+		
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				if ((var == 1) and (z == 0)) {
+					// Force Psi delta to zero
+					//field[z][R]= 0;
+				}			
+				fieldR[R] = field[z][R];
+			}
+			// FR
+			filterR->filterArray(fieldR, RState[z]);
+			
+			// D
+			for (unsigned int R = 0; R < RState[z]; R++) {
+				double coeff = fieldR[R] * bgError[var] * varScale[var];
+				ctrlSpline[z].setCoefficient(R, coeff);
+			}
+			
+			// P
+			for (unsigned int r = 0; r < radSize; r++) {
+				double potRad = RXform[z].at(r);
+				Cq[r] = ctrlSpline[z].evaluate(potRad);
+				//cout << z << "\t" << r << "\t" << var << "\t" << Cq[r] << endl;
+			}
+			
+			// S
+			bgSpline[z].solveGQ(Cq);
+		}
+		
+		// Load the spline coefficients onto the GPU
+		for (unsigned int z = 0; z < zState; z++) {
+			for (unsigned int p = 0; p < pState; p++) {
+				coeffHost[z*numVars*pState +p*numVars + var] = bgSpline[z].getCoefficient(p);
+			}
+		}
+	}
+	
+	delete[] Cq;
+
+	/*mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState
+	 int mObs, float rmax, float rmin, float zmax, float zmin, float* HCq_h, int pState, int zState
+	 
+	 obs_d, HCq_d, pState, zState, rmin, dr, drrecip, zmin, dz, dzrecip, onesixth
+	 float* obs_d,float* HCq_d, int R, int Z, float rmin, float DR, float DRrecip, float zmin, float DZ, float DZrecip, float ONESIXTH*/
+	// H
+	float rmin =  bgradii->front();
+	float rmax =  bgradii->back();
+	float zmin =  bgheights->front();
+	float zmax =  bgheights->back();
+	int R = pState-1;
+	int R1 = pState;
+	int Z = zState-1;	
+
+	for (unsigned int zi = 0; zi < zState; zi++) {
+		for (unsigned int ri = 0; ri < radSize; ri++) {
+			float radius = bgradii->at(ri);
+			float height = bgheights->at(zi);
+			float DR = (rmax - rmin) / R;
+			float DRrecip = 1./DR;
+			float DZ = (zmax - zmin) / Z;
+			float DZrecip = 1./DZ;
+			float ONESIXTH = 1./6.;
+
+			int m = (int)((radius - rmin)*DRrecip);
+			int n = (int)((height - zmin)*DZrecip);
+			float bz = 0;
+			float br = 0;
+			float bzv = 0;
+			float brv = 0;
+			// rhoV = BC_LZERO_RSECOND, r & BC_ZERO_SECOND, z
+			for (int r = m-1; r <= m+2; ++r) {
+				for (int z = n-1; z <= n+2; ++z) {				
+					if ((r < 0) or (r > R) or (z < 0) or (z > Z)) continue;
+					br = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 2);
+					bz = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 2);
+					brv = Basis(r, radius, R, rmin, DR, DRrecip, ONESIXTH, 4);
+					bzv = Basis(z, height, Z, zmin, DZ, DZrecip, ONESIXTH, 4);
+					//cout << "GCPU: "<< r << ",\t" << z << ",\t" << br << ",\t" << bz << endl << endl;
+					bgFields[zi][0].at(ri) += coeffHost[z*5*R1 + r*5 + 0] * brv * bz;
+					bgFields[zi][1].at(ri) += coeffHost[z*5*R1 + r*5 + 1] * brv * bzv;
+					bgFields[zi][2].at(ri) += coeffHost[z*5*R1 + r*5 + 2] * br * bz;
+					bgFields[zi][3].at(ri) += coeffHost[z*5*R1 + r*5 + 3] * br * bz;
+					bgFields[zi][4].at(ri) += coeffHost[z*5*R1 + r*5 + 4] * br * bz;
+				}
+			}
+		}		
+	}		
+}
 

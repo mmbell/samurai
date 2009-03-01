@@ -748,10 +748,11 @@ double VarDriver2d::updateXforms()
 	} 
 	
 	// Increment the variables
+	cost2d->updateBG();
 	double RxRMS = 0;
 	for (unsigned int zi = 0; zi < z.size(); zi++) {	
 		double rhoBar = 1.1646*exp(-1.068e-4*z[zi]);
-		for (unsigned int var = 0; var < numVars-1; var++) {
+		/* for (unsigned int var = 0; var < numVars-1; var++) {
 			if (var > 1) {
 				scalarSpline[zi].solveGQ(&BG[zi][var].front());
 				BG[zi][var].clear();
@@ -789,7 +790,7 @@ double VarDriver2d::updateXforms()
 					BG[zi][var].push_back(newbg);
 				}
 			}
-		}
+		} */
 		
 		// Compute an updated transform
 		vecSpline[zi].solveGQ(&BG[zi][0].front());
