@@ -49,7 +49,7 @@ private:
 	bool loadBGfromFile();
 	bool setupMishAndRXform();
 	double updateXforms();
-	bool writeAsi(const QString& fileName, vector<real>** fields, SplineD* scalar, SplineD* vector);	
+	bool writeAsi(const QString& fileName, vector<real>** fields);
 	
 	SplineD* scalarSpline;
 	SplineD* vecSpline;

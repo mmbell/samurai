@@ -180,6 +180,7 @@ BSplineBase<T>::IfaceVersion()
 template <class T>
 BSplineBase<T>::~BSplineBase()
 {
+	delete[] base->q;
     delete base;
 }
 
@@ -1178,7 +1179,7 @@ BSpline<T>::solveBGQ (const T *b)
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
 	
-    int mx, m, j;
+    int m;
 	for (m = 0; m < M+1; ++m) {
 		B[m] = b[m];
 	}

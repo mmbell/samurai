@@ -15,7 +15,7 @@ int main (int argc, char *argv[]) {
 	rzDriver.initialize();
 	rzDriver.run();
 	rzDriver.finalize();
-	
+	std::cout << "Analysis complete!\n";
 	
 	/*VarDriver2d driver;
 	if (!driver.run()) {

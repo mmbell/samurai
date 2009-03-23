@@ -30,7 +30,6 @@ VarDriverRZ::VarDriverRZ()
 
 VarDriverRZ::~VarDriverRZ()
 {
-	unsigned int maxHeights = 35; // Can I make this dynamic?
 	for (unsigned int zi = 0; zi < maxHeights; zi++) {
 		delete[] BG[zi];
 		delete[] BGsave[zi];
@@ -44,6 +43,8 @@ VarDriverRZ::~VarDriverRZ()
 	delete zSplinePsi;
 	//delete[] RnumGridpts;
 	delete[] RXform;
+	delete[] obs;
+	delete[] bgB;
 	delete costRZ;
 
 }
@@ -544,7 +545,7 @@ bool VarDriverRZ::setupMishAndRXform()
 	double zMin = 0.;
 	double zMax = z.back();
 	z.clear();
-	numZnodes = (int)(zMax - zMin)/zincr + 1;
+	numZnodes = (int)((zMax - zMin)/zincr) + 1;
 	int zinit = 1;
 	for (unsigned int vi = 0; vi< numVars; vi++) {
 		for (unsigned int ri = 0; ri < r.size(); ri++) {
@@ -843,7 +844,7 @@ bool VarDriverRZ::initialize()
 	cout << "Number of Observations: " << obVector.size() << endl;
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	int stateSize = idim*jdim*numVars;
+	int stateSize = idim*jdim*(numVars-1);
 	
 	costRZ = new CostFunctionRZ_CPU(obVector.size(), stateSize);
 	costRZ->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgB, obs, vecSpline, RnumGridpts, RXform); 
@@ -866,7 +867,6 @@ bool VarDriverRZ::run()
 	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
 		<< iter << " iterations. Writing analysis results..." << endl;
 
-	cout << "Analysis complete!" << endl;
 	return true;
 
 }
@@ -1031,7 +1031,7 @@ bool VarDriverRZ::finalize()
 
 	// Write to an asi file for plotting
 	QString asifile("tcvar_analysis");
-	writeAsi(asifile, final, scalarAnalysisSpline, vecAnalysisSpline);
+	writeAsi(asifile, final);
 	
 	
 	//Increments
@@ -1167,7 +1167,7 @@ bool VarDriverRZ::finalize()
 	
 	// Write to an asi file for plotting
 	asifile = "tcvar_increment";
-	writeAsi(asifile, increment, scalarAnalysisSpline, vecAnalysisSpline);
+	writeAsi(asifile, increment);
 	
 	// Write some info to a file for plotting
 	ofstream acurve("Analysis.out");
@@ -1244,7 +1244,7 @@ bool VarDriverRZ::finalize()
 
 double VarDriverRZ::updateXforms()
 {
-	int wl = 2*rincr; 
+	int wl = 2*int(rincr); 
 	int numrnodes = vecSpline[0].nNodes();
 	int numZnodes = zSpline->nNodes();
 	double *Cq = new double[numrnodes*numZnodes*(numVars-1)];
@@ -1377,7 +1377,7 @@ void VarDriverRZ::EvalSpline (SplineD* spline, ostream &out)
 
 
 
-bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields, SplineD* scalar, SplineD* vectorSpline)
+bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields)
 {
 	QString outFileName;
 	if(QDir::isAbsolutePath(fileName)) {
@@ -1440,17 +1440,17 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields, Splin
 	
 	// X Header
 	double rincr = 1;
-	id[160] = (int)(0);
-	id[161] = (int)(scalar->nNodes() * 100);
-	id[162] = (int)scalar->nNodes();
-	id[163] = (int)rincr * 1000;
+	id[160] = (int)imin;
+	id[161] = (int)imax*100;
+	id[162] = (int)idim;
+	id[163] = (int)(rincr * 1000);
 	id[164] = 1;
 	
 	// Y Header
 	double zincr = 0.25;
-	id[165] = (int)(z.front());
-	id[166] = (int)(z.back()/10);
-	id[167] = (int)z.size();
+	id[165] = (int)(jmin);
+	id[166] = (int)(jmax/10);
+	id[167] = (int)jdim;
 	id[168] = (int)(zincr * 1000);
 	id[169] = 2;
 	
@@ -1466,7 +1466,7 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields, Splin
 	
 	// Index of center
 	id[309] = (int)(1);
-	id[310] = (int)((1 - z.front()) * 100);
+	id[310] = (int)(1);
 	id[311] = 0;
 	
 	// Write ascii file for grid2ps
@@ -1491,27 +1491,57 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields, Splin
 		}
 	}
 	
+	// Get the data on the nodes
+	real* jTemp = new real[z.size()];
+	real*** fieldNodes = new real**[fieldNames.size()];
+	for(int n = 0; n < fieldNames.size(); n++) {
+		fieldNodes[n] = new real*[idim];
+		for (int i=0; i < idim; i++) {
+			fieldNodes[n][i] = new real[jdim];
+		}
+	}
+	
+	for(int n = 0; n < fieldNames.size(); n++) {
+		for (int i = 0; i < idim; i++) {
+			for (unsigned int zi = 0; zi < z.size(); zi++) {
+				const real* curve;
+				if ((n > 1) and (n < 8)) {
+					scalarSpline[zi].solveGQ(&fields[zi][n].front());
+					curve = scalarSpline[zi].curve();
+					jTemp[zi] = curve[i];
+				} else {
+					vecSpline[zi].solveGQ(&fields[zi][n].front());
+					curve = vecSpline[zi].curve();
+					jTemp[zi] = curve[i];
+				}
+			}
+			const real* curve;
+			if ((n > 1) and (n < 8)) {
+				zSpline->solveGQ(jTemp);
+				curve = zSpline->curve();
+				for(int j = 0; j < jdim; j++) {
+					fieldNodes[n][i][j] = curve[j];
+				}
+			} else {
+				zSplinePsi->solveGQ(jTemp);
+				curve = zSplinePsi->curve();
+				for(int j = 0; j < jdim; j++) {
+					fieldNodes[n][i][j] = curve[j];
+				}
+			}
+		}
+	}
+	
 	// Write data
 	for(int k = 0; k < 1; k++) {
 		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;
-		for(int j = 0; j < int(z.size()); j++) {
+		for(int j = 0; j < jdim; j++) {
 			out << reset << "azimuth" << qSetFieldWidth(3) << j+1 << endl;
 			for(int n = 0; n < fieldNames.size(); n++) {
-				if ((n > 1) and (n < 8)) {
-					scalar->solveGQ(&fields[j][n].front());
-				} else {
-					vectorSpline->solveGQ(&fields[j][n].front());
-				}
 				out << reset << left << fieldNames.at(n) << endl;
 				int line = 0;
-				const real* curve;
-				if ((n > 1) and (n < 8)) {
-					curve = scalar->curve();
-				} else {
-					curve = vectorSpline->curve();
-				}
-				for (int i = 0; i < int(scalar->nNodes());  i++){
-					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << curve[i];
+				for (int i = 0; i < idim;  i++){
+					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << fieldNodes[n][i][j];
 					line++;
 					if (line == 8) {
 						out << endl;
@@ -1524,6 +1554,16 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields, Splin
 			}
 		}
 	}
+	
+	
+	delete[] jTemp;
+	for(int n = 0; n < fieldNames.size(); n++) {
+		for (int i=0; i < idim; i++) {
+			delete[] fieldNodes[n][i];
+		}
+		delete[] fieldNodes[n];
+	}
+	delete[] fieldNodes;
 	
 	return true;
 	

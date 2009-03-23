@@ -61,7 +61,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	bgError[0] = 10.;
 	bgError[1] = 500.;
 	bgError[2] = 300.;
-	bgError[3] = 2.;
+	bgError[3] = 20.;
 	bgError[4] = 0.01;	
 	int iFilterScale = 3;
 	int jFilterScale = 2;
@@ -613,65 +613,72 @@ void CostFunctionRZ_CPU::calcInnovation()
 void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate) 
 {
 	
-	// Calculate HTd	
+	// Clear the Astate
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				real tempsum = 0;
-				#pragma omp parallel for reduction(+:tempsum)
-				for (int m = 0; m < mObs; m++) {
-					// Sum over obs this time
-					// Multiply state by H weights
-					int mi = m*10;
-					real invError = obsVector[mi+1];
-					real w1 = obsVector[mi+2];
-					real w2 = obsVector[mi+3];
-					real w3 = obsVector[mi+4];
-					real w4 = obsVector[mi+5];
-					real w5 = obsVector[mi+6];
-					real w6 = obsVector[mi+7];		
-					real i = obsVector[mi+8];
-					real j = obsVector[mi+9];
-					real invI = 1./i;
-					int ii = (int)((i - iMin)*DIrecip);
-					int jj = (int)((j - jMin)*DJrecip);
-					real ibasis = 0;
-					real jbasis = 0;
-					real idbasis = 0;
-					real jdbasis = 0;
-					
-					for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-						for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				
-							if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
-							// If conditions may cause parallel warps to diverge -- maybe actually faster to just calculate them all but need to test
-							if(w1) {
-								ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-								tempsum += yhat[m] * ibasis * jbasis * w1 * invError;
-							}
-							if(w2 or w3) {
-								ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-								idbasis = DBasis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-								jdbasis = DBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-								tempsum += yhat[m] * ibasis * (-jdbasis) * w2 * 1e3 * invI * invError;
-								tempsum += yhat[m] * idbasis * jbasis * w3 * invI * invError;
-							}
-							if (w4 or w5 or w6) {
-								ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-								tempsum += yhat[m] * ibasis * jbasis * w4 * invError;
-								tempsum += yhat[m] * ibasis * jbasis * w5 * invError;
-								tempsum += yhat[m] * ibasis * jbasis * w6 * invError;
-							}
-						}
-					}
-				}
-				// Reuse stateA here since we are going to invert it to get back the B's
-				Astate[varDim*iDim*jIndex +varDim*iIndex + var] = tempsum;
+				Astate[varDim*iDim*jIndex +varDim*iIndex + var] = 0.;
 			}
 		}
-	} 
+	}
+	
+	// Calculate H Transpose	
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			#pragma omp parallel for
+			for (int m = 0; m < mObs; m++) {
+				// Sum over obs this time
+				// Multiply state by H weights
+				int mi = m*10;
+				real invError = obsVector[mi+1];
+				real w1 = obsVector[mi+2];
+				real w2 = obsVector[mi+3];
+				real w3 = obsVector[mi+4];
+				real w4 = obsVector[mi+5];
+				real w5 = obsVector[mi+6];
+				real w6 = obsVector[mi+7];		
+				real i = obsVector[mi+8];
+				real j = obsVector[mi+9];
+				real invI = 1./i;
+				int ii = (int)((i - iMin)*DIrecip);
+				if ((iIndex < ii-1) or (iIndex > ii+2)) continue;
+				int jj = (int)((j - jMin)*DJrecip);
+				if ((jIndex < jj-1) or (jIndex > jj+2)) continue;
+				real ibasis = 0;
+				real jbasis = 0;
+				real idbasis = 0;
+				real jdbasis = 0;
+				
+				if(w1) {
+					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
+					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 2);
+					Astate[varDim*iDim*jIndex +varDim*iIndex] 
+						+= yhat[m] * ibasis * jbasis * w1 * invError;
+				}
+				if(w2 or w3) {
+					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
+					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 4);
+					idbasis = DBasis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
+					jdbasis = DBasis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 4);
+					Astate[varDim*iDim*jIndex +varDim*iIndex + 1] 
+						+= yhat[m] * ibasis * (-jdbasis) * w2 * 1e3 * invI * invError;
+					Astate[varDim*iDim*jIndex +varDim*iIndex + 1]
+						+= yhat[m] * idbasis * jbasis * w3 * invI * invError;
+				}
+				if (w4 or w5 or w6) {
+					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 2);
+					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 2);
+					Astate[varDim*iDim*jIndex +varDim*iIndex + 2] 
+						+= yhat[m] * ibasis * jbasis * w4 * invError;
+					Astate[varDim*iDim*jIndex +varDim*iIndex + 3] 
+						+= yhat[m] * ibasis * jbasis * w5 * invError;
+					Astate[varDim*iDim*jIndex +varDim*iIndex + 4]
+						+= yhat[m] * ibasis * jbasis * w6 * invError;
+				}
+				
+			}
+		}
+	}
 	
 }
 
