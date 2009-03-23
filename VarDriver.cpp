@@ -224,8 +224,16 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setLon(-lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
 		ob.setPressure(lineparts[8].toFloat());
-		ob.setTemperature(lineparts[11].toFloat() + 273.15);
-		ob.setDewpoint(lineparts[12].toFloat() + 273.15);
+		if (lineparts[11].toFloat() != -999) {
+			ob.setTemperature(lineparts[11].toFloat() + 273.15);
+		} else {
+			ob.setTemperature(-999.);
+		}
+		if (lineparts[12].toFloat() != -999) {
+			ob.setDewpoint(lineparts[12].toFloat() + 273.15);
+		} else {
+			ob.setDewpoint(-999.);
+		}
 		ob.setWindDirection(lineparts[9].toFloat());
 		ob.setWindSpeed(lineparts[10].toFloat());
 		ob.setVerticalVelocity(lineparts[16].toFloat());

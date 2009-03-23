@@ -27,6 +27,11 @@ void Observation::setAltitude(const double &alt)
 	altitude = alt;
 }
 
+void Observation::setType(const int &t)
+{
+	type = t;
+}
+
 void Observation::setWeight(const double &wgt, const unsigned int& var)
 {
 	if (var < numVars) {

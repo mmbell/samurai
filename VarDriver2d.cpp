@@ -135,21 +135,21 @@ bool VarDriver2d::initVortexBG()
 	}
 	
 	// Set up a vertical spline on the original grid
-	double wl = 2; 
+	double wl = 2*250; 
 	bc = SplineBase::BC_ZERO_SECOND;
 	int num_nodes = z.size();
 	vector<real> zBuffer;
 	zBuffer.assign(z.size(), 0.0);	
 	zSpline = new SplineD(&z.front(), z.size(), &zBuffer.front(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
 	zSplinePsi = new SplineD(&z.front(), z.size(), &zBuffer.front(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
-	cerr << "Vertical Spline Cutoff frequency " << wl
+	cout << "Vertical Spline Cutoff frequency " << wl
 	<< ", number of nodes " << num_nodes
 	<< ", and boundary condition type " << bc << "\n";
 	if (!zSpline->ok())
-		cerr << "Vertical spline has a problem :(" << endl;
+		cout << "Vertical spline has a problem :(" << endl;
 	numHeights = z.size();
 
-	/* doubleign the vertical grid on the Gaussian points
+	/* Realign the vertical grid on the Gaussian points
 	double zincr = 250;
 	double zMin = 0.;
 	double zMax = z.back();
@@ -186,19 +186,21 @@ bool VarDriver2d::initVortexBG()
 	}
 	
 	zSpline->setDomainGQ(&z.front(), z.size(), wl, bc, num_nodes); */
-
 	numHeights = z.size();
 	// Set up the background vectors in r space
 	vecSpline = new SplineD[numHeights];
 	scalarSpline = new SplineD[numHeights];
 	num_nodes = r.size();
+	double rincr = 1;
+	wl = 2*rincr;
+	//SplineD::Debug(1);
 	for (unsigned int zi = 0; zi < z.size(); zi++) {
 		vecSpline[zi].setDomain(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 		scalarSpline[zi].setDomain(&r.front(), r.size(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
 	}
 
 	// Iterate through the new radius grid for each variable
-	double rincr = 1;
+	
 	double rMin = 0.;
 	double rMax = (double)r.back();
 	num_nodes = (int)((rMax - rMin)/rincr) + 1;
@@ -208,7 +210,7 @@ bool VarDriver2d::initVortexBG()
 	RXform = new vector<real>[numHeights];
 	for (unsigned int i = 0; i< numVars; i++) {
 		SplineD* bgSpline;
-		if (i > 1) {
+		if ((i > 1) and (i < 5)) {
 			bgSpline = scalarSpline;
 		} else {
 			bgSpline = vecSpline;
@@ -256,7 +258,7 @@ bool VarDriver2d::initVortexBG()
 		vecSpline[zi].setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 		scalarSpline[zi].setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
 	}
-	cerr << "Background Spline Cutoff frequency " << wl
+	cout << "Background Spline Cutoff frequency " << wl
 	<< ", number of nodes " << num_nodes
 	<< ", and boundary condition type " << bc << "\n";
 	
@@ -752,45 +754,6 @@ double VarDriver2d::updateXforms()
 	double RxRMS = 0;
 	for (unsigned int zi = 0; zi < z.size(); zi++) {	
 		double rhoBar = 1.1646*exp(-1.068e-4*z[zi]);
-		/* for (unsigned int var = 0; var < numVars-1; var++) {
-			if (var > 1) {
-				scalarSpline[zi].solveGQ(&BG[zi][var].front());
-				BG[zi][var].clear();
-				
-				incr.clear();
-				for (unsigned int p = 0; p < r.size(); p++) {
-					unsigned int i = p + var*r.size() + zi*(numVars-1)*r.size();		
-					incr.push_back(Cq[i]);
-				}
-				scalarIncrSpline->solveGQ(&incr.front());
-				for (unsigned int ri = 0; ri < r.size(); ri++) {
-					double rad = r[ri];
-					double bg = scalarSpline[zi].evaluate (rad);
-					double cq = scalarIncrSpline->evaluate (rad);
-					//cout << "Incr:" << ri << "\t" << bg << "\t" << cq << endl;
-					double newbg = bg + cq;
-					BG[zi][var].push_back(newbg);
-				}
-			} else {
-				vecSpline[zi].solveGQ(&BG[zi][var].front());
-				BG[zi][var].clear();
-				
-				incr.clear();
-				for (unsigned int p = 0; p < r.size(); p++) {
-					unsigned int i = p + var*r.size() + zi*(numVars-1)*r.size();
-					incr.push_back(Cq[i]);
-				}
-				vecIncrSpline->solveGQ(&incr.front());
-				for (unsigned int ri = 0; ri < r.size(); ri++) {
-					double rad = r[ri];
-					double bg = vecSpline[zi].evaluate (rad);
-					double cq = vecIncrSpline->evaluate (rad);
-					//cout << "Incr:" << ri << "\t" << bg << "\t" << cq << endl;
-					double newbg = bg + cq;
-					BG[zi][var].push_back(newbg);
-				}
-			}
-		} */
 		
 		// Compute an updated transform
 		vecSpline[zi].solveGQ(&BG[zi][0].front());
@@ -828,9 +791,9 @@ double VarDriver2d::updateXforms()
 		for (unsigned int zi = 0; zi < z.size(); zi++) {
 			for (unsigned int p = 0; p < r.size(); p++) {
 				unsigned int i = p + var*r.size() + zi*(numVars-1)*r.size();
-				if (Cq[i] > maxIncr) maxIncr = Cq[i];
+				if (fabs(Cq[i]) > maxIncr) maxIncr = fabs(Cq[i]);
 				if (BG[zi][var].at(p) != 0) {
-					if (100*abs(Cq[i]/BG[zi][var].at(p)) > maxPercent) maxPercent = 100*abs(Cq[i]/BG[zi][var].at(p));
+					if (100*fabs(Cq[i]/BG[zi][var].at(p)) > maxPercent) maxPercent = 100*fabs(Cq[i]/BG[zi][var].at(p));
 				}
 				RMS += Cq[i]*Cq[i];
 				//cout << i << "\t" << p << "\t" << var << "\t" << Cq[i] << endl;
@@ -1003,7 +966,7 @@ void VarDriver2d::processMetObs()
 					w = metOb.getVerticalVelocity();
 					rho = metOb.getDryDensity();
 					qv = metOb.getQv();
-					hstar = metOb.getMoistSaturationStaticEnergy()/1e3;
+					hstar = metOb.getMoistSaturationStaticEnergy();
 					
 					// Separate obs for each measurement
 					// rho v 1 m/s error
@@ -1036,7 +999,7 @@ void VarDriver2d::processMetObs()
 					if (hstar != -999) {
 						// hstar 20 kJ error
 						varOb.setWeight(1., 3);
-						varOb.setOb(hstar);
+						varOb.setOb(hstar/1e3);
 						varOb.setError(5.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
@@ -1066,7 +1029,7 @@ void VarDriver2d::processMetObs()
 					w = metOb.getVerticalVelocity();
 					rho = metOb.getDryDensity();
 					qv = metOb.getQv();
-					hstar = metOb.getMoistSaturationStaticEnergy()/1e3;
+					hstar = metOb.getMoistSaturationStaticEnergy();
 					
 					// Separate obs for each measurement
 					// rho v 1 m/s error
@@ -1098,7 +1061,7 @@ void VarDriver2d::processMetObs()
 					if (hstar != -999) {
 						// hstar 20 kJ error
 						varOb.setWeight(1., 3);
-						varOb.setOb(hstar);
+						varOb.setOb(hstar/1e3);
 						varOb.setError(5.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
@@ -1313,7 +1276,7 @@ bool VarDriver2d::writeAsi(const QString& fileName, vector<real>** fields, Splin
 		for(int j = 0; j < int(z.size()); j++) {
 			out << reset << "azimuth" << qSetFieldWidth(3) << j+1 << endl;
 			for(int n = 0; n < fieldNames.size(); n++) {
-				if (n > 1) {
+				if ((n > 1) and (n < 8)) {
 					scalar->solveGQ(&fields[j][n].front());
 				} else {
 					vectorSpline->solveGQ(&fields[j][n].front());
@@ -1327,7 +1290,7 @@ bool VarDriver2d::writeAsi(const QString& fileName, vector<real>** fields, Splin
 					curve = vectorSpline->curve();
 				}
 				for (int i = 0; i < int(scalar->nNodes());  i++){
-					if (n > 1) {
+					if ((n > 1) and (n < 8)) {
 						out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << curve[i];
 					} else {
 						out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << curve[i];

@@ -15,19 +15,24 @@ class RecursiveFilter
 {
 	
 public:
-	RecursiveFilter(const int& fOrder, const int& fLengthScale);
+	RecursiveFilter(const int& fOrder, const double& fLengthScale);
+	RecursiveFilter(const double& fLengthScale, const double* tau, const int& arrLength );
 	~RecursiveFilter();
 	bool filterArray(double* array, const int& arrLength);
-	
+	bool aniFilterArray(double* array, const int& arrLength);
+
 private:
 	int order;
-	int lengthScale;
+	double lengthScale;
 	double beta;
 	double alpha[5];
+	double* abeta;
+	double* aalpha[5];
 	double Sn[5][5];
-	void getFilterCoefficients();
+	void getIsotropicFilterCoefficients();
+	void getAnisotropicFilterCoefficients(const double* tau, const int& arrLength);
 	double factorial(const double& max); 		
-	void solveBC(double* A, double* B);	
+	void solveBC(double* A, double* B, double S[5][5]);	
 };
 
 #endif

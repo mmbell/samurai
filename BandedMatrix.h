@@ -219,8 +219,6 @@ std::ostream &operator<< (std::ostream &out, const BandedMatrix<T> &m)
     return out;
 }
 
-
-
 /*
  * Helper class for the intermediate in the [][] operation.
  */
@@ -278,6 +276,19 @@ Vector operator* (const Matrix &m, const Vector &v)
     return r;
 }
 
+template <class MT>
+bool dumpMatrixToArray (MT &m, typename MT::element_type* array)
+{
+    unsigned int i, j;
+    for (i = 0; i < m.num_rows(); ++i)
+    {
+		for (j = 0; j < m.num_cols(); ++j)
+		{
+			array[m.num_rows()*i + j] = m.element (i, j);
+		}
+    }
+    return true;
+}
 
 
 /*

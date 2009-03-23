@@ -97,6 +97,7 @@ class MetObs
 		float getVirtualTemp() const;
 		float getMoistStaticEnergy() const;
 		float getMoistSaturationStaticEnergy() const;
+		float getTotalEnergy() const;
 		
 		bool operator ==(const MetObs &other);
 		bool operator < (const MetObs &other);

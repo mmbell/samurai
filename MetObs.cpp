@@ -361,8 +361,12 @@ float MetObs::getVirtualTemp() const
 
 float MetObs::getMoistStaticEnergy() const
 {
-	float h = C_P * temperature + 2.5e3 * getQv() + 9.81 * altitude;
-	return h;
+	if ((temperature != -999) and (pressure != -999)) {
+		float h = C_P * temperature + 2.5e3 * getQv() + 9.81 * altitude;
+		return h;
+	} else {
+		return -999;
+	}
 }
 
 float MetObs::getMoistSaturationStaticEnergy() const
@@ -370,6 +374,23 @@ float MetObs::getMoistSaturationStaticEnergy() const
 	if ((temperature != -999) and (pressure != -999)) {
 		float h = C_P * temperature + 2.5e3 * getQvSaturation() + 9.81 * altitude;
 		return h;
+	} else {
+		return -999;
+	}
+}
+
+float MetObs::getTotalEnergy() const
+{
+	if ((temperature != -999) and (pressure != -999)) {
+		float h = C_P * temperature + 2.5e3 * getQv() + 9.81 * altitude;
+		float u = getCartesianUwind();
+		float v = getCartesianVwind();
+		if ((u != -999) and (v != -999)) {
+			float e = h + sqrt(u*u + v*v);
+			return e;
+		} else {
+			return -999;
+		}
 	} else {
 		return -999;
 	}

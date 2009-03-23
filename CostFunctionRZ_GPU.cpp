@@ -1,12 +1,12 @@
 /*
- *  CostFunctionRZ.cpp
+ *  CostFunctionRZ_GPU.cpp
  *  tcvar
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#include "CostFunctionRZ.h"
+#include "CostFunctionRZ_GPU.h"
 #include <cmath>
 
 // Global CUDA declarations
@@ -24,7 +24,7 @@ extern "C" {
  vector and the innovation vector. Add 1+vector1+vector2 to get the gradient. Treat the penalty
  constraints as observations. */
 
-CostFunctionRZ::CostFunctionRZ(const int& numObs, const int& stateSize)
+CostFunctionRZ_GPU::CostFunctionRZ_GPU(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
 {
 	/* Initialize background errors
@@ -41,11 +41,11 @@ CostFunctionRZ::CostFunctionRZ(const int& numObs, const int& stateSize)
 	bgError[4] = 0.1;
 }
 
-CostFunctionRZ::~CostFunctionRZ()
+CostFunctionRZ_GPU::~CostFunctionRZ_GPU()
 {
 }
 
-void CostFunctionRZ::finalize()
+void CostFunctionRZ_GPU::finalize()
 {	
 	delete filterR;
 	delete filterZ;
@@ -88,7 +88,7 @@ void CostFunctionRZ::finalize()
 	delete[] coeffHost;
 }
 
-void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls, SplineD* zs, SplineD* zpsi, 
+void CostFunctionRZ_GPU::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls, SplineD* zs, SplineD* zpsi, 
 								vector<real>* bgr, vector<real>* bgz, vector<real>** bgf, 
 								unsigned int* ctrlR, vector<real>* RX, Observation* obs)
 {
@@ -181,7 +181,7 @@ void CostFunctionRZ::initialize(SplineD* vecs, SplineD* scalars, SplineD* ctrls,
 	initState();
 }	
 
-void CostFunctionRZ::initState() {
+void CostFunctionRZ_GPU::initState() {
 
 	// Clear the state vector
 	for (int n = 0; n < nState; n++) {
@@ -370,7 +370,7 @@ void CostFunctionRZ::initState() {
 	
 }	
 
-double CostFunctionRZ::funcValue(double* state)
+double CostFunctionRZ_GPU::funcValue(double* state)
 {
 	// Update the Y hat vector
 #ifdef CSTGPU
@@ -398,7 +398,7 @@ double CostFunctionRZ::funcValue(double* state)
 	
 }
 
-void CostFunctionRZ::funcGradient(double* state, double* gradient)
+void CostFunctionRZ_GPU::funcGradient(double* state, double* gradient)
 {
 	
 	// Update the Y hat vector
@@ -527,7 +527,7 @@ void CostFunctionRZ::funcGradient(double* state, double* gradient)
 	
 }
 
-void CostFunctionRZ::updateHCq(double* state)
+void CostFunctionRZ_GPU::updateHCq(double* state)
 {
 		
 	// Clear the HCq variable
@@ -644,7 +644,7 @@ void CostFunctionRZ::updateHCq(double* state)
 	
 }
 
-void CostFunctionRZ::updateHCq_GPU(double* state)
+void CostFunctionRZ_GPU::updateHCq_GPU(double* state)
 {
 		
 	unsigned int radSize = bgradii->size();
@@ -726,7 +726,7 @@ void CostFunctionRZ::updateHCq_GPU(double* state)
 	HCq_GPU(mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState);
 }
 
-void CostFunctionRZ::updateHCq_parallel(double* state)
+void CostFunctionRZ_GPU::updateHCq_parallel(double* state)
 {
 	unsigned int radSize = bgradii->size();
 	real* Cq = new real[radSize];
@@ -808,14 +808,10 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 	obs_d, HCq_d, pState, zState, rmin, dr, drrecip, zmin, dz, dzrecip, onesixth
 	float* obs_d,float* HCq_d, int R, int Z, float rmin, float DR, float DRrecip, float zmin, float DZ, float DZrecip, float ONESIXTH*/
 	// H
-	/*float rmin =  bgradii->front();
+	float rmin =  bgradii->front();
 	float rmax =  bgradii->back();
 	float zmin =  bgheights->front();
-	float zmax =  bgheights->back(); */
-	float rmin =  scalarSpline[0].Xmin();
-	float rmax =  scalarSpline[0].Xmax();
-	float zmin =  zSpline->Xmin();
-	float zmax =  zSpline->Xmax();
+	float zmax =  bgheights->back();
 	int R = pState-1;
 	int R1 = pState;
 	int Z = zState-1;	
@@ -924,7 +920,7 @@ void CostFunctionRZ::updateHCq_parallel(double* state)
 }
 
 // Basis Functions
-float CostFunctionRZ::Basis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_GPU::Basis(int m, float x, int M, float xmin, 
 					   float DX, float DXrecip, float ONESIXTH, int C)
 {
 
@@ -988,7 +984,7 @@ float CostFunctionRZ::Basis(int m, float x, int M, float xmin,
 	return b;
 }
 
-float CostFunctionRZ::DBasis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_GPU::DBasis(int m, float x, int M, float xmin, 
 						float DX, float DXrecip, float ONESIXTH, int C)
 {
 	float b = 0;
@@ -1055,7 +1051,7 @@ float CostFunctionRZ::DBasis(int m, float x, int M, float xmin,
 	return b;
 }
 
-void CostFunctionRZ::getCq(double* Cq)
+void CostFunctionRZ_GPU::getCq(double* Cq)
 {
 	// Apply series of transforms to copy of state vector
 	for (unsigned int var = 0; var < numVars; var++) {
@@ -1118,7 +1114,7 @@ void CostFunctionRZ::getCq(double* Cq)
 }
 
 
-void CostFunctionRZ::updateBG()
+void CostFunctionRZ_GPU::updateBG()
 {
 	unsigned int radSize = bgradii->size();
 	real* Cq = new real[radSize];

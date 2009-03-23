@@ -19,13 +19,20 @@ public:
 	~Observation();
 	double inline getRadius() const { return radius; }
 	void setRadius(const double &r);
+	
 	double inline getAltitude() const { return altitude; }
 	void setAltitude(const double &alt);
+	
+	void setType(const int &t);
+	int inline getType() const { return type; }
+	
 	double inline getWeight(const unsigned int& var) { return weight[var]; }
 	void setWeight(const double &wgt, const unsigned int& var);
+	
 	// Note that you set this as error, but it returns 1/error
 	double inline getInverseError() const { return error; }
 	void setError(const double &err);
+	
 	double inline getOb() const { return obNet; }
 	void setOb(const double &ob);
 
@@ -36,7 +43,7 @@ private:
 	double error;
 	double obNet;
 	unsigned int numVars;
-
+	int type;
 };
 
 #endif

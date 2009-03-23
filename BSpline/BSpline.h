@@ -354,6 +354,7 @@ protected:
     				// from the public interface.
 
     bool Setup (int num_nodes = 0);
+	bool SetupGQ (int num_nodes = 0);
     void calculateQ ();
     real qDelta (int m1, int m2);
     real Beta (int m);
@@ -432,6 +433,7 @@ public:
      */
     bool solve (const T *y);
 	bool solveGQ (const T *y);
+	bool solveBGQ (const T *b);
 	const T *solveInverseGQ(const T* b);
     /**
      * Return the entire curve evaluated at each of the nodes.
@@ -471,6 +473,11 @@ public:
 	T getBasis(int n, T x);
 	T getDBasis(int n, T x);
 	
+	/* Return the nodal representation (b) on a Gaussian grid */
+	const T *getBGQ(const T *y);
+	
+	const T *getQfactored();
+	
     virtual ~BSpline();
 
     using BSplineBase<T>::Debug;
@@ -488,7 +495,7 @@ protected:
     // Our hidden state structure
     BSplineP<T> *s;
     T mean;			// Fit without mean and add it in later
-
+	T* q;
 };
 
 #endif // !defined _BSPLINEBASE_IFACE_ID

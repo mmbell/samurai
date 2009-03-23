@@ -13,6 +13,8 @@ HEADERS += BandedMatrix.h \
            CostFunctionAnalytic.h \
            CostFunctionR.h \
            CostFunctionRZ.h \
+           CostFunctionRZ_CPU.h \
+           CostFunctionRZ_GPU.h \
            MetObs.h \
            Observation.h \
            ParametricVortex.h \
@@ -31,6 +33,8 @@ SOURCES += BSpline.cpp \
            CostFunctionAnalytic.cpp \
            CostFunctionR.cpp \
            CostFunctionRZ.cpp \
+           CostFunctionRZ_CPU.cpp \
+           CostFunctionRZ_GPU.cpp \
            main.cpp \
            MetObs.cpp \
            Observation.cpp \

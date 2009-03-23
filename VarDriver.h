@@ -39,8 +39,11 @@ protected:
 	
 	float CoriolisF;
 	float Pi;
+	float rhoBase;
+	float rhoInvScaleHeight;
 	unsigned int numVars;
 	unsigned int numHeights;
+	unsigned int maxHeights;
 	vector<TCcenter> tcVector;
 
 	// Data Processing
