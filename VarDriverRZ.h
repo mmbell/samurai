@@ -76,9 +76,14 @@ private:
 	
 	// Passable variables
 	real* bgB;
+	real* bgU;
 	real* obs;
-	const real* ia;
-	const real* ja;
+	const real* iaScalar;
+	const real* iaVector;
+	const real* jaScalar;
+	const real* jaVector;
+	real* ia;
+	real* ja;
 	real imin, imax, jmin, jmax;
 	int idim;
 	int jdim;

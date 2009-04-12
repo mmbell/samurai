@@ -45,6 +45,8 @@ VarDriverRZ::~VarDriverRZ()
 	delete[] RXform;
 	delete[] obs;
 	delete[] bgB;
+	delete[] ia;
+	delete[] ja;
 	delete costRZ;
 
 }
@@ -174,7 +176,7 @@ void VarDriverRZ::preProcessMetObs()
 					w = metOb.getVerticalVelocity();
 					rho = metOb.getDryDensity();
 					qv = metOb.getQv();
-					energy = metOb.getTotalEnergy();
+					energy = metOb.getMoistStaticEnergy();
 					
 					// Separate obs for each measurement
 					// rho v 1 m/s error
@@ -212,10 +214,10 @@ void VarDriverRZ::preProcessMetObs()
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
-					if (qv != -999) {
+					if ((qv != -999) and (rho != -999)) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
-						varOb.setOb(qv);
+						varOb.setOb(rho*qv);
 						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
@@ -238,7 +240,7 @@ void VarDriverRZ::preProcessMetObs()
 					w = metOb.getVerticalVelocity();
 					rho = metOb.getDryDensity();
 					qv = metOb.getQv();
-					energy = metOb.getTotalEnergy();
+					energy = metOb.getMoistStaticEnergy();
 					
 					// Separate obs for each measurement
 					// rho v 1 m/s error
@@ -275,10 +277,10 @@ void VarDriverRZ::preProcessMetObs()
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
-					if (qv != -999) {
+					if ((qv != -999) and (rho != -999)) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
-						varOb.setOb(qv);
+						varOb.setOb(rho*qv);
 						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
@@ -462,26 +464,26 @@ bool VarDriverRZ::loadBGfromFile()
 	
 	// Read in the background state
 	// Read the r and v pairs from a file
-	double height, radius, v, psi, rhoe, q, rho;
+	double height, radius, v, psi, h, q, rho;
 	int zi = 0;
-	vector<real> vIn, vBG, psiBG, rhoeBG, qBG, rpBG;
+	vector<real> vIn, rvBG, psiBG, hBG, qBG, rpBG;
 	vector<real>* vInit = new vector<real>[maxHeights];
 	ifstream vdata("./RZbackground.txt");
 	vdata.width(14);
-	while (vdata >> height >> radius >> v >> psi >> rhoe >> q >> rho)
+	while (vdata >> height >> radius >> v >> psi >> h >> q >> rho)
 	{
 		if (z.empty()) z.push_back (height);
 		if (height != z.back()) {
 			// Assign the initial background fields
-			BG[zi][0] =  vBG;
+			BG[zi][0] =  rvBG;
 			BG[zi][1] =  psiBG;
-			BG[zi][2] =  rhoeBG;
+			BG[zi][2] =  hBG;
 			BG[zi][3] =  qBG;
 			BG[zi][4] =  rpBG;
 			BG[zi][5] =  vIn;
 			r.clear(); vIn.clear();
-			vBG.clear(); psiBG.clear();
-			rhoeBG.clear(); qBG.clear(); rpBG.clear();
+			rvBG.clear(); psiBG.clear();
+			hBG.clear(); qBG.clear(); rpBG.clear();
 			z.push_back (height);
 			zi++;
 		}		
@@ -490,18 +492,19 @@ bool VarDriverRZ::loadBGfromFile()
 		// No negative v for potential radius transform!!!
 		// Need to handle this more gracefully
 		if (v < 0)  v = 0;
+		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
 		vIn.push_back (v);
-		vBG.push_back (v*rho);
+		rvBG.push_back (rho*radius*v/rhoBar);
 		psiBG.push_back (psi/1e6);
-		rhoeBG.push_back (rhoe/1e3);
-		qBG.push_back (q);
-		rpBG.push_back (rho-rhoBase*exp(-rhoInvScaleHeight*height));
+		hBG.push_back (rho*h/(1e3*rhoBar));
+		qBG.push_back (rho*q/rhoBar);
+		rpBG.push_back (rho-rhoBar);
 	}
 	
 	// Assign the final strip
-	BG[zi][0] =  vBG;
+	BG[zi][0] =  rvBG;
 	BG[zi][1] =  psiBG;
-	BG[zi][2] =  rhoeBG;
+	BG[zi][2] =  hBG;
 	BG[zi][3] =  qBG;
 	BG[zi][4] =  rpBG;
 	BG[zi][5] =  vIn;
@@ -584,8 +587,10 @@ bool VarDriverRZ::setupMishAndRXform()
 	
 	// Expand spline and levels for Gaussian grid
 	zSpline->setDomainGQ(&z.front(), z.size(), wl, bc, numZnodes);
+	zSplinePsi->setDomainGQ(&z.front(), z.size(), wl, SplineBase::BC_LZERO_RSECOND, numZnodes);
 	numHeights = z.size();
-	ja = zSpline->getQfactored();
+	jaScalar = zSpline->getQfactored();
+	jaVector = zSplinePsi->getQfactored();
 	
 	// Set up a radial spline on the original grid
 	wl = 2*rincr;
@@ -618,7 +623,7 @@ bool VarDriverRZ::setupMishAndRXform()
 			{
 				// Gaussian quadrature points
 				for (int mu = -1; mu <= 1; mu += 2) {
-					double grad = rad + 0.5*sqrt(1./3.)* mu + 0.5;
+					double grad = rad + (0.5*sqrt(1./3.)* mu + 0.5) * rincr;
 					BGsave[zi][vi].push_back(bgSpline[zi].evaluate(grad));
 					//if (vi == 2) 
 					//	cout << zi << "\t" << BGsave[zi][vi].back() << endl;
@@ -648,20 +653,43 @@ bool VarDriverRZ::setupMishAndRXform()
 		vecSpline[zi].setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, numrnodes);
 		scalarSpline[zi].setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_ZERO_SECOND, numrnodes);
 	}
-	ia = scalarSpline[0].getQfactored();
+	iaScalar = scalarSpline[0].getQfactored();
+	iaVector = vecSpline[0].getQfactored();
 	
 	cout << "Radial Spline Cutoff frequency " << wl
 	<< ", number of nodes " << numrnodes
 	<< ", and boundary condition type " << bc << "\n";
 	
+	// Load the BG into a vector
+	bgU = new real[r.size()*z.size()*(numVars-1)];
+	for (unsigned int ri = 0; ri < r.size(); ri++) {
+		for (unsigned int zi = 0; zi < z.size(); zi++) {
+			for (unsigned int vi = 0; vi< (numVars-1); vi++) {
+				bgU[(numVars-1)*r.size()*zi +(numVars-1)*ri + vi] = BG[zi][vi].at(ri);
+			}
+		}
+	}
+			
 	// Get the nodal representation
 	bgB = new real[numrnodes*numZnodes*(numVars-1)];
+	ia = new real[numrnodes*numrnodes*(numVars-1)];
+	ja = new real[numZnodes*numZnodes*(numVars-1)];
+	
 	real** bgrz = new real*[numrnodes];
 	for (int rb = 0; rb < numrnodes; rb++) {
 		bgrz[rb] = new real[z.size()];
 	}
-	
+				
+			
 	for (unsigned int vi = 0; vi< (numVars-1); vi++) {
+		
+		for (int i = 0; i < numrnodes*numrnodes; i++) {
+			ia[(numVars-1)*i + vi] = iaScalar[i];
+		}
+		for (int j = 0; j < numZnodes*numZnodes; j++) {
+			ja[(numVars-1)*j + vi] = jaScalar[j];
+		}
+		
 		for (unsigned int zi = 0; zi < z.size(); zi++) {
 			const real* bgr = scalarSpline[zi].getBGQ(&BG[zi][vi].front());
 			for (int rb = 0; rb < numrnodes; rb++) {
@@ -722,10 +750,10 @@ bool VarDriverRZ::setupMishAndRXform()
 	delete[] bgr;
 	
 	
-	/* Set up Anisotropic Filter
+	// Set up Anisotropic Filter
 	real* tau = new real[numrnodes*numZnodes];
 	real* Rtmp = new real[z.size()];
-	real* bgr = new real[numrnodes];
+	bgr = new real[numrnodes];
 	
 	for (int rb = 0; rb < numrnodes; rb++) {
 		bgr[rb] = bgB[(numVars-1)*rb];
@@ -742,27 +770,30 @@ bool VarDriverRZ::setupMishAndRXform()
 		}
 	}
 	
-	real* rtau = new real[numrnodes];
-	rtau[0] = tau[1]-tau[0];
-	for (int rb = 1; rb < numrnodes; rb++) {
-		rtau[rb] = tau[rb]-tau[rb-1];
+	/*real* rtau = new real[numrnodes];
+	//rtau[0] = tau[1]-tau[0];
+	for (int rb = 0; rb < numrnodes; rb++) {
+		rtau[rb] = tau[rb];
 		cout << rb << "\t" << tau[rb] << "\t" << rtau[rb] << endl;
 	}
 	RecursiveFilter* anifilter = new RecursiveFilter(5, rtau, numrnodes);
 	RecursiveFilter* isofilter = new RecursiveFilter(4, 5);
 	isofilter->filterArray(bgr, numrnodes);
+	cout << "Isotropic\n";
 	for (int rb = 0; rb < numrnodes; rb++) {
 		cout << rb << "\t" << bgr[rb] << "\n";
 		bgr[rb] = bgB[(numVars-1)*rb];
 	}
+	cout << "Ansotropic\n";
 	anifilter->aniFilterArray(bgr,numrnodes);
 	for (int rb = 0; rb < numrnodes; rb++) {
 		cout << rb << "\t" << bgr[rb] << "\n";
-	}
-	
+	} */
+	delete[] Rtmp;
+	delete[] tau;
 	delete[] bgr;
 	
-	// Old formulation
+	/* Old formulation
 	ctrlSpline = new SplineD[numZnodes];
 	rXform = new vector<real>[numHeights];
 	RnumGridpts = new unsigned int[numHeights];
@@ -835,7 +866,7 @@ bool VarDriverRZ::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = true;
+	bool preprocess = false;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
@@ -847,7 +878,7 @@ bool VarDriverRZ::initialize()
 	int stateSize = idim*jdim*(numVars-1);
 	
 	costRZ = new CostFunctionRZ_CPU(obVector.size(), stateSize);
-	costRZ->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgB, obs, vecSpline, RnumGridpts, RXform); 
+	costRZ->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgU, obs, RnumGridpts, RXform); 
 	
 	return true;
 }
@@ -874,20 +905,20 @@ bool VarDriverRZ::run()
 
 bool VarDriverRZ::finalize()
 {
-	double wl = 2; 
+	double wl = 2*int(rincr); 
 	int num_nodes = vecSpline[0].nNodes();
 	vector<real> empty(r.size(), 0.); 
 	SplineD* vecAnalysisSpline = new SplineD(&r.front(), r.size(), &empty.front(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 	vecAnalysisSpline->setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_LZERO_RSECOND, num_nodes);
 	SplineD* scalarAnalysisSpline = new SplineD(&r.front(), r.size(), &empty.front(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
 	scalarAnalysisSpline->setDomainGQ(&r.front(), r.size(), wl, SplineBase::BC_ZERO_SECOND, num_nodes);
+
 	if (!scalarAnalysisSpline->ok())
 	{
 		cerr << "Analysis has a problem :(" << endl;
 		return false;
 	}
 
-	
 	// Recalculate the BG fields on the mish
 	int numrnodes = vecSpline[0].nNodes();
 	int numZnodes = zSpline->nNodes();
@@ -906,12 +937,12 @@ bool VarDriverRZ::finalize()
 			if (vi == 1) {
 				zSplinePsi->solveBGQ(bgz);
 				for (unsigned int zi = 0; zi < z.size(); zi++) {
-					bgrz[rb][zi] = zSplinePsi->evaluate(z[zi]);
+					bgrz[rb][zi] = zSplinePsi->evaluate(z.at(zi));
 				}
 			} else {
 				zSpline->solveBGQ(bgz);
 				for (unsigned int zi = 0; zi < z.size(); zi++) {
-					bgrz[rb][zi] = zSpline->evaluate(z[zi]);
+					bgrz[rb][zi] = zSpline->evaluate(z.at(zi));
 				}
 			}
 		}
@@ -922,12 +953,12 @@ bool VarDriverRZ::finalize()
 			if (vi <= 1) {
 				vecSpline[zi].solveBGQ(bgr);
 				for (unsigned int ri = 0; ri < r.size(); ri++) {
-					BG[zi][vi].at(ri) = vecSpline[zi].evaluate(r[ri]);
+					BG[zi][vi].at(ri) = vecSpline[zi].evaluate(r.at(ri));
 				}
 			} else {
 				scalarSpline[zi].solveBGQ(bgr);
 				for (unsigned int ri = 0; ri < r.size(); ri++) {
-					BG[zi][vi].at(ri) = scalarSpline[zi].evaluate(r[ri]);
+					BG[zi][vi].at(ri) = scalarSpline[zi].evaluate(r.at(ri));
 				}
 			}
 		}
@@ -1006,7 +1037,7 @@ bool VarDriverRZ::finalize()
 			double rad = r[ri];
 			double energy = scalarSpline[zi].evaluate(rad)*1000;
 			double qv = scalarAnalysisSpline->evaluate(rad);
-			double t = (energy/rhoz[zi].at(ri) - 2.5e3*qv - 9.81*alt - (vz[zi].at(ri)*vz[zi].at(ri) + uz[zi].at(ri)*uz[zi].at(ri)))/1005.7;
+			double t = (energy/rhoz[zi].at(ri) - 2.5e3*qv - 9.81*alt)/1005.7;
 			double p = t*rhoz[zi].at(ri)*287./100;
 			// Now push back temp, press, and rho
 			temp[zi].push_back(t);
@@ -1094,7 +1125,7 @@ bool VarDriverRZ::finalize()
 			double rad = r[ri];
 			double energy = scalarSpline[zi].evaluate(rad)*1000;
 			double qv = scalarAnalysisSpline->evaluate(rad);
-			double t = (energy/rhoz[zi].at(ri) - 2.5e3*qv - 9.81*alt - (vz[zi].at(ri)*vz[zi].at(ri) + uz[zi].at(ri)*uz[zi].at(ri)))/1005.7;
+			double t = (energy/rhoz[zi].at(ri) - 2.5e3*qv - 9.81*alt)/1005.7;
 			double p = t*rhoz[zi].at(ri)*287./100;
 			// Now push back temp, press, and rho
 			temp[zi].at(ri) = t;
@@ -1516,15 +1547,15 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields)
 				}
 			}
 			const real* curve;
-			if ((n > 1) and (n < 8)) {
+			if   (n == 1) {
+				  zSplinePsi->solveGQ(jTemp);
+				  curve = zSplinePsi->curve();
+				  for(int j = 0; j < jdim; j++) {
+					  fieldNodes[n][i][j] = curve[j];
+				  }
+			} else {
 				zSpline->solveGQ(jTemp);
 				curve = zSpline->curve();
-				for(int j = 0; j < jdim; j++) {
-					fieldNodes[n][i][j] = curve[j];
-				}
-			} else {
-				zSplinePsi->solveGQ(jTemp);
-				curve = zSplinePsi->curve();
 				for(int j = 0; j < jdim; j++) {
 					fieldNodes[n][i][j] = curve[j];
 				}
@@ -1532,6 +1563,14 @@ bool VarDriverRZ::writeAsi(const QString& fileName, vector<real>** fields)
 		}
 	}
 	
+	/* E
+	for (int i = 0; i < idim; i++) {
+		for (int j = 0; j < jdim; j++) {
+			fieldNodes[2][i][j] /= rhoBase*exp(-rhoInvScaleHeight*j*250) + fieldNodes[4][i][j];
+		}
+	} */
+			
+			
 	// Write data
 	for(int k = 0; k < 1; k++) {
 		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;

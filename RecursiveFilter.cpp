@@ -92,7 +92,7 @@ void RecursiveFilter::getIsotropicFilterCoefficients()
 	
 	// Cholesky decomp
 	for (int i=0;i<=200;i++) {
-		for (int j=0;j<=200;j++) {
+		for (int j=i;j<=200;j++) {
 			double sum=a[i][j];
 			for (int k=i-1;k>=0;k--) {
 				sum -= a[i][k]*a[j][k];
@@ -314,21 +314,17 @@ void RecursiveFilter::solveBC(double* A, double* B, double S[5][5])
 	}
 }
 
-void RecursiveFilter::getAnisotropicFilterCoefficients(const double* t, const int& arr)
+void RecursiveFilter::getAnisotropicFilterCoefficients(const double* tau, const int& arr)
 {
 	double sigma = (lengthScale*lengthScale)/2;
 	double b[5][5];
 	
-	// Extend the arrLength for the Cholesky decomp
-	int arrLength = arr+4;
-	double* tau = new double[arrLength];
-	for (int i=0; i< arrLength; i++) {
-		 if (i < arrLength-5) {
-			tau[i] = t[i];
-		 } else {
-			tau[i] = t[arr-1];
-		 }
-		std::cout << tau[i] << std::endl;
+	// Extend the arrLength for the Cholesky decomp?
+	int arrLength = arr;
+	double* htau = new double[arrLength];
+	for (int i=0; i< arrLength-1; i++) {
+		htau[i] = (tau[i+1] + tau[i])/2;
+		std::cout << htau[i] << std::endl;
 	}
 	double** K1 = new double*[arrLength];
 	double** K2 = new double*[arrLength];
@@ -379,13 +375,38 @@ void RecursiveFilter::getAnisotropicFilterCoefficients(const double* t, const in
 			K1[i][j] = 0.;
 			sqv[i][j] = 0.;
 		}
-		if (i > 0) K1[i][i-1] = -(sigma*(tau[i-1]+tau[i])/2)/sqrt(sigma*tau[i]*sigma*tau[i-1]);
+		
+		/*if (i > 0) K1[i][i-1] = -(sigma*(tau[i-1]+tau[i])/2)/sqrt(sigma*tau[i]*sigma*tau[i-1]);
 		if ((i > 0) and (i<(arrLength-1)))
 			K1[i][i] = ((sigma*(tau[i-1]+tau[i])/2) + (sigma*(tau[i+1]+tau[i])/2))/(sigma*tau[i]);
 		if (i<(arrLength-1)) K1[i][i+1] = -(sigma*(tau[i+1]+tau[i])/2)/sqrt(sigma*tau[i]*sigma*tau[i+1]);
-		sqv[i][i] = sqrt(tau[i]);
+		sqv[i][i] = sqrt(tau[i]); */
+		
+		if (i > 1) {
+			K1[i][i-1] = -(sigma*(tau[i]-tau[i-1]))/sqrt(sigma*(htau[i]-htau[i-1])*sigma*(htau[i-1]-htau[i-2]));
+		} else if (i == 1) {
+			K1[i][i-1] = -(sigma*(tau[i]-tau[i-1]))/sqrt(sigma*(htau[i]-htau[i-1])*sigma*(htau[i-1]+htau[i-1]));
+		}
+		if ((i > 0) and (i<(arrLength-1)))
+			K1[i][i] = (sigma*(tau[i]-tau[i-1]) + sigma*(tau[i+1]-tau[i]))/(sigma*(htau[i]-htau[i-1]));
+		if (i<(arrLength-2)) {
+			K1[i][i+1] = -(sigma*(tau[i+1]-tau[i]))/sqrt(sigma*(htau[i]-htau[i-1])*sigma*(htau[i+1]-htau[i]));
+		} else {
+			K1[i][i+1] = -(sigma*(tau[i]-tau[i-1]))/sqrt(sigma*(htau[i]-htau[i-1])*sigma*(htau[i]-htau[i-1]));
+		}
+		if (i == 0) {
+			sqv[i][i] = sqrt(htau[i]*2);
+		} else if (i == (arrLength-1)) {
+			sqv[i][i] = sqrt(htau[i-1]*2);
+		} else {
+			sqv[i][i] = sqrt(htau[i]-htau[i-1]);
+		}
 	}
-	
+	K1[0][0] = 2.;
+	K1[0][1] = K1[1][0];
+	K1[arrLength-1][arrLength-1] = 2;
+	K1[arrLength-1][arrLength-2] = K1[arrLength-2][arrLength-1];
+	sqv[arrLength-1][arrLength-1] = sqv[arrLength-2][arrLength-2];
 	// Square it
 	for (int i=0; i<arrLength; i++) {
 		for (int j=0; j<arrLength; j++) {
@@ -452,6 +473,47 @@ void RecursiveFilter::getAnisotropicFilterCoefficients(const double* t, const in
 		//std::cout << std::endl;
 	}
 	
+	// Get the filter coefficients
+	for (int i=0; i<arrLength; i++) {
+		for (int j=0; j<arrLength; j++) {
+			if (K1[i][j] != 0)
+				std::cout << K1[i][j] << "\t";
+		}
+		std::cout << std::endl;
+	}	
+	
+	// Cholesky decomp
+	for (int i=0;i<arrLength;i++) {
+		for (int j=i;j<arrLength;j++) {
+			double sum=D[i][j];
+			for (int k=i-1;k>=0;k--) {
+				sum -= D[i][k]*D[j][k];
+			}
+			if (i == j) {
+				if (sum <= 0.0) { 
+					std::cout << "cholesky failed at i,j sum\n";
+					break;
+				} else {
+					p[i] = sqrt(sum);
+				}
+			} else {
+				D[j][i]=sum/p[i];
+				if (p[i] == 0.) { 
+					std::cout << "Problem! " << i << "\t" << j << "\n";
+				}
+			}
+		}
+	}
+	
+	for (int i=0; i<arrLength; i++) {
+		for (int j=0; j<arrLength; j++) {
+			if (D[i][j] != 0)
+				std::cout << D[i][j] << "\t";
+		}
+		std::cout << std::endl;
+	}	
+	
+	
 	/* Multiply by sqv (reuse K1)
 	for (int i=0; i<arrLength; i++) {
 		for (int j=0; j<arrLength; j++) {
@@ -471,43 +533,32 @@ void RecursiveFilter::getAnisotropicFilterCoefficients(const double* t, const in
 	for (int i=0; i<arrLength; i++) {
 		for (int j=0; j<arrLength; j++) {
 			D[i][j] = 0.;
-			sqv[i][i] = 1/sqrt(tau[i]);
+			if (i == 0) {
+				sqv[i][i] = 1/sqrt(htau[i]*2);
+			} else if (i == (arrLength-1)) {
+				sqv[i][i] = 1/sqrt(htau[i-1]*2);
+			} else {
+				sqv[i][i] = 1/sqrt(htau[i]-htau[i-1]);
+			}
 		}
 	}
+	sqv[arrLength-1][arrLength-1] = sqv[arrLength-2][arrLength-2];
 	
 	for (int i=0; i<arrLength; i++) {
 		for (int j=0; j<arrLength; j++) {
 			for (int r=0; r< arrLength; r++) {
-				D[i][j] += K1[i][r]*sqv[r][j];
+				D[i][j] += sqv[i][r]*K1[r][j];
 			}
 		}
 	} */
 	
-	// Cholesky decomp
-	for (int i=0;i<arrLength;i++) {
-		for (int j=0;j<arrLength;j++) {
-			double sum=D[i][j];
-			for (int k=i-1;k>=0;k--) {
-				sum -= D[i][k]*D[j][k];
-			}
-			if (i == j) {
-				if (sum <= 0.0) { 
-					std::cout << "cholesky failed at i,j sum\n";
-					break;
-				} else {
-					p[i] = sqrt(sum);
-				}
-			} else {
-				D[j][i]=sum/p[i];
-			}
-		}
-	}
 	
 	for (int i=0; i<arrLength; i++) {
 		for (int j=0; j<arrLength; j++) {
-			//std::cout << D[i][j] << "\t";
+			if (D[i][j] != 0)
+			std::cout << D[i][j] << "\t";
 		}
-		//std::cout << std::endl;
+		std::cout << std::endl;
 	}
 	abeta[0]= 1/p[0];
 	aalpha[1][0]=0;

@@ -356,7 +356,7 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
 		if (Debug())
 		{
 			std::cerr << "Done." << std::endl;
-			if (M < 30)
+			if (M < 100)
 			{
 				std::cerr << "Array Q after addition of P." << std::endl;
 				std::cerr << base->Q;
@@ -378,6 +378,7 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
 			delete[] base->q;
 			base->q = new T[qSize];
 		}
+
     }
     return OK;
 }
@@ -502,7 +503,7 @@ BSplineBase<T>::DBasis (int m, T x)
 	{
 	    dy -= z * z * 4 * ONESIXTH;
 	}
-	dy *= ((delta > 0) ? -1.0 : 1.0) * 3.0 / DX;
+	dy *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * (real)DXrecip;
     }
 
     // Boundary conditions, if any, are an additional addend.
@@ -544,10 +545,15 @@ BSplineBase<T>::qDelta (int m1, int m2)
 	    { 0.00000,   0.00000,   0.00000,   0.37500 }
 	},
 	{
-	    { 2.25000,  20.25000,  20.25000,   2.25000 },
+	/*  { 2.25000,  20.25000,  20.25000,   2.25000 },
 	    { 0.00000,  -6.75000, -20.25000,  -6.75000 },
 	    { 0.00000,   0.00000,   6.75000,   6.75000 },
-	    { 0.00000,   0.00000,   0.00000,  -2.25000 }
+	    { 0.00000,   0.00000,   0.00000,  -2.25000 } */
+		
+		{ 1.00000,   9.00000,   9.00000,   1.00000 },
+	    { 0.00000,  -3.00000,  -9.00000,  -3.00000 },
+	    { 0.00000,   0.00000,   3.00000,   3.00000 },
+	    { 0.00000,   0.00000,   0.00000,  -1.00000 }
 	}
     };
 

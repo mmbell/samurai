@@ -29,7 +29,7 @@ public:
 	~CostFunctionRZ_CPU();
     void initialize(const real& imin, const real& imax, const int& idim,
 					const real& imin, const real& imax, const int& jdim,
-					const real* iA, const real* jA, real* bgB, real* obs, SplineD* zSpline,
+					const real* iA, const real* jA, real* bgU, real* obs, 
 					const unsigned int* IXdim = 0, const vector<real>* IX = 0,
 					const unsigned int* JXdim = 0, const vector<real>* JX = 0);
 	void finalize();
@@ -44,9 +44,16 @@ private:
 				float DX, float DXrecip, int C);
 	float DBasis(int m, float x, int M, float xmin, 
 				 float DX, float DXrecip, int C);
+	float DDBasis(int m, float x, int M, float xmin, 
+				 float DX, float DXrecip, int C);
+	float DDDBasis(int m, float x, int M, float xmin, 
+				 float DX, float DXrecip, int C);
 	bool filterArray(real* array, const int& arrLength);
+	bool setupSplines();
 	void solveBC(real* A, real* B);
 	bool SAtransform(real* Bstate, real* Astate);
+	bool SAtransform_ori(real* Bstate, real* Astate);
+
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
 
@@ -58,6 +65,7 @@ private:
 	real jMin, jMax, DJ, DJrecip;
 	const vector<real>* IXform;
 	const vector<real>* JXform;
+	real* bgFields;
 	real* bgState;
 	real* obsVector;
 	real* stateA;
@@ -69,6 +77,8 @@ private:
 	const real* jA;
 	real* iTemp;
 	real* jTemp;
+	real* iL;
+	real* jL;
 	int varDim;
 	double varScale[6];
 	real bgError[6];
@@ -82,8 +92,8 @@ private:
 	real jFilterCoeff[5];
 	real jFilterBC[5][5];
 
-	SplineD* zSpline;
-	
+	real rhoBase;
+	real rhoInvScaleHeight;
 };
 
 #endif
