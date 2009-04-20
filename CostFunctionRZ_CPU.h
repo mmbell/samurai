@@ -18,6 +18,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
+#include <QString>
 
 class CostFunctionRZ_CPU: public CostFunction
 {
@@ -53,10 +54,11 @@ private:
 	void solveBC(real* A, real* B);
 	bool SAtransform(real* Bstate, real* Astate);
 	bool SAtransform_ori(real* Bstate, real* Astate);
-
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
-
+	bool outputAnalysis(const QString& suffix, real* Astate, bool updateMish);
+	void SBtransform(real* Ustate, real* Bstate);
+	void SBtranspose(real* Bstate, real* Ustate);
 	int iDim;
 	const unsigned int* IXDim;
 	real iMin, iMax, DI, DIrecip;
@@ -70,6 +72,8 @@ private:
 	real* obsVector;
 	real* stateA;
 	real* stateB;
+	real* stateU;
+	real* Uprime;
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
@@ -80,11 +84,23 @@ private:
 	real* iL;
 	real* jL;
 	int varDim;
-	double varScale[6];
-	real bgError[6];
-
+	int bState;
+	real bgError[5];
+	real LF[5];
+	int bcLeft[5], bcRight[5], bcTop[5], bcBottom[5];
+	
 	float BoundaryConditions[9][4];
-
+	enum BoundaryConditionTypes {
+		R1T0 = 0,
+		R1T1 = 1,
+		R1T2 = 2,
+		R1T10 = 3,
+		R2T10 = 4,
+		R2T20 = 5,
+		R3 = 6,
+		R3X = 7
+	};
+	
 	RecursiveFilter* iFilter;
 	RecursiveFilter* jFilter;
 	real iFilterCoeff[5];
@@ -94,6 +110,9 @@ private:
 
 	real rhoBase;
 	real rhoInvScaleHeight;
+	real qBase;
+	real qInvScaleHeight;
+	
 };
 
 #endif

@@ -255,7 +255,7 @@ void MetObs::setObType(const int& type)
 float MetObs::getQv() const
 {	
 	if ((dewpoint != -999) and (pressure != -999)) {
-		float e = (E_3 * exp (17.2694 * (1.0 - 237.3 / (dewpoint - T_3 + 237.3))));
+		float e = getVaporPressure();
 		return (1000.0 * EPSILON * e / (pressure - e));
 	} else {
 		return -999;
@@ -265,7 +265,7 @@ float MetObs::getQv() const
 float MetObs::getQvSaturation() const
 {	
 	if ((temperature != -999) and (pressure != -999)) {
-		float e = (E_3 * exp (17.2694 * (1.0 - 237.3 / (temperature - T_3 + 237.3))));
+		float e = getVaporPressure();
 		return (1000.0 * EPSILON * e / (pressure - e));
 	} else {
 		return -999;
@@ -335,6 +335,7 @@ float MetObs::getPolarVwind(const float& centerLat, const float& centerLon) cons
 
 float MetObs::getDryDensity() const
 {
+	// This function assumes there is no vapor in the air
 	if ((temperature != -999) and (pressure != -999)) {
 		return (pressure*100)/(R_D*temperature);
 	} else {
@@ -342,10 +343,43 @@ float MetObs::getDryDensity() const
 	}
 }
 
+float MetObs::getAirDensity() const
+{
+	if ((temperature != -999) and (dewpoint != -999) and (pressure != -999)) {
+		float e = getVaporPressure();
+		float airpressure = pressure - e;
+		return (airpressure*100)/(R_D*temperature);
+	} else {
+		return -999;
+	}
+}
+
+float MetObs::getVaporDensity() const
+{
+	float qv = getQv()/1000.;
+	float rhoa = getAirDensity();
+	if ((qv != -999) and (rhoa != -999)) {
+		return (rhoa*qv);
+	} else {
+		return -999;
+	}
+}
+
 float MetObs::getMoistDensity() const
 {
-	if ((dewpoint != -999) and (pressure != -999)) {
-		return (pressure*100)/(R_D*getVirtualTemp());
+	float rhoq = getVaporDensity();
+	float rhoa = getAirDensity();
+	if ((rhoq != -999) and (rhoa != -999)) {
+		return (rhoa + rhoq);
+	} else {
+		return -999;
+	}
+}
+
+float MetObs::getVaporPressure() const
+{
+	if (dewpoint != -999) {
+		return (E_3 * exp (17.2694 * (1.0 - 237.3 / (dewpoint - T_3 + 237.3))));
 	} else {
 		return -999;
 	}

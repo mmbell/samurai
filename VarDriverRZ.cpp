@@ -20,9 +20,9 @@ VarDriverRZ::VarDriverRZ()
 {
 	numVars = 6;
 	maxHeights = 50; // Can I make this dynamic?
-	rhoBase = 1.1646;
-	rhoInvScaleHeight = 1.068e-4;
-	zincr = 250;
+	rhoBase = 1.156;
+	rhoInvScaleHeight = 9.9504e-5;
+	zincr = 100;
 	rincr = 1;
 	maxIter = 1;
 	CQTOL = 0.5;
@@ -36,17 +36,17 @@ VarDriverRZ::~VarDriverRZ()
 	}
 	delete[] BG;
 	delete[] BGsave;
-	delete[] scalarSpline;
-	delete[] vecSpline;
+	//delete[] scalarSpline;
+	//delete[] vecSpline;
 	//delete[] ctrlSpline;
-	delete zSpline;
-	delete zSplinePsi;
+	//delete zSpline;
+	//delete zSplinePsi;
 	//delete[] RnumGridpts;
-	delete[] RXform;
+	//delete[] RXform;
 	delete[] obs;
-	delete[] bgB;
-	delete[] ia;
-	delete[] ja;
+	//delete[] bgB;
+	//delete[] ia;
+	//delete[] ja;
 	delete costRZ;
 
 }
@@ -56,7 +56,7 @@ void VarDriverRZ::preProcessMetObs()
 {
 	
 	vector<real> rhoP;
-	
+		
 	// Check the data directory for files
 	QDir dataPath("./vardata");
 	dataPath.setFilter(QDir::Files);
@@ -142,23 +142,26 @@ void VarDriverRZ::preProcessMetObs()
 			
 			// Make sure the ob is in the domain
 			if ((rad < r.front()) or (rad > r.back()) or
+				(metOb.getAltitude() < 0) or
 				(metOb.getAltitude() > z.back()))
 				continue;
 			
 			varOb.setRadius(rad);
-			float Um = tcVector[tci].getUmean();
-			float Vm = tcVector[tci].getVmean();
-			varOb.setAltitude(metOb.getAltitude());
+			real Um = tcVector[tci].getUmean();
+			real Vm = tcVector[tci].getVmean();
+
+			real height = metOb.getAltitude();
+			varOb.setAltitude(height);
 			
-			// Use the background rho prime to correct radar velocities -- this could be done more efficiently
-			rhoP.clear();
-			for (unsigned int zi = 0; zi < z.size(); zi++) {
-				scalarSpline[zi].solveGQ(&BG[zi][4].front());
-				rhoP.push_back(scalarSpline[zi].evaluate(rad));
-			}
-			zSpline->solve(&rhoP.front());
-			double rhoBar = rhoBase*exp(-rhoInvScaleHeight*metOb.getAltitude());
-			double rhoPrimeBG = zSpline->evaluate(metOb.getAltitude());
+			// Reference states			
+			real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
+			real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
+			real hBar = 3.5e5;
+
+			// Use bilinear interpolation here too for now, eventually probably a spline
+			real rhoaBG = bilinearField(rad, height, 4)/100. + rhoBar;
+			real qBG = bilinearField(rad, height, 3) + qBar;
+			real rhoBG = rhoaBG*(1+qBG/1000.);
 			
 			// Initialize the weights
 			varOb.setWeight(0., 0);
@@ -167,14 +170,15 @@ void VarDriverRZ::preProcessMetObs()
 			varOb.setWeight(0., 3);
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
-			double u, v, w, rho, qv, energy, rhov, rhou, rhow; 
+			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
 					varOb.setType(MetObs::dropsonde);
 					u = metOb.getCartesianUwind();
 					v = metOb.getCartesianVwind();
 					w = metOb.getVerticalVelocity();
-					rho = metOb.getDryDensity();
+					rho = metOb.getMoistDensity();
+					rhoa = metOb.getAirDensity();
 					qv = metOb.getQv();
 					energy = metOb.getMoistStaticEnergy();
 					
@@ -206,27 +210,27 @@ void VarDriverRZ::preProcessMetObs()
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
-					if ((energy != -999) and (rho != -999)) {
+					if (energy != -999) {
 						// energy 5 kJ error
 						varOb.setWeight(1., 3);
-						varOb.setOb(rho*energy/1e3);
+						varOb.setOb((energy - hBar)*1.e-3);
 						varOb.setError(5.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
-					if ((qv != -999) and (rho != -999)) {
+					if (qv != -999) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
-						varOb.setOb(rho*qv);
+						varOb.setOb(qv-qBar);
 						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
-					if (rho != -999) {
+					if (rhoa != -999) {
 						// Rho prime .1 kg/m^3 error
 						varOb.setWeight(1., 5);
-						varOb.setOb(rho-rhoBar);
-						varOb.setError(0.01);
+						varOb.setOb((rhoa-rhoBar)*100);
+						varOb.setError(1.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 5);
 					}
@@ -238,7 +242,8 @@ void VarDriverRZ::preProcessMetObs()
 					u = metOb.getCartesianUwind();
 					v = metOb.getCartesianVwind();
 					w = metOb.getVerticalVelocity();
-					rho = metOb.getDryDensity();
+					rho = metOb.getMoistDensity();
+					rhoa = metOb.getAirDensity();
 					qv = metOb.getQv();
 					energy = metOb.getMoistStaticEnergy();
 					
@@ -269,27 +274,27 @@ void VarDriverRZ::preProcessMetObs()
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
-					if ((energy != -999) and (rho != -999)) {
+					if (energy != -999) {
 						// energy 5 kJ error
 						varOb.setWeight(1., 3);
-						varOb.setOb(rho*energy/1e3);
+						varOb.setOb((energy - hBar)*1.e-3);
 						varOb.setError(5.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
-					if ((qv != -999) and (rho != -999)) {
+					if (qv != -999) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
-						varOb.setOb(rho*qv);
+						varOb.setOb(qv-qBar);
 						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
-					if (rho != -999) {
+					if (rhoa != -999) {
 						// Rho prime .1 kg/m^3 error
 						varOb.setWeight(1., 5);
-						varOb.setOb(rho-rhoBar);
-						varOb.setError(0.01);
+						varOb.setOb((rhoa-rhoBar)*100);
+						varOb.setError(1.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 5);
 					}
@@ -352,7 +357,7 @@ void VarDriverRZ::preProcessMetObs()
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
 					double DopplerError = metOb.getSpectrumWidth() + wWgt*2.;
 					varOb.setError(DopplerError);
-					varOb.setOb((rhoBar+rhoPrimeBG)*Vdopp);
+					varOb.setOb(rhoBG*Vdopp);
 					obVector.push_back(varOb);
 					
 					break;
@@ -365,7 +370,8 @@ void VarDriverRZ::preProcessMetObs()
 	
 	// Write the Obs to a summary text file
 	ofstream obstream("Observations.out");
-	ostream_iterator<string> os(obstream, "\t ");
+	// Header messes up reload
+	/*ostream_iterator<string> os(obstream, "\t ");
 	*os++ = "Type";
 	*os++ = "r";
 	*os++ = "z";
@@ -378,7 +384,7 @@ void VarDriverRZ::preProcessMetObs()
 	*os++ = "Weight 4";
 	*os++ = "Weight 5";
 	*os++ = "Weight 6";
-	obstream << endl;
+	obstream << endl; */
 
 	ostream_iterator<double> od(obstream, "\t ");
 	for (unsigned int i=0; i < obVector.size(); i++) {
@@ -468,7 +474,7 @@ bool VarDriverRZ::loadBGfromFile()
 	int zi = 0;
 	vector<real> vIn, rvBG, psiBG, hBG, qBG, rpBG;
 	vector<real>* vInit = new vector<real>[maxHeights];
-	ifstream vdata("./RZbackground.txt");
+	ifstream vdata("./RZbackground.in");
 	vdata.width(14);
 	while (vdata >> height >> radius >> v >> psi >> h >> q >> rho)
 	{
@@ -493,12 +499,14 @@ bool VarDriverRZ::loadBGfromFile()
 		// Need to handle this more gracefully
 		if (v < 0)  v = 0;
 		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
+		real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
+		real hBar = 3.5e5;
 		vIn.push_back (v);
-		rvBG.push_back (rho*radius*v/rhoBar);
-		psiBG.push_back (psi/1e6);
-		hBG.push_back (rho*h/(1e3*rhoBar));
-		qBG.push_back (rho*q/rhoBar);
-		rpBG.push_back (rho-rhoBar);
+		rvBG.push_back (rho*radius*v*1.e-3);
+		psiBG.push_back (psi*1.e-8);
+		hBG.push_back ((h-hBar)*1.e-3);
+		qBG.push_back (q-qBar);
+		rpBG.push_back ((rho/(1 + q/1000.) - rhoBar)*100.);
 	}
 	
 	// Assign the final strip
@@ -523,10 +531,151 @@ bool VarDriverRZ::loadBGfromFile()
 	
 }	
 
+bool VarDriverRZ::bilinearMish()
+{
+	
+	// Do a simple bilinear interpolation to the Mish
+	// Num levels set to original grid first
+	numHeights = z.size();
+	
+	///Realign the vertical grid on the Gaussian points
+	double zMin = 0.;
+	double zMax = z.back();
+	int numZnodes = (int)((zMax - zMin)/zincr) + 1;
+	double rMin = 0.;
+	double rMax = (double)r.back();
+	int numrnodes = (int)((rMax - rMin)/rincr) + 1;
+	// Load the BG into a vector
+	bgU = new real[4*(numrnodes-1)*(numZnodes-1)*(numVars-1)];
+	//bgU[(numVars-1)*r.size()*zi +(numVars-1)*ri + vi] = BG[zi][vi].at(ri);
+
+	// Set the master dimensions
+	imin = rMin;
+	imax = rMax;
+	idim = numrnodes;
+	jmin = zMin;
+	jmax = zMax;
+	jdim = numZnodes;
+	
+	for (int ri = 0; ri < (idim-1); ri++) {
+		for (int rmu = -1; rmu <= 1; rmu += 2) {
+			real rad = rMin + rincr * (ri + (0.5*sqrt(1./3.) * rmu + 0.5));
+			for (int zi = 0; zi < (jdim-1); zi++) {
+				for (int zmu = -1; zmu <= 1; zmu += 2) {
+					real height = zMin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+					int ii = -1;
+					int jj = -1;
+					// Find the brackets
+					for (unsigned int i=0; i < r.size()-1; i++) {
+						if ((r.at(i) <= rad) and (r.at(i+1) > rad)) {
+							ii = i; 
+							break;
+						}
+					}
+					for (unsigned int j=0; j < z.size()-1; j++) {
+						if ((z.at(j) <= height) and (z.at(j+1) > height)) {
+							jj = j; 
+							break;
+						}
+					}
+					if ((ii < 0) or (jj < 0)) { cout << "Problem in bilinear interpolation!\n"; break; }
+					real rmid = (rad-r.at(ii))/(r.at(ii+1)-r.at(ii));
+					real zmid = (height-z.at(jj))/(z.at(jj+1)-z.at(jj));
+					int bgZ = zi*2 + (zmu+1)/2;
+					int bgR = ri*2 + (rmu+1)/2;
+					for (unsigned int vi = 0; vi < (numVars-1); vi++) {
+						bgU[(numVars-1)*(numrnodes-1)*2*bgZ +(numVars-1)*bgR + vi] =
+						(1-rmid)*(1-zmid)*BG[jj][vi].at(ii) + rmid*(1-zmid)*BG[jj][vi].at(ii+1) +
+						rmid*zmid*BG[jj+1][vi].at(ii+1) + (1-rmid)*zmid*BG[jj+1][vi].at(ii);
+						//if (vi == 0) {
+						//	cout << bgU[(numVars-1)*(numrnodes-1)*2*bgZ +(numVars-1)*bgR + vi] <<
+						//	"\t" << BG[jj][vi].at(ii) << "\t" << BG[jj][vi].at(ii+1) <<
+						//	"\t" << BG[jj+1][vi].at(ii+1) << "\t" << BG[jj+1][vi].at(ii) << endl;
+						//}
+					}
+				}
+			}
+		}
+	}
+		
+	return true;
+	
+}
+
+real VarDriverRZ::bilinearField(real radius, real height, int var)
+{
+	
+	int ii = -1;
+	int jj = -1;
+	// Find the brackets
+	for (unsigned int i=0; i < r.size()-1; i++) {
+		if ((r.at(i) <= radius) and (r.at(i+1) > radius)) {
+			ii = i; 
+			break;
+		}
+	}
+	for (unsigned int j=0; j < z.size()-1; j++) {
+		if ((z.at(j) <= height) and (z.at(j+1) > height)) {
+			jj = j; 
+			break;
+		}
+	}
+	if ((ii < 0) or (jj < 0)) { 
+		cout << "Problem in bilinear interpolation!\n"; 
+		return -999.; 
+	}
+	real rmid = (radius-r.at(ii))/(r.at(ii+1)-r.at(ii));
+	real zmid = (height-z.at(jj))/(z.at(jj+1)-z.at(jj));
+	real field= 
+		(1-rmid)*(1-zmid)*BG[jj][var].at(ii) + rmid*(1-zmid)*BG[jj][var].at(ii+1) +
+		rmid*zmid*BG[jj+1][var].at(ii+1) + (1-rmid)*zmid*BG[jj+1][var].at(ii);
+		//if (vi == 0) {
+		//	cout << bgU[(numVars-1)*(numrnodes-1)*2*bgZ +(numVars-1)*bgR + vi] <<
+		//	"\t" << BG[jj][vi].at(ii) << "\t" << BG[jj][vi].at(ii+1) <<
+		//	"\t" << BG[jj+1][vi].at(ii+1) << "\t" << BG[jj+1][vi].at(ii) << endl;
+		//}
+	
+	/*
+	int ii = -1;
+	real rad1, rad2;
+	for (int iIndex = 0; iIndex < (idim-1)*2; iIndex++) {
+		rad1 = imin + rincr * (iIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)+1.) + 0.5));
+		rad2 = imin + rincr * ((iIndex+1)/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)) + 0.5));
+		if ((rad1 <= radius) and (rad2 > radius)) {
+			ii = iIndex;
+			break;
+		}
+	}
+	int jj = -1;
+	real height1, height2;
+	for (int jIndex = 0; jIndex < (jdim-1)*2; jIndex++) {
+		height1 = jmin + zincr * (jIndex/2 + (0.5*sqrt(1./3.) *  pow(-1.,(jIndex % 2)+1.) + 0.5));
+		height2 = jmin + zincr * ((jIndex+1)/2 + (0.5*sqrt(1./3.) * pow(-1.,(jIndex % 2)) + 0.5));
+		if ((height1 <= height) and (height2 > height)) {
+			jj = jIndex;
+			break;
+		}
+	}
+	if ((ii < 0) or (jj < 0)) { 
+		cout << "Problem in bilinear interpolation!\n"; return -999.; 
+	}
+	real rmid = (radius-rad1)/(rad2-rad1);
+	real zmid = (height-height1)/(height2-height1);
+	real field =		
+		(1-rmid)*(1-zmid)*bgU[(numVars-1)*(idim-1)*2*jj +(numVars-1)*ii + var]
+		+ rmid*(1-zmid)*bgU[(numVars-1)*(idim-1)*2*jj +(numVars-1)*(ii+1) + var]
+		+ rmid*zmid*bgU[(numVars-1)*(idim-1)*2*(jj+1) +(numVars-1)*(ii+1) + var]
+		+ (1-rmid)*zmid*bgU[(numVars-1)*(idim-1)*2*(jj+1) +(numVars-1)*ii + var];
+	*/
+	
+	return field;
+}
+	
+
 bool VarDriverRZ::setupMishAndRXform()
 {
 	// Set up a vertical spline on the original grid
-	double wl = 2*zincr; 
+	double wl = 8*zincr; 
 	bc = SplineBase::BC_ZERO_SECOND;
 	int numZnodes = z.size();
 	vector<real> zBuffer;
@@ -593,7 +742,7 @@ bool VarDriverRZ::setupMishAndRXform()
 	jaVector = zSplinePsi->getQfactored();
 	
 	// Set up a radial spline on the original grid
-	wl = 2*rincr;
+	wl = 8*rincr;
 	vecSpline = new SplineD[numHeights];
 	scalarSpline = new SplineD[numHeights];
 	int numrnodes = r.size();
@@ -602,6 +751,9 @@ bool VarDriverRZ::setupMishAndRXform()
 		scalarSpline[zi].setDomain(&r.front(), r.size(), wl, SplineBase::BC_ZERO_SECOND, numrnodes);
 	}
 	
+	for (unsigned int ri = 0; ri < r.size(); ri++) {
+		cout << ri << "\t" << BG[0][0].at(ri) << endl;
+	}
 	// Iterate through the new radius grid for each variable
 	double rMin = 0.;
 	double rMax = (double)r.back();
@@ -612,11 +764,11 @@ bool VarDriverRZ::setupMishAndRXform()
 	RXform = new vector<real>[numHeights];
 	for (unsigned int vi = 0; vi< numVars; vi++) {
 		SplineD* bgSpline;
-		if ((vi > 1) and (vi < 5)) {
+		//if ((vi > 1) and (vi < 5)) {
 			bgSpline = scalarSpline;
-		} else {
-			bgSpline = vecSpline;
-		}		
+		//} else {
+		//	bgSpline = vecSpline;
+		//}		
 		for (unsigned int zi = 0; zi < z.size(); zi++) {
 			bgSpline[zi].solve(&BG[zi][vi].front());
 			for (double rad = rMin; rad< rMax; rad+= rincr)
@@ -625,8 +777,8 @@ bool VarDriverRZ::setupMishAndRXform()
 				for (int mu = -1; mu <= 1; mu += 2) {
 					double grad = rad + (0.5*sqrt(1./3.)* mu + 0.5) * rincr;
 					BGsave[zi][vi].push_back(bgSpline[zi].evaluate(grad));
-					//if (vi == 2) 
-					//	cout << zi << "\t" << BGsave[zi][vi].back() << endl;
+					if (vi == 0) 
+						cout << zi << "\t" << grad << "\t" << BGsave[zi][vi].back() << endl;
 					if (vi == 5) { // Raw tangential wind for r->R xform;
 						double vRaw = BGsave[zi][vi].back();
 						double potRad = (grad*vRaw*1e3 + CoriolisF*grad*grad*1e6/2)*2/CoriolisF;
@@ -857,7 +1009,8 @@ bool VarDriverRZ::initialize()
 	}
 	
 	// Set up the splines on the Gaussian Grid
-	setupMishAndRXform();
+	//setupMishAndRXform();
+	bilinearMish();
 	
 	// Read in the TC centers
 	// Ideally, create a time-based spline from limited center fixes here
@@ -866,7 +1019,7 @@ bool VarDriverRZ::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = false;
+	bool preprocess = true;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
@@ -875,7 +1028,7 @@ bool VarDriverRZ::initialize()
 	cout << "Number of Observations: " << obVector.size() << endl;
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	int stateSize = idim*jdim*(numVars-1);
+	int stateSize = 4*(idim-1)*(jdim-1)*(numVars-1);
 	
 	costRZ = new CostFunctionRZ_CPU(obVector.size(), stateSize);
 	costRZ->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgU, obs, RnumGridpts, RXform); 
@@ -892,7 +1045,9 @@ bool VarDriverRZ::run()
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		costRZ->minimize();
-		CQRMS = updateXforms();
+		// Increment the variables
+		costRZ->updateBG();
+		//CQRMS = updateXforms();
 		costRZ->initState();
 	}	
 	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "

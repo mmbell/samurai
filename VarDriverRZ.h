@@ -47,6 +47,8 @@ private:
 	void preProcessMetObs();
 	bool loadMetObs();
 	bool loadBGfromFile();
+	bool bilinearMish();
+	real bilinearField(real radius, real height, int var);
 	bool setupMishAndRXform();
 	double updateXforms();
 	bool writeAsi(const QString& fileName, vector<real>** fields);

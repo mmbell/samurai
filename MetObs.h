@@ -93,7 +93,10 @@ class MetObs
 		float getPolarUwind(const float& centerLat, const float& centerLon) const;
 		float getPolarVwind(const float& centerLat, const float& centerLon) const;	
 		float getDryDensity() const;
+		float getAirDensity() const;
+		float getVaporDensity() const;
 		float getMoistDensity() const;
+		float getVaporPressure() const;
 		float getVirtualTemp() const;
 		float getMoistStaticEnergy() const;
 		float getMoistSaturationStaticEnergy() const;
