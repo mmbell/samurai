@@ -199,7 +199,7 @@ void CostFunctionRZ_CPU::initState()
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBCL, jBCL;
+								int iBCL, jBCL;
 								if (var == 0) {
 									iBCL = R2T20;
 									jBCL = R1T2;
@@ -703,7 +703,7 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBCL, jBCL;
+								int iBCL, jBCL;
 								if (var == 0) {
 									iBCL = R2T20;
 									jBCL = R1T2;
@@ -804,7 +804,7 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBCL, jBCL;
+								int iBCL, jBCL;
 								if (var == 0) {
 									iBCL = R2T20;
 									jBCL = R1T2;
@@ -890,7 +890,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	real cutoff_wl = 2;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
-		real iBCL;
+		int iBCL;
 		if (var <= 1) {
 			iBCL = R1T0;
 		} else {
@@ -998,7 +998,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	cutoff_wl = 2;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
-		real jBCL;
+		int jBCL;
 		if (var == 1) {
 			jBCL = R2T20;
 		} else {
@@ -1105,7 +1105,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	real* y = new real[iDim];
 	// Solve for A's
 	real sum = 0;
-	int k;
+	int k; */
 	/* for (int i = 0; i < iDim; i++) {
 		for (sum=p[i], k=i-1;k>=0;k--)
 			sum -= P[i][k]*x[k];

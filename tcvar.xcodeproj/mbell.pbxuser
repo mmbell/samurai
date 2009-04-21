@@ -130,9 +130,9 @@
 	};
 	093243F30F66F09C00E36902 /* VarDriverRZ.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1061, 24680}}";
-			sepNavSelRange = "{30742, 0}";
-			sepNavVisRange = "{30291, 1340}";
+			sepNavIntBoundsRect = "{{0, 0}, {831, 25156}}";
+			sepNavSelRange = "{15307, 0}";
+			sepNavVisRange = "{15112, 460}";
 			sepNavWindowFrame = "{{128, 13}, {1120, 796}}";
 		};
 	};
@@ -303,8 +303,8 @@
 	093245B00F6B4F6E00E36902 /* precision.h */ = {
 		uiCtxt = {
 			sepNavIntBoundsRect = "{{0, 0}, {1091, 727}}";
-			sepNavSelRange = "{181, 0}";
-			sepNavVisRange = "{0, 195}";
+			sepNavSelRange = "{196, 0}";
+			sepNavVisRange = "{0, 196}";
 			sepNavWindowFrame = "{{15, 18}, {1150, 855}}";
 		};
 	};
@@ -472,7 +472,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 510";
 		rLen = 0;
-		rLoc = 10615;
+		rLoc = 10614;
 		rType = 0;
 		vrLen = 173;
 		vrLoc = 13104;
@@ -698,7 +698,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1433";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 421;
 		vrLoc = 26052;
@@ -738,7 +738,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1603";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 547;
 		vrLoc = 26415;
@@ -758,7 +758,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1839";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 834;
 		vrLoc = 25159;
@@ -788,7 +788,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1839";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 906;
 		vrLoc = 25159;
@@ -818,7 +818,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1806";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 429;
 		vrLoc = 25672;
@@ -838,7 +838,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1807";
 		rLen = 0;
-		rLoc = 57422;
+		rLoc = 57420;
 		rType = 0;
 		vrLen = 419;
 		vrLoc = 25671;
@@ -888,7 +888,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 547";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 608;
 		vrLoc = 15624;
@@ -918,7 +918,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 390";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 416;
 		vrLoc = 15384;
@@ -938,7 +938,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 390";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 416;
 		vrLoc = 15384;
@@ -1008,7 +1008,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 15296;
@@ -1022,7 +1022,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 565;
 		vrLoc = 15296;
@@ -1032,7 +1032,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 822";
 		rLen = 0;
-		rLoc = 26011;
+		rLoc = 26008;
 		rType = 0;
 		vrLen = 1790;
 		vrLoc = 24065;
@@ -1046,7 +1046,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 15296;
@@ -1066,7 +1066,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 565;
 		vrLoc = 15297;
@@ -1076,7 +1076,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 15297;
@@ -1086,7 +1086,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 15298;
@@ -1096,7 +1096,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 565;
 		vrLoc = 15299;
@@ -1110,7 +1110,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 565;
 		vrLoc = 15299;
@@ -1120,7 +1120,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 565;
 		vrLoc = 15299;
@@ -1144,7 +1144,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 562;
 		vrLoc = 15285;
@@ -1154,7 +1154,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1210";
 		rLen = 0;
-		rLoc = 39003;
+		rLoc = 39001;
 		rType = 0;
 		vrLen = 1160;
 		vrLoc = 38216;
@@ -1164,7 +1164,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 562;
 		vrLoc = 15285;
@@ -1188,7 +1188,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 490;
 		vrLoc = 15335;
@@ -1208,7 +1208,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 490;
 		vrLoc = 15335;
@@ -1222,7 +1222,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 490;
 		vrLoc = 15335;
@@ -1246,7 +1246,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 487;
 		vrLoc = 15335;
@@ -1256,7 +1256,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 490;
 		vrLoc = 15335;
@@ -1276,7 +1276,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 487;
 		vrLoc = 15335;
@@ -1296,7 +1296,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 490;
 		vrLoc = 15335;
@@ -1320,7 +1320,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 396";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 487;
 		vrLoc = 15335;
@@ -1330,7 +1330,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 826";
 		rLen = 0;
-		rLoc = 26467;
+		rLoc = 26464;
 		rType = 0;
 		vrLen = 1677;
 		vrLoc = 18062;
@@ -1367,7 +1367,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 700;
 		vrLoc = 14946;
@@ -1377,7 +1377,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 700;
 		vrLoc = 14946;
@@ -1397,7 +1397,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 841";
 		rLen = 0;
-		rLoc = 26467;
+		rLoc = 26464;
 		rType = 0;
 		vrLen = 1695;
 		vrLoc = 18173;
@@ -1461,7 +1461,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 687;
 		vrLoc = 14959;
@@ -1471,7 +1471,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 210";
 		rLen = 0;
-		rLoc = 5741;
+		rLoc = 5740;
 		rType = 0;
 		vrLen = 1258;
 		vrLoc = 1331;
@@ -1481,7 +1481,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 14959;
@@ -1491,7 +1491,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 210";
 		rLen = 0;
-		rLoc = 5741;
+		rLoc = 5740;
 		rType = 0;
 		vrLen = 1286;
 		vrLoc = 1331;
@@ -1505,7 +1505,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 14959;
@@ -1515,7 +1515,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 1749";
 		rLen = 0;
-		rLoc = 52504;
+		rLoc = 52502;
 		rType = 0;
 		vrLen = 843;
 		vrLoc = 49894;
@@ -1525,7 +1525,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 823";
 		rLen = 0;
-		rLoc = 25720;
+		rLoc = 25717;
 		rType = 0;
 		vrLen = 1397;
 		vrLoc = 23507;
@@ -1545,7 +1545,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 676;
 		vrLoc = 14996;
@@ -1565,7 +1565,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 676;
 		vrLoc = 14996;
@@ -1575,7 +1575,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 402";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 676;
 		vrLoc = 14996;
@@ -1639,7 +1639,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 452";
 		rLen = 0;
-		rLoc = 12790;
+		rLoc = 12789;
 		rType = 0;
 		vrLen = 1913;
 		vrLoc = 11884;
@@ -1659,7 +1659,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 452";
 		rLen = 0;
-		rLoc = 12790;
+		rLoc = 12789;
 		rType = 0;
 		vrLen = 1913;
 		vrLoc = 11884;
@@ -1703,7 +1703,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 475";
 		rLen = 0;
-		rLoc = 13899;
+		rLoc = 13898;
 		rType = 0;
 		vrLen = 2215;
 		vrLoc = 12066;
@@ -1737,7 +1737,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 413";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15102;
@@ -1747,7 +1747,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 568";
 		rLen = 0;
-		rLoc = 16571;
+		rLoc = 16570;
 		rType = 0;
 		vrLen = 2113;
 		vrLoc = 8796;
@@ -1774,7 +1774,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 413";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15102;
@@ -1784,7 +1784,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 413";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15102;
@@ -1794,7 +1794,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 413";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15102;
@@ -1804,7 +1804,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 413";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15102;
@@ -1818,7 +1818,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 411";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 368;
 		vrLoc = 15148;
@@ -1828,7 +1828,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 213";
 		rLen = 0;
-		rLoc = 5665;
+		rLoc = 5664;
 		rType = 0;
 		vrLen = 1521;
 		vrLoc = 34754;
@@ -1862,7 +1862,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 411";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 390;
 		vrLoc = 15148;
@@ -1882,7 +1882,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 213";
 		rLen = 0;
-		rLoc = 5665;
+		rLoc = 5664;
 		rType = 0;
 		vrLen = 1633;
 		vrLoc = 34754;
@@ -1892,7 +1892,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 411";
 		rLen = 0;
-		rLoc = 11545;
+		rLoc = 11544;
 		rType = 0;
 		vrLen = 419;
 		vrLoc = 15128;
@@ -1902,7 +1902,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 213";
 		rLen = 0;
-		rLoc = 5665;
+		rLoc = 5664;
 		rType = 0;
 		vrLen = 1633;
 		vrLoc = 34754;
@@ -1912,7 +1912,7 @@
 		fRef = 34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */;
 		name = "CostFunctionRZ_CPU.cpp: 998";
 		rLen = 0;
-		rLoc = 30583;
+		rLoc = 30579;
 		rType = 0;
 		vrLen = 857;
 		vrLoc = 29957;
