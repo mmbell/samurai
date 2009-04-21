@@ -41,13 +41,16 @@ private:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
-	float Basis(int m, float x, int M, float xmin, 
+	real Basis(int m, real x, int M, real xmin, 
+				real DX, real DXrecip, int derivative,
+				int BL, int BR, real lambda = 0);
+	float BasisOri(int m, float x, int M, float xmin, 
 				float DX, float DXrecip, int C);
-	float DBasis(int m, float x, int M, float xmin, 
+	float DBasisOri(int m, float x, int M, float xmin, 
 				 float DX, float DXrecip, int C);
-	float DDBasis(int m, float x, int M, float xmin, 
+	float DDBasisOri(int m, float x, int M, float xmin, 
 				 float DX, float DXrecip, int C);
-	float DDDBasis(int m, float x, int M, float xmin, 
+	float DDDBasisOri(int m, float x, int M, float xmin, 
 				 float DX, float DXrecip, int C);
 	bool filterArray(real* array, const int& arrLength);
 	bool setupSplines();
@@ -86,6 +89,7 @@ private:
 	int varDim;
 	int bState;
 	real bgError[5];
+	real LI, LJ;
 	real LF[5];
 	int bcLeft[5], bcRight[5], bcTop[5], bcBottom[5];
 	

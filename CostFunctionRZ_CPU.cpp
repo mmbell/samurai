@@ -72,17 +72,20 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	bgError[3] = 3.0;
 	bgError[4] = 3.0;	
 
+	LI = 2.5;
+	LJ = 250;
+
 	LF[0] = 0.1;
 	LF[1] = 0.5;
 	LF[2] = 0.5;
 	LF[3] = 0.5;
 	LF[4] = 0.5;
 	
-	bcLeft[0] = R1T0; bcRight[0] = R1T2; bcTop[0] = R1T2; bcBottom[0] = R1T2;
+	/* bcLeft[0] = R1T0; bcRight[0] = R1T2; bcTop[0] = R1T2; bcBottom[0] = R1T2;
 	bcLeft[1] = R1T0; bcRight[1] = R1T2; bcTop[1] = R1T0; bcBottom[1] = R1T2;
 	bcLeft[2] = R1T2; bcRight[2] = R1T2; bcTop[2] = R1T2; bcBottom[2] = R1T2;
 	bcLeft[3] = R1T2; bcRight[3] = R1T2; bcTop[3] = R1T2; bcBottom[3] = R1T2;
-	bcLeft[4] = R1T2; bcRight[4] = R1T2; bcTop[4] = R1T2; bcBottom[4] = R1T2;
+	bcLeft[4] = R1T2; bcRight[4] = R1T2; bcTop[4] = R1T2; bcBottom[4] = R1T2; */
 		
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
@@ -196,23 +199,25 @@ void CostFunctionRZ_CPU::initState()
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBC, jBC;
-								if (var <= 1) {
-									iBC = 4;
+								real iBCL, jBCL;
+								if (var == 0) {
+									iBCL = R2T20;
+									jBCL = R1T2;
+								} else if (var == 1) {									
+									iBCL = R2T20;
+									jBCL = R2T20;
 								} else {
-									iBC = 2;
+									iBCL = R1T2;
+									jBCL = R1T2;
 								}
-								if (var == 1) {
-									jBC = 4;
-								} else {
-									jBC = 2;
-								}
-								real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iBC);
-								real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jBC);
-								int bgJ = jIndex*2 + (jmu+1)/2;
-								int bgI = iIndex*2 + (imu+1)/2;
-								bgState[varDim*iDim*jNode +varDim*iNode + var] += 
-									0.25 * bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm;
+								if (((var == 0) and iNode) or ((var == 1) and iNode and jNode) or (var > 1)) {
+									real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+									real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+									int bgJ = jIndex*2 + (jmu+1)/2;
+									int bgI = iIndex*2 + (imu+1)/2;
+									bgState[varDim*iDim*jNode +varDim*iNode + var] += 
+										0.25 * bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm;
+								}	
 							}
 						}	
 					}
@@ -344,22 +349,26 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 				if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
 				// If conditions may cause parallel warps to diverge -- maybe actually faster to just calculate them all but need to test
 				if(w1) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					if (iNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+						tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					}
 				}
 				if(w2 or w3) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					idbasis = DBasis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jdbasis = DBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
-					tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
-					tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
+					if (iNode and jNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+						idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+						jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+						float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+						tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
+						tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
+					}
 				}
 				if (w4 or w5 or w6) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
@@ -445,22 +454,28 @@ void CostFunctionRZ_CPU::calcInnovation()
 				if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
 				// If conditions may cause parallel warps to diverge -- maybe actually faster to just calculate them all but need to test
 				if(w1) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					if (iNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+						tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					}
 				}
 				if(w2 or w3) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					idbasis = DBasis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jdbasis = DBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
-					tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
-					tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
+					if (iNode and jNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+						idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+						jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+						float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+						tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
+						tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
+					}
 				}
 				if (w4 or w5 or w6) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
+					//ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
+					//jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
 					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
@@ -521,24 +536,28 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 				real jdbasis = 0;
 				
 				if(w1) {
-					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 2);
-					Astate[varDim*iDim*jIndex +varDim*iIndex] 
-						+= yhat[m] * ibasis * jbasis * w1 * invError * invI * 1.e3;
+					if (iIndex) {
+						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+						Astate[varDim*iDim*jIndex +varDim*iIndex] 
+							+= yhat[m] * ibasis * jbasis * w1 * invError * invI * 1.e3;
+					}
 				}
 				if(w2 or w3) {
-					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 4);
-					idbasis = DBasis(iIndex, i, iDim-1, iMin, DI, DIrecip, 4);
-					jdbasis = DBasis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 4);
-					Astate[varDim*iDim*jIndex +varDim*iIndex + 1] 
-						+= yhat[m] * ibasis * (-jdbasis) * w2 * invError * invI* 1.e5;
-					Astate[varDim*iDim*jIndex +varDim*iIndex + 1]
-						+= yhat[m] * idbasis * jbasis * w3 * invError * invI * 1.e2;
+					if (iIndex and jIndex) {
+						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+						idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+						jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+						Astate[varDim*iDim*jIndex +varDim*iIndex + 1] 
+							+= yhat[m] * ibasis * (-jdbasis) * w2 * invError * invI* 1.e5;
+						Astate[varDim*iDim*jIndex +varDim*iIndex + 1]
+							+= yhat[m] * idbasis * jbasis * w3 * invError * invI * 1.e2;
+					}
 				}
 				if (w4 or w5 or w6) {
-					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 2);
-					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 2);
+					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 2] 
 						+= yhat[m] * ibasis * jbasis * w4 * invError;
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 3] 
@@ -546,7 +565,6 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 4]
 						+= yhat[m] * ibasis * jbasis * w6 * invError;
 				}
-				
 			}
 		}
 	}
@@ -632,20 +650,15 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 			}
 		}
 	}
-	real LI = 2.5;
-	real LJ = 250;
 
 	// Clear the Uprime
 	for (int n = 0; n < nState; n++) {
 		Uprime[n] = 0.;
 	}
 	
-	// Test correlation
-	//Ustate[varDim*(iDim-1)*2*10 +varDim*20 + 0] = 1.;
-	
-	real errorscale = 1;
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
+		real errorscale = 1;
 		for (int iIndex = 0; iIndex < (iDim-1)*2; iIndex++) {
 			for (int jIndex = 0; jIndex < (jDim-1)*2; jIndex++) {
 				for (int iPrime = iIndex-(LI*2/DI); iPrime <= iIndex+(LI*2/DI); iPrime++) {
@@ -662,7 +675,6 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 						if (var <= 1) {
 							// Scale the BG error by radius
 							errorscale = i1;
-							//errorscale = 1.;
 						} else {
 							errorscale = 1.;
 						}
@@ -677,7 +689,7 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 		}
 	}
 					
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
 			for (int imu = -1; imu <= 1; imu += 2) {
@@ -691,23 +703,25 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBC, jBC;
-								if (var <= 1) {
-									iBC = 4;
+								real iBCL, jBCL;
+								if (var == 0) {
+									iBCL = R2T20;
+									jBCL = R1T2;
+								} else if (var == 1) {									
+									iBCL = R2T20;
+									jBCL = R2T20;
 								} else {
-									iBC = 2;
+									iBCL = R1T2;
+									jBCL = R1T2;
 								}
-								if (var == 1) {
-									jBC = 4;
-								} else {
-									jBC = 2;
+								if (((var == 0) and iNode) or ((var == 1) and iNode and jNode) or (var > 1)) {
+									real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+									real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+									int bgJ = jIndex*2 + (jmu+1)/2;
+									int bgI = iIndex*2 + (imu+1)/2;
+									Bstate[varDim*iDim*jNode +varDim*iNode + var] += 
+										0.25 * Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm; 
 								}
-								real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iBC);
-								real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jBC);
-								int bgJ = jIndex*2 + (jmu+1)/2;
-								int bgI = iIndex*2 + (imu+1)/2;
-								Bstate[varDim*iDim*jNode +varDim*iNode + var] += 
-								0.25 * Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm; 
 							}
 						}	
 					}
@@ -776,7 +790,7 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 		}
 	} */
 	
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
 			for (int imu = -1; imu <= 1; imu += 2) {
@@ -790,23 +804,25 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 							if ((iNode < 0) or (iNode >= iDim)) continue;
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
-								real iBC, jBC;
-								if (var <= 1) {
-									iBC = 4;
+								real iBCL, jBCL;
+								if (var == 0) {
+									iBCL = R2T20;
+									jBCL = R1T2;
+								} else if (var == 1) {									
+									iBCL = R2T20;
+									jBCL = R2T20;
 								} else {
-									iBC = 2;
+									iBCL = R1T2;
+									jBCL = R1T2;
 								}
-								if (var == 1) {
-									jBC = 4;
-								} else {
-									jBC = 2;
+								if (((var == 0) and iNode) or ((var == 1) and iNode and jNode) or (var > 1)) {
+									real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+									real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+									int bgJ = jIndex*2 + (jmu+1)/2;
+									int bgI = iIndex*2 + (imu+1)/2;
+									Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
+										0.25 * Bstate[varDim*iDim*jNode +varDim*iNode + var] * im * jm;
 								}
-								real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iBC);
-								real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jBC);
-								int bgJ = jIndex*2 + (jmu+1)/2;
-								int bgI = iIndex*2 + (imu+1)/2;
-								Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
-								0.25 * Bstate[varDim*iDim*jNode +varDim*iNode + var] * im * jm;
 							}
 						}	
 					}
@@ -817,9 +833,9 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 	
 	real LI = 2.5;
 	real LJ = 250.;
-	real errorscale = 1.;
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
+		real errorscale = 1.;
 		for (int iIndex = 0; iIndex < (iDim-1)*2; iIndex++) {
 			for (int jIndex = 0; jIndex < (jDim-1)*2; jIndex++) {
 				for (int iPrime = iIndex-(LI*2/DI); iPrime <= iIndex+(LI*2/DI); iPrime++) {
@@ -835,7 +851,6 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 						if (var <= 1) {
 							// Scale the BG error by radius
 							errorscale = i1;
-							//errorscale = 1.;
 						} else {
 							errorscale = 1.;
 						}
@@ -871,20 +886,20 @@ bool CostFunctionRZ_CPU::setupSplines()
 		iL[i] = 0;
 		iBL[i] = 0;
 	}
-	int BC;
-	real cutoff_wl = 4;
+	
+	real cutoff_wl = 2;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
+		real iBCL;
 		if (var <= 1) {
-			BC = 4;
+			iBCL = R1T0;
 		} else {
-			BC = 2;
+			iBCL = R1T2;
 		}
-		
+				
 		for (int i = 0; i < iDim; i++) {
 			for (int j = 0; j < iDim; j++) {
 				P[i][j] = 0;
-
 			}
 		}
 				
@@ -894,32 +909,37 @@ bool CostFunctionRZ_CPU::setupSplines()
 				int ii = (int)((i - iMin)*DIrecip);
 				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 					if ((iNode < 0) or (iNode >= iDim)) continue;
-					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, BC);
-					real qm = DDDBasis(iNode, i, iDim-1, iMin, DI, DIrecip, BC);
+					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+					real qm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 3, iBCL, R1T2);
 					real pn, qn;
 					P[iNode][iNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((iNode+1) < iDim) {
-						pn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, BC);
-						qn = DDDBasis(iNode+1, i, iDim-1, iMin, DI, DIrecip, BC);
+						pn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+						qn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 3, iBCL, R1T2);
 						P[iNode][iNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+1][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((iNode+2) < iDim) {
-						pn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, BC);
-						qn = DDDBasis(iNode+2, i, iDim-1, iMin, DI, DIrecip, BC);
+						pn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+						qn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 3, iBCL, R1T2);
 						P[iNode][iNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+2][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((iNode+3) < iDim) {
-						pn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, BC);
-						qn = DDDBasis(iNode+3, i, iDim-1, iMin, DI, DIrecip, BC);
+						pn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
+						qn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 3, iBCL, R1T2);
 						P[iNode][iNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+3][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 				}
 			}
 		}
-				
+		
+		/* for (int i = 0; i < iDim; i++) {
+			for (int j = 0; j < iDim; j++) {
+				cout << P[i][j] << " ";
+			} cout << endl;
+		} */	
 				
 		// Cholesky decomp of P+Q
 		for (int i=0;i<iDim;i++) {
@@ -975,14 +995,16 @@ bool CostFunctionRZ_CPU::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 4;
+	cutoff_wl = 2;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
+		real jBCL;
 		if (var == 1) {
-			BC = 4;
+			jBCL = R2T20;
 		} else {
-			BC = 2;
+			jBCL = R1T2;
 		}
+
 		for (int i = 0; i < jDim; i++) {
 			for (int j = 0; j < jDim; j++) {
 				P[i][j] = 0;
@@ -994,25 +1016,25 @@ bool CostFunctionRZ_CPU::setupSplines()
 				int jj = (int)((j - jMin)*DJrecip);
 				for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 					if ((jNode < 0) or (jNode >= jDim)) continue;
-					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, BC);
-					real qm = DDDBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, BC);
+					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+					real qm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL, R1T2);
 					real pn, qn;
 					P[jNode][jNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((jNode+1) < jDim) {
-						pn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, BC);
-						qn = DDDBasis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, BC);
+						pn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+						qn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL, R1T2);
 						P[jNode][jNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+1][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((jNode+2) < jDim) {
-						pn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, BC);
-						qn = DDDBasis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, BC);
+						pn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+						qn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL, R1T2);
 						P[jNode][jNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+2][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
 					if ((jNode+3) < jDim) {
-						pn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, BC);
-						qn = DDDBasis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, BC);
+						pn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
+						qn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL, R1T2);
 						P[jNode][jNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+3][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
@@ -1067,14 +1089,14 @@ bool CostFunctionRZ_CPU::setupSplines()
 	for (int i = 0; i < iDim; i++) {
 		p[i] = 0;
 	}
-	int var = 2;
+	int var = 1;
 	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
 		for (int imu = -1; imu <= 1; imu += 2) {
 			real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
 			int ii = (int)((i - iMin)*DIrecip);
 			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
+				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T0, R1T2);
 				p[iNode] += 0.5*pm*10.;
 			}
 		}
@@ -1084,7 +1106,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	// Solve for A's
 	real sum = 0;
 	int k;
-	for (int i = 0; i < iDim; i++) {
+	/* for (int i = 0; i < iDim; i++) {
 		for (sum=p[i], k=i-1;k>=0;k--)
 			sum -= P[i][k]*x[k];
 		x[i] = sum/iL[iDim*4*var + i*4];
@@ -1116,18 +1138,22 @@ bool CostFunctionRZ_CPU::setupSplines()
 	//} cout << endl;
 	
 	real si;
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		real i = iMin + DI * iIndex;
-		int ii = (int)((i - iMin)*DIrecip);
-		si = 0;
-		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-			if ((iNode < 0) or (iNode >= iDim)) continue;
-			real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-			si += y[iNode]*pm; // + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim);
+	for (int iIndex = 0; iIndex < 2 ; iIndex++) {
+		for (real imu = 0; imu <= 1; imu+=.1) {
+//real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
+			real i = iMin + DI * (imu + iIndex);
+			int ii = (int)((i - iMin)*DIrecip);
+			si = 0;
+			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+				if ((iNode < 0) or (iNode >= iDim)) continue;
+				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T0, R1T2);
+				if (iNode >= 0)
+					si += y[iNode]*pm; // + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim);
+			}
+			//real analytic = sin(i*2*Pi/iDim) + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim); 
+			real analytic = 10;
+			cout << i << "\t" << p[iIndex] << "\t" << y[iIndex] << "\t" << si << "\t" << analytic << "\t" << si - analytic << endl;
 		}
-		//real analytic = sin(i*2*Pi/iDim) + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim); 
-		real analytic = 10.;
-		cout << i << "\t" << p[iIndex] << "\t" << y[iIndex] << "\t" << si << "\t" << analytic << "\t" << si - analytic << endl;
 	} */
 	
 	return true;
@@ -1181,21 +1207,25 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 							for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 								for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				
 									if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
-									ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-									jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-									rhov += Astate[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * invI * 1.e3;
+									if (iNode) {
+										ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+										jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+										rhov += Astate[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * invI * 1.e3;
+									}
 									
-									ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-									jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-									idbasis = DBasis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-									jdbasis = DBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-									float coeff = Astate[varDim*iDim*jNode +varDim*iNode + 1];
-									rhou += coeff * ibasis * (-jdbasis) * invI * 1.e5;
-									rhow += coeff * idbasis * jbasis * invI * 1.e2;
-									psi += coeff * ibasis * jbasis;
+									if (iNode and jNode) {
+										ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+										jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+										idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+										jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+										float coeff = Astate[varDim*iDim*jNode +varDim*iNode + 1];
+										rhou += coeff * ibasis * (-jdbasis) * invI * 1.e5;
+										rhow += coeff * idbasis * jbasis * invI * 1.e2;
+										psi += coeff * ibasis * jbasis;
+									}
 									
-									ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-									jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
+									ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+									jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 									hprime += Astate[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis;
 									qvprime += Astate[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis;
 									rhoprime += Astate[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis;
@@ -1309,22 +1339,26 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 				if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
 				// If conditions may cause parallel warps to diverge -- maybe actually faster to just calculate them all but need to test
 				if(w1) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
-					tempsum += Astate[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					if (iNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+						tempsum += Astate[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+					}
 				}
 				if(w2 or w3) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					idbasis = DBasis(iNode, i, iDim-1, iMin, DI, DIrecip, 4);
-					jdbasis = DBasis(jNode, j, jDim-1, jMin, DJ, DJrecip, 4);
-					float coeff = Astate[varDim*iDim*jNode +varDim*iNode + 1];
-					tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
-					tempsum += coeff * idbasis * jbasis * w3 * invI  * 1.e2;
+					if (iNode and jNode) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+						idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+						jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+						float coeff = Astate[varDim*iDim*jNode +varDim*iNode + 1];
+						tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
+						tempsum += coeff * idbasis * jbasis * w3 * invI  * 1.e2;
+					}
 				}
 				if (w4 or w5 or w6) {
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					tempsum += Astate[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
 					tempsum += Astate[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
 					tempsum += Astate[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
@@ -1481,7 +1515,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 }     
 
 // Basis Functions
-float CostFunctionRZ_CPU::Basis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_CPU::BasisOri(int m, float x, int M, float xmin, 
 								float DX, float DXrecip, int C)
 {
 	
@@ -1548,7 +1582,7 @@ float CostFunctionRZ_CPU::Basis(int m, float x, int M, float xmin,
 	return b;
 }
 
-float CostFunctionRZ_CPU::DBasis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_CPU::DBasisOri(int m, float x, int M, float xmin, 
 								 float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1619,7 +1653,7 @@ float CostFunctionRZ_CPU::DBasis(int m, float x, int M, float xmin,
 }
 
 
-float CostFunctionRZ_CPU::DDBasis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_CPU::DDBasisOri(int m, float x, int M, float xmin, 
 								  float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1685,7 +1719,7 @@ float CostFunctionRZ_CPU::DDBasis(int m, float x, int M, float xmin,
 	return b;
 }
 
-float CostFunctionRZ_CPU::DDDBasis(int m, float x, int M, float xmin, 
+float CostFunctionRZ_CPU::DDDBasisOri(int m, float x, int M, float xmin, 
 								   float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1741,4 +1775,297 @@ float CostFunctionRZ_CPU::DDDBasis(int m, float x, int M, float xmin,
 		}
 	}
 	return b;
+}
+
+
+real CostFunctionRZ_CPU::Basis(int m, real x, int M, real xmin, 
+								real DX, real DXrecip, int derivative, 
+								int BL, int BR, real lambda)
+{
+	
+	real b = 0;
+	real xm = xmin + (m * DX);
+	real delta = (x - xm) * DXrecip;
+	real z = fabsf(delta);
+	real ONESIXTH = 0.16666666666666666666666666667;
+	
+	switch (derivative) {
+		case 0:
+			if (z < 2.0)
+			{
+				z = 2 - z;
+				b = (z*z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					b -= (z*z*z) * 4 * ONESIXTH;
+			}			
+			break;
+		case 1:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				b = (z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					b -= (z*z) * 4 * ONESIXTH;
+				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+			}			
+			break;
+		case 2:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				b = z;
+				z -= 1.0;
+				if (z > 0)
+					b -= z * 4;
+				b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			}
+			break;
+		case 3:
+			if ((z > 1.0) and (z < 2.0)) {
+				b = 1;
+			} else if (z < 1.0) {
+				b = -3.;
+			}
+			b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			break;
+	}
+	
+	// Add on the boundary conditions
+	real bmod = 0;
+	int node = -2;
+	real coeffmod = 0.;
+	if (m == 0) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = -1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return b;
+			case 5:
+				// There is no contribution from this node 
+				return b;
+			case 6:
+				// There is no contribution from this node 
+				return b;				
+		}
+	} else if (m == 1) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = -1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return b;				
+		}
+				
+	} else if (m == M) {
+		// Right BC
+		switch (BR) {
+			case 0:
+				node = M+1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return 0.;
+			case 5:
+				// There is no contribution from this node 
+				return 0.;
+			case 6:
+				// There is no contribution from this node 
+				return 0.;				
+		}
+	} else if (m == M-1) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = M+1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return 0.;				
+		}
+	}
+	
+	xm = xmin + (node * DX);
+	delta = (x - xm) * DXrecip;
+	z = fabsf(delta);
+	switch (derivative) {
+		case 0:
+			if (z < 2.0)
+			{
+				z = 2 - z;
+				bmod = (z*z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= (z*z*z) * 4 * ONESIXTH;
+			}			
+			break;
+		case 1:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				bmod = (z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= (z*z) * 4 * ONESIXTH;
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+			}			
+			break;
+		case 2:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			}
+			break;
+		case 3:
+			if ((z > 1.0) and (z < 2.0)) {
+				bmod = 1;
+			} else if (z < 1.0) {
+				bmod = -3.;
+			}
+			bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			break;
+	}
+	
+	b += coeffmod * bmod;
+	
+	// R2 needs one more addition
+	if ((m == 1) and (BL == 4)) {
+		node = 0;
+		coeffmod = -0.5;
+	} else if ((m == M-1) and (BR == 4)) {
+		node = M;
+		coeffmod = -0.5;
+	} else {
+		return b;
+	}
+	
+	xm = xmin + (node * DX);
+	delta = (x - xm) * DXrecip;
+	z = fabsf(delta);
+	switch (derivative) {
+		case 0:
+			if (z < 2.0)
+			{
+				z = 2 - z;
+				bmod = (z*z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= (z*z*z) * 4 * ONESIXTH;
+			}			
+			break;
+		case 1:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				bmod = (z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= (z*z) * 4 * ONESIXTH;
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+			}			
+			break;
+		case 2:
+			if (z < 2.0)
+			{
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			}
+			break;
+		case 3:
+			if ((z > 1.0) and (z < 2.0)) {
+				bmod = 1;
+			} else if (z < 1.0) {
+				bmod = -3.;
+			}
+			bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip;
+			break;
+	}
+	
+	b += coeffmod * bmod;
+	
+	return b;
+	
 }

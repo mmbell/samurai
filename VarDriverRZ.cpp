@@ -1048,7 +1048,7 @@ bool VarDriverRZ::run()
 		// Increment the variables
 		costRZ->updateBG();
 		//CQRMS = updateXforms();
-		costRZ->initState();
+		//costRZ->initState();
 	}	
 	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
 		<< iter << " iterations. Writing analysis results..." << endl;

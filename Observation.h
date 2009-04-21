@@ -29,8 +29,9 @@ public:
 	double inline getWeight(const unsigned int& var) { return weight[var]; }
 	void setWeight(const double &wgt, const unsigned int& var);
 	
-	// Note that you set this as error, but it returns 1/error
-	double inline getInverseError() const { return error; }
+	// Note that you set this as error, but it returns 1/error or error
+	double inline getInverseError() const { return (1./error); }
+	double inline getError() const { return error; }
 	void setError(const double &err);
 	
 	double inline getOb() const { return obNet; }

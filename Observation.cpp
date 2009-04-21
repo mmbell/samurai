@@ -41,11 +41,7 @@ void Observation::setWeight(const double &wgt, const unsigned int& var)
 
 void Observation::setError(const double &err)
 {
-	if (err != 0) {
-		error = 1./err;
-	} else {
-		error = 1.;
-	}
+	error = err;
 }
 
 
