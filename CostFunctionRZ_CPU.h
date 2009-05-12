@@ -89,6 +89,7 @@ private:
 	int varDim;
 	int bState;
 	real bgError[5];
+	real bgErrorScale;
 	real LI, LJ;
 	real LF[5];
 	int bcLeft[5], bcRight[5], bcTop[5], bcBottom[5];

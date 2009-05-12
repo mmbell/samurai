@@ -113,6 +113,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	// Set up the recursive filter
 	real iFilterScale = 2.5;
 	real jFilterScale = 2.5;
+	bgErrorScale = sqrt(2 * 3.141592653589793)*iFilterScale*jFilterScale;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
 
@@ -319,7 +320,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 	SAtransform(stateB, stateA);
 		
 	// H
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
 		int mi = m*10;
 		real w1 = obsVector[mi+2];
@@ -376,8 +377,9 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 			}
 		}
 		HCq[m] = tempsum;
+		//cout << m << "\t" << HCq[m] << endl;
 	}	
-
+	//cout << endl;
 	
 }
 
@@ -424,7 +426,7 @@ void CostFunctionRZ_CPU::calcInnovation()
 	}
 	
 	real innovationRMS = 0;
-	//#pragma omp parallel for reduction(+:innovationRMS)
+	#pragma omp parallel for reduction(+:innovationRMS)
 	for (int m = 0; m < mObs; m++) {
 		int mi = m*10;
 		real w1 = obsVector[mi+2];
@@ -506,11 +508,12 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 	// Calculate H Transpose	
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			//#pragma omp parallel for
+			#pragma omp parallel for
 			for (int m = 0; m < mObs; m++) {
 				// Sum over obs this time
 				// Multiply state by H weights
 				int mi = m*10;
+				real qhat = yhat[m];
 				real invError = obsVector[mi+1];
 				real w1 = obsVector[mi+2];
 				real w2 = obsVector[mi+3];
@@ -539,8 +542,10 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 					if (iIndex) {
 						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
 						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+						#pragma omp atomic
 						Astate[varDim*iDim*jIndex +varDim*iIndex] 
-							+= yhat[m] * ibasis * jbasis * w1 * invError * invI * 1.e3;
+							+= qhat * ibasis * jbasis * w1 * invError * invI * 1.e3;
+						//cout << m << "\t" << Astate[varDim*iDim*jIndex +varDim*iIndex] << endl;
 					}
 				}
 				if(w2 or w3) {
@@ -549,21 +554,24 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
 						idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
 						jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+						#pragma omp atomic
 						Astate[varDim*iDim*jIndex +varDim*iIndex + 1] 
-							+= yhat[m] * ibasis * (-jdbasis) * w2 * invError * invI* 1.e5;
-						Astate[varDim*iDim*jIndex +varDim*iIndex + 1]
-							+= yhat[m] * idbasis * jbasis * w3 * invError * invI * 1.e2;
+							+= qhat * ibasis * (-jdbasis) * w2 * invError * invI* 1.e5
+							 + qhat * idbasis * jbasis * w3 * invError * invI * 1.e2;
 					}
 				}
 				if (w4 or w5 or w6) {
 					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+					#pragma omp atomic
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 2] 
-						+= yhat[m] * ibasis * jbasis * w4 * invError;
+						+= qhat * ibasis * jbasis * w4 * invError;
+					#pragma omp atomic
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 3] 
-						+= yhat[m] * ibasis * jbasis * w5 * invError;
+						+= qhat * ibasis * jbasis * w5 * invError;
+					#pragma omp atomic
 					Astate[varDim*iDim*jIndex +varDim*iIndex + 4]
-						+= yhat[m] * ibasis * jbasis * w6 * invError;
+						+= qhat * ibasis * jbasis * w6 * invError;
 				}
 			}
 		}
@@ -759,9 +767,9 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 				real errorscale = 1.;
 				if (var <= 1) {
 					// Scale the BG error by radius
-					errorscale = iIndex * DI;
+					errorscale = iIndex * DI * bgErrorScale;
 				} else {
-					errorscale = 1.;
+					errorscale = bgErrorScale;
 				}
 				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var] * errorscale; 
 			}
@@ -801,9 +809,9 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 				real errorscale = 1.;
 				if (var <= 1) {
 					// Scale the BG error by radius
-					errorscale = iIndex * DI;
+					errorscale = iIndex * DI * bgErrorScale;
 				} else {
-					errorscale = 1.;
+					errorscale = bgErrorScale;
 				}				
 				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex] * bgError[var] * errorscale;
 			}

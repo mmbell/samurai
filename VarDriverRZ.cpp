@@ -1020,7 +1020,7 @@ bool VarDriverRZ::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = true;
+	bool preprocess = false;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
