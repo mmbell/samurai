@@ -355,7 +355,8 @@ void VarDriverRZ::preProcessMetObs()
 					//varOb.setWeight(rhopWgt, 5);
 					
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
-					double DopplerError = metOb.getSpectrumWidth() + wWgt*2.;
+					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
+					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(rhoBG*Vdopp);
 					obVector.push_back(varOb);

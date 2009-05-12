@@ -57,7 +57,8 @@ bool Dorade::readSwpfile()
 	}
 	
 	// Read in a dorade file
-	const char* ccfilename = filename.toAscii().data();
+	QByteArray bytes  = filename.toAscii();
+	const char* ccfilename = bytes.data();
 	sweepread(ccfilename, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr);
 	

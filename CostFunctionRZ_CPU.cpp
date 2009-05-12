@@ -110,11 +110,11 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	DJ = (jMax - jMin) / (jDim - 1);
     DJrecip = 1./DJ;
 	
-	/* Set up the recursive filter
+	// Set up the recursive filter
 	real iFilterScale = 2.5;
 	real jFilterScale = 2.5;
 	iFilter = new RecursiveFilter(4,iFilterScale);
-	jFilter = new RecursiveFilter(4,jFilterScale); */
+	jFilter = new RecursiveFilter(4,jFilterScale);
 
 	/* Test the filter
 	real* p = new real[iDim];
@@ -249,13 +249,13 @@ void CostFunctionRZ_CPU::initState()
 	
 	// SA transform = bg B's -> bg A's
 	SAtransform(bgState, stateA);
-	
-	// Output the original background field
-	outputAnalysis("background", stateA , false);
-	
+		
 	// d = y - HXb
 	calcInnovation();
-	
+
+	// Output the original background field
+	outputAnalysis("background", stateA , false);
+
 	// HTd
 	calcHTranspose(innovation, stateA);
 	
@@ -280,7 +280,7 @@ double CostFunctionRZ_CPU::funcValue(double* state)
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
-	#pragma omp parallel for reduction(+:obIP)
+	//#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m*10+1])*(HCq[m]-innovation[m]);
 	}
@@ -319,7 +319,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 	SAtransform(stateB, stateA);
 		
 	// H
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
 		int mi = m*10;
 		real w1 = obsVector[mi+2];
@@ -424,7 +424,7 @@ void CostFunctionRZ_CPU::calcInnovation()
 	}
 	
 	real innovationRMS = 0;
-	#pragma omp parallel for reduction(+:innovationRMS)
+	//#pragma omp parallel for reduction(+:innovationRMS)
 	for (int m = 0; m < mObs; m++) {
 		int mi = m*10;
 		real w1 = obsVector[mi+2];
@@ -506,7 +506,7 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 	// Calculate H Transpose	
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			#pragma omp parallel for
+			//#pragma omp parallel for
 			for (int m = 0; m < mObs; m++) {
 				// Sum over obs this time
 				// Multiply state by H weights
@@ -655,19 +655,24 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 	for (int n = 0; n < nState; n++) {
 		Uprime[n] = 0.;
 	}
-	
-	//#pragma omp parallel for
+	int iSpread = int(LI*2/DI);
+	int jSpread = int(LJ*2/DJ);
+
+	/* #pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		real errorscale = 1;
 		for (int iIndex = 0; iIndex < (iDim-1)*2; iIndex++) {
+			real i1 = iMin + DI * (iIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)+1.) + 0.5));
+			
 			for (int jIndex = 0; jIndex < (jDim-1)*2; jIndex++) {
-				for (int iPrime = iIndex-(LI*2/DI); iPrime <= iIndex+(LI*2/DI); iPrime++) {
+				real j1 = jMin + DJ * (jIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(jIndex % 2)+1.) + 0.5));
+				
+				for (int iPrime = iIndex-iSpread; iPrime <= iIndex+iSpread; iPrime++) {
 					if ((iPrime < 0) or (iPrime >= (iDim-1)*2)) continue;
-					for (int jPrime = jIndex-(LJ*2/DJ); jPrime <= jIndex+(LJ*2/DJ); jPrime++) {
+
+					real i2 = iMin + DI * (iPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(iPrime % 2)+1.) + 0.5));
+					for (int jPrime = jIndex-jSpread; jPrime <= jIndex+jSpread; jPrime++) {
 						if ((jPrime < 0) or (jPrime >= (jDim-1)*2)) continue;
-						real i1 = iMin + DI * (iIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)+1.) + 0.5));
-						real i2 = iMin + DI * (iPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(iPrime % 2)+1.) + 0.5));
-						real j1 = jMin + DJ * (jIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(jIndex % 2)+1.) + 0.5));
 						real j2 = jMin + DJ * (jPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(jPrime % 2)+1.) + 0.5));
 
 						real f1 = bgFields[varDim*(iDim-1)*2*jIndex +varDim*iIndex + var];
@@ -687,7 +692,7 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 				}
 			}
 		}
-	}
+	} */
 					
 	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
@@ -720,7 +725,8 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 									int bgJ = jIndex*2 + (jmu+1)/2;
 									int bgI = iIndex*2 + (imu+1)/2;
 									Bstate[varDim*iDim*jNode +varDim*iNode + var] += 
-										0.25 * Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm; 
+										//0.25 * Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm; 
+										0.25 * Ustate[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm; 
 								}
 							}
 						}	
@@ -731,29 +737,36 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 	}
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	/* for (int var = 0; var < varDim; var++) {
+	 for (int var = 0; var < varDim; var++) {
 		//FJ
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				jTemp[jIndex] = currState[varDim*iDim*jIndex +varDim*iIndex + var];
+				jTemp[jIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
 			}
 			jFilter->filterArray(jTemp, jDim);
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				stateB[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 			}
 		}
 		//FI
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				iTemp[iIndex] = stateB[varDim*iDim*jIndex +varDim*iIndex + var];
+				iTemp[iIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
 			}
 			iFilter->filterArray(iTemp, iDim);
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				// D
-				stateB[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+				real errorscale = 1.;
+				if (var <= 1) {
+					// Scale the BG error by radius
+					errorscale = iIndex * DI;
+				} else {
+					errorscale = 1.;
+				}
+				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var] * errorscale; 
 			}
 		}
-	} */
+	}
 	
 }
 
@@ -767,28 +780,35 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 	}
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	/* for (int var = 0; var < varDim; var++) {
+	for (int var = 0; var < varDim; var++) {
 		//FI & D
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				iTemp[iIndex] = stateB[varDim*iDim*jIndex +varDim*iIndex + var];
+				iTemp[iIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
 			}
 			iFilter->filterArray(iTemp, iDim);
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				stateB[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
 			}
 		}
 		//FJ
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				jTemp[jIndex] = stateB[varDim*iDim*jIndex +varDim*iIndex + var];
+				jTemp[jIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
 			}
 			jFilter->filterArray(jTemp, jDim);
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				stateB[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+				real errorscale = 1.;
+				if (var <= 1) {
+					// Scale the BG error by radius
+					errorscale = iIndex * DI;
+				} else {
+					errorscale = 1.;
+				}				
+				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex] * bgError[var] * errorscale;
 			}
 		}
-	} */
+	}
 	
 	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
@@ -820,7 +840,8 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 									real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
 									int bgJ = jIndex*2 + (jmu+1)/2;
 									int bgI = iIndex*2 + (imu+1)/2;
-									Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
+									Ustate[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
+									//Uprime[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
 										0.25 * Bstate[varDim*iDim*jNode +varDim*iNode + var] * im * jm;
 								}
 							}
@@ -831,21 +852,25 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 		}	
 	}
 	
-	real LI = 2.5;
-	real LJ = 250.;
-	//#pragma omp parallel for
+	int iSpread = int(LI*2/DI);
+	int jSpread = int(LJ*2/DJ);
+	/*#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		real errorscale = 1.;
 		for (int iIndex = 0; iIndex < (iDim-1)*2; iIndex++) {
+			real i1 = iMin + DI * (iIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)+1.) + 0.5));
+			
 			for (int jIndex = 0; jIndex < (jDim-1)*2; jIndex++) {
-				for (int iPrime = iIndex-(LI*2/DI); iPrime <= iIndex+(LI*2/DI); iPrime++) {
+				real j1 = jMin + DJ * (jIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(jIndex % 2)+1.) + 0.5));
+
+				for (int iPrime = iIndex-iSpread; iPrime <= iIndex+iSpread; iPrime++) {
 					if ((iPrime < 0) or (iPrime >= (iDim-1)*2)) continue;
-					for (int jPrime = jIndex-(LJ*2/DJ); jPrime <= jIndex+(LJ*2/DJ); jPrime++) {
+					real i2 = iMin + DI * (iPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(iPrime % 2)+1.) + 0.5));
+
+					for (int jPrime = jIndex-jSpread; jPrime <= jIndex+jSpread; jPrime++) {
 						if ((jPrime < 0) or (jPrime >= (jDim-1)*2)) continue;
-						real i1 = iMin + DI * (iIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(iIndex % 2)+1.) + 0.5));
-						real i2 = iMin + DI * (iPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(iPrime % 2)+1.) + 0.5));
-						real j1 = jMin + DJ * (jIndex/2 + (0.5*sqrt(1./3.) * pow(-1.,(jIndex % 2)+1.) + 0.5));
 						real j2 = jMin + DJ * (jPrime/2 + (0.5*sqrt(1./3.) * pow(-1.,(jPrime % 2)+1.) + 0.5));						
+
 						real f1 = bgFields[varDim*(iDim-1)*2*jIndex +varDim*iIndex + var];
 						real f2 = bgFields[varDim*(iDim-1)*2*jPrime +varDim*iPrime + var];
 						if (var <= 1) {
@@ -863,7 +888,7 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 				}
 			}
 		}
-	}
+	} */
 	
 }
 
@@ -892,7 +917,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	for (int var = 0; var < varDim; var++) {
 		int iBCL;
 		if (var <= 1) {
-			iBCL = R1T0;
+			iBCL = R2T20;
 		} else {
 			iBCL = R1T2;
 		}
