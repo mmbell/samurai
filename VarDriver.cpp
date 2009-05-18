@@ -23,7 +23,7 @@ VarDriver::VarDriver()
 	dataSuffix["sec"] = sec;
 	dataSuffix["ten"] = ten;
 	dataSuffix["swp"] = swp;
-	
+	dataSuffix["sfmr"] = sfmr;
 }
 
 VarDriver::~VarDriver()
@@ -371,3 +371,41 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
+{
+
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr;
+	//datestr = metFile.fileName().left(8);	
+	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
+	// Hard code date for now
+	//QDate date(2003, 9, 12);
+	MetObs ob;
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+		QDateTime datetime;
+		ob.setStationName("sfmr");
+		timestr = lineparts[3];
+		QTime time = QTime::fromString(timestr, "HH:mm:ss");
+		datestr = lineparts[1] + lineparts[2] + lineparts[4];
+		QDate date = QDate::fromString(datestr, "MMMddyyyy");
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		//QString datestr = datetime.toString(Qt::ISODate);
+		//cout << datestr.toAscii().data() << endl;
+		ob.setLat(lineparts[5].toFloat());
+		ob.setLon(lineparts[6].toFloat());
+		ob.setAltitude(10.0);
+		ob.setWindSpeed(lineparts[7].toFloat());
+		ob.setObType(MetObs::sfmr);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+
+}

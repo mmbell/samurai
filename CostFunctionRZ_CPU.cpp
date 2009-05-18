@@ -113,7 +113,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	// Set up the recursive filter
 	real iFilterScale = 2.5;
 	real jFilterScale = 2.5;
-	bgErrorScale = sqrt(2 * 3.141592653589793)*iFilterScale*jFilterScale;
+	bgErrorScale = 2 * 3.141592653589793 *iFilterScale*jFilterScale;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
 
@@ -920,7 +920,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		iBL[i] = 0;
 	}
 	
-	real cutoff_wl = 2;
+	real cutoff_wl = 4;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int iBCL;
@@ -1028,7 +1028,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 2;
+	cutoff_wl = 4;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int jBCL;

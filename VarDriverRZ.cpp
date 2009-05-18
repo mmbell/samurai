@@ -105,6 +105,10 @@ void VarDriverRZ::preProcessMetObs()
 				if (!read_dorade(metFile, metData))
 					cout << "Error reading swp file" << endl;
 				break;
+			case (sfmr):
+				if (!read_sfmr(metFile, metData))
+					cout << "Error reading sfmr file" << endl;
+				break;
 			default:
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
@@ -170,7 +174,7 @@ void VarDriverRZ::preProcessMetObs()
 			varOb.setWeight(0., 3);
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
-			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow; 
+			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd, vBG, uBG; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
 					varOb.setType(MetObs::dropsonde);
@@ -300,6 +304,18 @@ void VarDriverRZ::preProcessMetObs()
 					}
 					
 					break;
+
+				case (MetObs::sfmr):
+					varOb.setType(MetObs::sfmr);
+					wspd = metOb.getWindSpeed();
+					vBG = 1.e3*bilinearField(rad, height, 0)/rad;
+					uBG = -1.e5*bilinearField(rad, 20., 1)/(rad*20.);
+					varOb.setWeight(vBG, 0);
+					varOb.setWeight(uBG, 1);
+					varOb.setOb(rhoBG*rhoBG*wspd*wspd);
+					varOb.setError(10.0);
+					obVector.push_back(varOb);
+					break;
 					
 				case (MetObs::radar):
 					varOb.setType(MetObs::radar);
@@ -362,7 +378,9 @@ void VarDriverRZ::preProcessMetObs()
 					obVector.push_back(varOb);
 					
 					break;
+										
 			}
+
 		} 
 		cout << obVector.size() << " total observations." << endl;
 	}
@@ -1020,7 +1038,7 @@ bool VarDriverRZ::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = false;
+	bool preprocess = true;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {

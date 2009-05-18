@@ -109,7 +109,8 @@ class MetObs
 		enum MetObTypes {
 			dropsonde,
 			flightlevel,
-			radar
+			radar,
+			sfmr
 		};
 		
 	protected:
