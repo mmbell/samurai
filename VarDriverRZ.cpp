@@ -310,9 +310,9 @@ void VarDriverRZ::preProcessMetObs()
 					wspd = metOb.getWindSpeed();
 					vBG = 1.e3*bilinearField(rad, height, 0)/rad;
 					uBG = -1.e5*bilinearField(rad, 20., 1)/(rad*20.);
-					varOb.setWeight(vBG, 0);
-					varOb.setWeight(uBG, 1);
-					varOb.setOb(rhoBG*rhoBG*wspd*wspd);
+					varOb.setWeight(1., 0);
+					//varOb.setWeight(1., 1);
+					varOb.setOb(wspd);
 					varOb.setError(10.0);
 					obVector.push_back(varOb);
 					break;
@@ -374,7 +374,7 @@ void VarDriverRZ::preProcessMetObs()
 					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
 					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
-					varOb.setOb(rhoBG*Vdopp);
+					varOb.setOb(Vdopp);
 					obVector.push_back(varOb);
 					
 					break;
@@ -422,9 +422,9 @@ void VarDriverRZ::preProcessMetObs()
 	}
 	
 	// Load the observations into a vector
-	obs = new real[obVector.size()*10];
+	obs = new real[obVector.size()*11];
 	for (unsigned int m=0; m < obVector.size(); m++) {
-		int n = m*10;
+		int n = m*11;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -433,6 +433,7 @@ void VarDriverRZ::preProcessMetObs()
 		}
 		obs[n+2+numVars] = ob.getRadius();
 		obs[n+3+numVars] = ob.getAltitude();
+		obs[n+4+numVars] = ob.getType();
 	}	
 	
 	// All done preprocessing
@@ -468,9 +469,9 @@ bool VarDriverRZ::loadMetObs()
 	}
 
 	// Load the observations into a vector
-	obs = new real[obVector.size()*10];
+	obs = new real[obVector.size()*11];
 	for (unsigned int m=0; m < obVector.size(); m++) {
-		int n = m*10;
+		int n = m*11;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -479,6 +480,7 @@ bool VarDriverRZ::loadMetObs()
 		}
 		obs[n+2+numVars] = ob.getRadius();
 		obs[n+3+numVars] = ob.getAltitude();
+		obs[n+4+numVars] = ob.getType();
 	}	
 	
 	return true;
@@ -1038,7 +1040,7 @@ bool VarDriverRZ::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = true;
+	bool preprocess = false;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
@@ -1063,11 +1065,11 @@ bool VarDriverRZ::run()
 	while ((CQRMS > CQTOL) and (iter < maxIter)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
+		costRZ->initState();
 		costRZ->minimize();
 		// Increment the variables
 		costRZ->updateBG();
 		//CQRMS = updateXforms();
-		//costRZ->initState();
 	}	
 	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
 		<< iter << " iterations. Writing analysis results..." << endl;

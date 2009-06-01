@@ -59,7 +59,7 @@ bool CostFunction::minimize()
 
 void CostFunction::conjugateGradient(double* q, double* xi, const double ftol, double fret)
 {
-	const int ITMAX = 5000;
+	const int ITMAX = 2000;
 	const double EPS = 1.0e-18;
 	int j, its;
 	double gg, gam, fq, dgg;

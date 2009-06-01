@@ -73,6 +73,7 @@ private:
 	real* bgFields;
 	real* bgState;
 	real* obsVector;
+	real* rawObs;
 	real* stateA;
 	real* stateB;
 	real* stateU;

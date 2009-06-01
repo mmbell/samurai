@@ -7,6 +7,7 @@
  */
 
 #include "CostFunctionRZ_CPU.h"
+#include "MetObs.h"
 #include <cmath>
 #include <QString>
 #include <QStringList>
@@ -92,7 +93,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 
 	// Assign local object pointers
 	bgFields = bgU;
-	obsVector = obs;
+	rawObs = obs;
 	iMin = imin;
 	iMax = imax;
 	iDim = idim;
@@ -111,9 +112,10 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
     DJrecip = 1./DJ;
 	
 	// Set up the recursive filter
-	real iFilterScale = 2.5;
-	real jFilterScale = 2.5;
-	bgErrorScale = 2 * 3.141592653589793 *iFilterScale*jFilterScale;
+	real iFilterScale = 5.;
+	real jFilterScale = 5.;
+	//bgErrorScale = 2 * 3.141592653589793 *iFilterScale*jFilterScale;
+	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
 
@@ -153,6 +155,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	stateU = new real[nState];
 	Uprime = new real[nState];
 	HCq = new real[mObs];
+	obsVector = new real[mObs*11];
 	
 	bgState = new real[bState];
 	stateB = new real[bState];
@@ -163,7 +166,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	
 	// Set up the spline matrices
 	setupSplines();
-	initState();
+
 }	
 
 void CostFunctionRZ_CPU::initState()
@@ -250,7 +253,77 @@ void CostFunctionRZ_CPU::initState()
 	
 	// SA transform = bg B's -> bg A's
 	SAtransform(bgState, stateA);
+	
+	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
+	for (int m = 0; m < mObs; m++) {
+		int mi = m*11;
+		for (int ob = 0; ob < 11; ob++) {
+			obsVector[mi+ob] = rawObs[mi+ob];
+		}
+		real type = obsVector[mi+10];
+		if (type <= 1) continue; 
+
+		real i = obsVector[mi+8];
+		real invI;
+		if (i != 0) {
+			invI = 1./i;
+		} else {
+			invI = 0.;
+		}
+		real j = obsVector[mi+9];
+		real vBG = 0.;
+		real uBG = 0.;
+		real rhoprime = 0.;
+		real qvprime = 0.;
 		
+		int ii = (int)((i - iMin)*DIrecip);
+		int jj = (int)((j - jMin)*DJrecip);
+		real ibasis = 0.;
+		real jbasis = 0.;
+		real idbasis = 0.;
+		real jdbasis = 0.;
+		
+		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				
+				if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
+				if (iNode) {
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+					vBG += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * invI * 1.e3;
+				}
+				if (iNode and jNode) {
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
+					idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
+					jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
+					float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+					uBG += coeff * ibasis * (-jdbasis) * invI * 1.e5;
+				}
+				ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+				qvprime += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis;
+				rhoprime += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis;
+			}
+		}
+		
+		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*j);
+		real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
+		real rhoa = rhoBar + rhoprime / 100;
+		real rhoq = (qBar + qvprime) * rhoa / 1000.;
+		real rhoBG = rhoa + rhoq;
+		
+		// Adjust the relevant fields
+		if (type == MetObs::sfmr) {
+			//real wsBG = vBG*vBG; // + uBG*uBG;
+			obsVector[mi] *= rhoBG;
+			//obsVector[mi+2] = 2.*vBG/wsBG;
+			//obsVector[mi+3] = 0.; //2.*uBG/wsBG;
+		}
+		if (type == MetObs::radar) {
+			obsVector[mi] *= rhoBG;
+		}
+	}
+	
 	// d = y - HXb
 	calcInnovation();
 
@@ -283,7 +356,7 @@ double CostFunctionRZ_CPU::funcValue(double* state)
 	// Subtract d from HCq to yield mObs length vector and compute inner product
 	//#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
-		obIP += (HCq[m]-innovation[m])*(obsVector[m*10+1])*(HCq[m]-innovation[m]);
+		obIP += (HCq[m]-innovation[m])*(obsVector[m*11+1])*(HCq[m]-innovation[m]);
 	}
 	double J = 0.5*qIP + 0.5*obIP;
 	return J;
@@ -322,7 +395,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 	// H
 	#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*10;
+		int mi = m*11;
 		real w1 = obsVector[mi+2];
 		real w2 = obsVector[mi+3];
 		real w3 = obsVector[mi+4];
@@ -422,13 +495,13 @@ void CostFunctionRZ_CPU::calcInnovation()
 	cout << "Initializing innovation vector..." << endl;
 	for (int m = 0; m < mObs; m++) {
 		HCq[m] = 0.0;
-		innovation[m] = obsVector[m*10];
+		innovation[m] = obsVector[m*11];
 	}
 	
 	real innovationRMS = 0;
 	#pragma omp parallel for reduction(+:innovationRMS)
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*10;
+		int mi = m*11;
 		real w1 = obsVector[mi+2];
 		real w2 = obsVector[mi+3];
 		real w3 = obsVector[mi+4];
@@ -512,7 +585,7 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 			for (int m = 0; m < mObs; m++) {
 				// Sum over obs this time
 				// Multiply state by H weights
-				int mi = m*10;
+				int mi = m*11;
 				real qhat = yhat[m];
 				real invError = obsVector[mi+1];
 				real w1 = obsVector[mi+2];
@@ -920,7 +993,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		iBL[i] = 0;
 	}
 	
-	real cutoff_wl = 4;
+	real cutoff_wl = 2;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int iBCL;
@@ -1028,7 +1101,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 4;
+	cutoff_wl = 2;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int jBCL;
@@ -1120,17 +1193,17 @@ bool CostFunctionRZ_CPU::setupSplines()
 	/*p = new real[iDim];
 	//Analytic Test set
 	for (int i = 0; i < iDim; i++) {
-		p[i] = 0;
+		p[i] = 0.;
 	}
-	int var = 1;
+	int var = 3;
 	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
 		for (int imu = -1; imu <= 1; imu += 2) {
 			real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
 			int ii = (int)((i - iMin)*DIrecip);
 			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T0, R1T2);
-				p[iNode] += 0.5*pm*10.;
+				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				p[iNode] += 0.5*pm*exp(-(i-(iDim-5))*(i-(iDim-5))/25);
 			}
 		}
 	}
@@ -1139,6 +1212,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	// Solve for A's
 	real sum = 0;
 	int k; */
+	
 	/* for (int i = 0; i < iDim; i++) {
 		for (sum=p[i], k=i-1;k>=0;k--)
 			sum -= P[i][k]*x[k];
@@ -1150,7 +1224,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		x[i] = sum/iL[iDim*4*var + i*4];
 	} */
 	 
-	/* Solve for A's using compact storage
+	/*Solve for A's using compact storage
 	sum = 0;
 	for (int i = 0; i < iDim; i++) {
 		for (sum=p[i], k=-1;k>=-3;k--) {
@@ -1171,20 +1245,20 @@ bool CostFunctionRZ_CPU::setupSplines()
 	//} cout << endl;
 	
 	real si;
-	for (int iIndex = 0; iIndex < 2 ; iIndex++) {
-		for (real imu = 0; imu <= 1; imu+=.1) {
+	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+		for (real imu = 0; imu <= 1; imu+=2) {
 //real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
 			real i = iMin + DI * (imu + iIndex);
 			int ii = (int)((i - iMin)*DIrecip);
 			si = 0;
 			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T0, R1T2);
+				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 				if (iNode >= 0)
 					si += y[iNode]*pm; // + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim);
 			}
 			//real analytic = sin(i*2*Pi/iDim) + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim); 
-			real analytic = 10;
+			real analytic = exp(-(i-(iDim-5))*(i-(iDim-5))/25);
 			cout << i << "\t" << p[iIndex] << "\t" << y[iIndex] << "\t" << si << "\t" << analytic << "\t" << si - analytic << endl;
 		}
 	} */
@@ -1206,7 +1280,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
-			for (int imu = -ihalf; imu <= ihalf; imu+=2) {
+			for (int imu = -ihalf; imu <= ihalf; imu++) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
 				real invI;
 				if (i != 0) {
@@ -1217,7 +1291,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 				if (i > (iDim-1)*DI) continue;
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int jhalf =0; jhalf <=1; jhalf++) {
-						for (int jmu = -jhalf; jmu <= jhalf; jmu+=2) {
+						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							real rhoBar = rhoBase*exp(-rhoInvScaleHeight*j);
 							real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
@@ -1278,24 +1352,23 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 							real T = ((hBar + hprime*1.e3) - 2.501e3*(qBar + qvprime) - 9.81*j)/1005.7;
 							real press = T*rhoa*287./100.;
 							//real e = rhoE/rho;
-							if (ihalf and jhalf) {
-
-								// Output it
-								fluxstream << scientific << i << "\t" << j << "\t" << rhoM << "\t" << rhoE
-								<< "\t" << u << "\t" << v << "\t" << w << "\t" << psi 
-								<< "\t" << qvprime << "\t" << rhoprime << "\t" << T << "\t" << press << "\n";
+							
+							// Output it
+							fluxstream << scientific << i << "\t" << j << "\t" << rhoM << "\t" << rhoE
+							<< "\t" << u << "\t" << v << "\t" << w << "\t" << psi 
+							<< "\t" << qvprime << "\t" << rhoprime << "\t" << T << "\t" << press << "\n";
+							
+							if (updateMish and imu and jmu and ihalf and jhalf) {
+								int bgJ = jIndex*2 + (jmu+1)/2;
+								int bgI = iIndex*2 + (imu+1)/2;
+								bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 0] = rhov*i*1.e-3;
+								bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 1] = psi;
+								bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 2] = hprime;
+								bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 3] = qvprime;
+								bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 4] = rhoprime;
+							}
 								
-								if (updateMish) {
-									int bgJ = jIndex*2 + (jmu+1)/2;
-									int bgI = iIndex*2 + (imu+1)/2;
-									bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 0] = rhov*i*1.e-3;
-									bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 1] = psi;
-									bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 2] = hprime;
-									bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 3] = qvprime;
-									bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + 4] = rhoprime;
-								}
-								
-							} else if (!ihalf and !jhalf){
+							if (!ihalf and !jhalf){
 								// On the node
 								fieldNodes[12*iDim*jIndex + 12*iIndex + 0] = rhov*i*1.e-3;
 								fieldNodes[12*iDim*jIndex + 12*iIndex + 1] = hprime;
@@ -1325,10 +1398,6 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	ofstream qcstream(qcout.toAscii().data());
 	ifstream obstream("./Observations.out");
 	ostream_iterator<string> os(qcstream, "\t ");
-	*os++ = "Type";
-	*os++ = "r";
-	*os++ = "z";
-	*os++ = "NULL";
 	*os++ = "Observation";
 	*os++ = "Inverse Error";
 	*os++ = "Weight 1";
@@ -1337,6 +1406,9 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	*os++ = "Weight 4";
 	*os++ = "Weight 5";
 	*os++ = "Weight 6";
+	*os++ = "r";
+	*os++ = "z";	
+	*os++ = "Type";
 	*os++ = "Analysis";
 	*os++ = "Background";
 	qcstream << endl;
@@ -1344,7 +1416,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	
 	ostream_iterator<double> od(qcstream, "\t ");
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*10;
+		int mi = m*11;
 		real w1 = obsVector[mi+2];
 		real w2 = obsVector[mi+3];
 		real w3 = obsVector[mi+4];
@@ -1359,6 +1431,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 			invI = 0.;
 		}
 		real j = obsVector[mi+9];
+		real type = obsVector[mi+10];
 		real tempsum = 0;
 		int ii = (int)((i - iMin)*DIrecip);
 		int jj = (int)((j - jMin)*DJrecip);
@@ -1399,9 +1472,9 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 			}
 		}
 		
-		for (int t=0; t<12; t++) {
-			obstream >> temp;
-			*od++ = temp;
+		for (int t=0; t<11; t++) {
+			//obstream >> temp;
+			*od++ = obsVector[mi+t];
 		}
 		*od++ = tempsum;
 		*od++ = obsVector[mi]-innovation[m];
