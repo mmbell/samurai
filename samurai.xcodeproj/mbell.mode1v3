@@ -197,48 +197,7 @@
 	<key>Notifications</key>
 	<array/>
 	<key>OpenEditors</key>
-	<array>
-		<dict>
-			<key>Content</key>
-			<dict>
-				<key>PBXProjectModuleGUID</key>
-				<string>09C3972A102E70D100808D90</string>
-				<key>PBXProjectModuleLabel</key>
-				<string>CostFunctionRZ_CPU.cpp</string>
-				<key>PBXSplitModuleInNavigatorKey</key>
-				<dict>
-					<key>Split0</key>
-					<dict>
-						<key>PBXProjectModuleGUID</key>
-						<string>09C3972B102E70D100808D90</string>
-						<key>PBXProjectModuleLabel</key>
-						<string>CostFunctionRZ_CPU.cpp</string>
-						<key>_historyCapacity</key>
-						<integer>0</integer>
-						<key>bookmark</key>
-						<string>09C3972C102E70D100808D90</string>
-						<key>history</key>
-						<array>
-							<string>09C39725102E6D4C00808D90</string>
-						</array>
-					</dict>
-					<key>SplitCount</key>
-					<string>1</string>
-				</dict>
-				<key>StatusBarVisibility</key>
-				<true/>
-			</dict>
-			<key>Geometry</key>
-			<dict>
-				<key>Frame</key>
-				<string>{{0, 20}, {953, 749}}</string>
-				<key>PBXModuleWindowStatusBarHidden2</key>
-				<false/>
-				<key>RubberWindowFrame</key>
-				<string>134 50 953 790 0 0 1440 878 </string>
-			</dict>
-		</dict>
-	</array>
+	<array/>
 	<key>PerspectiveWidths</key>
 	<array>
 		<integer>-1</integer>
@@ -357,7 +316,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CE0B20306471E060097A5F4</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>VarDriver.cpp</string>
+								<string>CostFunctionRZ_CPU.cpp</string>
 								<key>PBXSplitModuleInNavigatorKey</key>
 								<dict>
 									<key>Split0</key>
@@ -365,18 +324,16 @@
 										<key>PBXProjectModuleGUID</key>
 										<string>1CE0B20406471E060097A5F4</string>
 										<key>PBXProjectModuleLabel</key>
-										<string>VarDriver.cpp</string>
+										<string>CostFunctionRZ_CPU.cpp</string>
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>09C39727102E70D100808D90</string>
+										<string>09C397731034A23700808D90</string>
 										<key>history</key>
 										<array>
 											<string>093242220F638C5D00E36902</string>
 											<string>093244B40F678AAA00E36902</string>
 											<string>093244E20F68867700E36902</string>
-											<string>093244E30F68867700E36902</string>
-											<string>093244E40F68867700E36902</string>
 											<string>0932455C0F6AD74000E36902</string>
 											<string>093245E10F6B662000E36902</string>
 											<string>093245E20F6B662000E36902</string>
@@ -395,10 +352,10 @@
 											<string>09FB37F00F9D03300061C1B9</string>
 											<string>092F62280FB929DB00C55B15</string>
 											<string>099F85390FD11A720080A5A7</string>
-											<string>0972EA9E1008606A006DFECD</string>
 											<string>0972EA9F1008606A006DFECD</string>
 											<string>09826C6A100C6E65005F6AB3</string>
-											<string>0918EAB110240BC200A24C93</string>
+											<string>09C397711034A23700808D90</string>
+											<string>0972EA9E1008606A006DFECD</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -407,8 +364,6 @@
 											<string>093244820F67728B00E36902</string>
 											<string>093244B70F678AAA00E36902</string>
 											<string>093244B80F678AAA00E36902</string>
-											<string>093244EA0F68867700E36902</string>
-											<string>093244EB0F68867700E36902</string>
 											<string>093244EE0F68867700E36902</string>
 											<string>093245300F6AC87700E36902</string>
 											<string>093245520F6AD23E00E36902</string>
@@ -428,6 +383,7 @@
 											<string>09F473A60F9392670006B4AA</string>
 											<string>09F473CA0F939E750006B4AA</string>
 											<string>09FB37F20F9D03300061C1B9</string>
+											<string>09C397721034A23700808D90</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -487,9 +443,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>09C39728102E70D100808D90</string>
+				<string>09C397611034A0A000808D90</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>09C39729102E70D100808D90</string>
+				<string>09C397621034A0A000808D90</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -623,9 +579,9 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>09C3972D102E70D100808D90</string>
-		<string>09C3972A102E70D100808D90</string>
-		<string>/Users/mbell/Development/tcvar/trunk/tcvar.xcodeproj</string>
+		<string>1CD10A99069EF8BA00B06720</string>
+		<string>093241F90F635BC600E36902</string>
+		<string>/Users/mbell/Development/samurai/trunk/samurai.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
 	<string>240 68 1100 809 0 0 1440 878 </string>
@@ -666,6 +622,8 @@
 							<string>116pt</string>
 						</dict>
 						<dict>
+							<key>BecomeActive</key>
+							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXBuildLogShowsTranscriptDefaultKey</key>
@@ -707,7 +665,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>093241F90F635BC600E36902</string>
-				<string>0918EAB910240BC200A24C93</string>
+				<string>09C397691034A22C00808D90</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -827,13 +785,13 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1CD10A99069EF8BA00B06720</string>
-				<string>09826C7F100C6FA2005F6AB3</string>
+				<string>09C3976A1034A22C00808D90</string>
 				<string>1C162984064C10D400B95A72</string>
-				<string>09826C80100C6FA2005F6AB3</string>
-				<string>09826C81100C6FA2005F6AB3</string>
-				<string>09826C82100C6FA2005F6AB3</string>
-				<string>09826C83100C6FA2005F6AB3</string>
-				<string>09826C84100C6FA2005F6AB3</string>
+				<string>09C3976B1034A22C00808D90</string>
+				<string>09C3976C1034A22C00808D90</string>
+				<string>09C3976D1034A22C00808D90</string>
+				<string>09C3976E1034A22C00808D90</string>
+				<string>09C3976F1034A22C00808D90</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debugV3</string>
