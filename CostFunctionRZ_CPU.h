@@ -62,6 +62,8 @@ private:
 	bool outputAnalysis(const QString& suffix, real* Astate, bool updateMish);
 	void SBtransform(real* Ustate, real* Bstate);
 	void SBtranspose(real* Bstate, real* Ustate);
+	void SCtransform(real* Astate, real* Cstate);
+	void SCtranspose(real* Cstate, real* Astate);
 	int iDim;
 	const unsigned int* IXDim;
 	real iMin, iMax, DI, DIrecip;
@@ -76,6 +78,7 @@ private:
 	real* rawObs;
 	real* stateA;
 	real* stateB;
+	real* stateC;
 	real* stateU;
 	real* Uprime;
 	real* CTHTd;

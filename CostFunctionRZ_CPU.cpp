@@ -47,6 +47,7 @@ void CostFunctionRZ_CPU::finalize()
 	delete[] df;
 	delete[] stateA;
 	delete[] stateB;
+	delete[] stateC;
 	delete[] CTHTd;
 	delete[] iTemp;
 	delete[] jTemp;
@@ -112,8 +113,8 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
     DJrecip = 1./DJ;
 	
 	// Set up the recursive filter
-	real iFilterScale = 5.;
-	real jFilterScale = 5.;
+	real iFilterScale = 4.;
+	real jFilterScale = 4.;
 	//bgErrorScale = 2 * 3.141592653589793 *iFilterScale*jFilterScale;
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
@@ -160,7 +161,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 	bgState = new real[bState];
 	stateB = new real[bState];
 	stateA = new real[bState];
-
+	stateC = new real[bState];
 	iTemp = new real[iDim];
 	jTemp = new real[jDim];
 	
@@ -186,6 +187,7 @@ void CostFunctionRZ_CPU::initState()
 		bgState[b] = 0.0;
 		stateA[b] = 0.0;
 		stateB[b] = 0.0;
+		stateC[b] = 0.0;
 	}
 	
 	
@@ -219,7 +221,7 @@ void CostFunctionRZ_CPU::initState()
 									real jm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL, R1T2);
 									int bgJ = jIndex*2 + (jmu+1)/2;
 									int bgI = iIndex*2 + (imu+1)/2;
-									bgState[varDim*iDim*jNode +varDim*iNode + var] += 
+									stateB[varDim*iDim*jNode +varDim*iNode + var] += 
 										0.25 * bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] * im * jm;
 								}	
 							}
@@ -235,7 +237,7 @@ void CostFunctionRZ_CPU::initState()
 		double varScale = 0;
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				varScale += bgState[varDim*iDim*jIndex +varDim*iIndex + var] * bgState[varDim*iDim*jIndex +varDim*iIndex + var];
+				varScale += stateB[varDim*iDim*jIndex +varDim*iIndex + var] * stateB[varDim*iDim*jIndex +varDim*iIndex + var];
 			}
 		}
 		varScale = sqrt(varScale/(iDim*jDim));
@@ -252,7 +254,7 @@ void CostFunctionRZ_CPU::initState()
 	// Estimate the mixing lengths for the variables here?
 	
 	// SA transform = bg B's -> bg A's
-	SAtransform(bgState, stateA);
+	SAtransform(stateB, bgState);
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	for (int m = 0; m < mObs; m++) {
@@ -289,20 +291,20 @@ void CostFunctionRZ_CPU::initState()
 				if (iNode) {
 					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					vBG += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * invI * 1.e3;
+					vBG += bgState[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * invI * 1.e3;
 				}
 				if (iNode and jNode) {
 					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
 					idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
 					jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
-					float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+					float coeff = bgState[varDim*iDim*jNode +varDim*iNode + 1];
 					uBG += coeff * ibasis * (-jdbasis) * invI * 1.e5;
 				}
 				ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 				jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-				qvprime += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis;
-				rhoprime += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis;
+				qvprime += bgState[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis;
+				rhoprime += bgState[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis;
 			}
 		}
 		
@@ -328,10 +330,12 @@ void CostFunctionRZ_CPU::initState()
 	calcInnovation();
 
 	// Output the original background field
-	outputAnalysis("background", stateA , false);
+	outputAnalysis("background", bgState , false);
 
 	// HTd
-	calcHTranspose(innovation, stateA);
+	calcHTranspose(innovation, stateC);
+	
+	SCtranspose(stateC, stateA);
 	
 	// S^T (Inverse SA transform) yield B's, put it in the tempState
 	SAtransform(stateA, stateB);
@@ -369,8 +373,10 @@ void CostFunctionRZ_CPU::funcGradient(double* state, double* gradient)
 	updateHCq(state);
 	
 	// HTHCq
-	calcHTranspose(HCq, stateA);
-		
+	calcHTranspose(HCq, stateC);
+	
+	SCtranspose(stateC, stateA);
+	
 	// S^T (Inverse SA transform) yield B's, put it in the tempState
 	SAtransform(stateA, stateB);
 	
@@ -391,7 +397,9 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 	
 	// S (SA transform) yield A's, put it in the tempState
 	SAtransform(stateB, stateA);
-		
+	
+	SCtransform(stateA, stateC);
+	
 	// H
 	#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
@@ -426,7 +434,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 					if (iNode) {
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-						tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+						tempsum += stateC[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
 					}
 				}
 				if(w2 or w3) {
@@ -435,7 +443,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
 						idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
 						jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
-						float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+						float coeff = stateC[varDim*iDim*jNode +varDim*iNode + 1];
 						tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
 						tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
 					}
@@ -443,9 +451,9 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 				if (w4 or w5 or w6) {
 					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
+					tempsum += stateC[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
+					tempsum += stateC[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
+					tempsum += stateC[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
 				}
 			}
 		}
@@ -465,27 +473,29 @@ void CostFunctionRZ_CPU::updateBG()
 	// S (SA transform) yield A's
 	SAtransform(stateB, stateA);
 	
-	outputAnalysis("increment", stateA, false);	
+	SCtransform(stateA, stateC);
 	
-	// In BG update we are directly summing B's
-	ofstream bstream("BAnalysis.out");
-	bstream << "Variable\tI\tJ\tBackground\tAnalysis\tIncrement\n";
+	outputAnalysis("increment", stateC, false);	
+	
+	// In BG update we are directly summing C + A
+	ofstream cstream("CoeffAnalysis.out");
+	cstream << "Variable\tI\tJ\tBackground\tAnalysis\tIncrement\n";
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				bstream << var << "\t" << iIndex << "\t" << jIndex << "\t"; 
-				bstream << bgState[varDim*iDim*jIndex +varDim*iIndex + var] << "\t";
-				bgState[varDim*iDim*jIndex +varDim*iIndex + var] += stateB[varDim*iDim*jIndex +varDim*iIndex + var];
-				bstream << bgState[varDim*iDim*jIndex +varDim*iIndex + var] << "\t"; 
-				bstream << stateB[varDim*iDim*jIndex +varDim*iIndex + var] << endl;
+				cstream << var << "\t" << iIndex << "\t" << jIndex << "\t"; 
+				cstream << bgState[varDim*iDim*jIndex +varDim*iIndex + var] << "\t";
+				bgState[varDim*iDim*jIndex +varDim*iIndex + var] += stateC[varDim*iDim*jIndex +varDim*iIndex + var];
+				cstream << bgState[varDim*iDim*jIndex +varDim*iIndex + var] << "\t"; 
+				cstream << stateC[varDim*iDim*jIndex +varDim*iIndex + var] << endl;
 			}
 		}
 	}
 	
 	// S (SA transform) yield A's
-	SAtransform(bgState, stateA);
+	//SAtransform(bgState, stateA);
 	
-	outputAnalysis("analysis", stateA, true);
+	outputAnalysis("analysis", bgState, true);
 	
 }
 
@@ -532,7 +542,7 @@ void CostFunctionRZ_CPU::calcInnovation()
 					if (iNode) {
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R2T20, R1T2);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-						tempsum += stateA[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
+						tempsum += bgState[varDim*iDim*jNode +varDim*iNode] * ibasis * jbasis * w1 * invI * 1.e3;
 					}
 				}
 				if(w2 or w3) {
@@ -541,7 +551,7 @@ void CostFunctionRZ_CPU::calcInnovation()
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R2T20, R1T2);
 						idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R2T20, R1T2);
 						jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R2T20, R1T2);
-						float coeff = stateA[varDim*iDim*jNode +varDim*iNode + 1];
+						float coeff = bgState[varDim*iDim*jNode +varDim*iNode + 1];
 						tempsum += coeff * ibasis * (-jdbasis) * w2 * invI * 1.e5;
 						tempsum += coeff * idbasis * jbasis * w3 * invI * 1.e2;
 					}
@@ -551,9 +561,9 @@ void CostFunctionRZ_CPU::calcInnovation()
 					//jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 2);
 					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
-					tempsum += stateA[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
+					tempsum += bgState[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis * w4;
+					tempsum += bgState[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * w5;
+					tempsum += bgState[varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * w6;
 				}
 			}
 		}
@@ -816,40 +826,9 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 			}
 		}	
 	}
-	
-	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	 for (int var = 0; var < varDim; var++) {
-		//FJ
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				jTemp[jIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
-			}
-			jFilter->filterArray(jTemp, jDim);
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-			}
-		}
-		//FI
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				iTemp[iIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
-			}
-			iFilter->filterArray(iTemp, iDim);
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				// D
-				real errorscale = 1.;
-				if (var <= 1) {
-					// Scale the BG error by radius
-					errorscale = iIndex * DI * bgErrorScale;
-				} else {
-					errorscale = bgErrorScale;
-				}
-				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var] * errorscale; 
-			}
-		}
-	}
-	
+		
 }
+
 
 void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 {
@@ -859,38 +838,7 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 		Ustate[n] = 0;
 		Uprime[n] = 0;
 	}
-	
-	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	for (int var = 0; var < varDim; var++) {
-		//FI & D
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				iTemp[iIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
-			}
-			iFilter->filterArray(iTemp, iDim);
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
-			}
-		}
-		//FJ
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				jTemp[jIndex] = Bstate[varDim*iDim*jIndex +varDim*iIndex + var];
-			}
-			jFilter->filterArray(jTemp, jDim);
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				real errorscale = 1.;
-				if (var <= 1) {
-					// Scale the BG error by radius
-					errorscale = iIndex * DI * bgErrorScale;
-				} else {
-					errorscale = bgErrorScale;
-				}				
-				Bstate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex] * bgError[var] * errorscale;
-			}
-		}
-	}
-	
+		
 	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
@@ -973,6 +921,78 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 	
 }
 
+void CostFunctionRZ_CPU::SCtransform(real* Astate, real* Cstate)
+{
+	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
+	for (int var = 0; var < varDim; var++) {
+		//FJ
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				jTemp[jIndex] = Astate[varDim*iDim*jIndex +varDim*iIndex + var];
+			}
+			jFilter->filterArray(jTemp, jDim);
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				Astate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+			}
+		}
+		//FI
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				iTemp[iIndex] = Astate[varDim*iDim*jIndex +varDim*iIndex + var];
+			}
+			iFilter->filterArray(iTemp, iDim);
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				// D
+				real errorscale = 1.;
+				if (var <= 1) {
+					// Scale the BG error by radius
+					errorscale = iIndex * DI * bgErrorScale;
+				} else {
+					errorscale = bgErrorScale;
+				}
+				//D
+				Cstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var] * errorscale; 
+			}
+		}
+	}
+}
+
+void CostFunctionRZ_CPU::SCtranspose(real* Cstate, real* Astate)
+{
+	
+	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
+	for (int var = 0; var < varDim; var++) {
+		//FI & D
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				real errorscale = 1.;
+				if (var <= 1) {
+					// Scale the BG error by radius
+					errorscale = iIndex * DI * bgErrorScale;
+				} else {
+					errorscale = bgErrorScale;
+				}								
+				iTemp[iIndex] = Cstate[varDim*iDim*jIndex +varDim*iIndex + var] * bgError[var] * errorscale;
+			}
+			iFilter->filterArray(iTemp, iDim);
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				Cstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+			}
+		}
+		//FJ
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				jTemp[jIndex] = Cstate[varDim*iDim*jIndex +varDim*iIndex + var];
+			}
+			jFilter->filterArray(jTemp, jDim);
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				Astate[varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+			}
+		}
+	}
+}
+
+
 bool CostFunctionRZ_CPU::setupSplines()
 {
 	
@@ -993,7 +1013,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		iBL[i] = 0;
 	}
 	
-	real cutoff_wl = 2;
+	real cutoff_wl = 4;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int iBCL;
@@ -1101,7 +1121,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 2;
+	cutoff_wl = 4;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		int jBCL;

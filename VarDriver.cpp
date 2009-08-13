@@ -40,7 +40,7 @@ bool VarDriver::readTCcenters()
 	QTextStream in(&centerFile);
 	while (!in.atEnd()) {
 		// Hard code for now
-		QDate date(2003, 9, 12);
+		QDate date(2003, 9, 4);
 		
 		QString line = in.readLine();
 		QStringList lineparts = line.split(QRegExp("\\s+"));
@@ -207,7 +207,7 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 	//datestr = metFile.fileName().left(8);	
 	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
 	// Hard code date for now
-	QDate date(2003, 9, 12);
+	QDate date(2003, 9, 4);
 	MetObs ob;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
@@ -221,7 +221,8 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		ob.setLat(lineparts[1].toFloat());
-		ob.setLon(-lineparts[2].toFloat());
+		//ob.setLon(-lineparts[2].toFloat());
+		ob.setLon(lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
 		ob.setPressure(lineparts[8].toFloat());
 		if (lineparts[11].toFloat() != -999) {
@@ -328,12 +329,12 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			float vr = 0;
 			float sw = 0;
 			float count = 0;
-			for (int i=n; i<(n+stride); i++) {
-				if (veldata[i] == -32768) continue;
-				if (gatesp[i] <= 0) continue;
-				dz += pow(10.0,(refdata[i]*0.1));
-				vr += veldata[i];
-				sw += swdata[i];
+			for (int g=n; g<(n+stride); g++) {
+				if (veldata[g] == -32768) continue;
+				if (gatesp[g] <= 0) continue;
+				dz += pow(10.0,(refdata[g]*0.1));
+				vr += veldata[g];
+				sw += swdata[g];
 				count++;
 			}
 			if (count > 0) {

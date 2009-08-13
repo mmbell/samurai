@@ -519,11 +519,11 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	/* Modified to read all fields, but record ref, vel, and sw indices - MB */
 	QString fld_name(tempname);
 	if (fld_name.size() > 8) fld_name.resize(8);
-	if (fld_name == ref_fld) {
+	if (fld_name.trimmed() == ref_fld) {
 		refIndex = fld_num;
-	} else if (fld_name == vel_fld) {
+	} else if (fld_name.trimmed() == vel_fld) {
 		velIndex = fld_num;
-	} else if (fld_name == sw_fld) {
+	} else if (fld_name.trimmed() == sw_fld) {
 		swIndex = fld_num;
 	}
 	
