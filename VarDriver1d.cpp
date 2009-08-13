@@ -1,6 +1,6 @@
 /*
  *  VarDriver1d.cpp
- *  tcvar
+ *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
@@ -69,7 +69,7 @@ bool VarDriver1d::initParametricBG()
 	double base = 0;
 	int i = 0;
 	vector<real> vIn, vBG, uBG, wBG, hBG, qBG, rpBG;
-	ifstream vdata("/Users/mbell/Development/tcvar/vdata.txt");
+	ifstream vdata("/Users/mbell/Development/samurai/vdata.txt");
 	vdata.width(14);
 	while (vdata >> f >> v >> u >> w >> h >> q >> rho)
 	{
@@ -608,7 +608,7 @@ void VarDriver1d::processMetObs()
 	bgSpline->solve(&BG[5].front());
 	
 	// Check the data directory for files
-	QDir dataPath("/Users/mbell/Development/tcvar/vardata");
+	QDir dataPath("/Users/mbell/Development/samurai/vardata");
 	dataPath.setFilter(QDir::Files);
 	dataPath.setSorting(QDir::Name);
 	QStringList filenames = dataPath.entryList();

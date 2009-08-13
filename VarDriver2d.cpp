@@ -1,6 +1,6 @@
 /*
  *  VarDriver2d.cpp
- *  tcvar
+ *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
@@ -494,7 +494,7 @@ bool VarDriver2d::finalizeVortexBG()
 	}
 	
 	// Write to an asi file for plotting
-	QString asifile("tcvar_analysis");
+	QString asifile("samurai_analysis");
 	writeAsi(asifile, final, scalarAnalysisSpline, vecAnalysisSpline);
 	
 	// Get the increments
@@ -596,7 +596,7 @@ bool VarDriver2d::finalizeVortexBG()
 	
 	
 	// Write to an asi file for plotting
-	asifile = "tcvar_increment";
+	asifile = "samurai_increment";
 	writeAsi(asifile, increment, scalarAnalysisSpline, vecAnalysisSpline);
 	
 	// Write some info to a file for plotting

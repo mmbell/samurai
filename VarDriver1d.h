@@ -1,6 +1,6 @@
 /*
  *  VarDriver1d.h
- *  tcvar
+ *  samurai
  *
  *  Created by Michael Bell on 4/12/08.
  *  Copyright 2008 Michael Bell. All rights reserved.

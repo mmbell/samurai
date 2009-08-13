@@ -1,6 +1,6 @@
 /*
  *  CostFunctionRZ_CPU.cpp
- *  tcvar
+ *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
@@ -1501,7 +1501,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 		qcstream << endl;
 		
 	}
-	QString fileName = "tcvar_RZ_" + suffix;
+	QString fileName = "samurai_RZ_" + suffix;
 	QString outFileName;
 	if(QDir::isAbsolutePath(fileName)) {
 		outFileName = fileName;

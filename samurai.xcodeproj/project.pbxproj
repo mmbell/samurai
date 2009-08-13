@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
-		0932410F0F6359BF00E36902 /* tcvar.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 0932410C0F6359BF00E36902 /* tcvar.app */; };
+		0932410F0F6359BF00E36902 /* samurai.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 0932410C0F6359BF00E36902 /* samurai.app */; };
 		093241370F635ACD00E36902 /* libcutil.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 093241360F635ACD00E36902 /* libcutil.a */; };
 		093241EF0F635B8800E36902 /* libcudart.dylib in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 093241EE0F635B8800E36902 /* libcudart.dylib */; };
 		0932420D0F635C4800E36902 /* GPUdriver.cu in Bundle Resources */ = {isa = PBXBuildFile; fileRef = 0932420B0F635C4800E36902 /* GPUdriver.cu */; };
@@ -45,10 +45,10 @@
 		F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = /Users/mbell/Development/tcvar/trunk;
+			dstPath = /Users/mbell/Development/samurai/trunk;
 			dstSubfolderSpec = 0;
 			files = (
-				0932410F0F6359BF00E36902 /* tcvar.app in Project Copy */,
+				0932410F0F6359BF00E36902 /* samurai.app in Project Copy */,
 			);
 			name = "Project Copy";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -60,7 +60,7 @@
 		0137A8775B3EEF11BE16A2FE /* TCcenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TCcenter.h; sourceTree = "<group>"; };
 		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
 		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
-		0932410C0F6359BF00E36902 /* tcvar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tcvar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0932410C0F6359BF00E36902 /* samurai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = samurai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		093241360F635ACD00E36902 /* libcutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcutil.a; path = CUDA/lib/libcutil.a; sourceTree = SYSTEM_DEVELOPER_DIR; };
 		093241EE0F635B8800E36902 /* libcudart.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcudart.dylib; path = /usr/local/cuda/lib/libcudart.dylib; sourceTree = "<absolute>"; };
 		0932420B0F635C4800E36902 /* GPUdriver.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GPUdriver.cu; sourceTree = "<group>"; };
@@ -76,7 +76,7 @@
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
 		12F30F954C9B134EAC0CB327 /* CostFunctionRZ_GPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionRZ_GPU.h; sourceTree = "<group>"; };
-		1EB3971C34CB5BAC13ECA713 /* tcvar.pro */ = {isa = PBXFileReference; lastKnownFileType = text; path = tcvar.pro; sourceTree = "<group>"; };
+		1EB3971C34CB5BAC13ECA713 /* samurai.pro */ = {isa = PBXFileReference; lastKnownFileType = text; path = samurai.pro; sourceTree = "<group>"; };
 		233807245A73AD7DA9E73F7F /* BandedMatrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BandedMatrix.h; sourceTree = "<group>"; };
 		242670B24EA6ACAC229EFACA /* RecursiveFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RecursiveFilter.h; sourceTree = "<group>"; };
 		27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
@@ -131,7 +131,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		05596AB53D8D521C69802C27 /* tcvar */ = {
+		05596AB53D8D521C69802C27 /* samurai */ = {
 			isa = PBXGroup;
 			children = (
 				883D7615C4D2DE3FA1218F12 /* Headers */,
@@ -140,13 +140,13 @@
 				ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */,
 				0932410D0F6359BF00E36902 /* Products */,
 			);
-			name = tcvar;
+			name = samurai;
 			sourceTree = "<group>";
 		};
 		0932410D0F6359BF00E36902 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0932410C0F6359BF00E36902 /* tcvar.app */,
+				0932410C0F6359BF00E36902 /* samurai.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -162,7 +162,7 @@
 		7CABE3C80E79AD2B307756D2 /* Sources [qmake] */ = {
 			isa = PBXGroup;
 			children = (
-				1EB3971C34CB5BAC13ECA713 /* tcvar.pro */,
+				1EB3971C34CB5BAC13ECA713 /* samurai.pro */,
 			);
 			name = "Sources [qmake]";
 			sourceTree = "<group>";
@@ -243,9 +243,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BCD0948322903A03CF04C8A3 /* tcvar */ = {
+		BCD0948322903A03CF04C8A3 /* samurai */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 093241230F6359DD00E36902 /* Build configuration list for PBXNativeTarget "tcvar" */;
+			buildConfigurationList = 093241230F6359DD00E36902 /* Build configuration list for PBXNativeTarget "samurai" */;
 			buildPhases = (
 				093241F30F635B9500E36902 /* CUDA Preprocessor */,
 				D7BA7D76DAB5DD13389D6332 /* Qt Qmake */,
@@ -259,9 +259,9 @@
 			);
 			dependencies = (
 			);
-			name = tcvar;
-			productName = tcvar;
-			productReference = 0932410C0F6359BF00E36902 /* tcvar.app */;
+			name = samurai;
+			productName = samurai;
+			productReference = 0932410C0F6359BF00E36902 /* samurai.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -269,15 +269,15 @@
 /* Begin PBXProject section */
 		91B15E841AA80083484172DE /* Project object */ = {
 			isa = PBXProject;
-			buildConfigurationList = 2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "tcvar" */;
+			buildConfigurationList = 2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "samurai" */;
 			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
-			mainGroup = 05596AB53D8D521C69802C27 /* tcvar */;
+			mainGroup = 05596AB53D8D521C69802C27 /* samurai */;
 			productRefGroup = 0932410D0F6359BF00E36902 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BCD0948322903A03CF04C8A3 /* tcvar */,
+				BCD0948322903A03CF04C8A3 /* samurai */,
 			);
 		};
 /* End PBXProject section */
@@ -308,7 +308,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/CUDA_preprocess.mak";
+			shellScript = "make -C /Users/mbell/Development/samurai/trunk -f samurai.xcodeproj/CUDA_preprocess.mak";
 		};
 		A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -318,7 +318,7 @@
 			name = "Qt Preprocessors";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/qt_preprocess.mak";
+			shellScript = "make -C /Users/mbell/Development/samurai/trunk -f samurai.xcodeproj/qt_preprocess.mak";
 		};
 		D7BA7D76DAB5DD13389D6332 /* Qt Qmake */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -328,7 +328,7 @@
 			name = "Qt Qmake";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "make -C /Users/mbell/Development/tcvar/trunk -f tcvar.xcodeproj/qt_makeqmake.mak";
+			shellScript = "make -C /Users/mbell/Development/samurai/trunk -f samurai.xcodeproj/qt_makeqmake.mak";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -369,7 +369,7 @@
 		0932411E0F6359BF00E36902 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				BUILD_ROOT = /Users/mbell/Development/samurai/trunk;
 				COPY_PHASE_STRIP = NO;
 				DYLIB_COMPATIBILITY_VERSION = 1.0;
 				DYLIB_CURRENT_VERSION = 1.0.0;
@@ -426,7 +426,7 @@
 				);
 				OTHER_REZFLAGS = "";
 				PREBINDING = NO;
-				PRODUCT_NAME = tcvar;
+				PRODUCT_NAME = samurai;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = "";
 				YACCFLAGS = "-d";
@@ -436,7 +436,7 @@
 		0932411F0F6359BF00E36902 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				BUILD_ROOT = /Users/mbell/Development/samurai/trunk;
 				COPY_PHASE_STRIP = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1.0;
 				DYLIB_CURRENT_VERSION = 1.0.0;
@@ -492,7 +492,7 @@
 				);
 				OTHER_REZFLAGS = "";
 				PREBINDING = NO;
-				PRODUCT_NAME = tcvar;
+				PRODUCT_NAME = samurai;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = "";
 				YACCFLAGS = "-d";
@@ -502,7 +502,7 @@
 		093241200F6359BF00E36902 /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_ROOT = /Users/mbell/Development/tcvar/trunk;
+				BUILD_ROOT = /Users/mbell/Development/samurai/trunk;
 				DYLIB_COMPATIBILITY_VERSION = 1.0;
 				DYLIB_CURRENT_VERSION = 1.0.0;
 				HEADER_SEARCH_PATHS = (
@@ -556,7 +556,7 @@
 				);
 				OTHER_REZFLAGS = "";
 				PREBINDING = NO;
-				PRODUCT_NAME = tcvar;
+				PRODUCT_NAME = samurai;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = "";
 				YACCFLAGS = "-d";
@@ -591,7 +591,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		093241230F6359DD00E36902 /* Build configuration list for PBXNativeTarget "tcvar" */ = {
+		093241230F6359DD00E36902 /* Build configuration list for PBXNativeTarget "samurai" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0932411E0F6359BF00E36902 /* Debug */,
@@ -601,7 +601,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Default;
 		};
-		2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "tcvar" */ = {
+		2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "samurai" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				8DB1DD96F65B1BF1FFC506E0 /* Debug */,

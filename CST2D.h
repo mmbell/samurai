@@ -1,6 +1,6 @@
 /*
  *  CST2D.h
- *  tcvar
+ *  samurai
  *
  *  Created by Michael Bell
  *  Copyright 2009. All rights reserved.

@@ -1,6 +1,6 @@
 /*
  *  Observation.h
- *  tcvar
+ *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *

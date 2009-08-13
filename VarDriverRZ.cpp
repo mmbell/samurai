@@ -1,6 +1,6 @@
 /*
  *  VarDriverRZ.cpp
- *  tcvar
+ *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
@@ -1237,7 +1237,7 @@ bool VarDriverRZ::finalize()
 	}
 
 	// Write to an asi file for plotting
-	QString asifile("tcvar_analysis");
+	QString asifile("samurai_analysis");
 	writeAsi(asifile, final);
 	
 	
@@ -1373,7 +1373,7 @@ bool VarDriverRZ::finalize()
 	
 	
 	// Write to an asi file for plotting
-	asifile = "tcvar_increment";
+	asifile = "samurai_increment";
 	writeAsi(asifile, increment);
 	
 	// Write some info to a file for plotting
