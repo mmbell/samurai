@@ -1,5 +1,5 @@
 /*
- *  VarDriverRZ.h
+ *  VarDriverXYZ.h
  *  samurai
  *
  *  Created by Michael Bell on 4/12/08.
@@ -7,13 +7,13 @@
  *
  */
 
-#ifndef VARDRIVERRZ_H
-#define VARDRIVERRZ_H
+#ifndef VARDRIVERXYZ_H
+#define VARDRIVERXYZ_H
 
 #include "VarDriver.h"
 #include "BSpline.h"
 #include "Observation.h"
-#include "CostFunctionRZ_CPU.h"
+#include "CostFunctionXYZ_CPU.h"
 #include "CostFunctionAnalytic.h"
 #include "MetObs.h"
 #include "TCcenter.h"
@@ -26,12 +26,12 @@
 
 using namespace std;
 
-class VarDriverRZ : public VarDriver
+class VarDriverXYZ : public VarDriver
 {
 
 public:
-	VarDriverRZ();
-	~VarDriverRZ();
+	VarDriverXYZ();
+	~VarDriverXYZ();
 	// ESMF type calls
 	bool initialize();
 	bool run();
@@ -87,7 +87,7 @@ private:
 	int jdim;
 	
 	// Cost Functions
-	CostFunctionRZ_CPU* costRZ;
+	CostFunctionXYZ_CPU* costXYZ;
 
 };
 

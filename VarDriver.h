@@ -55,10 +55,12 @@ protected:
 		sec,
 		ten,
 		swp,
-		sfmr
+		sfmr,
+		wwind
 	};
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_wwind(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_sec(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_ten(QFile& metFile, QList<MetObs>*metObVector);
 	bool read_dorade(QFile& metFile, QList<MetObs>* metObVector);

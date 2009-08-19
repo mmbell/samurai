@@ -17,6 +17,10 @@
 		093243F40F66F09C00E36902 /* VarDriverRZ.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 093243F30F66F09C00E36902 /* VarDriverRZ.cpp */; };
 		093244290F6717B400E36902 /* BSpline.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 093244280F6717B400E36902 /* BSpline.cpp */; };
 		093244C90F686F8300E36902 /* CST2D.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 093244C80F686F8300E36902 /* CST2D.cpp */; };
+		09C397F8103AEF4C00808D90 /* CostFunctionXYZ_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09C397F0103AEF4C00808D90 /* CostFunctionXYZ_CPU.cpp */; };
+		09C397F9103AEF4C00808D90 /* VarDriverXYZ.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09C397F2103AEF4C00808D90 /* VarDriverXYZ.cpp */; };
+		09C397FA103AEF4C00808D90 /* CostFunctionXY_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09C397F6103AEF4C00808D90 /* CostFunctionXY_CPU.cpp */; };
+		09C397FB103AEF4C00808D90 /* VarDriverXY.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09C397F7103AEF4C00808D90 /* VarDriverXY.cpp */; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
 		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
 		2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 118FCBAABA162BA17933C789 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -72,6 +76,14 @@
 		093244C70F686F8300E36902 /* CST2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CST2D.h; sourceTree = "<group>"; };
 		093244C80F686F8300E36902 /* CST2D.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CST2D.cpp; sourceTree = "<group>"; };
 		093245B00F6B4F6E00E36902 /* precision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precision.h; sourceTree = "<group>"; };
+		09C397F0103AEF4C00808D90 /* CostFunctionXYZ_CPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionXYZ_CPU.cpp; sourceTree = "<group>"; };
+		09C397F1103AEF4C00808D90 /* CostFunctionXYZ_CPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CostFunctionXYZ_CPU.h; sourceTree = "<group>"; };
+		09C397F2103AEF4C00808D90 /* VarDriverXYZ.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriverXYZ.cpp; sourceTree = "<group>"; };
+		09C397F3103AEF4C00808D90 /* VarDriverXYZ.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VarDriverXYZ.h; sourceTree = "<group>"; };
+		09C397F4103AEF4C00808D90 /* VarDriverXY.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VarDriverXY.h; sourceTree = "<group>"; };
+		09C397F5103AEF4C00808D90 /* CostFunctionXY_CPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CostFunctionXY_CPU.h; sourceTree = "<group>"; };
+		09C397F6103AEF4C00808D90 /* CostFunctionXY_CPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionXY_CPU.cpp; sourceTree = "<group>"; };
+		09C397F7103AEF4C00808D90 /* VarDriverXY.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriverXY.cpp; sourceTree = "<group>"; };
 		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
@@ -170,8 +182,8 @@
 		883D7615C4D2DE3FA1218F12 /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				09C397F1103AEF4C00808D90 /* CostFunctionXYZ_CPU.h */,
 				093244C70F686F8300E36902 /* CST2D.h */,
-				093243F20F66F09C00E36902 /* VarDriverRZ.h */,
 				093244280F6717B400E36902 /* BSpline.cpp */,
 				233807245A73AD7DA9E73F7F /* BandedMatrix.h */,
 				39B09DD57B6A203B3091DF09 /* CostFunction.h */,
@@ -181,6 +193,7 @@
 				85EB71E17842DA156B973F57 /* CostFunctionRZ.h */,
 				7AA4722C73D30BF194873E68 /* CostFunctionRZ_CPU.h */,
 				12F30F954C9B134EAC0CB327 /* CostFunctionRZ_GPU.h */,
+				09C397F5103AEF4C00808D90 /* CostFunctionXY_CPU.h */,
 				5B7B571949CEC1350CF0E9E9 /* MetObs.h */,
 				F377C3CB5826E3EFA3EF9FAD /* Observation.h */,
 				E0C982CFD14C983856160810 /* ParametricVortex.h */,
@@ -188,6 +201,9 @@
 				A88ACCD415D491DEA1E4444B /* VarDriver.h */,
 				3A6248A759205B2DBE5F98CA /* VarDriver1d.h */,
 				0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */,
+				093243F20F66F09C00E36902 /* VarDriverRZ.h */,
+				09C397F3103AEF4C00808D90 /* VarDriverXYZ.h */,
+				09C397F4103AEF4C00808D90 /* VarDriverXY.h */,
 				252E6F29C11257C329099270 /* BSpline */,
 				2C89AB577D4EA5F2C3A1C105 /* Dorade.h */,
 				05C01B8803092063635BE2FA /* read_dorade.h */,
@@ -215,6 +231,10 @@
 			children = (
 				093244C80F686F8300E36902 /* CST2D.cpp */,
 				093243F30F66F09C00E36902 /* VarDriverRZ.cpp */,
+				09C397F0103AEF4C00808D90 /* CostFunctionXYZ_CPU.cpp */,
+				09C397F2103AEF4C00808D90 /* VarDriverXYZ.cpp */,
+				09C397F6103AEF4C00808D90 /* CostFunctionXY_CPU.cpp */,
+				09C397F7103AEF4C00808D90 /* VarDriverXY.cpp */,
 				0932420B0F635C4800E36902 /* GPUdriver.cu */,
 				0932420C0F635C4800E36902 /* HCq_kernel.cu */,
 				0932421C0F638BCF00E36902 /* GPUdriver.cu.cpp */,
@@ -359,6 +379,10 @@
 				093243F40F66F09C00E36902 /* VarDriverRZ.cpp in Build Sources */,
 				093244290F6717B400E36902 /* BSpline.cpp in Build Sources */,
 				093244C90F686F8300E36902 /* CST2D.cpp in Build Sources */,
+				09C397F8103AEF4C00808D90 /* CostFunctionXYZ_CPU.cpp in Build Sources */,
+				09C397F9103AEF4C00808D90 /* VarDriverXYZ.cpp in Build Sources */,
+				09C397FA103AEF4C00808D90 /* CostFunctionXY_CPU.cpp in Build Sources */,
+				09C397FB103AEF4C00808D90 /* VarDriverXY.cpp in Build Sources */,
 			);
 			name = "Build Sources";
 			runOnlyForDeploymentPostprocessing = 0;

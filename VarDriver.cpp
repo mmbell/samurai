@@ -24,6 +24,7 @@ VarDriver::VarDriver()
 	dataSuffix["ten"] = ten;
 	dataSuffix["swp"] = swp;
 	dataSuffix["sfmr"] = sfmr;
+	dataSuffix["Wwind"] = wwind;
 }
 
 VarDriver::~VarDriver()
@@ -33,20 +34,54 @@ VarDriver::~VarDriver()
 
 bool VarDriver::readTCcenters()
 {
-	QFile centerFile("./centerfile.txt");
-	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	// Check the data directory for a centerfile
+	QDir dataPath("./vardata");
+	dataPath.setFilter(QDir::Files);
+	dataPath.setSorting(QDir::Name);
+	QStringList filenames = dataPath.entryList();
+	QString centerFilename;
+	for (int i = 0; i < filenames.size(); ++i) {
+		QString file = filenames.at(i);
+		QStringList fileparts = file.split(".");
+		if (fileparts.isEmpty()) {
+			continue;
+		}
+		QString suffix = fileparts.last();
+		if (suffix == "cen") {
+			// Match to centerfile
+			centerFilename = file;
+			break;
+		}
+	}
+	QFile centerFile(dataPath.filePath(centerFilename));
+	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		std::cout << "Unable to open centerfile " << centerFilename.toAscii().data() << std::endl;
 		return false;
+	}
+	
+	QString datestr = centerFilename.left(8);	
+	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	
 	QTextStream in(&centerFile);
 	while (!in.atEnd()) {
-		// Hard code for now
-		QDate date(2003, 9, 4);
-		
+		QDate date;
 		QString line = in.readLine();
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		QString timestr = lineparts[0];
-		if (timestr.left(2).toInt() > 23) {
-			date = date.addDays(1);
+		int hour = timestr.left(2).toInt();
+		if (hour > 23) {
+			date = startDate.addDays(1);
+			hour -= 24;
+			QString newhr;
+			newhr.setNum(hour);
+			if (hour < 10) {
+				timestr.replace(0,1,"0");
+				timestr.replace(1,1,newhr);
+			} else {
+				timestr.replace(0,2,newhr);
+			}
+		} else {
+			date = startDate;
 		}
 		QTime time = QTime::fromString(timestr, "HHmmss");
 		QDateTime datetime = QDateTime(date, time, Qt::UTC);
@@ -196,6 +231,88 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 	return true;
 }
 
+bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
+{
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr, aircraft;
+	QDateTime datetime;
+	bool start = false;
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		if (line.startsWith("Launch Site Type")) {
+			QStringList lineparts = line.split(":");
+			aircraft = lineparts[1].trimmed();
+		} else if (line.startsWith("UTC")) {
+			datestr = line.mid(43,12);
+			timestr = line.mid(57,8);
+			QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
+			QTime time = QTime::fromString(timestr, "HH:mm:ss");
+			datetime = QDateTime(date, time, Qt::UTC);
+		} else if (line.startsWith("------")) {
+			// Start reading data
+			start = true;
+		} else if (start) {
+			MetObs ob;
+			ob.setStationName(aircraft);
+			QStringList lineparts = line.split(QRegExp("\\s+"));
+			int sec = (int)lineparts[1].toFloat();
+			ob.setTime(datetime.addSecs(sec));
+			if (lineparts[15].toFloat() != -999.) { 
+				ob.setLon(lineparts[15].toFloat());
+			} else {
+				ob.setLon(-999.);
+			}
+			if (lineparts[16].toFloat() != -999.) { 
+				ob.setLat(lineparts[16].toFloat());
+			} else {
+				ob.setLat(-999.);
+			}
+			if (lineparts[14].toFloat() != -999.0) { 
+				ob.setAltitude(lineparts[14].toFloat());
+			} else {
+				ob.setAltitude(-999.);
+			}
+			if (lineparts[5].toFloat() != -999.0) { 
+				ob.setPressure(lineparts[5].toFloat());
+			} else {
+				ob.setPressure(-999.0);
+			}
+			if (lineparts[6].toFloat() != -999.0) {
+				ob.setTemperature(lineparts[6].toFloat() + 273.15);
+			} else {
+				ob.setTemperature(-999.);
+			}
+			if (lineparts[8].toFloat() != -999.0) {
+				ob.setRH(lineparts[8].toFloat());
+			} else {
+				ob.setRH(-999.);
+			}
+			if (lineparts[12].toFloat() != -999.0) {
+				ob.setWindDirection(lineparts[12].toFloat());
+			} else {
+				ob.setWindDirection(-999.);
+			}
+			if (lineparts[11].toFloat() != -999.0) {
+				ob.setWindSpeed(lineparts[11].toFloat());
+			} else {
+				ob.setWindSpeed(-999.);
+			}
+			if (lineparts[18].toFloat() != 999.0) {
+				ob.setVerticalVelocity(lineparts[18].toFloat());
+			} else {
+				ob.setVerticalVelocity(-999.);
+			}
+			ob.setObType(MetObs::dropsonde);
+			metObVector->push_back(ob);
+		}
+	}
+	metFile.close();
+	return true;
+}
+
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -203,18 +320,34 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 	
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
-	aircraft = metFile.fileName().indexOf(QRegExp("HINU"));
-	//datestr = metFile.fileName().left(8);	
-	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
-	// Hard code date for now
-	QDate date(2003, 9, 4);
+	QFileInfo info(metFile);
+	QString fileName = info.fileName();
+	aircraft = fileName.indexOf(QRegExp("HINUE"));
+	datestr = fileName.left(8);	
+	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	MetObs ob;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
 		line.remove(0, 1);
 		QDateTime datetime;
+		QDate date;
 		ob.setStationName(aircraft);
 		timestr = line.left(6);
+		int hour = timestr.left(2).toInt();
+		if (hour > 23) {
+			date = startDate.addDays(1);
+			hour -= 24;
+			QString newhr;
+			newhr.setNum(hour);
+			if (hour < 10) {
+				timestr.replace(0,1,"0");
+				timestr.replace(1,1,newhr);
+			} else {
+				timestr.replace(0,2,newhr);
+			}
+		} else {
+			date = startDate;
+		}
 		QTime time = QTime::fromString(timestr, "HHmmss");
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);

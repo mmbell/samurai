@@ -1,12 +1,12 @@
 /*
- *  CostFunctionRZ_CPU.cpp
+ *  CostFunctionXY_CPU.cpp
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#include "CostFunctionRZ_CPU.h"
+#include "CostFunctionXY_CPU.h"
 #include "MetObs.h"
 #include <cmath>
 #include <QString>
@@ -23,16 +23,16 @@
  vector and the innovation vector. Add 1+vector1+vector2 to get the gradient. Treat the penalty
  constraints as observations. */
 
-CostFunctionRZ_CPU::CostFunctionRZ_CPU(const int& numObs, const int& stateSize)
+CostFunctionXY_CPU::CostFunctionXY_CPU(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
 {
 }
 
-CostFunctionRZ_CPU::~CostFunctionRZ_CPU()
+CostFunctionXY_CPU::~CostFunctionXY_CPU()
 {
 }
 
-void CostFunctionRZ_CPU::finalize()
+void CostFunctionXY_CPU::finalize()
 {	
 
 	delete iFilter;
@@ -57,7 +57,7 @@ void CostFunctionRZ_CPU::finalize()
 	delete[] Uprime;
 }
 
-void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const int& idim,
+void CostFunctionXY_CPU::initialize(const real& imin, const real& imax, const int& idim,
 									const real& jmin, const real& jmax, const int& jdim,
 									const real* ia, const real* ja, real* bgU, real* obs,
 									const unsigned int* IXdim, const vector<real>* IX,
@@ -170,7 +170,7 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
 
 }	
 
-void CostFunctionRZ_CPU::initState()
+void CostFunctionXY_CPU::initState()
 {
 
 	// Clear the state vector
@@ -315,10 +315,7 @@ void CostFunctionRZ_CPU::initState()
 		}
 		
 		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*j);
-		//real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
-		real qBar = 18.189 - 0.0060609*j + 8.37e-7*j*j - 4.6009e-11*j*j*j;
-		if (qBar < 0) qBar = 0;
-
+		real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
 		real rhoa = rhoBar + rhoprime / 100;
 		real rhoq = (qBar + qvprime) * rhoa / 1000.;
 		real rhoBG = rhoa + rhoq;
@@ -353,7 +350,7 @@ void CostFunctionRZ_CPU::initState()
 			
 }	
 
-double CostFunctionRZ_CPU::funcValue(double* state)
+double CostFunctionXY_CPU::funcValue(double* state)
 {
 	// Update the Y hat vector
 	updateHCq(state);
@@ -376,7 +373,7 @@ double CostFunctionRZ_CPU::funcValue(double* state)
 	
 }
 
-void CostFunctionRZ_CPU::funcGradient(double* state, double* gradient)
+void CostFunctionXY_CPU::funcGradient(double* state, double* gradient)
 {
 	
 	updateHCq(state);
@@ -398,7 +395,7 @@ void CostFunctionRZ_CPU::funcGradient(double* state, double* gradient)
 	
 }
 
-void CostFunctionRZ_CPU::updateHCq(double* state)
+void CostFunctionXY_CPU::updateHCq(double* state)
 {
 
 	// SB transform from the q's
@@ -473,7 +470,7 @@ void CostFunctionRZ_CPU::updateHCq(double* state)
 	
 }
 
-void CostFunctionRZ_CPU::updateBG()
+void CostFunctionXY_CPU::updateBG()
 {
 
 	// SB transform from the q's
@@ -508,7 +505,7 @@ void CostFunctionRZ_CPU::updateBG()
 	
 }
 
-void CostFunctionRZ_CPU::calcInnovation()
+void CostFunctionXY_CPU::calcInnovation()
 {
 	// Initialize and fill the innovation vector
 	cout << "Initializing innovation vector..." << endl;
@@ -585,7 +582,7 @@ void CostFunctionRZ_CPU::calcInnovation()
 	
 }	
 
-void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate) 
+void CostFunctionXY_CPU::calcHTranspose(const real* yhat, real* Astate) 
 {
 	
 	// Clear the Astate
@@ -671,7 +668,7 @@ void CostFunctionRZ_CPU::calcHTranspose(const real* yhat, real* Astate)
 	
 }
 
-bool CostFunctionRZ_CPU::SAtransform(real* Bstate, real* Astate)
+bool CostFunctionXY_CPU::SAtransform(real* Bstate, real* Astate)
 {
 	int k;
 	for (int var = 0; var < varDim; var++) {
@@ -740,7 +737,7 @@ bool CostFunctionRZ_CPU::SAtransform(real* Bstate, real* Astate)
 	return true;
 }		
 
-void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
+void CostFunctionXY_CPU::SBtransform(real* Ustate, real* Bstate)
 {
 	// Clear the Bstate
 	for (int var = 0; var < varDim; var++) {
@@ -839,7 +836,7 @@ void CostFunctionRZ_CPU::SBtransform(real* Ustate, real* Bstate)
 }
 
 
-void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
+void CostFunctionXY_CPU::SBtranspose(real* Bstate, real* Ustate)
 {
 		
 	// Clear the Ustate
@@ -931,7 +928,7 @@ void CostFunctionRZ_CPU::SBtranspose(real* Bstate, real* Ustate)
 	
 }
 
-void CostFunctionRZ_CPU::SCtransform(real* Astate, real* Cstate)
+void CostFunctionXY_CPU::SCtransform(real* Astate, real* Cstate)
 {
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
 	for (int var = 0; var < varDim; var++) {
@@ -967,7 +964,7 @@ void CostFunctionRZ_CPU::SCtransform(real* Astate, real* Cstate)
 	}
 }
 
-void CostFunctionRZ_CPU::SCtranspose(real* Cstate, real* Astate)
+void CostFunctionXY_CPU::SCtranspose(real* Cstate, real* Astate)
 {
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
@@ -1003,7 +1000,7 @@ void CostFunctionRZ_CPU::SCtranspose(real* Cstate, real* Astate)
 }
 
 
-bool CostFunctionRZ_CPU::setupSplines()
+bool CostFunctionXY_CPU::setupSplines()
 {
 	
 	// Do the spline via a Cholesky decomposition
@@ -1297,7 +1294,7 @@ bool CostFunctionRZ_CPU::setupSplines()
 	
 }
 
-bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
+bool CostFunctionXY_CPU::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
 {
 	
 	real* fieldNodes = new real[12*iDim*jDim];
@@ -1324,13 +1321,8 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							real rhoBar = rhoBase*exp(-rhoInvScaleHeight*j);
-							//real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
-							real qBar = 18.189 - 0.0060609*j + 8.37e-7*j*j - 4.6009e-11*j*j*j;
-							if (qBar < 0) qBar = 0;
-
-							//real hBar = 3.5e5;
-							real hBar = 3.4633e5 - 10.751*j + 0.0021949*j*j - 1.7019e-7*j*j*j
-								+ 4.858e-12*j*j*j*j;
+							real qBar = 19.562 - 0.004066*j + 7.8168e-7*j*j;
+							real hBar = 3.5e5;
 							if (j > (jDim-1)*DJ) continue;	
 							int ii = (int)((i - iMin)*DIrecip);
 							int jj = (int)((j - jMin)*DJrecip);
@@ -1516,7 +1508,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 		qcstream << endl;
 		
 	}
-	QString fileName = "samurai_RZ_" + suffix;
+	QString fileName = "samurai_XY_" + suffix;
 	QString outFileName;
 	if(QDir::isAbsolutePath(fileName)) {
 		outFileName = fileName;
@@ -1656,7 +1648,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 }     
 
 // Basis Functions
-float CostFunctionRZ_CPU::BasisOri(int m, float x, int M, float xmin, 
+float CostFunctionXY_CPU::BasisOri(int m, float x, int M, float xmin, 
 								float DX, float DXrecip, int C)
 {
 	
@@ -1723,7 +1715,7 @@ float CostFunctionRZ_CPU::BasisOri(int m, float x, int M, float xmin,
 	return b;
 }
 
-float CostFunctionRZ_CPU::DBasisOri(int m, float x, int M, float xmin, 
+float CostFunctionXY_CPU::DBasisOri(int m, float x, int M, float xmin, 
 								 float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1794,7 +1786,7 @@ float CostFunctionRZ_CPU::DBasisOri(int m, float x, int M, float xmin,
 }
 
 
-float CostFunctionRZ_CPU::DDBasisOri(int m, float x, int M, float xmin, 
+float CostFunctionXY_CPU::DDBasisOri(int m, float x, int M, float xmin, 
 								  float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1860,7 +1852,7 @@ float CostFunctionRZ_CPU::DDBasisOri(int m, float x, int M, float xmin,
 	return b;
 }
 
-float CostFunctionRZ_CPU::DDDBasisOri(int m, float x, int M, float xmin, 
+float CostFunctionXY_CPU::DDDBasisOri(int m, float x, int M, float xmin, 
 								   float DX, float DXrecip, int C)
 {
 	float b = 0;
@@ -1919,7 +1911,7 @@ float CostFunctionRZ_CPU::DDDBasisOri(int m, float x, int M, float xmin,
 }
 
 
-real CostFunctionRZ_CPU::Basis(int m, real x, int M, real xmin, 
+real CostFunctionXY_CPU::Basis(int m, real x, int M, real xmin, 
 								real DX, real DXrecip, int derivative, 
 								int BL, int BR, real lambda)
 {

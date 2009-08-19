@@ -148,13 +148,16 @@ float Dorade::getRadarLon()
 QDateTime Dorade::getRayTime(int& ray)
 {
 	int year = vptr->year;
-	int month = vptr->mon;
-	int day = vptr->day;
+	int jd = ryptr[ray].julian_day;
+	//int month = vptr->mon;
+	//int day = vptr->day;
+	QDate date(year,1,1);
+	date = date.addDays(jd-1);
 	int hour = ryptr[ray].hour;
 	int min = ryptr[ray].min;
 	int sec = ryptr[ray].sec;
 	int msec = ryptr[ray].msec;
-	QDate date = QDate(year, month, day);
+	//QDate date = QDate(year, month, day);
 	QTime time = QTime(hour, min, sec, msec);
 	return QDateTime(date, time, Qt::UTC);
 }
@@ -499,9 +502,9 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	int strsize,datasize,arrsize;
 	strsize = datasize = arrsize = 0;
 	char tempname[PARM_NAME_LEN];
-	QString ref_fld = "DZ";
+	QString ref_fld = "DBZ";
 	QString vel_fld = "VG";
-	QString sw_fld = "SPEC_WDT";
+	QString sw_fld = "SW";
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
 	

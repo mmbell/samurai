@@ -1,12 +1,12 @@
 /*
- *  VarDriverRZ.cpp
+ *  VarDriverXY.cpp
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#include "VarDriverRZ.h"
+#include "VarDriverXY.h"
 #include "Dorade.h"
 #include <iterator>
 #include <fstream>
@@ -15,7 +15,7 @@
 #include <QFile>
 #include "RecursiveFilter.h"
 
-VarDriverRZ::VarDriverRZ()
+VarDriverXY::VarDriverXY()
 	: VarDriver()
 {
 	numVars = 6;
@@ -23,12 +23,12 @@ VarDriverRZ::VarDriverRZ()
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
 	zincr = 100;
-	rincr = 10;
+	rincr = 1;
 	maxIter = 2;
 	CQTOL = 0.5;
 }
 
-VarDriverRZ::~VarDriverRZ()
+VarDriverXY::~VarDriverXY()
 {
 	for (unsigned int zi = 0; zi < maxHeights; zi++) {
 		delete[] BG[zi];
@@ -47,12 +47,12 @@ VarDriverRZ::~VarDriverRZ()
 	//delete[] bgB;
 	//delete[] ia;
 	//delete[] ja;
-	delete costRZ;
+	delete costXY;
 
 }
 
 
-void VarDriverRZ::preProcessMetObs()
+void VarDriverXY::preProcessMetObs()
 {
 	
 	vector<real> rhoP;
@@ -62,12 +62,6 @@ void VarDriverRZ::preProcessMetObs()
 	dataPath.setFilter(QDir::Files);
 	dataPath.setSorting(QDir::Name);
 	QStringList filenames = dataPath.entryList();
-
-	QDateTime startTime = tcVector.front().getTime();
-	QDateTime endTime = tcVector.back().getTime();
-	QString start = startTime.toString(Qt::ISODate);
-	QString end = endTime.toString(Qt::ISODate);
-	cout << "TC centers found from " << start.toAscii().data() << " to " << end.toAscii().data() << endl;	
 	
 	int processedFiles = 0;
 	QList<MetObs>* metData = new QList<MetObs>;
@@ -115,10 +109,6 @@ void VarDriverRZ::preProcessMetObs()
 				if (!read_sfmr(metFile, metData))
 					cout << "Error reading sfmr file" << endl;
 				break;
-			case (wwind):
-				if (!read_wwind(metFile, metData))
-					cout << "Error reading wwind file" << endl;
-				break;
 			default:
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
@@ -127,12 +117,13 @@ void VarDriverRZ::preProcessMetObs()
 		processedFiles++;
 		
 		// Process the metObs into Observations
+		QDateTime startTime = tcVector.front().getTime();
+		QDateTime endTime = tcVector.back().getTime();
 		for (int i = 0; i < metData->size(); ++i) {
 			
 			// Make sure the ob is within the time limits
 			MetObs metOb = metData->at(i);
 			QDateTime obTime = metOb.getTime();
-			//cout << "Obtime: " << obTime.toString(Qt::ISODate).toAscii().data() << endl;
 			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int tci = startTime.secsTo(obTime);
 			if ((tci < 0) or (tci > (int)tcVector.size())) {
@@ -168,12 +159,9 @@ void VarDriverRZ::preProcessMetObs()
 			
 			// Reference states			
 			real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
-			//real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
-			real qBar = 18.189 - 0.0060609*height + 8.37e-7*height*height - 4.6009e-11*height*height*height;
-			if (qBar < 0) qBar = 0;
-			//real hBar = 3.5e5;
-			real hBar = 3.4633e5 - 10.751*height + 0.0021949*height*height - 1.7019e-7*height*height*height
-				+ 4.858e-12*height*height*height*height;
+			real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
+			real hBar = 3.5e5;
+
 			// Use bilinear interpolation here too for now, eventually probably a spline
 			real rhoaBG = bilinearField(rad, height, 4)/100. + rhoBar;
 			real qBG = bilinearField(rad, height, 3) + qBar;
@@ -458,7 +446,7 @@ void VarDriverRZ::preProcessMetObs()
 	
 }
 
-bool VarDriverRZ::loadMetObs()
+bool VarDriverXY::loadMetObs()
 {
 
 	// Our generic observation
@@ -498,7 +486,7 @@ bool VarDriverRZ::loadMetObs()
 	return true;
 }
 
-bool VarDriverRZ::loadBGfromFile()
+bool VarDriverXY::loadBGfromFile()
 {
 	
 	// Read in the background state
@@ -507,11 +495,10 @@ bool VarDriverRZ::loadBGfromFile()
 	int zi = 0;
 	vector<real> vIn, rvBG, psiBG, hBG, qBG, rpBG;
 	vector<real>* vInit = new vector<real>[maxHeights];
-	ifstream vdata("./RZbackground.in");
+	ifstream vdata("./XYbackground.in");
 	vdata.width(14);
 	while (vdata >> height >> radius >> v >> psi >> h >> q >> rho)
 	{
-		//cout << height << "\t" << radius << "\t" << v << "\t" << psi << "\t"  << h << "\t" << q << "\t" << rho << endl;
 		if (z.empty()) z.push_back (height);
 		if (height != z.back()) {
 			// Assign the initial background fields
@@ -533,13 +520,8 @@ bool VarDriverRZ::loadBGfromFile()
 		// Need to handle this more gracefully
 		if (v < 0)  v = 0;
 		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
-		//real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
-		real qBar = 18.189 - 0.0060609*height + 8.37e-7*height*height - 4.6009e-11*height*height*height;
-		if (qBar < 0) qBar = 0;
-
-		//real hBar = 3.5e5;
-		real hBar = 3.4633e5 - 10.751*height + 0.0021949*height*height - 1.7019e-7*height*height*height
-			+ 4.858e-12*height*height*height*height;
+		real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
+		real hBar = 3.5e5;
 		vIn.push_back (v);
 		rvBG.push_back (rho*radius*v*1.e-3);
 		psiBG.push_back (psi*1.e-8);
@@ -570,7 +552,7 @@ bool VarDriverRZ::loadBGfromFile()
 	
 }	
 
-bool VarDriverRZ::bilinearMish()
+bool VarDriverXY::bilinearMish()
 {
 	
 	// Do a simple bilinear interpolation to the Mish
@@ -641,7 +623,7 @@ bool VarDriverRZ::bilinearMish()
 	
 }
 
-real VarDriverRZ::bilinearField(real radius, real height, int var)
+real VarDriverXY::bilinearField(real radius, real height, int var)
 {
 	
 	int ii = -1;
@@ -673,7 +655,7 @@ real VarDriverRZ::bilinearField(real radius, real height, int var)
 }
 	
 
-bool VarDriverRZ::setupMishAndRXform()
+bool VarDriverXY::setupMishAndRXform()
 {
 	
 	
@@ -724,9 +706,9 @@ bool VarDriverRZ::setupMishAndRXform()
 	return true;
 }
 
-bool VarDriverRZ::initialize()
+bool VarDriverXY::initialize()
 {
-	// Run a RZ vortex background field
+	// Run a XY vortex background field
 	cout << "Initializing Vortex Background" << endl;
 
 	// Allocate memory for the BG fields
@@ -771,13 +753,13 @@ bool VarDriverRZ::initialize()
 	// Define the sizes of the arrays we are passing to the cost function
 	int stateSize = 4*(idim-1)*(jdim-1)*(numVars-1);
 	
-	costRZ = new CostFunctionRZ_CPU(obVector.size(), stateSize);
-	costRZ->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgU, obs, RnumGridpts, RXform); 
+	costXY = new CostFunctionXY_CPU(obVector.size(), stateSize);
+	costXY->initialize(imin, imax, idim, jmin, jmax, jdim, ia, ja, bgU, obs, RnumGridpts, RXform); 
 	
 	return true;
 }
 
-bool VarDriverRZ::run()
+bool VarDriverXY::run()
 {
 
 	double CQRMS = 999;
@@ -785,10 +767,10 @@ bool VarDriverRZ::run()
 	while ((CQRMS > CQTOL) and (iter < maxIter)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
-		costRZ->initState();
-		costRZ->minimize();
+		costXY->initState();
+		costXY->minimize();
 		// Increment the variables
-		costRZ->updateBG();
+		costXY->updateBG();
 	}	
 	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
 		<< iter << " iterations. Writing analysis results..." << endl;
