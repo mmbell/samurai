@@ -44,7 +44,8 @@ private:
 	// Common methods
 	void preProcessMetObs();
 	bool loadMetObs();
-	bool loadBGfromFile();
+	bool loadBGfromTextfile();
+	bool loadBGfromFNL();
 	bool bilinearMish();
 	real bilinearField(real radius, real height, int var);
 	bool setupMishAndRXform();

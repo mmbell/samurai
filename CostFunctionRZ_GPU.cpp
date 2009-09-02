@@ -9,12 +9,12 @@
 #include "CostFunctionRZ_GPU.h"
 #include <cmath>
 
-// Global CUDA declarations
+/* Global CUDA declarations
 extern "C" {
 	int cstGPU_init (float* obs_h, int mObs);
 	void loadSplineCoeffs_GPU(float* coeffHost, int numCoeffs);
 	void HCq_GPU(int mObs, float rmax, float rmin, float zmax, float zmin, float* HCq_h, int pState, int zState);
-}
+} */
 
 /* First, compute HCq and Hxb via recursive filter on q, followed by loop over M observations
  yielding 2 y-estimate M x 1 vectors. Solve for innovation vector d by subtracting from y.
@@ -171,7 +171,7 @@ void CostFunctionRZ_GPU::initialize(SplineD* vecs, SplineD* scalars, SplineD* ct
 		obs_h[n+8] = obs[m].getInverseError();
 	}
 #ifdef CSTGPU
-	cstGPU_init(obs_h, mObs);
+	//cstGPU_init(obs_h, mObs);
 #endif	
 	
 	HCq = new float[mObs];
@@ -719,11 +719,11 @@ void CostFunctionRZ_GPU::updateHCq_GPU(double* state)
 		}
 	}
 	
-	loadSplineCoeffs_GPU(coeffHost, numVars*pState*zState);
+	//loadSplineCoeffs_GPU(coeffHost, numVars*pState*zState);
 	delete[] Cq;
 	
 	// H
-	HCq_GPU(mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState);
+	//HCq_GPU(mObs, bgradii->back(), bgradii->front(), bgheights->back(), bgheights->front(), HCq, pState, zState);
 }
 
 void CostFunctionRZ_GPU::updateHCq_parallel(double* state)

@@ -50,13 +50,16 @@ protected:
 	QHash<QString, int> dataSuffix;
 	enum dataFormats {
 		unknown,
+		cen,
 		frd,
 		cls,
 		sec,
 		ten,
 		swp,
 		sfmr,
-		wwind
+		wwind,
+		qscat,
+		ascat
 	};
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
@@ -65,6 +68,8 @@ protected:
 	bool read_ten(QFile& metFile, QList<MetObs>*metObVector);
 	bool read_dorade(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_sfmr(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_qscat(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_ascat(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
 	
 };

@@ -26,7 +26,7 @@ HEADERS += BandedMatrix.h \
            VarDriver2d.h \
            VarDriverRZ.h \
            VarDriverXY.h \
-           VarDriverXYZ. h \
+           VarDriverXYZ.h \
            BSpline/BSpline.h \
            Dorade.h \
            read_dorade.h \
@@ -50,6 +50,7 @@ SOURCES += BSpline.cpp \
            VarDriver.cpp \
            VarDriver1d.cpp \
            VarDriver2d.cpp \
+           VarDriverRZ.cpp \
            VarDriverXY.cpp \ 
            VarDriverXYZ.cpp \ 
            Dorade.cpp \

@@ -11,7 +11,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleExecutable</key>
-	<string>tcvar</string>
+	<string>samurai</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.yourcompany.samurai</string>
 	<key>NOTE</key>

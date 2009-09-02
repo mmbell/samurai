@@ -110,7 +110,9 @@ class MetObs
 			dropsonde,
 			flightlevel,
 			radar,
-			sfmr
+			sfmr,
+			qscat,
+			ascat
 		};
 		
 	protected:

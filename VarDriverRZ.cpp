@@ -14,17 +14,18 @@
 #include <QTextStream>
 #include <QFile>
 #include "RecursiveFilter.h"
+#include "GRIB.h"
 
 VarDriverRZ::VarDriverRZ()
 	: VarDriver()
 {
 	numVars = 6;
-	maxHeights = 50; // Can I make this dynamic?
+	maxHeights = 80; // Can I make this dynamic?
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
-	zincr = 100;
-	rincr = 10;
-	maxIter = 2;
+	zincr = 150;
+	rincr = 15;
+	maxIter = 1;
 	CQTOL = 0.5;
 }
 
@@ -119,6 +120,16 @@ void VarDriverRZ::preProcessMetObs()
 				if (!read_wwind(metFile, metData))
 					cout << "Error reading wwind file" << endl;
 				break;
+			case (qscat):
+				if (!read_qscat(metFile, metData))
+					cout << "Error reading wwind file" << endl;
+				break;
+			case (ascat):
+				if (!read_ascat(metFile, metData))
+					cout << "Error reading wwind file" << endl;
+				break;
+			case (cen):
+				continue;
 			default:
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
@@ -329,6 +340,52 @@ void VarDriverRZ::preProcessMetObs()
 					obVector.push_back(varOb);
 					break;
 					
+				case (MetObs::qscat):
+					varOb.setType(MetObs::qscat);
+					u = metOb.getCartesianUwind();
+					v = metOb.getCartesianVwind();
+					if (u != -999) {
+						varOb.setWeight(1., 0);
+						rhov = (-(u - Um)*y + (v-Vm)*x)/rad;
+						varOb.setOb(rhov);
+						varOb.setError(2.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 0);
+						
+						// rho u 1 m/s error
+						varOb.setWeight(1., 1);
+						rhou = ((u - Um)*x + (v-Vm)*y)/rad;
+						//cout << "RhoU: " << rhou << endl;
+						varOb.setOb(rhou);
+						varOb.setError(2.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 1);
+					}
+					break;
+					
+				case (MetObs::ascat):
+					varOb.setType(MetObs::ascat);
+					u = metOb.getCartesianUwind();
+					v = metOb.getCartesianVwind();
+					if (u != -999) {
+						varOb.setWeight(1., 0);
+						rhov = (-(u - Um)*y + (v-Vm)*x)/rad;
+						varOb.setOb(rhov);
+						varOb.setError(2.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 0);
+						
+						// rho u 1 m/s error
+						varOb.setWeight(1., 1);
+						rhou = ((u - Um)*x + (v-Vm)*y)/rad;
+						//cout << "RhoU: " << rhou << endl;
+						varOb.setOb(rhou);
+						varOb.setError(2.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 1);
+					}
+					break;
+					
 				case (MetObs::radar):
 					varOb.setType(MetObs::radar);
 					// Geometry terms
@@ -390,7 +447,7 @@ void VarDriverRZ::preProcessMetObs()
 					obVector.push_back(varOb);
 					
 					break;
-										
+					
 			}
 
 		} 
@@ -498,10 +555,10 @@ bool VarDriverRZ::loadMetObs()
 	return true;
 }
 
-bool VarDriverRZ::loadBGfromFile()
+bool VarDriverRZ::loadBGfromTextfile()
 {
 	
-	// Read in the background state
+	// Read in the background state from a formatted textfile
 	// Read the r and v pairs from a file
 	double height, radius, v, psi, h, q, rho;
 	int zi = 0;
@@ -569,6 +626,29 @@ bool VarDriverRZ::loadBGfromFile()
 	return true;
 	
 }	
+
+bool VarDriverRZ::loadBGfromFNL()
+{
+	
+	/* Read in data from a GFS analysis
+	GRIB_FILE gf;
+	GRIB_MESSAGE m;
+	const char* gribname = "fnl_080914_00_00.grb";
+	int ret = gf.OpenRead(gribname);
+	if (ret != 0) return -1;
+	
+	ret = gf.ReadMessage(m);
+	if (ret != 0) return -1;
+	
+	int npix = m.grid.nx;
+	int nlin = m.grid.ny;
+	
+	size_t total_size = m.grid.nxny;
+	printf( "%s_%4d%02d%02d_%02d%02d", m.field.VarName( ),
+			m.gtime.year, m.gtime.month, m.gtime.day,
+			m.gtime.hour, m.gtime.minute);
+	*/
+}
 
 bool VarDriverRZ::bilinearMish()
 {
@@ -741,16 +821,15 @@ bool VarDriverRZ::initialize()
 	   construct a parametric field, or (eventually) get from ESMF Coupler */
 	bool loadBG = true;
 	if (loadBG) {
-		loadBGfromFile();
+		loadBGfromTextfile();
 	} else {
-		// Not implemented yet
-		// Get the parametric winds from the input winds if data does not extend through domain
-		//ParametricVortex parmVortex (&BG[zi][5].front(), &r[0],  r.size());
-		//double vParm = parmVortex.getWindAtRadiusKM(grad);
+		loadBGfromFNL();
 	}
-	
-	// Set up the splines on the Gaussian Grid
-	//setupMishAndRXform();
+	// Get the parametric winds from the input winds if data does not extend through domain
+	//ParametricVortex parmVortex (&BG[zi][5].front(), &r[0],  r.size());
+	//double vParm = parmVortex.getWindAtRadiusKM(grad);
+		
+	// Set up the data on the Gaussian Grid
 	bilinearMish();
 	
 	// Read in the TC centers

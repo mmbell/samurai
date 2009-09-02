@@ -18,6 +18,7 @@ VarDriver::VarDriver()
 	Pi = acos(-1);
 	
 	// Set up the datatype hash
+	dataSuffix["cen"] = cen;
 	dataSuffix["frd"] = frd;
 	dataSuffix["cls"] = cls;
 	dataSuffix["sec"] = sec;
@@ -25,6 +26,8 @@ VarDriver::VarDriver()
 	dataSuffix["swp"] = swp;
 	dataSuffix["sfmr"] = sfmr;
 	dataSuffix["Wwind"] = wwind;
+	dataSuffix["qscat"] = qscat;
+	dataSuffix["ascat"] = ascat;
 }
 
 VarDriver::~VarDriver()
@@ -257,6 +260,7 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 		} else if (start) {
 			MetObs ob;
 			ob.setStationName(aircraft);
+			line = QString(" ") + line;
 			QStringList lineparts = line.split(QRegExp("\\s+"));
 			int sec = (int)lineparts[1].toFloat();
 			ob.setTime(datetime.addSecs(sec));
@@ -441,7 +445,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	float radarAlt = swpfile.getRadarAlt();
 	
 	//for (int i=0; i < swpfile.getNumRays(); i++) {
-	for (int i=0; i < swpfile.getNumRays(); i+=2) {
+	for (int i=0; i < swpfile.getNumRays(); i+=5) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -542,4 +546,78 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 	metFile.close();
 	return true;		
 
+}
+
+bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString year,jd,timestr;
+	MetObs ob;
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+		QDateTime datetime;
+		ob.setStationName("qscat");
+		year = line.mid(56,4);
+		jd = line.mid(61,3); 
+		QDate date(year.toInt(),1,1);
+		date = date.addDays(jd.toInt()-1);
+		timestr = line.mid(65,12);
+		QTime time = QTime::fromString(timestr, "HH:mm:ss.zzz");
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		QString lat = line.mid(12,5);
+		QString lon = line.mid(18,6);
+		QString speed = line.mid(28,5);
+		QString dir = line.mid(34,6);
+		float dirdeg = dir.toFloat() + 180.;
+		if (dirdeg > 360.) dirdeg -= 360.;
+		ob.setLat(lat.toFloat());
+		ob.setLon(lon.toFloat());
+		ob.setAltitude(0.0);
+		ob.setWindSpeed(speed.toFloat());
+		ob.setWindDirection(dirdeg);
+		ob.setObType(MetObs::qscat);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+	
+}
+
+
+bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	MetObs ob;
+	QString unixtime = in.readLine();
+	QDateTime datetime;
+	datetime = QDateTime::fromTime_t(unixtime.toUInt());
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		QStringList lineparts = line.split(QString(","));
+		ob.setStationName("ascat");
+		ob.setTime(datetime);
+		ob.setLat(lineparts[0].toFloat());
+		ob.setLon(lineparts[1].toFloat());
+		ob.setAltitude(0.0);
+		float speed = lineparts[2].toFloat() / 1.94384449;
+		ob.setWindSpeed(speed);
+		ob.setWindDirection(lineparts[3].toFloat());
+		ob.setObType(MetObs::ascat);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+	
 }

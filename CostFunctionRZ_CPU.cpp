@@ -330,9 +330,10 @@ void CostFunctionRZ_CPU::initState()
 			//obsVector[mi+2] = 2.*vBG/wsBG;
 			//obsVector[mi+3] = 0.; //2.*uBG/wsBG;
 		}
-		if (type == MetObs::radar) {
+		if ((type == MetObs::radar) or (type == MetObs::qscat) or (type == MetObs::ascat)){
 			obsVector[mi] *= rhoBG;
 		}
+		
 	}
 	
 	// d = y - HXb
