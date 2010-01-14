@@ -44,6 +44,8 @@ protected:
 	unsigned int numVars;
 	unsigned int numHeights;
 	unsigned int maxHeights;
+	unsigned int maxJdim;
+	unsigned int maxKdim;
 	vector<TCcenter> tcVector;
 
 	// Data Processing

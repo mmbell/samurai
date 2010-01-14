@@ -579,6 +579,10 @@ void CostFunctionRZ_CPU::calcInnovation()
 		}
 		innovation[m] -= tempsum;
 		innovationRMS += (innovation[m]*innovation[m]);
+		if (isnan(innovationRMS)) {
+			cout << "Problem in innovation!\n";
+			cout << m << "\t" << innovation[m] << "\t" << tempsum << endl;
+		}
 	}
 	if (mObs) innovationRMS /= mObs;
 	innovationRMS = sqrt(innovationRMS);

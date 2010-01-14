@@ -444,8 +444,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	float radarLon = swpfile.getRadarLon();
 	float radarAlt = swpfile.getRadarAlt();
 	
-	//for (int i=0; i < swpfile.getNumRays(); i++) {
-	for (int i=0; i < swpfile.getNumRays(); i+=5) {
+	for (int i=0; i < swpfile.getNumRays(); i++) {
+	//for (int i=0; i < swpfile.getNumRays(); i+=5) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -517,6 +517,9 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 	
 	QTextStream in(&metFile);
 	QString datestr, timestr;
+	QDateTime datetime;
+	QTime time;
+	QDate date;
 	//datestr = metFile.fileName().left(8);	
 	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
 	// Hard code date for now
@@ -525,12 +528,15 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 	while (!in.atEnd()) {
 		QString line = in.readLine();
 		QStringList lineparts = line.split(QRegExp("\\s+"));
-		QDateTime datetime;
 		ob.setStationName("sfmr");
 		timestr = lineparts[3];
-		QTime time = QTime::fromString(timestr, "HH:mm:ss");
-		datestr = lineparts[1] + lineparts[2] + lineparts[4];
-		QDate date = QDate::fromString(datestr, "MMMddyyyy");
+		time = QTime::fromString(timestr, "HH:mm:ss");
+		if (lineparts[2].toFloat() < 10) {
+			datestr = lineparts[1] + "0" + lineparts[2] + lineparts[4];
+		} else {
+			datestr = lineparts[1] + lineparts[2] + lineparts[4];
+		}
+		date = QDate::fromString(datestr, "MMMddyyyy");
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);
 		//QString datestr = datetime.toString(Qt::ISODate);

@@ -46,28 +46,19 @@ private:
 	bool loadMetObs();
 	bool loadBGfromFile();
 	bool bilinearMish();
-	real bilinearField(real radius, real height, int var);
+	real bilinearField(real xPos, real yPos, int var);
 	bool setupMishAndRXform();
 	
-	SplineD* scalarSpline;
-	SplineD* vecSpline;
-	SplineD* zSpline;
-	SplineD* zSplinePsi;
-	SplineD* ctrlSpline;
-	SplineD* rXformSpline;
-	vector<real> r;
-	vector<real> R;
-	vector<real> z;
-	vector<real> initCtrl;
-	vector<real>* RXform;
-	vector<real>* rXform;
+	vector<real> x;
+	vector<real> y;
 	unsigned int* RnumGridpts;
 	vector<Observation> obVector;
 	int bc;
-	double zincr;
-	double rincr;
+	double yincr;
+	double xincr;
 	double CQTOL;
 	int maxIter;
+	real zLevel;
 	
 	vector<real>** BG;
 	vector<real>** BGsave;

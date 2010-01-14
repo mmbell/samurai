@@ -11,6 +11,16 @@
 Observation::Observation()
 {
 	numVars = 6;
+	radius = -999;
+	theta = -999;
+	altitude = -999;
+	cartesianX = -999;
+	cartesianY = -999;
+	for (int i = 0; i<6; i++) weight[i] = -999;
+	error = -999;
+	obNet = -999;
+	type = -999;
+	
 }
 
 Observation::~Observation()
@@ -22,9 +32,24 @@ void Observation::setRadius(const double &r)
 	radius = r;
 }
 
+void Observation::setTheta(const double &t)
+{
+	theta = t;
+}
+
 void Observation::setAltitude(const double &alt)
 {
 	altitude = alt;
+}
+
+void Observation::setCartesianX(const double &x)
+{
+	cartesianX = x;
+}
+
+void Observation::setCartesianY(const double &y)
+{
+	cartesianY = y;
 }
 
 void Observation::setType(const int &t)

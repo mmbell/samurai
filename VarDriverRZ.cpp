@@ -23,8 +23,8 @@ VarDriverRZ::VarDriverRZ()
 	maxHeights = 80; // Can I make this dynamic?
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
-	zincr = 150;
-	rincr = 15;
+	zincr = 100;
+	rincr = 1;
 	maxIter = 1;
 	CQTOL = 0.5;
 }
@@ -165,7 +165,7 @@ void VarDriverRZ::preProcessMetObs()
 			double rad = sqrt(x*x + y*y);
 			
 			// Make sure the ob is in the domain
-			if ((rad < r.front()) or (rad > r.back()) or
+			if ((rad < r.front()) or (rad > r.back()) or (rad == 0.0) or
 				(metOb.getAltitude() < 0) or
 				(metOb.getAltitude() > z.back()))
 				continue;
@@ -229,11 +229,11 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(0., 1);
 					}
 					if ((w != -999) and (rho != -999)) {
-						// rho w 1.5 m/s error
+						// rho w 2 m/s error
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(1.5);
+						varOb.setError(2.);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -297,7 +297,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(0.25);
+						varOb.setError(1.);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -807,7 +807,7 @@ bool VarDriverRZ::setupMishAndRXform()
 bool VarDriverRZ::initialize()
 {
 	// Run a RZ vortex background field
-	cout << "Initializing Vortex Background" << endl;
+	cout << "Initializing RZ Background" << endl;
 
 	// Allocate memory for the BG fields
 	BG = new vector<real>*[maxHeights];

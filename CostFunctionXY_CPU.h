@@ -92,11 +92,9 @@ private:
 	real* jL;
 	int varDim;
 	int bState;
-	real bgError[5];
+	real bgError[6];
 	real bgErrorScale;
-	real LI, LJ;
-	real LF[5];
-	int bcLeft[5], bcRight[5], bcTop[5], bcBottom[5];
+	real constHeight;
 	
 	float BoundaryConditions[9][4];
 	enum BoundaryConditionTypes {
