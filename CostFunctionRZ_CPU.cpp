@@ -113,8 +113,8 @@ void CostFunctionRZ_CPU::initialize(const real& imin, const real& imax, const in
     DJrecip = 1./DJ;
 	
 	// Set up the recursive filter
-	real iFilterScale = 4.;
-	real jFilterScale = 4.;
+	real iFilterScale = 6.;
+	real jFilterScale = 6.;
 	//bgErrorScale = 2 * 3.141592653589793 *iFilterScale*jFilterScale;
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
@@ -222,7 +222,7 @@ void CostFunctionRZ_CPU::initState()
 									int bgJ = jIndex*2 + (jmu+1)/2;
 									int bgI = iIndex*2 + (imu+1)/2;
 									
-									// Reset Psi to zero for multiple iterations!!
+									// Reset Psi to zero for multiple iterations to avoid instability in u and w
 									if (var == 1) {
 										bgFields[varDim*(iDim-1)*2*bgJ +varDim*bgI + var] = 0;
 									}
@@ -1312,7 +1312,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	ofstream fluxstream(fluxout.toAscii().data());
 	fluxstream << "Radius\tHeight\trhoM\trhoE\tu\tv\tw\tPsi\tqv\trho\tT\tP\n";
 	fluxstream.precision(10);
-	real CoriolisF = 6e-5;
+	real CoriolisF = 5.6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -1390,7 +1390,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 							real rhoM = (i*rhov*1000 + 0.5*rho*CoriolisF*i*i*1e6);
 							real rhoE = rho*(hBar + hprime*1.e3) + KE;
 							real T = ((hBar + hprime*1.e3) - 2.501e3*(qBar + qvprime) - 9.81*j)/1005.7;
-							real press = T*rhoa*287./100.;
+							real press = T*rhoa*287./100. + T*rhoq*461.5/100.;
 							//real e = rhoE/rho;
 							
 							// Output it
@@ -1420,8 +1420,8 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 								fieldNodes[12*iDim*jIndex + 12*iIndex + 7] = rhoprime;
 								fieldNodes[12*iDim*jIndex + 12*iIndex + 8] = T;
 								fieldNodes[12*iDim*jIndex + 12*iIndex + 9] = press;
-								fieldNodes[12*iDim*jIndex + 12*iIndex + 10] = rhoM;
-								fieldNodes[12*iDim*jIndex + 12*iIndex + 11] = rhoE;
+								fieldNodes[12*iDim*jIndex + 12*iIndex + 10] = 1.e-6*rhoM/rho;
+								fieldNodes[12*iDim*jIndex + 12*iIndex + 11] = 1.e-3*(rhoE/rho - 3.5e5);
 							}
 							
 						}
@@ -1539,7 +1539,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	
 	// Calculate headers
 	QStringList fieldNames;
-	fieldNames << "RV" << "HP" << "U" << "V" << "W" << "SF" << "QV" << "RO" << "T" << "P" << "RM" << "RE";
+	fieldNames << "RV" << "HP" << "U" << "V" << "W" << "SF" << "QV" << "RO" << "T" << "P" << "M" << "E";
 	id[175] = fieldNames.size();
     for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);

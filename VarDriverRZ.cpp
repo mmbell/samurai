@@ -177,6 +177,10 @@ void VarDriverRZ::preProcessMetObs()
 			real height = metOb.getAltitude();
 			varOb.setAltitude(height);
 			
+			//Set the theta, but not used for this analysis
+			real theta = 180.0 * atan2(y, x) / Pi;
+			varOb.setTheta(theta);
+			
 			// Reference states			
 			real rhoBar = rhoBase*exp(-rhoInvScaleHeight*height);
 			//real qBar = 19.562 - 0.004066*height + 7.8168e-7*height*height;
@@ -215,7 +219,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 0);
 						rhov = rho*(-(u - Um)*y + (v-Vm)*x)/rad;
 						varOb.setOb(rhov);
-						varOb.setError(1.0);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
@@ -224,7 +228,7 @@ void VarDriverRZ::preProcessMetObs()
 						rhou = rho*((u - Um)*x + (v-Vm)*y)/rad;
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(1.0);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);
 					}
@@ -233,7 +237,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(2.);
+						varOb.setError(4.);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -280,7 +284,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 0);
 						rhov = rho*(-(u - Um)*y + (v-Vm)*x)/rad;
 						varOb.setOb(rhov);
-						varOb.setError(1.0);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
@@ -288,7 +292,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 1);
 						rhou = rho*((u - Um)*x + (v-Vm)*y)/rad;
 						varOb.setOb(rhou);
-						varOb.setError(1.0);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);
 					}
@@ -297,7 +301,7 @@ void VarDriverRZ::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(1.);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -441,7 +445,7 @@ void VarDriverRZ::preProcessMetObs()
 					
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
 					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
-					if (DopplerError < 1.0) DopplerError = 1.0;
+					if (DopplerError < 2.0) DopplerError = 2.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);
 					obVector.push_back(varOb);
@@ -463,7 +467,7 @@ void VarDriverRZ::preProcessMetObs()
 	*os++ = "Type";
 	*os++ = "r";
 	*os++ = "z";
-	*os++ = "NULL";
+	*os++ = "theta";
 	*os++ = "Observation";
 	*os++ = "Inverse Error";
 	*os++ = "Weight 1";
@@ -480,8 +484,8 @@ void VarDriverRZ::preProcessMetObs()
 		*od++ = ob.getType();
 		*od++ = ob.getRadius();
 		*od++ = ob.getAltitude();
-		// NULL 3rd dimension
-		*od++ = -999.;
+		// Unused 3rd dimension
+		*od++ = ob.getTheta();
 		*od++ = ob.getOb();
 		*od++ = ob.getInverseError();
 		for (unsigned int var = 0; var < numVars; var++)
@@ -489,7 +493,7 @@ void VarDriverRZ::preProcessMetObs()
 
 		obstream << endl;	
 	}
-	
+		
 	// Load the observations into a vector
 	obs = new real[obVector.size()*11];
 	for (unsigned int m=0; m < obVector.size(); m++) {
@@ -621,6 +625,7 @@ bool VarDriverRZ::loadBGfromTextfile()
 		return false;
 	} else if (!z.size()) {
 		cerr << "No heights! Problem reading BG file" << endl;
+		exit(1);
 	}
 	
 	return true;
@@ -846,7 +851,7 @@ bool VarDriverRZ::initialize()
 		loadMetObs();
 	}
 	cout << "Number of Observations: " << obVector.size() << endl;
-	
+		
 	// Define the sizes of the arrays we are passing to the cost function
 	int stateSize = 4*(idim-1)*(jdim-1)*(numVars-1);
 	

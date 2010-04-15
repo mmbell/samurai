@@ -22,10 +22,10 @@ VarDriverXY::VarDriverXY()
 	maxJdim = 256; // Can I make this dynamic?
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
-	xincr = 1.;
-	yincr = 1.;
-	zLevel = 2000.;
-	maxIter = 1.;
+	xincr = 10.;
+	yincr = 10.;
+	zLevel = 1000.;
+	maxIter = 2.;
 	CQTOL = 0.5;
 }
 

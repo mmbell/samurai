@@ -1295,7 +1295,7 @@ bool CostFunctionXY_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 									chi += chicoeff * ibasis * jbasis;
 									rhov += ((psicoeff * idbasis * jbasis) + (chicoeff * ibasis * jdbasis));
 									rhou += ((-psicoeff * ibasis * jdbasis) + (chicoeff * idbasis * jbasis));
-									vorticity += psicoeff * (iddbasis * jbasis + ibasis * jddbasis) * 100;
+									vorticity += psicoeff * (iddbasis * jbasis + ibasis * jddbasis) * 100; // Units should be 10-5s-1
 									divergence += chicoeff * (iddbasis * jbasis + ibasis * jddbasis) * 100;
 									rhow += Astate[varDim*iDim*jNode +varDim*iNode + 2] * ibasis * jbasis;
 									hprime += Astate[varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis;

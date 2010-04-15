@@ -231,6 +231,8 @@
 			<key>Layout</key>
 			<array>
 				<dict>
+					<key>BecomeActive</key>
+					<true/>
 					<key>ContentConfiguration</key>
 					<dict>
 						<key>PBXBottomSmartGroupGIDs</key>
@@ -295,7 +297,7 @@
 							<real>186</real>
 						</array>
 						<key>RubberWindowFrame</key>
-						<string>286 97 1081 781 0 0 1440 878 </string>
+						<string>306 97 1081 781 0 0 1440 878 </string>
 					</dict>
 					<key>Module</key>
 					<string>PBXSmartGroupTreeModule</string>
@@ -311,7 +313,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CE0B20306471E060097A5F4</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>VarDriverRZ.cpp</string>
+								<string>CostFunctionRZ_CPU.cpp</string>
 								<key>PBXSplitModuleInNavigatorKey</key>
 								<dict>
 									<key>Split0</key>
@@ -319,11 +321,11 @@
 										<key>PBXProjectModuleGUID</key>
 										<string>1CE0B20406471E060097A5F4</string>
 										<key>PBXProjectModuleLabel</key>
-										<string>VarDriverRZ.cpp</string>
+										<string>CostFunctionRZ_CPU.cpp</string>
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>098870BD10FC7D27004B803A</string>
+										<string>098744EA1177869C00747616</string>
 										<key>history</key>
 										<array>
 											<string>0973C6191041BB0100DBE167</string>
@@ -331,14 +333,17 @@
 											<string>09A0886D1055555700501A5C</string>
 											<string>09C4F558107393FD00017ADA</string>
 											<string>09C4F5E41076394E00017ADA</string>
-											<string>094346BA10800D2E005BAA28</string>
 											<string>0943474C108028E3005BAA28</string>
-											<string>093282A310AA3FCE00552082</string>
 											<string>0900172010AF801D00A1EA01</string>
-											<string>09E05A6810B1D39C00274F1A</string>
-											<string>098DAE0110C6D7FF00D34EE8</string>
 											<string>09DB05C010DADC6F0025384F</string>
-											<string>0988706D10FBB233004B803A</string>
+											<string>098664321125E84A00D54CB9</string>
+											<string>098664481125E89800D54CB9</string>
+											<string>09866464112B208A00D54CB9</string>
+											<string>09866467112B208A00D54CB9</string>
+											<string>098664BE112B5A2700D54CB9</string>
+											<string>09D150631148DBEB0034A749</string>
+											<string>09D1508711524D370034A749</string>
+											<string>09D1508911524D370034A749</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -355,6 +360,9 @@
 											<string>0943474F108028E3005BAA28</string>
 											<string>098DAE0310C6D7FF00D34EE8</string>
 											<string>09DB05C110DADC6F0025384F</string>
+											<string>0986644A1125E89800D54CB9</string>
+											<string>0986646E112B208A00D54CB9</string>
+											<string>09D1508811524D370034A749</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -368,7 +376,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {873, 426}}</string>
 								<key>RubberWindowFrame</key>
-								<string>286 97 1081 781 0 0 1440 878 </string>
+								<string>306 97 1081 781 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXNavigatorGroup</string>
@@ -376,8 +384,6 @@
 							<string>426pt</string>
 						</dict>
 						<dict>
-							<key>BecomeActive</key>
-							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
@@ -390,7 +396,7 @@
 								<key>Frame</key>
 								<string>{{0, 431}, {873, 309}}</string>
 								<key>RubberWindowFrame</key>
-								<string>286 97 1081 781 0 0 1440 878 </string>
+								<string>306 97 1081 781 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>XCDetailModule</string>
@@ -414,9 +420,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>0988706F10FBB233004B803A</string>
+				<string>098744EB1177869C00747616</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>0988707010FBB233004B803A</string>
+				<string>098744EC1177869C00747616</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -550,12 +556,11 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>098870BA10FBBF34004B803A</string>
 		<string>0973C5BB10419CE500DBE167</string>
 		<string>/Users/mbell/Development/samurai/trunk/samurai.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
-	<string>286 97 1081 781 0 0 1440 878 </string>
+	<string>306 97 1081 781 0 0 1440 878 </string>
 	<key>WindowToolsV3</key>
 	<array>
 		<dict>
@@ -632,7 +637,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>0973C5BB10419CE500DBE167</string>
-				<string>0988707D10FBB697004B803A</string>
+				<string>098744ED1177869C00747616</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -752,13 +757,13 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1CD10A99069EF8BA00B06720</string>
-				<string>09DB05D010DADD560025384F</string>
+				<string>09D1506B1148DBEB0034A749</string>
 				<string>1C162984064C10D400B95A72</string>
-				<string>09DB05D110DADD560025384F</string>
-				<string>09DB05D210DADD560025384F</string>
-				<string>09DB05D310DADD560025384F</string>
-				<string>09DB05D410DADD560025384F</string>
-				<string>09DB05D510DADD560025384F</string>
+				<string>09D1506C1148DBEB0034A749</string>
+				<string>09D1506D1148DBEB0034A749</string>
+				<string>09D1506E1148DBEB0034A749</string>
+				<string>09D1506F1148DBEB0034A749</string>
+				<string>09D150701148DBEB0034A749</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debugV3</string>
@@ -790,7 +795,7 @@
 										<key>PBXProjectModuleGUID</key>
 										<string>1CDD528C0622207200134675</string>
 										<key>PBXProjectModuleLabel</key>
-										<string></string>
+										<string>VarDriver.cpp</string>
 										<key>StatusBarVisibility</key>
 										<true/>
 									</dict>
@@ -848,8 +853,8 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C530D57069F1CE1000CFCEE</string>
-				<string>0973C6351042867C00DBE167</string>
-				<string>0973C6361042867C00DBE167</string>
+				<string>09D150711148DBEB0034A749</string>
+				<string>09D150721148DBEB0034A749</string>
 				<string>1CDD528C0622207200134675</string>
 				<string>1CD0528E0623707200166675</string>
 			</array>

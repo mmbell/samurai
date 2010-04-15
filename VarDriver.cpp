@@ -580,11 +580,14 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 		QString lon = line.mid(18,6);
 		QString speed = line.mid(28,5);
 		QString dir = line.mid(34,6);
+		QString rainprob = line.mid(46,5);
+		float rainflag = rainprob.toFloat();
+		if (rainflag > 0.50) { continue; }
 		float dirdeg = dir.toFloat() + 180.;
 		if (dirdeg > 360.) dirdeg -= 360.;
 		ob.setLat(lat.toFloat());
 		ob.setLon(lon.toFloat());
-		ob.setAltitude(0.0);
+		ob.setAltitude(10.0);
 		ob.setWindSpeed(speed.toFloat());
 		ob.setWindDirection(dirdeg);
 		ob.setObType(MetObs::qscat);
@@ -615,7 +618,7 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setTime(datetime);
 		ob.setLat(lineparts[0].toFloat());
 		ob.setLon(lineparts[1].toFloat());
-		ob.setAltitude(0.0);
+		ob.setAltitude(10.0);
 		float speed = lineparts[2].toFloat() / 1.94384449;
 		ob.setWindSpeed(speed);
 		ob.setWindDirection(lineparts[3].toFloat());
