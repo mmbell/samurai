@@ -502,11 +502,11 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	int strsize,datasize,arrsize;
 	strsize = datasize = arrsize = 0;
 	char tempname[PARM_NAME_LEN];
-	//QString ref_fld = "DBZ";
-	QString ref_fld = "DZ";
+	QString ref_fld = "DBZ";
+	//QString ref_fld = "DZ";
 	QString vel_fld = "VG";
-	//QString sw_fld = "SW";
-	QString sw_fld = "SPEC_WDT";
+	QString sw_fld = "SW";
+	//QString sw_fld = "SPEC_WDT";
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
 	

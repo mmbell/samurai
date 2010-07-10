@@ -1,8 +1,8 @@
 /*
  *  CostFunction.h
- *  barwind
+ *  SAMURAI
  *
- *  Copyright 2008 Michael Bell. All rights reserved.
+ *  Copyright 2010 Michael Bell. All rights reserved.
  *
  */
 

@@ -25,7 +25,7 @@ VarDriverRZ::VarDriverRZ()
 	rhoInvScaleHeight = 9.9504e-5;
 	zincr = 100;
 	rincr = 1;
-	maxIter = 1;
+	maxIter = 2;
 	CQTOL = 0.5;
 }
 

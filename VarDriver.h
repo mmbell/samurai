@@ -61,7 +61,8 @@ protected:
 		sfmr,
 		wwind,
 		qscat,
-		ascat
+		ascat,
+		nopp
 	};
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
@@ -72,6 +73,7 @@ protected:
 	bool read_sfmr(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_qscat(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_ascat(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
 	
 };

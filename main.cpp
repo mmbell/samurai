@@ -4,6 +4,7 @@
 #include "VarDriver2d.h"
 #include "VarDriverRZ.h"
 #include "VarDriverXY.h"
+#include "VarDriverVAR.h"
 #include <iostream>
 #include <QApplication>
 
@@ -12,21 +13,23 @@ int main (int argc, char *argv[]) {
 	//QApplication app(argc, argv);
 	if (argc >=2) {
 		QString arg(argv[1]);
-		if (arg == "XY") {
+		if (arg == "PX") {
 			VarDriverXY driver;
 			driver.initialize();
 			driver.run();
-		} else {
+		} else if (arg == "XY") {
+			VarDriverVAR driver;
+			driver.initialize();
+			driver.run();
+		} else if (arg == "RZ") {
 			VarDriverRZ driver;
 			driver.initialize();
 			driver.run();
 		}
+		std::cout << "Analysis complete!\n";
 	} else {
-		VarDriverRZ driver;
-		driver.initialize();
-		driver.run();
+		std::cout << "Usage: samurai <mode>\n Available modes: XY, PX, RZ\n";
 	}
-	std::cout << "Analysis complete!\n";
 		
 	return 0;
 	

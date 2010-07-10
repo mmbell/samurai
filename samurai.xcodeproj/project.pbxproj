@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
 		0973C5C710419D0000DBE167 /* samurai.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 0973C5C410419D0000DBE167 /* samurai.app */; };
+		09A9B35111C3CC950078F15C /* VarDriverRT.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09A9B34E11C3CC950078F15C /* VarDriverRT.cpp */; };
+		09A9B35211C3CC950078F15C /* CostFunctionRT_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09A9B35011C3CC950078F15C /* CostFunctionRT_CPU.cpp */; };
+		09F956E411E4B00D00A19849 /* CostFunctionVAR.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09F956E211E4B00D00A19849 /* CostFunctionVAR.cpp */; };
+		09F956F011E4B33200A19849 /* VarDriverVAR.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09F956EE11E4B33200A19849 /* VarDriverVAR.cpp */; };
 		108D3A43C08311A85AE62FE2 /* CostFunctionXYZ_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */; settings = {ATTRIBUTES = (); }; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
 		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -22,7 +26,6 @@
 		51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 821416211D63F190AAAD016A /* AppKit.framework */; };
 		5D95626873C7C04D1C4B5671 /* Observation.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */; settings = {ATTRIBUTES = (); }; };
 		672A261EE89CD6B11AD86E43 /* CostFunctionRZ_GPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = C54ABF1B325B389753379268 /* CostFunctionRZ_GPU.cpp */; settings = {ATTRIBUTES = (); }; };
-		782B6788D61FA49990A796F9 /* VarDriver2d.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 9356464C64678A879AF79690 /* VarDriver2d.cpp */; settings = {ATTRIBUTES = (); }; };
 		7999E42EF268C0234E0FB8BD /* VarDriver.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = F23D90239C967BE28A8911C1 /* VarDriver.cpp */; settings = {ATTRIBUTES = (); }; };
 		9B11448EA053E1EE217C6DD0 /* ParametricVortex.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = FBD6C342AFEE376FF81E4834 /* ParametricVortex.cpp */; settings = {ATTRIBUTES = (); }; };
 		A3B3C90BFE730DB07194C33A /* CostFunction.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 00281B2985F19D1494BEBCA4 /* CostFunction.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -58,7 +61,14 @@
 		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
 		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
 		0973C5C410419D0000DBE167 /* samurai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = samurai.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver2d.h; sourceTree = "<group>"; };
+		09A9B34D11C3CC950078F15C /* VarDriverRT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VarDriverRT.h; sourceTree = "<group>"; };
+		09A9B34E11C3CC950078F15C /* VarDriverRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriverRT.cpp; sourceTree = "<group>"; };
+		09A9B34F11C3CC950078F15C /* CostFunctionRT_CPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CostFunctionRT_CPU.h; sourceTree = "<group>"; };
+		09A9B35011C3CC950078F15C /* CostFunctionRT_CPU.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionRT_CPU.cpp; sourceTree = "<group>"; };
+		09F956E211E4B00D00A19849 /* CostFunctionVAR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionVAR.cpp; sourceTree = "<group>"; };
+		09F956E311E4B00D00A19849 /* CostFunctionVAR.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CostFunctionVAR.h; sourceTree = "<group>"; };
+		09F956EE11E4B33200A19849 /* VarDriverVAR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriverVAR.cpp; sourceTree = "<group>"; };
+		09F956EF11E4B33200A19849 /* VarDriverVAR.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VarDriverVAR.h; sourceTree = "<group>"; };
 		0DAC4A383E5D3CA54A854D1B /* CostFunctionXYZ_CPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionXYZ_CPU.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
@@ -87,7 +97,6 @@
 		85EB71E17842DA156B973F57 /* CostFunctionRZ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionRZ.h; sourceTree = "<group>"; };
 		87CE703DCE39A0EC868C792C /* VarDriverRZ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriverRZ.h; sourceTree = "<group>"; };
 		927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionXYZ_CPU.cpp; sourceTree = "<group>"; };
-		9356464C64678A879AF79690 /* VarDriver2d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver2d.cpp; sourceTree = "<group>"; };
 		9B36DA7E32F0304E780E7972 /* QtGui.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtGui.framework; path = /Library/Frameworks/QtGui.framework; sourceTree = "<absolute>"; };
 		A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Observation.cpp; sourceTree = "<group>"; };
 		A88ACCD415D491DEA1E4444B /* VarDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver.h; sourceTree = "<group>"; };
@@ -128,6 +137,10 @@
 		05596AB53D8D521C69802C27 /* samurai */ = {
 			isa = PBXGroup;
 			children = (
+				09F956E211E4B00D00A19849 /* CostFunctionVAR.cpp */,
+				09F956EE11E4B33200A19849 /* VarDriverVAR.cpp */,
+				09F956EF11E4B33200A19849 /* VarDriverVAR.h */,
+				09F956E311E4B00D00A19849 /* CostFunctionVAR.h */,
 				FB61758D0F0FDA4BA867C3D5 /* Sources */,
 				883D7615C4D2DE3FA1218F12 /* Headers */,
 				7CABE3C80E79AD2B307756D2 /* Sources [qmake] */,
@@ -169,6 +182,7 @@
 				B555B4ABF2BC343B39C7EA21 /* CostFunctionAnalytic.h */,
 				4544D20D0CDBB4D1D4F8BAC6 /* CostFunctionR.h */,
 				85EB71E17842DA156B973F57 /* CostFunctionRZ.h */,
+				09A9B34F11C3CC950078F15C /* CostFunctionRT_CPU.h */,
 				7AA4722C73D30BF194873E68 /* CostFunctionRZ_CPU.h */,
 				12F30F954C9B134EAC0CB327 /* CostFunctionRZ_GPU.h */,
 				E96582BBE96865CD828A55BA /* CostFunctionXY_CPU.h */,
@@ -179,7 +193,7 @@
 				242670B24EA6ACAC229EFACA /* RecursiveFilter.h */,
 				A88ACCD415D491DEA1E4444B /* VarDriver.h */,
 				3A6248A759205B2DBE5F98CA /* VarDriver1d.h */,
-				0B53B5E0AC6CEBF311F64B8E /* VarDriver2d.h */,
+				09A9B34D11C3CC950078F15C /* VarDriverRT.h */,
 				87CE703DCE39A0EC868C792C /* VarDriverRZ.h */,
 				4219BA5B6201883A456D2495 /* VarDriverXY.h */,
 				567737E4ACD2A2EFE2FF2903 /* VarDriverXYZ.h */,
@@ -206,6 +220,7 @@
 		FB61758D0F0FDA4BA867C3D5 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				09A9B35011C3CC950078F15C /* CostFunctionRT_CPU.cpp */,
 				FF5E0688054A1788E623229F /* BSplineD.cpp */,
 				63B6940BE108A6F521B4684C /* BSplineF.cpp */,
 				00281B2985F19D1494BEBCA4 /* CostFunction.cpp */,
@@ -223,7 +238,7 @@
 				E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */,
 				F23D90239C967BE28A8911C1 /* VarDriver.cpp */,
 				1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */,
-				9356464C64678A879AF79690 /* VarDriver2d.cpp */,
+				09A9B34E11C3CC950078F15C /* VarDriverRT.cpp */,
 				EEEFA2BC1CB93E359E2E5170 /* VarDriverRZ.cpp */,
 				BC17AFCC60DD2F33D7CA0DF2 /* VarDriverXY.cpp */,
 				811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */,
@@ -330,12 +345,15 @@
 				12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */,
 				7999E42EF268C0234E0FB8BD /* VarDriver.cpp in Build Sources */,
 				4A921221EF30A7DBEDF804F5 /* VarDriver1d.cpp in Build Sources */,
-				782B6788D61FA49990A796F9 /* VarDriver2d.cpp in Build Sources */,
 				3E7BA631CEF6B86D78296724 /* VarDriverRZ.cpp in Build Sources */,
 				BD0D6890382F0FD6FF39E8FD /* VarDriverXY.cpp in Build Sources */,
 				C9399782ACFAB1D28691B341 /* VarDriverXYZ.cpp in Build Sources */,
 				C812174DDF388E53DFDE91E1 /* Dorade.cpp in Build Sources */,
 				BF2DBD523D89A5B1D20EC5DE /* TCcenter.cpp in Build Sources */,
+				09A9B35111C3CC950078F15C /* VarDriverRT.cpp in Build Sources */,
+				09A9B35211C3CC950078F15C /* CostFunctionRT_CPU.cpp in Build Sources */,
+				09F956E411E4B00D00A19849 /* CostFunctionVAR.cpp in Build Sources */,
+				09F956F011E4B33200A19849 /* VarDriverVAR.cpp in Build Sources */,
 			);
 			name = "Build Sources";
 			runOnlyForDeploymentPostprocessing = 0;

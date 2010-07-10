@@ -28,6 +28,7 @@ VarDriver::VarDriver()
 	dataSuffix["Wwind"] = wwind;
 	dataSuffix["qscat"] = qscat;
 	dataSuffix["ascat"] = ascat;
+	dataSuffix["nopp"] = nopp;
 }
 
 VarDriver::~VarDriver()
@@ -630,3 +631,43 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 	return true;		
 	
 }
+
+bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	MetObs ob;
+	QDate startDate;
+	QDateTime datetime;
+	// Skip three lines
+	QString line;
+	in.readLine(); in.readLine(); in.readLine(); in.readLine();
+	line = in.readLine();
+	QStringList lineparts = line.split(QRegExp("\\s+"));
+	//ob.setStationName(lineparts.last());
+	ob.setStationName("qscat");
+	startDate = QDate::fromString(lineparts[1], "yyyyMMdd");
+	datetime.setDate(startDate);
+	while (!in.atEnd()) {
+		line = in.readLine();
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+		lineparts.removeFirst();
+		ob.setLat(lineparts[0].toFloat());
+		ob.setLon(lineparts[1].toFloat());
+		int secs = (int)lineparts[2].toFloat();
+		ob.setTime(datetime.addSecs(secs));		
+		ob.setAltitude(10.0);
+		ob.setWindSpeed(lineparts[3].toFloat());
+		ob.setWindDirection(lineparts[4].toFloat());
+		ob.setObType(MetObs::ascat);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+	
+}
+

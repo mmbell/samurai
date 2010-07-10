@@ -24,7 +24,7 @@ VarDriverXY::VarDriverXY()
 	rhoInvScaleHeight = 9.9504e-5;
 	xincr = 10.;
 	yincr = 10.;
-	zLevel = 1000.;
+	zLevel = 0.;
 	maxIter = 2.;
 	CQTOL = 0.5;
 }
@@ -111,6 +111,10 @@ void VarDriverXY::preProcessMetObs()
 				if (!read_ascat(metFile, metData))
 					cout << "Error reading wwind file" << endl;
 				break;
+			case (nopp):
+				if (!read_nopp(metFile, metData))
+					cout << "Error reading wwind file" << endl;
+				break;
 			case (cen):
 				continue;				
 			default:
@@ -128,9 +132,9 @@ void VarDriverXY::preProcessMetObs()
 			// Make sure the ob is within the time limits
 			MetObs metOb = metData->at(i);
 			QDateTime obTime = metOb.getTime();
-			//QString obstring = obTime.toString(Qt::ISODate);
-			//QString tcstart = startTime.toString(Qt::ISODate);
-			//QString tcend = endTime.toString(Qt::ISODate);			
+			QString obstring = obTime.toString(Qt::ISODate);
+			QString tcstart = startTime.toString(Qt::ISODate);
+			QString tcend = endTime.toString(Qt::ISODate);		
 			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int tci = startTime.secsTo(obTime);
 			if ((tci < 0) or (tci > (int)tcVector.size())) {
