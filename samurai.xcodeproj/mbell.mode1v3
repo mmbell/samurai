@@ -202,7 +202,7 @@
 			<key>Content</key>
 			<dict>
 				<key>PBXProjectModuleGUID</key>
-				<string>0997BE161209DD6B0063D87C</string>
+				<string>0997BE471209E38E0063D87C</string>
 				<key>PBXProjectModuleLabel</key>
 				<string>CostFunction3D.cpp</string>
 				<key>PBXSplitModuleInNavigatorKey</key>
@@ -210,16 +210,16 @@
 					<key>Split0</key>
 					<dict>
 						<key>PBXProjectModuleGUID</key>
-						<string>0997BE171209DD6B0063D87C</string>
+						<string>0997BE481209E38E0063D87C</string>
 						<key>PBXProjectModuleLabel</key>
 						<string>CostFunction3D.cpp</string>
 						<key>_historyCapacity</key>
 						<integer>0</integer>
 						<key>bookmark</key>
-						<string>0997BE181209DD6B0063D87C</string>
+						<string>0997BE531209E8B60063D87C</string>
 						<key>history</key>
 						<array>
-							<string>0997BE0C1209CF750063D87C</string>
+							<string>0997BE491209E38E0063D87C</string>
 						</array>
 					</dict>
 					<key>SplitCount</key>
@@ -235,7 +235,7 @@
 				<key>PBXModuleWindowStatusBarHidden2</key>
 				<false/>
 				<key>RubberWindowFrame</key>
-				<string>380 77 972 801 0 0 1440 878 </string>
+				<string>351 77 972 801 0 0 1440 878 </string>
 			</dict>
 		</dict>
 		<dict>
@@ -256,7 +256,7 @@
 						<key>_historyCapacity</key>
 						<integer>0</integer>
 						<key>bookmark</key>
-						<string>0997BE191209DD6B0063D87C</string>
+						<string>0997BE541209E8B60063D87C</string>
 						<key>history</key>
 						<array>
 							<string>093A8E531209BCFC00944A21</string>
@@ -404,7 +404,7 @@
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>0997BE151209DD6B0063D87C</string>
+										<string>0997BE521209E8B60063D87C</string>
 										<key>history</key>
 										<array>
 											<string>0973C6191041BB0100DBE167</string>
@@ -431,7 +431,7 @@
 											<string>09BB24B611F4111F00C73F9F</string>
 											<string>093A8D6E1207D22C00944A21</string>
 											<string>093A8E421209B74000944A21</string>
-											<string>093A8E521209BCFC00944A21</string>
+											<string>0997BE451209E38E0063D87C</string>
 										</array>
 										<key>prevStack</key>
 										<array>
@@ -655,15 +655,15 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>0997BE1C1209DD6B0063D87C</string>
+		<string>0997BE511209E7490063D87C</string>
 		<string>0997BE1D1209DD6B0063D87C</string>
 		<string>0997BE1E1209DD6B0063D87C</string>
 		<string>0973C5BB10419CE500DBE167</string>
 		<string>1CD10A99069EF8BA00B06720</string>
 		<string>093A8DF2120893C600944A21</string>
 		<string>/Users/mbell/Development/samurai/trunk/samurai.xcodeproj</string>
-		<string>0997BE161209DD6B0063D87C</string>
 		<string>1C78EAAD065D492600B07095</string>
+		<string>0997BE471209E38E0063D87C</string>
 	</array>
 	<key>WindowString</key>
 	<string>215 127 1137 751 0 0 1440 878 </string>

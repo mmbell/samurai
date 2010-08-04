@@ -284,12 +284,10 @@ void CostFunction3D::updateHCq(double* state)
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-					tempsum += stateC[cIndex + 0] * ibasis * jbasis * kbasis * obsVector[mi+6];
-					tempsum += stateC[cIndex + 1] * ibasis * jbasis * kbasis * obsVector[mi+7];
-					tempsum += stateC[cIndex + 2] * ibasis * jbasis * kbasis * obsVector[mi+8];
-					tempsum += stateC[cIndex + 3] * ibasis * jbasis * kbasis * obsVector[mi+9];
-					tempsum += stateC[cIndex + 4] * ibasis * jbasis * kbasis * obsVector[mi+10];
-					tempsum += stateC[cIndex + 5] * ibasis * jbasis * kbasis * obsVector[mi+11];
+					real basis3x = ibasis * jbasis * kbasis;
+					for (int var = 0; var < varDim; var++) {
+						tempsum += stateC[cIndex + var] *  basis3x * obsVector[mi+6 + var];
+					}
 				}
 			}
 		}
@@ -370,12 +368,9 @@ void CostFunction3D::calcInnovation()
 					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
 					int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					real basis3x = ibasis * jbasis * kbasis;
-					tempsum += bgState[stateIndex + 0] * basis3x * obsVector[mi+6];
-					tempsum += bgState[stateIndex + 1] * basis3x * obsVector[mi+7];
-					tempsum += bgState[stateIndex + 2] * basis3x * obsVector[mi+8];
-					tempsum += bgState[stateIndex + 3] * basis3x * obsVector[mi+9];
-					tempsum += bgState[stateIndex + 4] * basis3x * obsVector[mi+10];
-					tempsum += bgState[stateIndex + 5] * basis3x * obsVector[mi+11];
+					for (int var = 0; var < varDim; var++) {
+						tempsum += bgState[stateIndex + var] * basis3x * obsVector[mi+6+var];
+					}
 				}
 			}
 		}
@@ -400,7 +395,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-#pragma omp parallel for
+				#pragma omp parallel for
 				for (int m = 0; m < mObs; m++) {
 					// Sum over obs this time
 					// Multiply state by H weights
@@ -423,19 +418,11 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
 					kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
 					int stateIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
-					real basis3x = ibasis * jbasis * kbasis;
-#pragma omp atomic
-					Astate[stateIndex + 0] += qhat * basis3x * invError * obsVector[mi+6];
-#pragma omp atomic
-					Astate[stateIndex + 1] += qhat * basis3x * invError * obsVector[mi+7];
-#pragma omp atomic
-					Astate[stateIndex + 2] += qhat * basis3x * invError * obsVector[mi+8];
-#pragma omp atomic
-					Astate[stateIndex + 3] += qhat * basis3x * invError * obsVector[mi+9];
-#pragma omp atomic
-					Astate[stateIndex + 4] += qhat * basis3x * invError * obsVector[mi+10];
-#pragma omp atomic
-					Astate[stateIndex + 5] += qhat * basis3x * invError * obsVector[mi+11];
+					real qbasise = qhat* ibasis * jbasis * kbasis *invError;
+					for (int var = 0; var < varDim; var++) {
+						#pragma omp atomic
+						Astate[stateIndex + var] += qbasise * obsVector[mi+6+var];
+					}
 				}
 			}
 		}
@@ -445,8 +432,9 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 bool CostFunction3D::SAtransform(real* Bstate, real* Astate)
 {
 
-	int l;
+	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
+		int l;
 		real* kB = new real[kDim];
 		real* x = new real[kDim];
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -556,7 +544,7 @@ void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
 		Bstate[b] = 0.;
 	}
 					
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		
 		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
@@ -586,7 +574,7 @@ void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
 											int bgI = iIndex*2 + (imu+1)/2;
 											int bgJ = jIndex*2 + (jmu+1)/2;
 											int bgK = kIndex*2 + (kmu+1)/2;
-											// This may not be correct
+											#pragma omp atomic
 											Bstate[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var] += 
 												0.125 * Ustate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] 
 													* ibasis * jbasis * kbasis; 
@@ -611,7 +599,7 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 		Ustate[b] = 0;
 	}
 	
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		
 		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
@@ -641,7 +629,7 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 											int bgI = iIndex*2 + (imu+1)/2;
 											int bgJ = jIndex*2 + (jmu+1)/2;
 											int bgK = kIndex*2 + (kmu+1)/2;
-											// This may not be correct											
+											#pragma omp atomic										
 											Ustate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
 											0.125 * Bstate[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var] 
 											* ibasis * jbasis * kbasis; 
