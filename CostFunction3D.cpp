@@ -714,7 +714,7 @@ void CostFunction3D::SCtranspose(real* Cstate, real* Astate)
 				}
 				iFilter->filterArray(iTemp, iDim);
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Cstate[varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
 				}
 			}
 		}

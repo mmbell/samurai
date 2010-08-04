@@ -104,7 +104,7 @@
 		hitCount = 0;
 		ignoreCount = 0;
 		location = "";
-		modificationTime = 302633165.807795;
+		modificationTime = 302636393.184736;
 		state = 0;
 		symbolName = ibasis;
 	};
@@ -143,7 +143,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1515";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 542;
 		vrLoc = 10420;
@@ -167,7 +167,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1518";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 9579;
@@ -197,7 +197,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1518";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 9579;
@@ -207,7 +207,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1518";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 9579;
@@ -398,7 +398,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1518";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 760;
 		vrLoc = 9579;
@@ -411,6 +411,40 @@
 		rLoc = 23202;
 		rType = 0;
 		vrLen = 1241;
+		vrLoc = 14544;
+	};
+	0997BE0C1209CF750063D87C /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
+	};
+	0997BE151209DD6B0063D87C /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 1518";
+		rLen = 0;
+		rLoc = 47553;
+		rType = 0;
+		vrLen = 691;
+		vrLoc = 9588;
+	};
+	0997BE181209DD6B0063D87C /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 717";
+		rLen = 0;
+		rLoc = 21491;
+		rType = 0;
+		vrLen = 1730;
+		vrLoc = 20894;
+	};
+	0997BE191209DD6B0063D87C /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09F956EE11E4B33200A19849 /* VarDriverVAR.cpp */;
+		name = "VarDriverVAR.cpp: 822";
+		rLen = 0;
+		rLoc = 23202;
+		rType = 0;
+		vrLen = 1205;
 		vrLoc = 14544;
 	};
 	09A0886C1055555700501A5C /* PBXTextBookmark */ = {
@@ -532,16 +566,16 @@
 	09BB249311F3B0CA00C73F9F /* CostFunction3D.h */ = {
 		uiCtxt = {
 			sepNavIntBoundsRect = "{{0, 0}, {871, 1554}}";
-			sepNavSelRange = "{2380, 0}";
-			sepNavVisRange = "{1789, 682}";
-			sepNavWindowFrame = "{{15, 63}, {930, 810}}";
+			sepNavSelRange = "{36, 60}";
+			sepNavVisRange = "{0, 1200}";
+			sepNavWindowFrame = "{{325, 21}, {930, 810}}";
 		};
 	};
 	09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {870, 24570}}";
-			sepNavSelRange = "{47518, 0}";
-			sepNavVisRange = "{9579, 760}";
+			sepNavIntBoundsRect = "{{0, 0}, {868, 25340}}";
+			sepNavSelRange = "{47553, 0}";
+			sepNavVisRange = "{9588, 690}";
 			sepNavWindowFrame = "{{380, 21}, {972, 857}}";
 		};
 	};
@@ -576,7 +610,7 @@
 		fRef = 09BB249411F3B0CA00C73F9F /* CostFunction3D.cpp */;
 		name = "CostFunction3D.cpp: 1538";
 		rLen = 0;
-		rLoc = 47527;
+		rLoc = 47553;
 		rType = 0;
 		vrLen = 591;
 		vrLoc = 10363;
@@ -678,9 +712,9 @@
 	};
 	09F956EE11E4B33200A19849 /* VarDriverVAR.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1034, 12446}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1034, 12180}}";
 			sepNavSelRange = "{23202, 0}";
-			sepNavVisRange = "{14544, 1241}";
+			sepNavVisRange = "{14544, 1205}";
 			sepNavWindowFrame = "{{383, -326}, {1093, 803}}";
 		};
 	};
@@ -944,6 +978,10 @@
 			098DAE0310C6D7FF00D34EE8 = 098DAE0310C6D7FF00D34EE8 /* PBXTextBookmark */;
 			0997BDFF1209CECA0063D87C /* PBXTextBookmark */ = 0997BDFF1209CECA0063D87C /* PBXTextBookmark */;
 			0997BE021209CECA0063D87C /* PBXTextBookmark */ = 0997BE021209CECA0063D87C /* PBXTextBookmark */;
+			0997BE0C1209CF750063D87C /* PBXBookmark */ = 0997BE0C1209CF750063D87C /* PBXBookmark */;
+			0997BE151209DD6B0063D87C /* PBXTextBookmark */ = 0997BE151209DD6B0063D87C /* PBXTextBookmark */;
+			0997BE181209DD6B0063D87C /* PBXTextBookmark */ = 0997BE181209DD6B0063D87C /* PBXTextBookmark */;
+			0997BE191209DD6B0063D87C /* PBXTextBookmark */ = 0997BE191209DD6B0063D87C /* PBXTextBookmark */;
 			09A0886C1055555700501A5C = 09A0886C1055555700501A5C /* PBXTextBookmark */;
 			09A0886D1055555700501A5C = 09A0886D1055555700501A5C /* PBXTextBookmark */;
 			09A0886F1055555700501A5C = 09A0886F1055555700501A5C /* PBXTextBookmark */;
