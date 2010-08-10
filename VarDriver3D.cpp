@@ -22,8 +22,8 @@ VarDriver3D::VarDriver3D()
 	maxJdim = 256; // Can I make this dynamic?
 	rhoBase = 1.156;
 	rhoInvScaleHeight = 9.9504e-5;
-	xincr = 10.;
-	yincr = 10.;
+	xincr = 1.;
+	yincr = 1.;
 	zincr = 1.;
 	maxIter = 1.;
 	CQTOL = 0.5;
@@ -717,8 +717,30 @@ real VarDriver3D::bilinearField(real xPos, real yPos, int var)
 bool VarDriver3D::initialize()
 {
 	// Run a 3D vortex background field
-	cout << "Initializing 3D Background" << endl;
+	cout << "Initializing SAMURAI 3D" << endl;
 
+	/* XML file read here?
+	if (!readXMLconfig(xmlfile)) {
+		cout << "Error reading XML configuration, quitting...\n";
+		exit(-1);
+	}
+	
+	QDomElement root = domDoc.documentElement();
+	// Creat a hash of tags and their
+	QDomNodeList nodeList = root.childNodes();
+	for (int i = 0; i < nodeList.count(); i++) {
+		QDomNode currNode = nodeList.item(i);
+		QDomElement group = currNode.toElement();
+		configHash.insert(group.tagName(), i);
+	}
+	
+	// Cycle through the configuration
+	QDomElement child = groupList.item(indexForTagName.value(configName)).toElement();
+	QString paramValue;
+	if(!child.isNull()) {
+		paramValue = child.text();
+	} */
+	
 	// Allocate memory for the BG fields
 	BG = new vector<real>*[maxJdim];
 	BGsave = new vector<real>*[maxJdim];
@@ -736,20 +758,20 @@ bool VarDriver3D::initialize()
 		bilinearMish();
 	} else {
 		// Set the background to zero
-		double xMin = -250.;
-		double xMax =  250.;
+		double xMin = -15.;
+		double xMax =  20.;
 		int numXnodes = (int)((xMax - xMin)/xincr) + 1;
-		double yMin = -250.;
-		double yMax =  250.;
+		double yMin =  0.;
+		double yMax =  35.;
 		int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
 		double zMin =  0.;
-		double zMax =  5.;
+		double zMax =  18.;
 		int numZnodes = (int)((zMax - zMin)/zincr) + 1;
 		
 		// Load the BG into a empty vector
 		int bgDim = 8*(numXnodes-1)*(numYnodes-1)*(numZnodes-1)*numVars;
 		bgU = new real[bgDim];
-		for (int i=0; i < bgDim; i++) bgU[i] = 1.;
+		for (int i=0; i < bgDim; i++) bgU[i] = 0.;
 		
 		// Set the master dimensions
 		imin = xMin;

@@ -11,6 +11,8 @@
 #include <fstream>
 #include <cmath>
 #include <QTextStream>
+#include <QDomDocument>
+#include <QDomNodeList>
 
 VarDriver::VarDriver()
 {
@@ -668,6 +670,43 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 	
 	metFile.close();
 	return true;		
+	
+}
+
+bool VarDriver::readXMLconfig(const QString& xmlfile)
+{
+
+	//QDomDocument domDoc("Configuration");
+	QFile file(xmlfile);
+	if (!file.open(QIODevice::ReadOnly)) {
+		cout << "Error Opening Configuration File, Check Permissions on " << xmlfile.toStdString() << "\n";
+		return false;
+	}
+	
+	QString errorStr;
+	int errorLine;
+	int errorColumn;
+	
+	// Set the DOM document contents to those of the file
+	if (!domDoc.setContent(&file, true, &errorStr, &errorLine, &errorColumn)) {
+		QString errorReport = QString("XML Parse Error in "+xmlfile+" at Line %1, Column %2:\n%3")
+		.arg(errorLine)
+		.arg(errorColumn)
+		.arg(errorStr);
+		cout << errorReport.toStdString() << "\n";
+		file.close();
+		return false;
+	}
+	file.close();
+	
+	// Basic check to see if this is really a SAMURAI configuration file
+	QDomElement root = domDoc.documentElement();
+	if (root.tagName() != "samurai") {
+		cout << "The XML file " << xmlfile.toStdString() << " is not an SAMURAI configuration file\n.";
+		return false;
+	}
+	
+	return true;
 	
 }
 

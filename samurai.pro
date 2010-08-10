@@ -17,6 +17,8 @@ HEADERS += BandedMatrix.h \
            CostFunctionRZ_GPU.h \
            CostFunctionXY_CPU.h \ 
            CostFunctionXYZ_CPU.h \
+		   CostFunctionVAR.h \
+		   CostFunction3D.h \
            MetObs.h \
            Observation.h \
            ParametricVortex.h \
@@ -27,6 +29,8 @@ HEADERS += BandedMatrix.h \
            VarDriverRZ.h \
            VarDriverXY.h \
            VarDriverXYZ.h \
+		   VarDriverVAR.h \
+		   VarDriver3D.h \
            BSpline/BSpline.h \
            Dorade.h \
            read_dorade.h \
@@ -41,7 +45,9 @@ SOURCES += BSpline.cpp \
            CostFunctionRZ_CPU.cpp \
            CostFunctionRZ_GPU.cpp \
            CostFunctionXY_CPU.cpp \
-           CostFunctionXYZ_CPU.cpp \ 
+           CostFunctionXYZ_CPU.cpp \
+		   CostFunctionVAR.cpp \
+		   CostFunction3D.cpp \ 
            main.cpp \
            MetObs.cpp \
            Observation.cpp \
@@ -53,5 +59,8 @@ SOURCES += BSpline.cpp \
            VarDriverRZ.cpp \
            VarDriverXY.cpp \ 
            VarDriverXYZ.cpp \ 
+		   VarDriverVAR.cpp \
+		   VarDriver3D.cpp \
            Dorade.cpp \
            TCcenter.cpp
+QT += xml

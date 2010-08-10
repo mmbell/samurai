@@ -30,6 +30,8 @@ int main (int argc, char *argv[]) {
 			VarDriver3D driver;
 			driver.initialize();
 			driver.run();
+		} else if (arg.right(3) == "xml") {
+			std::cout << "Not implemented\n";
 		}
 		std::cout << "Analysis complete!\n";
 	} else {

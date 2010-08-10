@@ -22,8 +22,8 @@
 #include <QDir>
 #include <QList>
 #include <QString>
+#include <QDomDocument>
 #include "precision.h"
-
 
 using namespace std;
 
@@ -47,7 +47,9 @@ protected:
 	unsigned int maxJdim;
 	unsigned int maxKdim;
 	vector<TCcenter> tcVector;
-
+	QDomDocument domDoc;
+	QHash<QString, QString> configHash;
+	
 	// Data Processing
 	QHash<QString, int> dataSuffix;
 	enum dataFormats {
@@ -75,6 +77,7 @@ protected:
 	bool read_ascat(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
+	bool readXMLconfig(const QString& xmlfile);
 	
 };
 

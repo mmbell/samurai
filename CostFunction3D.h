@@ -56,6 +56,8 @@ private:
 	void SBtranspose(real* Bstate, real* Ustate);
 	void SCtransform(real* Astate, real* Cstate);
 	void SCtranspose(real* Cstate, real* Astate);
+	void massContinuityResidual(real* Cstate, real* Vstate);
+	void massContinuityGradient(real* Cstate, real* Vstate);
 	int iDim, jDim, kDim;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
@@ -68,7 +70,7 @@ private:
 	real* stateB;
 	real* stateC;
 	real* stateU;
-	real* Uprime;
+	real* stateV;
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
@@ -78,11 +80,13 @@ private:
 	real* iL;
 	real* jL;
 	real* kL;
+	real* kLw;
 	int varDim;
 	int bState;
 	real bgError[6];
 	real bgErrorScale;
 	real constHeight;
+	real mcWeight;
 	
 	float BoundaryConditions[9][4];
 	enum BoundaryConditionTypes {
