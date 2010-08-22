@@ -97,6 +97,7 @@ class MetObs
 		float getVaporDensity() const;
 		float getMoistDensity() const;
 		float getVaporPressure() const;
+		float getSatVaporPressure() const;
 		float getVirtualTemp() const;
 		float getMoistStaticEnergy() const;
 		float getMoistSaturationStaticEnergy() const;
@@ -112,7 +113,8 @@ class MetObs
 			radar,
 			sfmr,
 			qscat,
-			ascat
+			ascat,
+			AMV
 		};
 		
 	protected:

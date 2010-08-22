@@ -13,6 +13,7 @@
 #include <cmath>
 #include <QTextStream>
 #include <QFile>
+#include <iomanip.h>
 #include "RecursiveFilter.h"
 
 VarDriver3D::VarDriver3D()
@@ -20,13 +21,12 @@ VarDriver3D::VarDriver3D()
 {
 	numVars = 6;
 	maxJdim = 256; // Can I make this dynamic?
-	rhoBase = 1.156;
-	rhoInvScaleHeight = 9.9504e-5;
-	xincr = 1.;
-	yincr = 1.;
-	zincr = 1.;
+	xincr = 25.;
+	yincr = 25.;
+	zincr = 0.5;
 	maxIter = 1.;
 	CQTOL = 0.5;
+	referenceState = jordan;
 }
 
 VarDriver3D::~VarDriver3D()
@@ -103,6 +103,10 @@ void VarDriver3D::preProcessMetObs()
 				if (!read_wwind(metFile, metData))
 					cout << "Error reading wwind file" << endl;
 				break;
+			case (eol):
+				if (!read_eol(metFile, metData))
+					cout << "Error reading eol file" << endl;
+				break;
 			case (qscat):
 				if (!read_qscat(metFile, metData))
 					cout << "Error reading wwind file" << endl;
@@ -114,6 +118,10 @@ void VarDriver3D::preProcessMetObs()
 			case (nopp):
 				if (!read_nopp(metFile, metData))
 					cout << "Error reading wwind file" << endl;
+				break;
+			case (cimss):
+				if (!read_cimss(metFile, metData))
+					cout << "Error reading cimss file" << endl;
 				break;
 			case (cen):
 				continue;				
@@ -158,7 +166,7 @@ void VarDriver3D::preProcessMetObs()
 			// Make sure the ob is in the domain
 			if ((obX < imin) or (obX > imax) or
 				(obY < jmin) or (obY > jmax) or
-				(obZ < jmin) or (obZ > jmax))
+				(obZ < kmin) or (obZ > kmax))
 				continue;
 			
 			varOb.setCartesianX(obX);
@@ -169,14 +177,9 @@ void VarDriver3D::preProcessMetObs()
 			real Vm = tcVector[tci].getVmean();
 
 			// Reference states			
-			real rhoBar = rhoBase*exp(-rhoInvScaleHeight*heightm);
-			real qBar = 19.562 - 0.004066*heightm + 7.8168e-7*heightm*heightm;
-			real hBar = 3.5e5;
-
-			/* Use bilinear interpolation here too for now, eventually probably a spline
-			real rhoaBG = bilinearField(obX, obY, 4)/100. + rhoBar;
-			real qBG = bilinearField(obX, obY, 3) + qBar;
-			real rhoBG = rhoaBG*(1+qBG/1000.); */
+			real rhoBar = getReferenceVariable(rhoaref, heightm);
+			real qBar = getReferenceVariable(qvbhypref, heightm);
+			real hBar = getReferenceVariable(href, heightm);
 			
 			// Initialize the weights
 			varOb.setWeight(0., 0);
@@ -185,7 +188,7 @@ void VarDriver3D::preProcessMetObs()
 			varOb.setWeight(0., 3);
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
-			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd, vBG, uBG; 
+			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
 					varOb.setType(MetObs::dropsonde);
@@ -230,15 +233,16 @@ void VarDriver3D::preProcessMetObs()
 						// energy 5 kJ error
 						varOb.setWeight(1., 3);
 						varOb.setOb((energy - hBar)*1.e-3);
-						varOb.setError(5.0);
+						varOb.setError(1.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
 					if (qv != -999) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
+						qv = bhypTransform(qv);
 						varOb.setOb(qv-qBar);
-						varOb.setError(2.0);
+						varOb.setError(0.5);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
@@ -294,15 +298,16 @@ void VarDriver3D::preProcessMetObs()
 						// energy 5 kJ error
 						varOb.setWeight(1., 3);
 						varOb.setOb((energy - hBar)*1.e-3);
-						varOb.setError(5.0);
+						varOb.setError(1.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
 					if (qv != -999) {
 						// Qv 2 g/kg error
 						varOb.setWeight(1., 4);
+						qv = bhypTransform(qv);
 						varOb.setOb(qv-qBar);
-						varOb.setError(2.0);
+						varOb.setError(0.5);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
@@ -373,6 +378,30 @@ void VarDriver3D::preProcessMetObs()
 						rhov = (v - Vm);
 						varOb.setOb(rhov);
 						varOb.setError(2.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 1);						
+					}
+					break;
+					
+				case (MetObs::AMV):
+					varOb.setType(MetObs::AMV);
+					u = metOb.getCartesianUwind();
+					v = metOb.getCartesianVwind();
+					if (u != -999) {
+						// rho u 10 m/s error
+						varOb.setWeight(1., 0);
+						rhou = (u - Um);
+						//cout << "RhoU: " << rhou << endl;
+						varOb.setOb(rhou);
+						varOb.setError(10.);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 0);
+						
+						varOb.setWeight(1., 1);
+						// Multiply by rho later from grid values
+						rhov = (v - Vm);
+						varOb.setOb(rhov);
+						varOb.setError(10.);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);						
 					}
@@ -758,11 +787,11 @@ bool VarDriver3D::initialize()
 		bilinearMish();
 	} else {
 		// Set the background to zero
-		double xMin = -15.;
-		double xMax =  20.;
+		double xMin = -500.;
+		double xMax =  500.;
 		int numXnodes = (int)((xMax - xMin)/xincr) + 1;
-		double yMin =  0.;
-		double yMax =  35.;
+		double yMin =  -500.;
+		double yMax =  500.;
 		int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
 		double zMin =  0.;
 		double zMax =  18.;
@@ -786,6 +815,18 @@ bool VarDriver3D::initialize()
 		
 	}
 	
+	// Print the Reference state
+	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
+	for (real k = kmin; k < kmax+zincr; k+= zincr) {
+		cout << "                   " << k << "\t";
+		for (int i = 0; i < 6; i++) {
+			real var = getReferenceVariable(i, k*1000);
+			if (i == 0) var = bhypInvTransform(var);
+			cout << setw(9) << setprecision(4)  << var << "\t";
+		}
+		cout << "\n";
+	}
+	
 	// Read in the TC centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
@@ -793,14 +834,14 @@ bool VarDriver3D::initialize()
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
-	bool preprocess = false;
+	bool preprocess = true;
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
 		loadMetObs();
 	}
 	cout << "Number of Observations: " << obVector.size() << endl;
-	
+		
 	// Define the sizes of the arrays we are passing to the cost function
 	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
 	
@@ -812,19 +853,21 @@ bool VarDriver3D::initialize()
 
 bool VarDriver3D::run()
 {
-
+	// CQRMS not used currently
 	double CQRMS = 999;
 	int iter=0;
 	while ((CQRMS > CQTOL) and (iter < maxIter)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
-		cost3D->initState();
+		real hlength = 2.;
+		real vlength = 1.5;
+		cost3D->initState(hlength,hlength,vlength);
 		cost3D->minimize();
 		// Increment the variables
 		cost3D->updateBG();
 	}	
-	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
-		<< iter << " iterations. Writing analysis results..." << endl;
+/*	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
+		<< iter << " iterations. Writing analysis results..." << endl; */
 
 	return true;
 

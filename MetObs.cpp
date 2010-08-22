@@ -265,7 +265,7 @@ float MetObs::getQv() const
 float MetObs::getQvSaturation() const
 {	
 	if ((temperature != -999) and (pressure != -999)) {
-		float e = getVaporPressure();
+		float e = getSatVaporPressure();
 		return (1000.0 * EPSILON * e / (pressure - e));
 	} else {
 		return -999;
@@ -380,6 +380,15 @@ float MetObs::getVaporPressure() const
 {
 	if (dewpoint != -999) {
 		return (E_3 * exp (17.2694 * (1.0 - 237.3 / (dewpoint - T_3 + 237.3))));
+	} else {
+		return -999;
+	}
+}
+
+float MetObs::getSatVaporPressure() const
+{
+	if (temperature != -999) {
+		return (6.1078 * exp(5.0065 * log(273.15/temperature)) * exp((5.0065 + 19.83923) * (1 - 273.15/temperature)));
 	} else {
 		return -999;
 	}

@@ -18,6 +18,7 @@ public:
 	RecursiveFilter(const int& fOrder, const double& fLengthScale);
 	RecursiveFilter(const double& fLengthScale, const double* tau, const int& arrLength );
 	~RecursiveFilter();
+    void setFilterLengthScale(const double& fLengthScale);
 	bool filterArray(double* array, const int& arrLength);
 	bool aniFilterArray(double* array, const int& arrLength);
 

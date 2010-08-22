@@ -28,9 +28,12 @@ VarDriver::VarDriver()
 	dataSuffix["swp"] = swp;
 	dataSuffix["sfmr"] = sfmr;
 	dataSuffix["Wwind"] = wwind;
+	dataSuffix["eol"] = eol;
 	dataSuffix["qscat"] = qscat;
 	dataSuffix["ascat"] = ascat;
 	dataSuffix["nopp"] = nopp;
+	dataSuffix["cimss"] = cimss;
+	
 }
 
 VarDriver::~VarDriver()
@@ -320,6 +323,85 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 	return true;
 }
 
+bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
+{
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr, aircraft;
+	QDateTime datetime;
+	bool start = false;
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		if (line.startsWith("Launch Site Type")) {
+			QStringList lineparts = line.split(":");
+			aircraft = lineparts[1].trimmed();
+		} else if (line.startsWith("UTC")) {
+			datestr = line.mid(43,12);
+			timestr = line.mid(57,8);
+			QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
+			QTime time = QTime::fromString(timestr, "HH:mm:ss");
+			datetime = QDateTime(date, time, Qt::UTC);
+		} else if (line.startsWith("------")) {
+			// Start reading data
+			start = true;
+		} else if (start) {
+			MetObs ob;
+			ob.setStationName(aircraft);
+			line = QString(" ") + line;
+			QStringList lineparts = line.split(QRegExp("\\s+"));
+			int sec = (int)lineparts[1].toFloat();
+			ob.setTime(datetime.addSecs(sec));
+			if (lineparts[15].toFloat() != -999.) { 
+				ob.setLon(lineparts[15].toFloat());
+			} else {
+				ob.setLon(-999.);
+			}
+			if (lineparts[16].toFloat() != -999.) { 
+				ob.setLat(lineparts[16].toFloat());
+			} else {
+				ob.setLat(-999.);
+			}
+			if (lineparts[14].toFloat() != -999.0) { 
+				ob.setAltitude(lineparts[14].toFloat());
+			} else {
+				ob.setAltitude(-999.);
+			}
+			if (lineparts[5].toFloat() != -999.0) { 
+				ob.setPressure(lineparts[5].toFloat());
+			} else {
+				ob.setPressure(-999.0);
+			}
+			if (lineparts[6].toFloat() != -999.0) {
+				ob.setTemperature(lineparts[6].toFloat() + 273.15);
+			} else {
+				ob.setTemperature(-999.);
+			}
+			if (lineparts[8].toFloat() != -999.0) {
+				ob.setRH(lineparts[8].toFloat());
+			} else {
+				ob.setRH(-999.);
+			}
+			if (lineparts[12].toFloat() != -999.0) {
+				ob.setWindDirection(lineparts[12].toFloat());
+			} else {
+				ob.setWindDirection(-999.);
+			}
+			if (lineparts[11].toFloat() != -999.0) {
+				ob.setWindSpeed(lineparts[11].toFloat());
+			} else {
+				ob.setWindSpeed(-999.);
+			}
+			ob.setObType(MetObs::dropsonde);
+			metObVector->push_back(ob);
+		}
+	}
+	metFile.close();
+	return true;
+}
+
+
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -448,7 +530,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	float radarAlt = swpfile.getRadarAlt();
 	
 	for (int i=0; i < swpfile.getNumRays(); i++) {
-	//for (int i=0; i < swpfile.getNumRays(); i+=5) {
+	//for (int i=0; i < swpfile.getNumRays(); i+=2) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -664,7 +746,58 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setAltitude(10.0);
 		ob.setWindSpeed(lineparts[3].toFloat());
 		ob.setWindDirection(lineparts[4].toFloat());
-		ob.setObType(MetObs::ascat);
+		ob.setObType(MetObs::qscat);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+	
+}
+
+bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	MetObs ob;
+	QDateTime datetime;
+	// Skip first line
+	in.readLine();
+
+	QString line;
+	while (!in.atEnd()) {
+		line = in.readLine();
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+		QString station = lineparts[0] + " " + lineparts[1];
+		ob.setStationName(station);
+		QDate date = QDate::fromString(lineparts[2], "yyyyMMdd");
+		QTime time = QTime::fromString(lineparts[3], "HHmm");
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		ob.setLat(lineparts[4].toFloat());
+		ob.setLon(-lineparts[5].toFloat());
+		// Convert pressure to altitude
+		real presslevel = 100*lineparts[6].toFloat();
+		// Newton's method 
+		double height = 9000;
+		double pmin = 1e34;
+		int iter = 0;
+		while ((fabs(pmin) > 1.) and (iter < 5000)) {
+			double p = getReferenceVariable(pressref, height)-presslevel;
+			double pprime = (getReferenceVariable(pressref, height+500.) - getReferenceVariable(pressref, height-500.))/1000.;
+			if (pprime != 0) {
+				height = height - p/pprime;
+				pmin = p;
+			}
+			iter++;
+		}
+		ob.setAltitude(height);
+		ob.setWindSpeed(lineparts[7].toFloat());
+		ob.setWindDirection(lineparts[8].toFloat());
+		ob.setObType(MetObs::AMV);
 		metObVector->push_back(ob);
 	}
 	
@@ -709,4 +842,112 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	return true;
 	
 }
+
+real VarDriver::getReferenceVariable(int refVariable, real heightm)
+{
+	real qvbhypcoeff[5];
+	real rhoacoeff[5];
+	real dpdzcoeff[5];
+	
+	if (referenceState == jordan) {
+		qvbhypcoeff[0] = 9.5108;
+		qvbhypcoeff[1] = -0.002761;
+		qvbhypcoeff[2] = 3.0362e-7;
+		qvbhypcoeff[3] = -1.476e-11;
+		qvbhypcoeff[4] = 2.6515e-16;
+		
+		rhoacoeff[0] = 1.1451;
+		rhoacoeff[1] = -0.00010098;
+		rhoacoeff[2] = 3.1546e-09;
+		rhoacoeff[3] = -2.6251e-14;
+		rhoacoeff[4] = -5.5556e-19;
+		
+		dpdzcoeff[0] = -11.432;
+		dpdzcoeff[1] = 0.0010267;
+		dpdzcoeff[2] = -2.7622e-08;
+		dpdzcoeff[3] = -5.2937e-13;
+		dpdzcoeff[4] = 3.4713e-17;
+		
+	}
+
+	if (refVariable == qvbhypref) {
+		real qvbhyp = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		return qvbhyp;
+	} else if (refVariable == rhoaref) {
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			rhoa += rhoacoeff[i] * power;
+		}
+		return rhoa;
+	} else if (refVariable == rhoref) {
+		real rho = 0.;
+		real qvbhyp = 0.;
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			rhoa += rhoacoeff[i] * power;
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		real qv = bhypInvTransform(qvbhyp);
+		rho = rhoa*qv/1000. + rhoa;
+		return rho;
+	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
+		// Integrate hydrostatic equation to get pressure and/or solve for T or h
+		real press = 0.;
+		real temp = 0.;
+		real rho = 0.;
+		real qvbhyp = 0.;
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i);
+			real power1 = pow(heightm, i+1);
+			press += dpdzcoeff[i] * power1 / (i+1);
+			rhoa += rhoacoeff[i] * power;
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		real qv = bhypInvTransform(qvbhyp);
+		rho = rhoa*qv/1000. + rhoa;
+		press += 101510.0;
+		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
+		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
+		switch (refVariable) {
+			case href:
+				return h;
+			case tempref:
+				return temp;
+			case pressref:
+				return press;
+			default:
+				break;
+		}
+	}
+	
+	return 0;
+}
+
+real VarDriver::bhypTransform(real qv)
+{
+	
+	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
+	return qvbhyp;
+	
+}
+
+real VarDriver::bhypInvTransform(real qvbhyp)
+{
+	real qv = 0.;
+	if (qvbhyp > 0) {
+		qv = sqrt(qvbhyp*qvbhyp + 1.e-14) + qvbhyp - 1.e-7;
+	}
+	return qv;
+}
+
 

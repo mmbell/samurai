@@ -35,6 +35,12 @@ RecursiveFilter::~RecursiveFilter()
 {
 }
 
+void RecursiveFilter::setFilterLengthScale(const double& fLengthScale)
+{
+	lengthScale = fLengthScale;
+	getIsotropicFilterCoefficients();
+}
+
 void RecursiveFilter::getIsotropicFilterCoefficients()
 {
 	double sigma = (lengthScale*lengthScale)/2;

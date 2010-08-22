@@ -14,6 +14,7 @@
 #include <QTextStream>
 #include <QFile>
 #include <QDir>
+#include <netcdfcpp.h>
 
 CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
@@ -42,12 +43,11 @@ void CostFunction3D::finalize()
 	delete[] stateB;
 	delete[] stateC;
 	delete[] CTHTd;
-	delete[] iTemp;
-	delete[] jTemp;
 	delete[] iL;
 	delete[] jL;
 	delete[] stateU;
 	delete[] stateV;
+	delete[] fieldNodes;	
 }
 
 void CostFunction3D::initialize(const real& imin, const real& imax, const int& idim,
@@ -56,7 +56,7 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 									real* bgU, real* obs)
 {
 
-	// Initialize number of control variables -- one less than physical variables
+	// Initialize number of variables
 	varDim = 6;
 	
 	// Set the constant height for the XY case
@@ -65,14 +65,22 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	// Initialize background errors and filter scales
 	bgError[0] = 100.;
 	bgError[1] = 100.;
-	bgError[2] = 50.;
-	bgError[3] = 10.0;
-	bgError[4] = 5.0;	
-	bgError[5] = 5.0;
-	
-	rhoBase = 1.156;
-	rhoInvScaleHeight = 9.9504e-5;
+	bgError[2] = 100.;
+	bgError[3] = 100.;
+	bgError[4] = 100.;	
+	bgError[5] = 100.;
 
+	// These should be set by the xml file
+	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
+	iBCL[1] = R1T2; iBCR[1] = R1T2; jBCL[1] = R1T2; jBCR[1] = R1T2; kBCL[1] = R1T2; kBCR[1] = R1T2;
+	iBCL[2] = R1T2; iBCR[2] = R1T2; jBCL[2] = R1T2; jBCR[2] = R1T2; kBCL[2] = R1T0; kBCR[2] = R1T0;
+	iBCL[3] = R1T2; iBCR[3] = R1T2; jBCL[3] = R1T2; jBCR[3] = R1T2; kBCL[3] = R1T2; kBCR[3] = R1T2;
+	iBCL[4] = R1T2; iBCR[4] = R1T2; jBCL[4] = R1T2; jBCR[4] = R1T2;	kBCL[4] = R1T2; kBCR[4] = R1T2;
+	iBCL[5] = R1T2; iBCR[5] = R1T2; jBCL[5] = R1T2; jBCR[5] = R1T2; kBCL[5] = R1T2; kBCR[5] = R1T2;
+	
+	// Also should be set in XML
+	referenceState = jordan;
+	
 	// Assign local object pointers
 	bgFields = bgU;
 	rawObs = obs;
@@ -95,10 +103,10 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	//	Mass continuity weight
 	mcWeight = 100 * (DI * DJ * DK);
 	
-	// Set up the recursive filter
-	real iFilterScale = 8.;
-	real jFilterScale = 8.;
-	real kFilterScale = 4.;	
+	// Set up the initial recursive filter
+	real iFilterScale = 2.;
+	real jFilterScale = 2.;
+	real kFilterScale = 2.;	
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
@@ -121,22 +129,19 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
-	
+	fieldNodes = new real[21*nodes];	
 	bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[bState];
 	stateB = new real[bState];
 	stateA = new real[bState];
 	stateC = new real[bState];
-	iTemp = new real[iDim];
-	jTemp = new real[jDim];
-	kTemp = new real[kDim];
 	
 	// Set up the spline matrices
 	setupSplines();
 
 }	
 
-void CostFunction3D::initState()
+void CostFunction3D::initState(const real& iFilterScale, const real& jFilterScale, const real& kFilterScale)
 {
 
 	// Clear the state vector
@@ -155,6 +160,11 @@ void CostFunction3D::initState()
 		stateB[b] = 0.0;
 		stateC[b] = 0.0;
 	}
+	
+	// Change the filter scale
+	iFilter->setFilterLengthScale(iFilterScale);
+	jFilter->setFilterLengthScale(jFilterScale);
+	kFilter->setFilterLengthScale(kFilterScale);
 	
 	// SB Transform on the original bg fields
 	SBtransform(bgFields, stateB);
@@ -193,6 +203,8 @@ void CostFunction3D::initState()
 	// Output the original background field
 	outputAnalysis("background", bgState , true);
 
+	cout << "Beginning analysis...\n";
+	
 	// HTd
 	calcHTranspose(innovation, stateC);
 	
@@ -295,12 +307,12 @@ void CostFunction3D::updateHCq(double* state)
 					if ((iNode < 0) or (iNode >= iDim) or 
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-					real basis3x = ibasis * jbasis * kbasis;
 					for (int var = 0; var < varDim; var++) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						real basis3x = ibasis * jbasis * kbasis;
 						tempsum += stateC[cIndex + var] *  basis3x * obsVector[mi+6 + var];
 					}
 				}
@@ -335,16 +347,23 @@ void CostFunction3D::updateHCq(double* state)
 							if ((iNode < 0) or (iNode >= iDim) or 
 								(jNode < 0) or (jNode >= jDim) or
 								(kNode < 0) or (kNode >= kDim)) continue;
-							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-							idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R1T2, R1T2);
-							jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R1T2, R1T2);
-							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, R1T2, R1T2);
 							int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-							tempsum += (stateC[cIndex] * idbasis * jbasis * kbasis
-										+ stateC[cIndex + 1] * ibasis * jdbasis * kbasis
-										+ stateC[cIndex + 2] * ibasis * jbasis * kdbasis);
+							
+							idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
+							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
+							tempsum += (stateC[cIndex] * idbasis * jbasis * kbasis);
+							
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
+							jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
+							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
+							tempsum += (stateC[cIndex+1] * ibasis * jdbasis * kbasis);
+							
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
+							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
+							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
+							tempsum += (stateC[cIndex+2] * ibasis * jbasis * kdbasis);
+							
 						}
 					}
 				}
@@ -421,12 +440,12 @@ void CostFunction3D::calcInnovation()
 					if ((iNode < 0) or (iNode >= iDim) or 
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-					int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-					real basis3x = ibasis * jbasis * kbasis;
 					for (int var = 0; var < varDim; var++) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+					    int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+						real basis3x = ibasis * jbasis * kbasis;
 						tempsum += bgState[stateIndex + var] * basis3x * obsVector[mi+6+var];
 					}
 				}
@@ -462,16 +481,22 @@ void CostFunction3D::calcInnovation()
 							if ((iNode < 0) or (iNode >= iDim) or 
 								(jNode < 0) or (jNode >= jDim) or
 								(kNode < 0) or (kNode >= kDim)) continue;
-							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-							idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R1T2, R1T2);
-							jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R1T2, R1T2);
-							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, R1T2, R1T2);
 							int bgIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-							tempsum += (bgState[bgIndex] * idbasis * jbasis * kbasis
-										+ bgState[bgIndex + 1] * ibasis * jdbasis * kbasis
-										+ bgState[bgIndex + 2] * ibasis * jbasis * kdbasis);
+
+							idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
+							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
+							tempsum += (bgState[bgIndex] * idbasis * jbasis * kbasis);
+							
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
+							jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
+							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
+							tempsum += (bgState[bgIndex + 1] * ibasis * jdbasis * kbasis);
+										
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
+							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
+							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
+							tempsum += (bgState[bgIndex + 2] * ibasis * jbasis * kdbasis);
 						}
 					}
 				}
@@ -499,10 +524,11 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	}
 	
 	// Calculate H Transpose	
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				#pragma omp parallel for
+	#pragma omp parallel for
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			
 				for (int m = 0; m < mObs; m++) {
 					// Sum over obs this time
 					// Multiply state by H weights
@@ -521,12 +547,12 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 					real ibasis = 0;
 					real jbasis = 0;
 					real kbasis = 0;
-					ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-					int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
-					real qbasise = qhat* ibasis * jbasis * kbasis *invError;
 					for (int var = 0; var < varDim; var++) {
+						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
+						real qbasise = qhat* ibasis * jbasis * kbasis *invError;
 						#pragma omp atomic
 						Astate[aIndex + var] += qbasise * obsVector[mi+6+var];
 					}
@@ -553,16 +579,25 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 							real jdbasis = 0.;
 							real kdbasis = 0.;
 							
-							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-							idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, R1T2, R1T2);
-							jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, R1T2, R1T2);
-							kdbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 1, R1T2, R1T2);
 							int hIndex = mObs + iDim*jDim*kNode + iDim*jNode + iNode;
 							int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
+							
+							idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
+							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
+							#pragma omp atomic
 							Astate[aIndex] += mcWeight * (yhat[hIndex] * idbasis * jbasis * kbasis);
+							
+							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
+							jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
+							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
+							#pragma omp atomic
 							Astate[aIndex + 1] += mcWeight * (yhat[hIndex] * ibasis * jdbasis * kbasis);
+							
+							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
+							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
+							kdbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
+							#pragma omp atomic
 							Astate[aIndex + 2] += mcWeight * (yhat[hIndex] * ibasis * jbasis * kdbasis);
 						}		
 					}
@@ -690,32 +725,31 @@ void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
 	}
 					
 	#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
+	for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+		for (int kmu = -1; kmu <= 1; kmu += 2) {
+			real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
+			int kk = (int)((k - kMin)*DKrecip);
+			for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
+				if ((kNode < 0) or (kNode >= kDim)) continue;
 		
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-					if ((iNode < 0) or (iNode >= iDim)) continue;
-					
-					for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-						for (int jmu = -1; jmu <= 1; jmu += 2) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-							int jj = (int)((j - jMin)*DJrecip);
-							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-								if ((jNode < 0) or (jNode >= jDim)) continue;
-								
-								for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-									for (int kmu = -1; kmu <= 1; kmu += 2) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-										int kk = (int)((k - kMin)*DKrecip);
-										for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-											if ((kNode < 0) or (kNode >= kDim)) continue;
-											
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
+				for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+					for (int imu = -1; imu <= 1; imu += 2) {
+						real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
+						int ii = (int)((i - iMin)*DIrecip);
+						for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+							if ((iNode < 0) or (iNode >= iDim)) continue;
+							
+							for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+								for (int jmu = -1; jmu <= 1; jmu += 2) {
+									real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
+									int jj = (int)((j - jMin)*DJrecip);
+									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
+										if ((jNode < 0) or (jNode >= jDim)) continue;
+										
+										for (int var = 0; var < varDim; var++) {
+											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 											int bgI = iIndex*2 + (imu+1)/2;
 											int bgJ = jIndex*2 + (jmu+1)/2;
 											int bgK = kIndex*2 + (kmu+1)/2;
@@ -745,32 +779,31 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 	}
 	
 	#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
+	for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+		for (int kmu = -1; kmu <= 1; kmu += 2) {
+			real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
+			int kk = (int)((k - kMin)*DKrecip);
+			for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
+				if ((kNode < 0) or (kNode >= kDim)) continue;
 		
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-					if ((iNode < 0) or (iNode >= iDim)) continue;
-					
-					for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-						for (int jmu = -1; jmu <= 1; jmu += 2) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-							int jj = (int)((j - jMin)*DJrecip);
-							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-								if ((jNode < 0) or (jNode >= jDim)) continue;
-								
-								for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-									for (int kmu = -1; kmu <= 1; kmu += 2) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-										int kk = (int)((k - kMin)*DKrecip);
-										for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-											if ((kNode < 0) or (kNode >= kDim)) continue;
-																					
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
+				for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+					for (int imu = -1; imu <= 1; imu += 2) {
+						real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
+						int ii = (int)((i - iMin)*DIrecip);
+						for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+							if ((iNode < 0) or (iNode >= iDim)) continue;
+							
+							for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+								for (int jmu = -1; jmu <= 1; jmu += 2) {
+									real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
+									int jj = (int)((j - jMin)*DJrecip);
+									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
+										if ((jNode < 0) or (jNode >= jDim)) continue;
+										
+										for (int var = 0; var < varDim; var++) {
+											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 											int bgI = iIndex*2 + (imu+1)/2;
 											int bgJ = jIndex*2 + (jmu+1)/2;
 											int bgK = kIndex*2 + (kmu+1)/2;
@@ -793,7 +826,13 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 void CostFunction3D::SCtransform(real* Astate, real* Cstate)
 {
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
+	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
+		// These are local for parallelization
+		real* iTemp = new real[iDim];
+		real* jTemp = new real[jDim];
+		real* kTemp = new real[kDim];
+		
 		//FK
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -830,7 +869,10 @@ void CostFunction3D::SCtransform(real* Astate, real* Cstate)
 					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var]; 
 				}
 			}
-		}		
+		}
+		delete[] iTemp;
+		delete[] jTemp;
+		delete[] kTemp;
 	}
 }
 
@@ -838,7 +880,13 @@ void CostFunction3D::SCtranspose(real* Cstate, real* Astate)
 {
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
+	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
+		// These are local for parallelization
+		real* iTemp = new real[iDim];
+		real* jTemp = new real[jDim];
+		real* kTemp = new real[kDim];
+		
 		//FI & D
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -875,200 +923,10 @@ void CostFunction3D::SCtranspose(real* Cstate, real* Astate)
 				}
 			}
 		}
+		delete[] iTemp;
+		delete[] jTemp;
+		delete[] kTemp;
 	}		
-}
-
-void CostFunction3D::massContinuityResidual(real* Cstate, real* Vstate)
-{
-
-	// Calculate the mass continuity residual	
-	// Add in the background to ensure total mass continuity, even if background is not balanced
-
-	// Clear the Vstate
-	for (int n = 0; n < nState; n++) {
-		Vstate[n] = 0;
-	}
-	
-    #pragma omp parallel for
-	for (int var = 0; var < 3; var++) {
-		
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-					if ((iNode < 0) or (iNode >= iDim)) continue;
-					
-					for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-						for (int jmu = -1; jmu <= 1; jmu += 2) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-							int jj = (int)((j - jMin)*DJrecip);
-							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-								if ((jNode < 0) or (jNode >= jDim)) continue;
-								
-								for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-									for (int kmu = -1; kmu <= 1; kmu += 2) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-										int kk = (int)((k - kMin)*DKrecip);
-										for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-											if ((kNode < 0) or (kNode >= kDim)) continue;
-											int iprime = 0;
-											int jprime = 0;
-											int kprime = 0;
-											if (var == 0) iprime++;
-											if (var == 1) jprime++;
-											if (var == 2) kprime++;
-											real dscale = 0.;
-											if (var == 0) dscale = DIrecip;
-											if (var == 1) dscale = DJrecip;
-											if (var == 2) dscale = DKrecip;
-											
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iprime, R1T2, R1T2);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jprime, R1T2, R1T2);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, kprime, R1T0, R1T0);
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
-											int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
-											#pragma omp atomic
-											Vstate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] +=
-												Cstate[cIndex] * ibasis * jbasis * kbasis * dscale;
-										}
-									}	
-								}
-							}
-						}
-					}	
-				}
-			}
-		}
-	}
-}
-
-void CostFunction3D::massContinuityGradient(real* Cstate, real* Vstate)
-{
-	
-	// Clear the Vstate
-	for (int n = 0; n < nState; n++) {
-		Vstate[n] = 0;
-	}
-	
-#pragma omp parallel for
-	for (int var = 0; var < 3; var++) {
-		
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-					if ((iNode < 0) or (iNode >= iDim)) continue;
-					
-					for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-						for (int jmu = -1; jmu <= 1; jmu += 2) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-							int jj = (int)((j - jMin)*DJrecip);
-							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-								if ((jNode < 0) or (jNode >= jDim)) continue;
-								
-								for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-									for (int kmu = -1; kmu <= 1; kmu += 2) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-										int kk = (int)((k - kMin)*DKrecip);
-										for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-											if ((kNode < 0) or (kNode >= kDim)) continue;
-											int iprime = 0;
-											int jprime = 0;
-											int kprime = 0;
-											if (var == 0) iprime++;
-											if (var == 1) jprime++;
-											if (var == 2) kprime++;
-											real dscale = 0.;
-											if (var == 0) dscale = DIrecip;
-											if (var == 1) dscale = DJrecip;
-											if (var == 2) dscale = DKrecip;
-											
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iprime, R1T2, R1T2);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jprime, R1T2, R1T2);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, kprime, R1T0, R1T0);
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
-											int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
-#pragma omp atomic
-											Vstate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] +=
-												Cstate[cIndex] * ibasis * jbasis * kbasis * dscale;
-										}
-									}	
-								}
-							}
-						}
-					}	
-				}
-			}
-		}
-	}
-	
-	// Clear the Cstate
-	for (int b = 0; b < bState; b++) {
-		Cstate[b] = 0.;
-	}
-	
-#pragma omp parallel for
-	for (int var = 0; var < 3; var++) {
-		
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-					if ((iNode < 0) or (iNode >= iDim)) continue;
-					
-					for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-						for (int jmu = -1; jmu <= 1; jmu += 2) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-							int jj = (int)((j - jMin)*DJrecip);
-							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-								if ((jNode < 0) or (jNode >= jDim)) continue;
-								
-								for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-									for (int kmu = -1; kmu <= 1; kmu += 2) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-										int kk = (int)((k - kMin)*DKrecip);
-										for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-											if ((kNode < 0) or (kNode >= kDim)) continue;
-											int iprime = 0;
-											int jprime = 0;
-											int kprime = 0;
-											if (var == 0) iprime++;
-											if (var == 1) jprime++;
-											if (var == 2) kprime++;
-											real dscale = 0.;
-											if (var == 0) dscale = DIrecip;
-											if (var == 1) dscale = DJrecip;
-											if (var == 2) dscale = DKrecip;
-											
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, iprime, R1T2, R1T2);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, jprime, R1T2, R1T2);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, kprime, R1T0, R1T0);
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
-											int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
-#pragma omp atomic
-											Cstate[cIndex] +=
-											Vstate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var]
-											 * ibasis * jbasis * kbasis * dscale * mcWeight;
-										}
-									}	
-								}
-							}
-						}
-					}	
-				}
-			}
-		}
-	}
-	
 }
 
 
@@ -1092,7 +950,7 @@ bool CostFunction3D::setupSplines()
 		iBL[i] = 0;
 	}
 	
-	real cutoff_wl = 4;
+	real cutoff_wl = 2;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {				
 		for (int i = 0; i < iDim; i++) {
@@ -1107,25 +965,25 @@ bool CostFunction3D::setupSplines()
 				int ii = (int)((i - iMin)*DIrecip);
 				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 					if ((iNode < 0) or (iNode >= iDim)) continue;
-					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					real qm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 3, R1T2, R1T2);
+					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+					real qm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
 					real pn, qn;
 					P[iNode][iNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((iNode+1) < iDim) {
-						pn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-						qn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 3, R1T2, R1T2);
+						pn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						qn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
 						P[iNode][iNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+1][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((iNode+2) < iDim) {
-						pn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-						qn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 3, R1T2, R1T2);
+						pn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						qn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
 						P[iNode][iNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+2][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((iNode+3) < iDim) {
-						pn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-						qn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 3, R1T2, R1T2);
+						pn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						qn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
 						P[iNode][iNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[iNode+3][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
@@ -1193,7 +1051,7 @@ bool CostFunction3D::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 4;
+	cutoff_wl = 2;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 
@@ -1208,25 +1066,25 @@ bool CostFunction3D::setupSplines()
 				int jj = (int)((j - jMin)*DJrecip);
 				for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 					if ((jNode < 0) or (jNode >= jDim)) continue;
-					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					real qm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 3, R1T2, R1T2);
+					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+					real qm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
 					real pn, qn;
 					P[jNode][jNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((jNode+1) < jDim) {
-						pn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-						qn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 3, R1T2, R1T2);
+						pn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						qn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
 						P[jNode][jNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+1][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((jNode+2) < jDim) {
-						pn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-						qn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 3, R1T2, R1T2);
+						pn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						qn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
 						P[jNode][jNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+2][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
 					if ((jNode+3) < jDim) {
-						pn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-						qn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 3, R1T2, R1T2);
+						pn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						qn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
 						P[jNode][jNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[jNode+3][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
@@ -1288,7 +1146,7 @@ bool CostFunction3D::setupSplines()
 		kL[k] = 0;
 	}
 	
-	cutoff_wl = 4;
+	cutoff_wl = 2;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		
@@ -1303,25 +1161,25 @@ bool CostFunction3D::setupSplines()
 				int kk = (int)((k - kMin)*DKrecip);
 				for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 					if ((kNode < 0) or (kNode >= kDim)) continue;
-					real pm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-					real qm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 3, R1T0, R1T0);
+					real pm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+					real qm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
 					real pn, qn;
 					P[kNode][kNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((kNode+1) < kDim) {
-						pn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-						qn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 3, R1T0, R1T0);
+						pn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						qn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
 						P[kNode][kNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[kNode+1][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((kNode+2) < kDim) {
-						pn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-						qn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 3, R1T0, R1T0);
+						pn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						qn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
 						P[kNode][kNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[kNode+2][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
 					if ((kNode+3) < kDim) {
-						pn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-						qn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 3, R1T0, R1T0);
+						pn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						qn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
 						P[kNode][kNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						P[kNode+3][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
 					}
@@ -1446,12 +1304,12 @@ bool CostFunction3D::setupSplines()
 bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
 {
 	
-	real* fieldNodes = new real[12*iDim*jDim*kDim];	
 	cout << "Outputting " << suffix.toStdString() << "...\n";
 	// H --> to Mish for output
-	QString samuraiout = "SAMURAI_" + suffix + ".out";
+	QString samuraiout = "samurai_XYZ_" + suffix + ".out";
 	ofstream samuraistream(samuraiout.toAscii().data());
-	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\th\n";
+	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
+	samuraistream << "rhoux\trhouy\trhouz\trhovx\trhovy\trhovz\trhowx\trhowy\trhowz\tMC residual\n";
 	samuraistream.precision(10);
 	real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1466,16 +1324,19 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							if (j > ((jDim-1)*DJ + jMin)) continue;	
 							
+							real tpw = 0;
+							
 							for (int kIndex = 0; kIndex < kDim; kIndex++) {
 								for (int khalf =0; khalf <=1; khalf++) {
 									for (int kmu = -khalf; kmu <= khalf; kmu++) {
 										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5*khalf));
 										if (k > ((kDim-1)*DK + kMin)) continue;	
 										
-										real rhoBar = rhoBase*exp(-rhoInvScaleHeight*k);
-										real qBar = 19.562 - 0.004066*k + 7.8168e-7*k*k;
-										real hBar = 3.5e5;
-										
+										real heightm = 1000*k;
+										real rhoBar = getReferenceVariable(rhoaref, heightm);
+										real qBar = getReferenceVariable(qvbhypref, heightm);
+										real hBar = getReferenceVariable(href, heightm);
+
 										int ii = (int)((i - iMin)*DIrecip);
 										int jj = (int)((j - jMin)*DJrecip);
 										int kk = (int)((k - kMin)*DKrecip);
@@ -1484,45 +1345,75 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real kbasis = 0.;
 										real idbasis = 0.;
 										real jdbasis = 0.;
+										real kdbasis = 0.;
 										real rhov = 0.;
 										real rhou = 0.;
 										real rhow = 0.;
-										real chi = 0.;
+										real rhovdx = 0.;
+										real rhoudx = 0.;
+										real rhowdx = 0.;
+										real rhovdy = 0.;
+										real rhoudy = 0.;
+										real rhowdy = 0.;
+										real rhovdz = 0.;
+										real rhoudz = 0.;
+										real rhowdz = 0.;
 										real hprime = 0.;
 										real qvprime = 0.;
 										real rhoprime = 0.;
-										real vorticity = 0.;
-										real divergence = 0.;
 										for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 											for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 												for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 													if ((iNode < 0) or (iNode >= iDim) or 
 														(jNode < 0) or (jNode >= jDim) or
 														(kNode < 0) or (kNode >= kDim)) continue;
-													ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-													jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-													kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-													idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, R1T2, R1T2);
-													jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, R1T2, R1T2);
-													real basis3x = ibasis*jbasis*kbasis;
-													int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-													real ucoeff = Astate[aIndex];
-													real vcoeff = Astate[aIndex + 1];
-													rhou +=  Astate[aIndex + 0] * basis3x;
-													rhov +=  Astate[aIndex + 1] * basis3x;
-													// Base units are 10-3/s since we are using km
-													vorticity += (DIrecip * vcoeff * idbasis * jbasis - DJrecip * ucoeff * ibasis * jdbasis);
-													divergence += (DIrecip * ucoeff * idbasis * jbasis + DJrecip * vcoeff * ibasis * jdbasis);
-													rhow += Astate[aIndex + 2] * basis3x;
-													hprime += Astate[aIndex + 3] * basis3x;
-													qvprime += Astate[aIndex + 4] * basis3x;
-													rhoprime += Astate[aIndex + 5] * basis3x;
+													for (int var = 0; var < varDim; var++) {
+														ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+														jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+														kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+														idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
+														jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
+														kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+														real basis3x = ibasis*jbasis*kbasis;
+														int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+														switch (var) {
+															case 0:
+																rhou +=  Astate[aIndex] * basis3x;
+																rhoudx += Astate[aIndex] * idbasis * jbasis * kbasis;
+																rhoudy += Astate[aIndex] * ibasis * jdbasis * kbasis;
+																rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
+																break;
+															case 1:
+																rhov +=  Astate[aIndex + 1] * basis3x;
+																rhovdx += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
+																rhovdy += Astate[aIndex + 1] * ibasis * jdbasis * kbasis;
+																rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
+																break;
+															case 2:
+																rhow += Astate[aIndex + 2] * basis3x;
+																rhowdx += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
+																rhowdy += Astate[aIndex + 2] * ibasis * jdbasis * kbasis;
+																rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
+																break;
+															case 3:
+																hprime += Astate[aIndex + 3] * basis3x;
+																break;
+															case 4:
+																qvprime += Astate[aIndex + 4] * basis3x;
+																break;
+															case 5:
+																rhoprime += Astate[aIndex + 5] * basis3x;
+																break;
+														}
+													}
 												}
 											}
 										}
+										
 										// Get it to relevant variables for the flux calculation
 										real rhoa = rhoBar + rhoprime / 100;
-										real rhoq = (qBar + qvprime) * rhoa / 1000.;
+										real qv = bhypInvTransform(qBar + qvprime);
+										real rhoq = qv * rhoa / 1000.;
 										real rho = rhoa + rhoq;
 										real v = rhov / rho;
 										real u = rhou / rho;
@@ -1530,12 +1421,25 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real wspd = sqrt(u*u + v*v);
 										real KE = 0.5*rho*(v*v + u*u + w*w);
 										real rhoE = rho*(hBar + hprime*1.e3) + KE;
-										real T = ((hBar + hprime*1.e3) - 2.501e3*(qBar + qvprime) - 9.81*j)/1005.7;
-										real press = T*rhoa*287./100.;
+										real h = hBar + hprime*1.e3;
+										real temp = (h - 2.501e3*(qv) - 9.81*heightm)/1005.7;
+										real airpress = temp*rhoa*287./100.;
+										real satvp = 6.1078 * exp(5.0065 * log(273.15/temp)) * exp((5.0065 + 19.83923) * (1 - 273.15/temp));
+										real satqv = 1000.0 * 0.622 * satvp / airpress;
+										real relhum = -999.;
+										if ((satqv != 0) and (satqv >= qv))
+											relhum = 100*qv/satqv;
+										real vp = temp*rhoq*461./100.;
+										real press = airpress + vp;
 										
-										// Adjust units to 10-5
-										vorticity *= 100;
-										divergence *= 100;
+										// Vorticity units are 10-5
+										real vorticity = 100*(rhovdx - rhoudy)/rho;
+										real divergence = 100*(rhoudx + rhovdy)/rho;
+										real s1 = 100*(rhoudx - rhovdy)/rho;
+										real s2 = 100*(rhovdx + rhoudy)/rho;
+										real strain = sqrt(s1*s1 + s2*s2);
+										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+										real mcresidual = rhoudx + rhovdy + rhowdz;
 										
 										// Output it
 										if (updateMish and imu and jmu and kmu and ihalf and jhalf and khalf) {
@@ -1551,25 +1455,47 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											bgFields[bIndex + 5] = rhoprime;
 										}
 										
+										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
+										real tprime = temp - getReferenceVariable(tempref, heightm);
+										
 										if (!ihalf and !jhalf and !khalf){
 											// On the node
 											samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
 											<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-											<< "\t" << qvprime << "\t" << rhoprime << "\t" << T << "\t" << press <<  "\t" << hprime
-											<< "\n";
-											int fIndex = 12*iDim*jDim*kIndex + 12*iDim*jIndex + 12*iIndex;
-											fieldNodes[fIndex + 0] = wspd;
-											fieldNodes[fIndex + 1] = chi;
-											fieldNodes[fIndex + 2] = u;
-											fieldNodes[fIndex + 3] = v;
-											fieldNodes[fIndex + 4] = w;
-											fieldNodes[fIndex + 5] = vorticity;
-											fieldNodes[fIndex + 6] = qvprime;
-											fieldNodes[fIndex + 7] = rhoprime;
-											fieldNodes[fIndex + 8] = T;
-											fieldNodes[fIndex + 9] = press;
-											fieldNodes[fIndex + 10] = hprime;
-											fieldNodes[fIndex + 11] = divergence;
+											<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
+											<< rhoudx << "\t" << rhoudy << "\t" << rhoudz << "\t"
+											<< rhovdx << "\t" << rhovdy << "\t" << rhovdz << "\t"
+											<< rhowdx << "\t" << rhowdy << "\t" << rhowdz << "\t" << mcresidual << "\n";
+
+											// Sum up the TPW in the vertical, top level is tpw
+											tpw += qv * DK;
+											
+											int fIndex = iDim*jDim*kDim; 
+											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
+											fieldNodes[fIndex * 0 + posIndex] = u;
+											fieldNodes[fIndex * 1 + posIndex] = v;
+											fieldNodes[fIndex * 2 + posIndex] = w;
+											fieldNodes[fIndex * 3 + posIndex] = wspd;
+											fieldNodes[fIndex * 4 + posIndex] = relhum;
+											fieldNodes[fIndex * 5 + posIndex] = hprime;
+											fieldNodes[fIndex * 6 + posIndex] = qvprime*2;
+											fieldNodes[fIndex * 7 + posIndex] = rhoprime;
+											fieldNodes[fIndex * 8 + posIndex] = tprime;
+											fieldNodes[fIndex * 9 + posIndex] = pprime;
+											fieldNodes[fIndex * 10 + posIndex] = vorticity;
+											fieldNodes[fIndex * 11 + posIndex] = divergence;
+											fieldNodes[fIndex * 12 + posIndex] = okuboweiss;
+											fieldNodes[fIndex * 13 + posIndex] = strain;
+											fieldNodes[fIndex * 14 + posIndex] = tpw;
+											fieldNodes[fIndex * 15 + posIndex] = rhou;
+											fieldNodes[fIndex * 16 + posIndex] = rhov;
+											fieldNodes[fIndex * 17 + posIndex] = rhow;
+											fieldNodes[fIndex * 15 + posIndex] = rho;
+											fieldNodes[fIndex * 16 + posIndex] = press;
+											fieldNodes[fIndex * 17 + posIndex] = temp;
+											fieldNodes[fIndex * 18 + posIndex] = qv;
+											fieldNodes[fIndex * 19 + posIndex] = h;
+											fieldNodes[fIndex * 20 + posIndex] = rhowdz;
 										}
 									}
 								}
@@ -1580,12 +1506,22 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 			}
 		}
 	}
-	
 
+	QString fileName = "samurai_XYZ_" + suffix;
+	QString outFileName;
+	if(QDir::isAbsolutePath(fileName)) {
+		outFileName = fileName;
+	}
+	else {
+		outFileName = QDir::current().filePath(fileName);
+	}
+		
+	QString cdfFileName = outFileName + ".nc";
+	if (!writeNetCDF(cdfFileName))
+		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl; 	
 	
-	// H -> to QC
 	// Write the Obs to a summary text file
-	QString qcout = "QC_" + suffix + ".out";
+	QString qcout = "samurai_QC_" + suffix + ".out";
 	ofstream qcstream(qcout.toAscii().data());
 	ifstream obstream("./Observations.out");
 	ostream_iterator<string> os(qcstream, "\t ");
@@ -1624,17 +1560,14 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 					if ((iNode < 0) or (iNode >= iDim) or 
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-					real basis3x = ibasis * jbasis * kbasis;
-					tempsum += stateC[cIndex + 0] * basis3x * obsVector[mi+6];
-					tempsum += stateC[cIndex + 1] * basis3x * obsVector[mi+7];
-					tempsum += stateC[cIndex + 2] * basis3x * obsVector[mi+8];
-					tempsum += stateC[cIndex + 3] * basis3x * obsVector[mi+9];
-					tempsum += stateC[cIndex + 4] * basis3x * obsVector[mi+10];
-					tempsum += stateC[cIndex + 5] * basis3x * obsVector[mi+11];
+					for (int var = 0; var < varDim; var++) {
+						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						real basis3x = ibasis * jbasis * kbasis;
+						tempsum += stateC[cIndex + var] * basis3x * obsVector[mi+6+var];
+					}
 				}
 			}
 		}
@@ -1648,14 +1581,6 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 		qcstream << endl;
 		
 	}
-	QString fileName = "samurai_XYZ_" + suffix;
-	QString outFileName;
-	if(QDir::isAbsolutePath(fileName)) {
-		outFileName = fileName;
-	}
-	else {
-		outFileName = QDir::current().filePath(fileName);
-	}
 	
 	// Write out the CAPPI to an asi file
 	// Initialize header
@@ -1666,7 +1591,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	
 	// Calculate headers
 	QStringList fieldNames;
-	fieldNames << "WS" << "CH" << "U" << "V" << "W" << "VO" << "QV" << "RO" << "T" << "P" << "HP" << "DV";
+	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW";
 	id[175] = fieldNames.size();
     for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);
@@ -1738,8 +1663,8 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
-	outFileName += ".asi";
-	QFile asiFile(outFileName);
+	QString asiFileName = outFileName + ".asi";
+	QFile asiFile(asiFileName);
 	if(!asiFile.open(QIODevice::WriteOnly)) {
 		cout << "Can't open CAPPI file for writing" << endl;
 		return false;
@@ -1757,7 +1682,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
             line = 0;
 		}
 	}
-		
+	
 	// Write data
 	for(int k = 0; k < kDim; k++) {
 		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;
@@ -1768,7 +1693,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 				int line = 0;
 				for (int i = 0; i < iDim;  i++){
 					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << 
-						fieldNodes[fieldNames.size()*iDim*jDim*k + fieldNames.size()*iDim*j + fieldNames.size()*i + n];
+					fieldNodes[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
 					line++;
 					if (line == 8) {
 						out << endl;
@@ -1782,11 +1707,286 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 		}
 	}
 	
-	delete[] fieldNodes;
-	
 	return true;
 	
 }     
+
+bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
+{
+	NcError err(NcError::verbose_nonfatal);
+	int NC_ERR = 0;
+	
+	// Create the file.
+	NcFile dataFile(netcdfFile.toAscii(), NcFile::Replace);
+	
+	// Check to see if the file was created.
+	if(!dataFile.is_valid())
+		return NC_ERR;
+	
+	// Define the dimensions. NetCDF will hand back an ncDim object for
+	// each.
+	NcDim *lvlDim, *latDim, *lonDim, *timeDim;
+	if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
+		return NC_ERR;
+	if (!(latDim = dataFile.add_dim("latitude", jDim)))
+		return NC_ERR;
+	if (!(lonDim = dataFile.add_dim("longitude", iDim)))
+		return NC_ERR;
+	// Add an unlimited dimension...
+	if (!(timeDim = dataFile.add_dim("time")))
+		return NC_ERR;
+	
+	// Define the coordinate variables.
+	NcVar *latVar, *lonVar, *lvlVar, *timeVar;
+	if (!(latVar = dataFile.add_var("latitude", ncFloat, latDim)))
+		return NC_ERR;
+	if (!(lonVar = dataFile.add_var("longitude", ncFloat, lonDim)))
+		return NC_ERR;
+	if (!(lvlVar = dataFile.add_var("altitude", ncFloat, lvlDim)))
+		return NC_ERR;
+	if (!(timeVar = dataFile.add_var("time", ncFloat, timeDim)))
+		return NC_ERR;
+	
+	// Define units attributes for coordinate vars. This attaches a
+	// text attribute to each of the coordinate variables, containing
+	// the units.
+	if (!latVar->add_att("units", "degrees_north"))
+		return NC_ERR;
+	if (!lonVar->add_att("units", "degrees_east"))
+		return NC_ERR;
+	if (!lvlVar->add_att("units", "km"))
+		return NC_ERR;
+	if (!timeVar->add_att("units", "seconds since 1970-01-01 00:00:00 +0000"))
+		return NC_ERR;
+	
+	// Define the netCDF variables 
+	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
+	NcVar *vorticity, *divergence, *okuboweiss, *s1, *s2, *rhou, *rhov, *rhow;
+	NcVar *rho, *press, *temp, *qv, *h, *rhowdz;
+		
+	if (!(u = dataFile.add_var("u wind", ncFloat, timeDim, 
+									 lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(v = dataFile.add_var("v wind", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(w = dataFile.add_var("w wind", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(wspd = dataFile.add_var("wind speed", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(hprime = dataFile.add_var("h prime", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(qvprime = dataFile.add_var("qv prime", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rhoprime = dataFile.add_var("rho_a prime", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(tprime = dataFile.add_var("T prime", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(pprime = dataFile.add_var("pressure prime", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(vorticity = dataFile.add_var("vorticity", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(divergence = dataFile.add_var("divergence", ncFloat, timeDim, 
+									   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(okuboweiss = dataFile.add_var("Okubo-Weiss", ncFloat, timeDim, 
+									   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(s1 = dataFile.add_var("strain", ncFloat, timeDim, 
+									 lvlDim, latDim, lonDim)))
+		return NC_ERR;       
+	if (!(s2 = dataFile.add_var("tpw", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rhou = dataFile.add_var("u momentum", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rhov = dataFile.add_var("v momentum", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rhow = dataFile.add_var("w momentum", ncFloat, timeDim, 
+							   lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rho = dataFile.add_var("rho_a", ncFloat, timeDim, 
+									  lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(press = dataFile.add_var("pressure", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(temp = dataFile.add_var("temperature", ncFloat, timeDim, 
+								  lvlDim, latDim, lonDim)))
+		return NC_ERR;	
+	if (!(qv = dataFile.add_var("qv", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(h = dataFile.add_var("h", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(rhowdz = dataFile.add_var("drhowdz", ncFloat, timeDim, 
+								  lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	
+	
+	// Define units attributes for data variables.
+	if (!u->add_att("units", "m s-1"))
+		return NC_ERR;
+	if (!v->add_att("units", "m s-1"))
+		return NC_ERR;
+	if (!w->add_att("units", "m s-1"))
+		return NC_ERR;
+	if (!wspd->add_att("units", "m s-1"))
+		return NC_ERR;
+	if (!relhum->add_att("units", "percent"))
+		return NC_ERR;
+	if (!hprime->add_att("units", "kJ"))
+		return NC_ERR;
+	if (!qvprime->add_att("units", "g kg-1")) 
+		return NC_ERR;
+	if (!rhoprime->add_att("units", "kg m-3")) 
+		return NC_ERR;
+	if (!tprime->add_att("units", "K")) 
+		return NC_ERR;
+	if (!pprime->add_att("units", "hPa")) 
+		return NC_ERR;
+	if (!vorticity->add_att("units", "10-5s-1")) 
+		return NC_ERR;
+	if (!divergence->add_att("units", "10-5s-1")) 
+		return NC_ERR;
+	if (!okuboweiss->add_att("units", "10-10s-1")) 
+		return NC_ERR;
+	if (!s1->add_att("units", "10-5s-1")) 
+		return NC_ERR;       
+	if (!s2->add_att("units", "10-5s-1")) 
+		return NC_ERR;
+	if (!rhou->add_att("units", "kg m-2s-1")) 
+		return NC_ERR;
+	if (!rhov->add_att("units", "kg m-2s-1")) 
+		return NC_ERR;
+	if (!rhow->add_att("units", "kg m-2s-1")) 
+		return NC_ERR;
+	if (!rho->add_att("units", "kg m-2s-1")) 
+		return NC_ERR;
+	if (!press->add_att("units", "hPa")) 
+		return NC_ERR;
+	if (!temp->add_att("units", "K")) 
+		return NC_ERR;	
+	if (!qv->add_att("units", "g kg-1")) 
+		return NC_ERR;
+	if (!h->add_att("units", "kJ")) 
+		return NC_ERR;
+	if (!rhowdz->add_att("units", "kg m-3s-1")) 
+		return NC_ERR;
+	
+	// Write the coordinate variable data to the file.
+	real *lats = new real[iDim];
+	real *lons = new real[jDim];
+	real *levs = new real[kDim];
+	real time[2];
+	
+	// Hard code this for now, but it needs to be dynamic
+	time[0] = 1282046400;
+	real latReference = 15.400;
+	real lonReference = -68.603;
+	double latrad =latReference * 1.745329251994e-02;
+	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
+	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
+	double fac_lon = 111.41513 * cos(latrad)
+	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		real i = iMin + DI * iIndex;
+		lons[iIndex] = lonReference + i/fac_lon;
+	}
+	if (!lonVar->put(lons, iDim))
+		return NC_ERR;       
+
+	for (int jIndex = 0; jIndex < jDim; jIndex++) {
+		real j = jMin + DJ * jIndex;
+		lats[jIndex] = latReference + j/fac_lat;
+	}
+	if (!latVar->put(lats, jDim))
+		return NC_ERR;       
+	
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+		real k = kMin + DK * kIndex;
+		levs[kIndex] = k;
+	}
+	if (!lvlVar->put(levs, kDim))
+		return NC_ERR; 
+	
+	if (!timeVar->put(time, 1))
+		return NC_ERR;
+	
+	// Write the data.
+	for (int rec = 0; rec < 1; rec++) 
+	{
+		if (!u->put_rec(&fieldNodes[0], rec))
+			return NC_ERR;
+		if (!v->put_rec(&fieldNodes[iDim*jDim*kDim*1], rec))
+			return NC_ERR;
+		if (!w->put_rec(&fieldNodes[iDim*jDim*kDim*2], rec))
+			return NC_ERR;
+		if (!wspd->put_rec(&fieldNodes[iDim*jDim*kDim*3], rec))
+			return NC_ERR;
+		if (!relhum->put_rec(&fieldNodes[iDim*jDim*kDim*4], rec))
+			return NC_ERR;
+		if (!hprime->put_rec(&fieldNodes[iDim*jDim*kDim*5], rec))
+			return NC_ERR;
+		if (!qvprime->put_rec(&fieldNodes[iDim*jDim*kDim*6], rec))
+			return NC_ERR;
+		if (!rhoprime->put_rec(&fieldNodes[iDim*jDim*kDim*7], rec)) 
+			return NC_ERR;
+		if (!tprime->put_rec(&fieldNodes[iDim*jDim*kDim*8], rec)) 
+			return NC_ERR;
+		if (!pprime->put_rec(&fieldNodes[iDim*jDim*kDim*9], rec))
+			return NC_ERR;
+		if (!vorticity->put_rec(&fieldNodes[iDim*jDim*kDim*10], rec))
+			return NC_ERR;
+		if (!divergence->put_rec(&fieldNodes[iDim*jDim*kDim*11], rec)) 
+			return NC_ERR;
+		if (!okuboweiss->put_rec(&fieldNodes[iDim*jDim*kDim*12], rec)) 
+			return NC_ERR;
+		if (!s1->put_rec(&fieldNodes[iDim*jDim*kDim*13], rec)) 
+			return NC_ERR;       
+		if (!s2->put_rec(&fieldNodes[iDim*jDim*kDim*14], rec)) 
+			return NC_ERR;
+		if (!rhou->put_rec(&fieldNodes[iDim*jDim*kDim*15], rec)) 
+			return NC_ERR;
+		if (!rhov->put_rec(&fieldNodes[iDim*jDim*kDim*16], rec)) 
+			return NC_ERR;
+		if (!rhow->put_rec(&fieldNodes[iDim*jDim*kDim*17], rec)) 
+			return NC_ERR;
+		if (!rho->put_rec(&fieldNodes[iDim*jDim*kDim*18], rec)) 
+			return NC_ERR;
+		if (!press->put_rec(&fieldNodes[iDim*jDim*kDim*19], rec)) 
+			return NC_ERR;
+		if (!temp->put_rec(&fieldNodes[iDim*jDim*kDim*20], rec))
+			return NC_ERR;	
+		if (!qv->put_rec(&fieldNodes[iDim*jDim*kDim*21], rec)) 
+			return NC_ERR;
+		if (!h->put_rec(&fieldNodes[iDim*jDim*kDim*22], rec)) 
+			return NC_ERR;
+		if (!rhowdz->put_rec(&fieldNodes[iDim*jDim*kDim*23], rec)) 
+			return NC_ERR;
+	}
+	
+	// The file is automatically closed by the destructor. This frees
+	// up any internal netCDF resources associated with the file, and
+	// flushes any buffers.
+
+	return 1;
+	
+}
 
 void CostFunction3D::obAdjustments() {
 	
@@ -1818,19 +2018,23 @@ void CostFunction3D::obAdjustments() {
 				if ((iNode < 0) or (iNode >= iDim) or 
 					(jNode < 0) or (jNode >= jDim) or
 					(kNode < 0) or (kNode >= kDim)) continue;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T0, R1T0);
-					qvprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 3] * ibasis * jbasis * kbasis;
-					rhoprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * kbasis;
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
+					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
+					qvprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * kbasis;					
+					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
+					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
+					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
+					rhoprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 5] * ibasis * jbasis * kbasis;
 				}
 			}
 		}
-		real rhoBar = rhoBase*exp(-rhoInvScaleHeight*k);
-		real qBar = 19.562 - 0.004066*k + 7.8168e-7*k*k;
+		real heightm = 1000*k;
+		real rhoBar = getReferenceVariable(rhoaref, heightm);
+		real qBar = getReferenceVariable(qvbhypref, heightm);
+		real qv = bhypInvTransform(qBar + qvprime);
 		real rhoa = rhoBar + rhoprime / 100;
-		real rhoq = (qBar + qvprime) * rhoa / 1000.;
-		real rhoBG = rhoa + rhoq;
+		real rhoBG = rhoa + rhoa*qv/1000.;
 		
 		// Adjust the relevant fields
 		if (type == MetObs::sfmr) {
@@ -1840,7 +2044,8 @@ void CostFunction3D::obAdjustments() {
 			//obsVector[mi+2] = 2.*vBG/wsBG;
 			//obsVector[mi+3] = 0.; //2.*uBG/wsBG;
 		}
-		if ((type == MetObs::radar) or (type == MetObs::qscat) or (type == MetObs::ascat)) { 
+		if ((type == MetObs::radar) or (type == MetObs::qscat) 
+			or (type == MetObs::ascat) or (type == MetObs::AMV)) { 
 			obsVector[mi] *= rhoBG;
 		}
 	}
@@ -2137,3 +2342,111 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 	return b;
 	
 }
+
+real CostFunction3D::getReferenceVariable(int refVariable, real heightm)
+{
+	real qvbhypcoeff[5];
+	real rhoacoeff[5];
+	real dpdzcoeff[5];
+	
+	if (referenceState == jordan) {
+		qvbhypcoeff[0] = 9.5108;
+		qvbhypcoeff[1] = -0.002761;
+		qvbhypcoeff[2] = 3.0362e-7;
+		qvbhypcoeff[3] = -1.476e-11;
+		qvbhypcoeff[4] = 2.6515e-16;
+		
+		rhoacoeff[0] = 1.1451;
+		rhoacoeff[1] = -0.00010098;
+		rhoacoeff[2] = 3.1546e-09;
+		rhoacoeff[3] = -2.6251e-14;
+		rhoacoeff[4] = -5.5556e-19;
+		
+		dpdzcoeff[0] = -11.432;
+		dpdzcoeff[1] = 0.0010267;
+		dpdzcoeff[2] = -2.7622e-08;
+		dpdzcoeff[3] = -5.2937e-13;
+		dpdzcoeff[4] = 3.4713e-17;
+		
+	}
+	
+	if (refVariable == qvbhypref) {
+		real qvbhyp = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		return qvbhyp;
+	} else if (refVariable == rhoaref) {
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			rhoa += rhoacoeff[i] * power;
+		}
+		return rhoa;
+	} else if (refVariable == rhoref) {
+		real rho = 0.;
+		real qvbhyp = 0.;
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i); 
+			rhoa += rhoacoeff[i] * power;
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		real qv = bhypInvTransform(qvbhyp);
+		rho = rhoa*qv/1000. + rhoa;
+		return rho;
+	} else if ((refVariable == href) or (refVariable = tempref) or (refVariable == pressref)) {
+		// Integrate hydrostatic equation to get pressure and/or solve for T or h
+		real press = 0.;
+		real temp = 0.;
+		real rho = 0.;
+		real qvbhyp = 0.;
+		real rhoa = 0.;
+		for (int i = 0; i < 5; i++) {
+			real power = pow(heightm, i);
+			real power1 = pow(heightm, i+1);
+			press += dpdzcoeff[i] * power1 / (i+1);
+			rhoa += rhoacoeff[i] * power;
+			qvbhyp += qvbhypcoeff[i] * power;
+		}
+		if (qvbhyp < 0.) qvbhyp = 0.;
+		real qv = bhypInvTransform(qvbhyp);
+		rho = rhoa*qv/1000. + rhoa;
+		press += 101510.0;
+		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
+		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
+		switch (refVariable) {
+			case href:
+				return h;
+			case tempref:
+				return temp;
+			case pressref:
+				return press;
+			default:
+				break;
+		}
+	}
+	
+	return 0;
+}
+
+real CostFunction3D::bhypTransform(real qv)
+{
+	
+	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
+	return qvbhyp;
+	
+}
+
+real CostFunction3D::bhypInvTransform(real qvbhyp)
+{
+	real qv = 0.;
+	if (qvbhyp > 0) {
+		qv = sqrt(qvbhyp*qvbhyp + 1.e-14) + qvbhyp - 1.e-7;
+	}
+	return qv;
+}
+

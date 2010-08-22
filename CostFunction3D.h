@@ -34,7 +34,7 @@ public:
 					real* bgU, real* obs); 
 	void finalize();
 	void updateBG();
-	void initState();
+	void initState(const real& iFilterScale, const real& jFilterScale, const real& kFilterScale);
 	
 private:
 	double funcValue(double* state);
@@ -56,8 +56,13 @@ private:
 	void SBtranspose(real* Bstate, real* Ustate);
 	void SCtransform(real* Astate, real* Cstate);
 	void SCtranspose(real* Cstate, real* Astate);
-	void massContinuityResidual(real* Cstate, real* Vstate);
-	void massContinuityGradient(real* Cstate, real* Vstate);
+	
+	real getReferenceVariable(int refVariable, real heightm);
+	real bhypTransform(real qv);
+	real bhypInvTransform(real qvbhyp);
+	void writeAsi();
+	bool writeNetCDF(const QString& netcdfFile);
+	
 	int iDim, jDim, kDim;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
@@ -74,19 +79,19 @@ private:
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
-	real* iTemp;
-	real* jTemp;
-	real* kTemp;
 	real* iL;
 	real* jL;
 	real* kL;
 	real* kLw;
+	real* fieldNodes;
 	int varDim;
 	int bState;
 	real bgError[6];
+	int iBCL[6], iBCR[6], jBCL[6], jBCR[6], kBCL[6], kBCR[6];
 	real bgErrorScale;
 	real constHeight;
 	real mcWeight;
+	int referenceState;
 	
 	float BoundaryConditions[9][4];
 	enum BoundaryConditionTypes {
@@ -108,6 +113,19 @@ private:
 	real rhoInvScaleHeight;
 	real qBase;
 	real qInvScaleHeight;
+	
+	enum referenceStates {
+		jordan
+	};
+	
+	enum referenceVariables {
+		qvbhypref,
+		rhoaref,
+		rhoref,
+		href,
+		tempref,
+		pressref
+	};	
 	
 };
 

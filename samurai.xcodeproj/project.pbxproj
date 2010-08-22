@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
+		096F1BAF12200BFD00ED7FDC /* libnetcdf_c++.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1BAE12200BFD00ED7FDC /* libnetcdf_c++.a */; };
+		096F1C1212207B0600ED7FDC /* libnetcdf.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1112207B0600ED7FDC /* libnetcdf.a */; };
+		096F1C1512207B1700ED7FDC /* libhdf5.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1412207B1700ED7FDC /* libhdf5.a */; };
+		096F1C1712207B2000ED7FDC /* libcurl.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1612207B2000ED7FDC /* libcurl.a */; };
+		096F1C1A12207B4000ED7FDC /* libhdf5_hl.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1912207B4000ED7FDC /* libhdf5_hl.a */; };
 		0997BFEC12110C120063D87C /* samurai.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 0997BFE912110C120063D87C /* samurai.app */; };
 		108D3A43C08311A85AE62FE2 /* CostFunctionXYZ_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */; settings = {ATTRIBUTES = (); }; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -63,6 +68,11 @@
 		028A9E6B2F8E120088F3EA60 /* VarDriver3D.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver3D.h; sourceTree = "<group>"; };
 		0509C1DA3ED2374001201C0E /* TCcenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCcenter.cpp; sourceTree = "<group>"; };
 		05C01B8803092063635BE2FA /* read_dorade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_dorade.h; sourceTree = "<group>"; };
+		096F1BAE12200BFD00ED7FDC /* libnetcdf_c++.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libnetcdf_c++.a"; path = "/usr/local/lib/libnetcdf_c++.a"; sourceTree = "<absolute>"; };
+		096F1C1112207B0600ED7FDC /* libnetcdf.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnetcdf.a; path = /usr/local/lib/libnetcdf.a; sourceTree = "<absolute>"; };
+		096F1C1412207B1700ED7FDC /* libhdf5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libhdf5.a; path = /usr/local/lib/libhdf5.a; sourceTree = "<absolute>"; };
+		096F1C1612207B2000ED7FDC /* libcurl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcurl.a; path = /usr/local/lib/libcurl.a; sourceTree = "<absolute>"; };
+		096F1C1912207B4000ED7FDC /* libhdf5_hl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libhdf5_hl.a; path = /usr/local/lib/libhdf5_hl.a; sourceTree = "<absolute>"; };
 		0997BFE912110C120063D87C /* samurai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = samurai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DAC4A383E5D3CA54A854D1B /* CostFunctionXYZ_CPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionXYZ_CPU.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -130,6 +140,11 @@
 				51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */,
 				069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */,
 				F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */,
+				096F1BAF12200BFD00ED7FDC /* libnetcdf_c++.a in Frameworks & Libraries */,
+				096F1C1212207B0600ED7FDC /* libnetcdf.a in Frameworks & Libraries */,
+				096F1C1512207B1700ED7FDC /* libhdf5.a in Frameworks & Libraries */,
+				096F1C1712207B2000ED7FDC /* libcurl.a in Frameworks & Libraries */,
+				096F1C1A12207B4000ED7FDC /* libhdf5_hl.a in Frameworks & Libraries */,
 			);
 			name = "Frameworks & Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -209,6 +224,11 @@
 		ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				096F1C1612207B2000ED7FDC /* libcurl.a */,
+				096F1C1412207B1700ED7FDC /* libhdf5.a */,
+				096F1C1912207B4000ED7FDC /* libhdf5_hl.a */,
+				096F1C1112207B0600ED7FDC /* libnetcdf.a */,
+				096F1BAE12200BFD00ED7FDC /* libnetcdf_c++.a */,
 				8EE92F8FA333C9E415C5B34E /* QtXml.framework */,
 				9B36DA7E32F0304E780E7972 /* QtGui.framework */,
 				DA138F75C9F545CDAE7FB264 /* Carbon.framework */,
@@ -577,6 +597,8 @@
 		95E1EB2E5DDD587BE5B3E548 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1)";
+				ARCHS_STANDARD_32_BIT_PRE_XCODE_3_1 = "ppc i386";
 				COPY_PHASE_STRIP = YES;
 				ENABLE_OPENMP_SUPPORT = YES;
 				GCC_AUTO_VECTORIZATION = YES;
@@ -584,6 +606,7 @@
 				GCC_OPTIMIZATION_LEVEL = 2;
 				GCC_UNROLL_LOOPS = YES;
 				GCC_VERSION = 4.2;
+				VALID_ARCHS = "i386 x86_64";
 			};
 			name = Release;
 		};
