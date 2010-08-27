@@ -136,12 +136,12 @@ void RecursiveFilter::getIsotropicFilterCoefficients()
 	
 	std::cout << "4th Order Recursive Filter coefficients computed for lengthscale " 
 		<< lengthScale << " Delta X" << std::endl;
-	std::cout << "\tCoefficients: " << beta << "\t";
+	/* std::cout << "\tCoefficients: " << beta << "\t";
 	std::cout << alpha[1] << "\t";
 	std::cout << alpha[2] << "\t";
 	std::cout << alpha[3] << "\t";
 	std::cout << alpha[4] << "\t";
-	std::cout << "( " << beta+alpha[1]+alpha[2]+alpha[3]+alpha[4] << " )\n";
+	std::cout << "( " << beta+alpha[1]+alpha[2]+alpha[3]+alpha[4] << " )\n"; */
 	
 	// Boundary conditions
 	double L[5][5];

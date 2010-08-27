@@ -13,7 +13,7 @@
 #include <cmath>
 #include <QTextStream>
 #include <QFile>
-#include <iomanip.h>
+#include <iomanip>
 #include "RecursiveFilter.h"
 
 VarDriver3D::VarDriver3D()
@@ -38,7 +38,8 @@ VarDriver3D::~VarDriver3D()
 	delete[] BG;
 	delete[] BGsave;
 	delete[] obs;
-	delete cost3D;
+	delete[] bgObs;
+	delete obCost3D;
 }
 
 
@@ -579,6 +580,164 @@ bool VarDriver3D::loadMetObs()
 	return true;
 }
 
+
+int VarDriver3D::loadBackgroundObs()
+{
+	real RSquare = xincr*xincr + yincr*yincr + zincr*zincr;
+	QList<real> bgIn;
+	int time;
+	double lat, lon, alt, u, v, w, h, qv, rhoa;
+	ifstream bgstream("./Background.in");
+		
+	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> h >> qv >> rhoa)
+	{
+	
+		// Process the metObs into Observations
+		QDateTime startTime = tcVector.front().getTime();
+		QDateTime endTime = tcVector.back().getTime();
+		
+		// Make sure the bg is within the time limits
+		QDateTime bgTime;
+		bgTime.setTimeSpec(Qt::UTC);
+		bgTime.setTime_t(time);
+		QString obstring = bgTime.toString(Qt::ISODate);
+		QString tcstart = startTime.toString(Qt::ISODate);
+		QString tcend = endTime.toString(Qt::ISODate);		
+		if ((bgTime < startTime) or (bgTime > endTime)) continue;
+		int tci = startTime.secsTo(bgTime);
+		if ((tci < 0) or (tci > (int)tcVector.size())) {
+			cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
+			continue;
+		}
+		
+		// Get the X, Y & Z
+		double latrad = tcVector[tci].getLat() * Pi/180.0;
+		double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
+		+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
+		double fac_lon = 111.41513 * cos(latrad)
+		- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+		double bgY = (lat - tcVector[tci].getLat())*fac_lat;
+		double bgX = (lon - tcVector[tci].getLon())*fac_lon;
+		double heightm = alt;
+		double bgZ = heightm/1000.;
+		// Make sure the ob is in the domain
+		if ((bgX < imin) or (bgX > imax) or
+			(bgY < jmin) or (bgY > jmax) or
+			(bgZ < kmin) or (bgZ > kmax))
+			continue;
+				
+		real Um = tcVector[tci].getUmean();
+		real Vm = tcVector[tci].getVmean();
+		
+		// Reference states			
+		real rhoBar = getReferenceVariable(rhoaref, heightm);
+		real qBar = getReferenceVariable(qvbhypref, heightm);
+		real hBar = getReferenceVariable(href, heightm);
+
+		real rho = rhoa + rhoa*qv/1000.;
+		real rhou = rho*(u - Um);
+		real rhov = rho*(v - Vm);
+		real rhow = rho*w;
+		real hprime = (h - hBar)*1.e-3;
+		qv = bhypTransform(qv);
+		real qvprime = qv-qBar;
+		real rhoprime = (rhoa-rhoBar)*100;
+		bgIn << bgX << bgY << bgZ << rhou << rhov << rhow << hprime << qvprime << rhoprime;
+		
+		// Closest point interpolation
+		for (int zi = 0; zi < (kdim-1); zi++) {	
+			for (int zmu = -1; zmu <= 1; zmu += 2) {
+				real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+				if (fabs(zPos-bgZ) > zincr*10) continue;
+				
+				for (int xi = 0; xi < (idim-1); xi++) {
+					for (int xmu = -1; xmu <= 1; xmu += 2) {
+						real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+						if (fabs(xPos-bgX) > xincr) continue;
+						
+						for (int yi = 0; yi < (jdim-1); yi++) {
+							for (int ymu = -1; ymu <= 1; ymu += 2) {
+								real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+								if (fabs(yPos-bgY) > yincr) continue;
+								
+								real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos) + (bgZ-zPos)*(bgZ-zPos);
+								int bgI = xi*2 + (xmu+1)/2;
+								int bgJ = yi*2 + (ymu+1)/2;
+								int bgK = zi*2 + (zmu+1)/2;
+								int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
+								if (rSquare < bgWeights[bIndex]) {
+									bgU[bIndex] = rhou;
+									bgU[bIndex +1] = rhov;
+									bgU[bIndex +2] = rhow;
+									bgU[bIndex +3] = hprime;
+									bgU[bIndex +4] = qvprime;
+									bgU[bIndex +5] = rhoprime;
+									bgWeights[bIndex] = rSquare;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}				
+
+	int numbgObs = bgIn.size()*6/9;
+	if (numbgObs > 0) {
+		cout << numbgObs << " background observations loaded, checking for empty mish points" << endl;
+		// Check interpolation
+		for (int zi = 0; zi < (kdim-1); zi++) {	
+			for (int zmu = -1; zmu <= 1; zmu += 2) {
+				real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+				
+				for (int xi = 0; xi < (idim-1); xi++) {
+					for (int xmu = -1; xmu <= 1; xmu += 2) {
+						real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+						
+						for (int yi = 0; yi < (jdim-1); yi++) {
+							for (int ymu = -1; ymu <= 1; ymu += 2) {
+								real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+								int bgI = xi*2 + (xmu+1)/2;
+								int bgJ = yi*2 + (ymu+1)/2;
+								int bgK = zi*2 + (zmu+1)/2;
+								int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
+								if (bgWeights[bIndex] > 1.e10) {
+									cout << "Empty background mish at " << xPos << ", " << yPos << ", " << zPos << endl;
+								}							
+							}
+						}
+					}
+				}
+			}
+		}	
+	} else {
+		cout << "No background observations loaded" << endl;
+	}
+	// Load the observations into a vector
+	bgObs = new real[numbgObs*12];
+	for (int m=0; m < numbgObs; m++) bgObs[m] = 0.;
+	int p = 0;
+	for (int m=0; m < bgIn.size(); m+=9) {
+		real bgX = bgIn[m];
+		real bgY = bgIn[m+1];
+		real bgZ = bgIn[m+2];
+		for (int n = 0; n < 6; n++) {
+			bgObs[p] = bgIn[m+3+n];
+			// Error of background = 1
+			bgObs[p+1] = 1.;
+			bgObs[p+2] = bgX;
+			bgObs[p+3] = bgY;
+			bgObs[p+4] = bgZ;
+			// Null type
+			bgObs[p+5] = -1;
+			bgObs[p+6+n] = 1.;
+			p += 12;
+		}
+	}	
+	
+	return numbgObs;
+}
+
 bool VarDriver3D::loadBGfromFile()
 {
 	
@@ -769,51 +928,41 @@ bool VarDriver3D::initialize()
 	if(!child.isNull()) {
 		paramValue = child.text();
 	} */
+		
+	// Set the background to zero
+	double xMin = -500.;
+	double xMax =  500.;
+	int numXnodes = (int)((xMax - xMin)/xincr) + 1;
+	double yMin =  -500.;
+	double yMax =  500.;
+	int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
+	double zMin =  0.;
+	double zMax =  18.;
+	int numZnodes = (int)((zMax - zMin)/zincr) + 1;
 	
-	// Allocate memory for the BG fields
-	BG = new vector<real>*[maxJdim];
-	BGsave = new vector<real>*[maxJdim];
-	for (unsigned int yi = 0; yi < maxJdim; yi++) {
-		BG[yi] = new vector<real>[numVars];
-		BGsave[yi] = new vector<real>[numVars];
+	// Load the BG into a empty vector
+	int bgDim = 8*(numXnodes-1)*(numYnodes-1)*(numZnodes-1)*numVars;
+	bgU = new real[bgDim];
+	bgWeights = new real[bgDim];
+	for (int i=0; i < bgDim; i++) {
+		bgU[i] = 0.;
+		bgWeights[i] = 1.e36;
 	}
 	
-	/* Load a BG field (on a physical grid) from a file, or
-	   construct a parametric field, or (eventually) get from ESMF Coupler */
-	bool loadBG = false;
-	if (loadBG) {
-		loadBGfromFile();
-		// Set up the splines on the Gaussian Grid
-		bilinearMish();
-	} else {
-		// Set the background to zero
-		double xMin = -500.;
-		double xMax =  500.;
-		int numXnodes = (int)((xMax - xMin)/xincr) + 1;
-		double yMin =  -500.;
-		double yMax =  500.;
-		int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
-		double zMin =  0.;
-		double zMax =  18.;
-		int numZnodes = (int)((zMax - zMin)/zincr) + 1;
-		
-		// Load the BG into a empty vector
-		int bgDim = 8*(numXnodes-1)*(numYnodes-1)*(numZnodes-1)*numVars;
-		bgU = new real[bgDim];
-		for (int i=0; i < bgDim; i++) bgU[i] = 0.;
-		
-		// Set the master dimensions
-		imin = xMin;
-		imax = xMax;
-		idim = numXnodes;
-		jmin = yMin;
-		jmax = yMax;
-		jdim = numYnodes;
-		kmin = zMin;
-		kmax = zMax;
-		kdim = numZnodes;
-		
-	}
+	// Set the master dimensions
+	imin = xMin;
+	imax = xMax;
+	idim = numXnodes;
+	jmin = yMin;
+	jmax = yMax;
+	jdim = numYnodes;
+	kmin = zMin;
+	kmax = zMax;
+	kdim = numZnodes;
+	
+
+	// Define the sizes of the arrays we are passing to the cost function
+	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
 	
 	// Print the Reference state
 	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
@@ -826,12 +975,35 @@ bool VarDriver3D::initialize()
 		}
 		cout << "\n";
 	}
+	cout << setprecision(9);
 	
 	// Read in the TC centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
 	readTCcenters();
+
+	int loadBG = 2;
+	if (loadBG == 1) {
+		// Set up the Gaussian Grid by linear interpolation
+		loadBGfromFile();
+		bilinearMish();
+	} else if (loadBG == 2) {
+		// Set up the Gaussian Grid by a previous samurai analysis
+		int numbgObs = loadBackgroundObs();
 	
+		/* First, adjust the background field
+		bgCost3D = new CostFunction3D(numbgObs, stateSize);
+		bgCost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, bgObs);
+		real hlength = 2.;
+		real vlength = 2.;
+		bgCost3D->initState(hlength,hlength,vlength);
+		bgCost3D->minimize();
+		// Increment the variables
+		obCost3D->updateBG();
+		
+		delete bgCost3D; */
+	}
+
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
 	bool preprocess = true;
@@ -840,13 +1012,10 @@ bool VarDriver3D::initialize()
 	} else {
 		loadMetObs();
 	}
-	cout << "Number of Observations: " << obVector.size() << endl;
-		
-	// Define the sizes of the arrays we are passing to the cost function
-	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
-	cost3D = new CostFunction3D(obVector.size(), stateSize);
-	cost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, obs);
+	obCost3D = new CostFunction3D(obVector.size(), stateSize);
+	obCost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, obs);
 	
 	return true;
 }
@@ -861,10 +1030,10 @@ bool VarDriver3D::run()
 		cout << "Outer Loop Iteration: " << iter << endl;
 		real hlength = 2.;
 		real vlength = 1.5;
-		cost3D->initState(hlength,hlength,vlength);
-		cost3D->minimize();
+		obCost3D->initState(hlength,hlength,vlength);
+		obCost3D->minimize();
 		// Increment the variables
-		cost3D->updateBG();
+		obCost3D->updateBG();
 	}	
 /*	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
 		<< iter << " iterations. Writing analysis results..." << endl; */

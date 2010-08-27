@@ -45,6 +45,7 @@ private:
 	void preProcessMetObs();
 	bool loadMetObs();
 	bool loadBGfromFile();
+	int loadBackgroundObs();
 	bool bilinearMish();
 	real bilinearField(real xPos, real yPos, int var);
 	
@@ -66,7 +67,9 @@ private:
 	// Passable variables
 	real* bgB;
 	real* bgU;
+	real* bgWeights;
 	real* obs;
+	real* bgObs;
 	const real* iaScalar;
 	const real* iaVector;
 	const real* jaScalar;
@@ -78,8 +81,8 @@ private:
 	int jdim;
 	int kdim;
 	// Cost Functions
-	CostFunction3D* cost3D;
-
+	CostFunction3D* obCost3D;
+	CostFunction3D* bgCost3D;
 };
 
 #endif

@@ -63,12 +63,12 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	constHeight = 0.;
 	
 	// Initialize background errors and filter scales
-	bgError[0] = 100.;
-	bgError[1] = 100.;
-	bgError[2] = 100.;
-	bgError[3] = 100.;
-	bgError[4] = 100.;	
-	bgError[5] = 100.;
+	bgError[0] = 50.;
+	bgError[1] = 50.;
+	bgError[2] = 50.;
+	bgError[3] = 25.;
+	bgError[4] = 10.;	
+	bgError[5] = 10.;
 
 	// These should be set by the xml file
 	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
@@ -129,7 +129,7 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
-	fieldNodes = new real[21*nodes];	
+	fieldNodes = new real[24*nodes];	
 	bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[bState];
 	stateB = new real[bState];
@@ -239,7 +239,7 @@ double CostFunction3D::funcValue(double* state)
 	}
 	
 	// Mass continuity on the nodes
-	#pragma omp parallel for reduction(+:obIP)
+	//#pragma omp parallel for reduction(+:mcIP)
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -309,6 +309,7 @@ void CostFunction3D::updateHCq(double* state)
 						(kNode < 0) or (kNode >= kDim)) continue;
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					for (int var = 0; var < varDim; var++) {
+						if (obsVector[mi+6 + var] == 0) continue;
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -441,6 +442,7 @@ void CostFunction3D::calcInnovation()
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
 					for (int var = 0; var < varDim; var++) {
+						if (obsVector[mi+6 + var] == 0) continue;
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -548,6 +550,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 					real jbasis = 0;
 					real kbasis = 0;
 					for (int var = 0; var < varDim; var++) {
+						if (obsVector[mi+6 + var] == 0) continue;
 						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -746,17 +749,20 @@ void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
 									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 										if ((jNode < 0) or (jNode >= jDim)) continue;
 										
+										int uI = iIndex*2 + (imu+1)/2;
+										int uJ = jIndex*2 + (jmu+1)/2;
+										int uK = kIndex*2 + (kmu+1)/2;
+										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+										int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 										for (int var = 0; var < varDim; var++) {
+											int ui = uIndex + var;
+											if (Ustate[ui] == 0) continue;
+											int bi = bIndex + var;
 											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
 											#pragma omp atomic
-											Bstate[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var] += 
-												0.125 * Ustate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] 
-													* ibasis * jbasis * kbasis; 
+											Bstate[bi] += 0.125 * Ustate[ui] * ibasis * jbasis * kbasis; 
 										}
 									}	
 								}
@@ -799,18 +805,20 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 									int jj = (int)((j - jMin)*DJrecip);
 									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 										if ((jNode < 0) or (jNode >= jDim)) continue;
-										
+										int uI = iIndex*2 + (imu+1)/2;
+										int uJ = jIndex*2 + (jmu+1)/2;
+										int uK = kIndex*2 + (kmu+1)/2;
+										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+										int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 										for (int var = 0; var < varDim; var++) {
+											int bi = bIndex + var;
+											if (Bstate[bi] == 0) continue;
+											int ui = uIndex + var;
 											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
-											#pragma omp atomic										
-											Ustate[varDim*(iDim-1)*2*(jDim-1)*2*bgK +varDim*(iDim-1)*2*bgJ +varDim*bgI + var] += 
-											0.125 * Bstate[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var] 
-											* ibasis * jbasis * kbasis; 
+                                            #pragma omp atomic
+											Ustate[ui] += 0.125 * Bstate[bi] * ibasis * jbasis * kbasis; 
 										}
 									}	
 								}
@@ -1468,7 +1476,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											<< rhowdx << "\t" << rhowdy << "\t" << rhowdz << "\t" << mcresidual << "\n";
 
 											// Sum up the TPW in the vertical, top level is tpw
-											tpw += qv * DK;
+											tpw += qv * rhoa * DK;
 											
 											int fIndex = iDim*jDim*kDim; 
 											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
@@ -1490,12 +1498,12 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											fieldNodes[fIndex * 15 + posIndex] = rhou;
 											fieldNodes[fIndex * 16 + posIndex] = rhov;
 											fieldNodes[fIndex * 17 + posIndex] = rhow;
-											fieldNodes[fIndex * 15 + posIndex] = rho;
-											fieldNodes[fIndex * 16 + posIndex] = press;
-											fieldNodes[fIndex * 17 + posIndex] = temp;
-											fieldNodes[fIndex * 18 + posIndex] = qv;
-											fieldNodes[fIndex * 19 + posIndex] = h;
-											fieldNodes[fIndex * 20 + posIndex] = rhowdz;
+											fieldNodes[fIndex * 18 + posIndex] = rho;
+											fieldNodes[fIndex * 19 + posIndex] = press;
+											fieldNodes[fIndex * 20 + posIndex] = temp;
+											fieldNodes[fIndex * 21 + posIndex] = qv;
+											fieldNodes[fIndex * 22 + posIndex] = h;
+											fieldNodes[fIndex * 23 + posIndex] = rhowdz;
 										}
 									}
 								}
@@ -1591,7 +1599,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	
 	// Calculate headers
 	QStringList fieldNames;
-	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW";
+	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW";
 	id[175] = fieldNames.size();
     for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);
@@ -1761,79 +1769,79 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	
 	// Define the netCDF variables 
 	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
-	NcVar *vorticity, *divergence, *okuboweiss, *s1, *s2, *rhou, *rhov, *rhow;
+	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
 	NcVar *rho, *press, *temp, *qv, *h, *rhowdz;
 		
-	if (!(u = dataFile.add_var("u wind", ncFloat, timeDim, 
+	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
 									 lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(v = dataFile.add_var("v wind", ncFloat, timeDim, 
+	if (!(v = dataFile.add_var("V", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(w = dataFile.add_var("w wind", ncFloat, timeDim, 
+	if (!(w = dataFile.add_var("W", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(wspd = dataFile.add_var("wind speed", ncFloat, timeDim, 
+	if (!(wspd = dataFile.add_var("WSPD", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(hprime = dataFile.add_var("h prime", ncFloat, timeDim, 
+	if (!(hprime = dataFile.add_var("HP", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(qvprime = dataFile.add_var("qv prime", ncFloat, timeDim, 
+	if (!(qvprime = dataFile.add_var("QVP", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhoprime = dataFile.add_var("rho_a prime", ncFloat, timeDim, 
+	if (!(rhoprime = dataFile.add_var("RHOAP", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(tprime = dataFile.add_var("T prime", ncFloat, timeDim, 
+	if (!(tprime = dataFile.add_var("TP", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(pprime = dataFile.add_var("pressure prime", ncFloat, timeDim, 
+	if (!(pprime = dataFile.add_var("PP", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(vorticity = dataFile.add_var("vorticity", ncFloat, timeDim, 
+	if (!(vorticity = dataFile.add_var("VORT", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(divergence = dataFile.add_var("divergence", ncFloat, timeDim, 
+	if (!(divergence = dataFile.add_var("DIV", ncFloat, timeDim, 
 									   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(okuboweiss = dataFile.add_var("Okubo-Weiss", ncFloat, timeDim, 
+	if (!(okuboweiss = dataFile.add_var("OW", ncFloat, timeDim, 
 									   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(s1 = dataFile.add_var("strain", ncFloat, timeDim, 
+	if (!(strain = dataFile.add_var("STRAIN", ncFloat, timeDim, 
 									 lvlDim, latDim, lonDim)))
 		return NC_ERR;       
-	if (!(s2 = dataFile.add_var("tpw", ncFloat, timeDim, 
+	if (!(tpw = dataFile.add_var("TPW", ncFloat, timeDim, 
 								lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhou = dataFile.add_var("u momentum", ncFloat, timeDim, 
+	if (!(rhou = dataFile.add_var("RHOU", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhov = dataFile.add_var("v momentum", ncFloat, timeDim, 
+	if (!(rhov = dataFile.add_var("RHOV", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhow = dataFile.add_var("w momentum", ncFloat, timeDim, 
+	if (!(rhow = dataFile.add_var("RHOW", ncFloat, timeDim, 
 							   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rho = dataFile.add_var("rho_a", ncFloat, timeDim, 
+	if (!(rho = dataFile.add_var("RHOA", ncFloat, timeDim, 
 									  lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(press = dataFile.add_var("pressure", ncFloat, timeDim, 
+	if (!(press = dataFile.add_var("P", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(temp = dataFile.add_var("temperature", ncFloat, timeDim, 
+	if (!(temp = dataFile.add_var("T", ncFloat, timeDim, 
 								  lvlDim, latDim, lonDim)))
 		return NC_ERR;	
-	if (!(qv = dataFile.add_var("qv", ncFloat, timeDim, 
+	if (!(qv = dataFile.add_var("QV", ncFloat, timeDim, 
 								lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(h = dataFile.add_var("h", ncFloat, timeDim, 
+	if (!(h = dataFile.add_var("H", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhowdz = dataFile.add_var("drhowdz", ncFloat, timeDim, 
+	if (!(rhowdz = dataFile.add_var("DRHOWDZ", ncFloat, timeDim, 
 								  lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	
@@ -1865,9 +1873,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!okuboweiss->add_att("units", "10-10s-1")) 
 		return NC_ERR;
-	if (!s1->add_att("units", "10-5s-1")) 
+	if (!strain->add_att("units", "10-5s-1")) 
 		return NC_ERR;       
-	if (!s2->add_att("units", "10-5s-1")) 
+	if (!tpw->add_att("units", "mm")) 
 		return NC_ERR;
 	if (!rhou->add_att("units", "kg m-2s-1")) 
 		return NC_ERR;
@@ -1888,11 +1896,61 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	if (!rhowdz->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
 	
+	// Define long names for data variables.
+	if (!u->add_att("long_name", "u wind component"))
+		return NC_ERR;
+	if (!v->add_att("long_name", "v wind component"))
+		return NC_ERR;
+	if (!w->add_att("long_name", "w wind component"))
+		return NC_ERR;
+	if (!wspd->add_att("long_name", "wind speed"))
+		return NC_ERR;
+	if (!relhum->add_att("long_name", "relative humidity"))
+		return NC_ERR;
+	if (!hprime->add_att("long_name", "moist static energy perturbation"))
+		return NC_ERR;
+	if (!qvprime->add_att("long_name", "water vapor mixing ratio perturbation")) 
+		return NC_ERR;
+	if (!rhoprime->add_att("long_name", "air density perturbation")) 
+		return NC_ERR;
+	if (!tprime->add_att("long_name", "temperature perturbation")) 
+		return NC_ERR;
+	if (!pprime->add_att("long_name", "pressure perturbation")) 
+		return NC_ERR;
+	if (!vorticity->add_att("long_name", "vertical vorticity")) 
+		return NC_ERR;
+	if (!divergence->add_att("long_name", "horizontal divergence")) 
+		return NC_ERR;
+	if (!okuboweiss->add_att("long_name", "Okubo-Weiss parameter")) 
+		return NC_ERR;
+	if (!strain->add_att("long_name", "horizontal strain")) 
+		return NC_ERR;       
+	if (!tpw->add_att("long_name", "total precipitable water")) 
+		return NC_ERR;
+	if (!rhou->add_att("long_name", "mass-weighted u wind component")) 
+		return NC_ERR;
+	if (!rhov->add_att("long_name", "mass-weighted v wind component")) 
+		return NC_ERR;
+	if (!rhow->add_att("long_name", "mass-weighted w wind component")) 
+		return NC_ERR;
+	if (!rho->add_att("long_name", "density")) 
+		return NC_ERR;
+	if (!press->add_att("long_name", "pressure")) 
+		return NC_ERR;
+	if (!temp->add_att("long_name", "temperature")) 
+		return NC_ERR;	
+	if (!qv->add_att("long_name", "water vapor mixing ratio")) 
+		return NC_ERR;
+	if (!h->add_att("long_name", "moist static energy")) 
+		return NC_ERR;
+	if (!rhowdz->add_att("long_name", "vertical mass flux gradient")) 
+		return NC_ERR;	
+	
 	// Write the coordinate variable data to the file.
 	real *lats = new real[iDim];
 	real *lons = new real[jDim];
 	real *levs = new real[kDim];
-	real time[2];
+	int time[2];
 	
 	// Hard code this for now, but it needs to be dynamic
 	time[0] = 1282046400;
@@ -1956,9 +2014,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 			return NC_ERR;
 		if (!okuboweiss->put_rec(&fieldNodes[iDim*jDim*kDim*12], rec)) 
 			return NC_ERR;
-		if (!s1->put_rec(&fieldNodes[iDim*jDim*kDim*13], rec)) 
+		if (!strain->put_rec(&fieldNodes[iDim*jDim*kDim*13], rec)) 
 			return NC_ERR;       
-		if (!s2->put_rec(&fieldNodes[iDim*jDim*kDim*14], rec)) 
+		if (!tpw->put_rec(&fieldNodes[iDim*jDim*kDim*14], rec)) 
 			return NC_ERR;
 		if (!rhou->put_rec(&fieldNodes[iDim*jDim*kDim*15], rec)) 
 			return NC_ERR;
@@ -1983,7 +2041,10 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	// The file is automatically closed by the destructor. This frees
 	// up any internal netCDF resources associated with the file, and
 	// flushes any buffers.
-
+	delete[] lats;
+	delete[] lons;
+	delete[] levs;
+	
 	return 1;
 	
 }
@@ -2066,7 +2127,7 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 		case 0:
 			if (z < 2.0)
 			{
-				z = 2 - z;
+				z = 2.0 - z;
 				b = (z*z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
