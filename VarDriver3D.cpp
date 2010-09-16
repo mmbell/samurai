@@ -13,6 +13,7 @@
 #include <cmath>
 #include <QTextStream>
 #include <QFile>
+#include <QVector>
 #include <iomanip>
 #include "RecursiveFilter.h"
 
@@ -21,8 +22,8 @@ VarDriver3D::VarDriver3D()
 {
 	numVars = 6;
 	maxJdim = 256; // Can I make this dynamic?
-	xincr = 25.;
-	yincr = 25.;
+	xincr = 50.;
+	yincr = 50.;
 	zincr = 0.5;
 	maxIter = 1.;
 	CQTOL = 0.5;
@@ -583,12 +584,17 @@ bool VarDriver3D::loadMetObs()
 
 int VarDriver3D::loadBackgroundObs()
 {
-	real RSquare = xincr*xincr + yincr*yincr + zincr*zincr;
+	//SplineD::Debug(1);
 	QList<real> bgIn;
+	QVector<real> logheights, uBG, vBG, wBG, hBG, qBG, rBG;
+	SplineD* bgSpline;
 	int time;
 	double lat, lon, alt, u, v, w, h, qv, rhoa;
+	double bgX, bgY, bgZ;
+	double RSquare = yincr*yincr;
 	ifstream bgstream("./Background.in");
-		
+	cout << "Loading background onto Gaussian mish..." << endl;
+	
 	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> h >> qv >> rhoa)
 	{
 	
@@ -616,14 +622,14 @@ int VarDriver3D::loadBackgroundObs()
 		+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 		double fac_lon = 111.41513 * cos(latrad)
 		- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-		double bgY = (lat - tcVector[tci].getLat())*fac_lat;
-		double bgX = (lon - tcVector[tci].getLon())*fac_lon;
+		bgY = (lat - tcVector[tci].getLat())*fac_lat;
+		bgX = (lon - tcVector[tci].getLon())*fac_lon;
 		double heightm = alt;
-		double bgZ = heightm/1000.;
+		bgZ = heightm/1000.;
 		// Make sure the ob is in the domain
 		if ((bgX < imin) or (bgX > imax) or
-			(bgY < jmin) or (bgY > jmax) or
-			(bgZ < kmin) or (bgZ > kmax))
+			(bgY < jmin) or (bgY > jmax))
+			//or(bgZ < kmin) or (bgZ > kmax)) Allow for higher values for interpolation purposes
 			continue;
 				
 		real Um = tcVector[tci].getUmean();
@@ -642,49 +648,191 @@ int VarDriver3D::loadBackgroundObs()
 		qv = bhypTransform(qv);
 		real qvprime = qv-qBar;
 		real rhoprime = (rhoa-rhoBar)*100;
-		bgIn << bgX << bgY << bgZ << rhou << rhov << rhow << hprime << qvprime << rhoprime;
-		
-		// Closest point interpolation
-		for (int zi = 0; zi < (kdim-1); zi++) {	
-			for (int zmu = -1; zmu <= 1; zmu += 2) {
-				real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-				if (fabs(zPos-bgZ) > zincr*10) continue;
-				
-				for (int xi = 0; xi < (idim-1); xi++) {
-					for (int xmu = -1; xmu <= 1; xmu += 2) {
-						real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-						if (fabs(xPos-bgX) > xincr) continue;
-						
-						for (int yi = 0; yi < (jdim-1); yi++) {
-							for (int ymu = -1; ymu <= 1; ymu += 2) {
-								real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-								if (fabs(yPos-bgY) > yincr) continue;
-								
-								real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos) + (bgZ-zPos)*(bgZ-zPos);
-								int bgI = xi*2 + (xmu+1)/2;
-								int bgJ = yi*2 + (ymu+1)/2;
-								int bgK = zi*2 + (zmu+1)/2;
-								int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-								if (rSquare < bgWeights[bIndex]) {
-									bgU[bIndex] = rhou;
-									bgU[bIndex +1] = rhov;
-									bgU[bIndex +2] = rhow;
-									bgU[bIndex +3] = hprime;
-									bgU[bIndex +4] = qvprime;
-									bgU[bIndex +5] = rhoprime;
-									bgWeights[bIndex] = rSquare;
+		real logZ = log(bgZ);
+		bgIn << bgX << bgY << logZ << rhou << rhov << rhow << hprime << qvprime << rhoprime;
+		if (logheights.size() == 0) {
+			// First column
+			logheights.push_back(logZ);
+			uBG.push_back(rhou);
+			vBG.push_back(rhov);
+			wBG.push_back(rhow);
+			hBG.push_back(hprime);
+			qBG.push_back(qvprime);
+			rBG.push_back(rhoprime);
+		} else if (logZ > logheights.back()) {
+			// Same column
+			logheights.push_back(logZ);
+			uBG.push_back(rhou);
+			vBG.push_back(rhov);
+			wBG.push_back(rhow);
+			hBG.push_back(hprime);
+			qBG.push_back(qvprime);
+			rBG.push_back(rhoprime);
+		} else {
+			// Solve for the spline
+			bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
+			if (!bgSpline->ok())
+			{
+				cerr << "bgSpline setup failed." << endl;
+				return -1;
+			}
+			/* for (int zi = 0; zi < logheights.size(); zi++) {	
+				real logzPos = logheights.at(zi);
+				real z = exp(logzPos);
+				real s = bgSpline->evaluate(logzPos);
+				real u = uBG.at(zi);
+				cout << setprecision(4) << z << "\t" << logzPos << "\t" << s << "\t" << u << endl;
+			} */
+			// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
+			for (int zi = 0; zi < (kdim-1); zi++) {	
+				for (int zmu = -1; zmu <= 1; zmu += 2) {
+					real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+					real logzPos = log(zPos);
+					
+					for (int xi = 0; xi < (idim-1); xi++) {
+						for (int xmu = -1; xmu <= 1; xmu += 2) {
+							real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+							if (fabs(xPos-bgX) > xincr*2) continue;
+							
+							for (int yi = 0; yi < (jdim-1); yi++) {
+								for (int ymu = -1; ymu <= 1; ymu += 2) {
+									real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+									if (fabs(yPos-bgY) > yincr*2) continue;
+									
+									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
+									int bgI = xi*2 + (xmu+1)/2;
+									int bgJ = yi*2 + (ymu+1)/2;
+									int bgK = zi*2 + (zmu+1)/2;
+									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
+									if (rSquare < RSquare) {
+										real weight = (RSquare - rSquare)/(RSquare + rSquare);
+										if (logzPos > logheights.front()) {
+											bgSpline->solve(uBG.data());
+											bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
+											bgSpline->solve(vBG.data());
+											bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
+											bgSpline->solve(wBG.data());
+											bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
+											bgSpline->solve(hBG.data());
+											bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
+											bgSpline->solve(qBG.data());
+											bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
+											bgSpline->solve(rBG.data());
+											bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+											bgWeights[bIndex] += weight;
+										} else {
+											// Below the spline interpolation
+											bgU[bIndex] += weight*uBG.front();
+											bgU[bIndex +1] += weight*vBG.front();
+											bgU[bIndex +2] += weight*wBG.front();
+											bgU[bIndex +3] += weight*hBG.front();
+											bgU[bIndex +4] += weight*qBG.front();
+											bgU[bIndex +5] += weight*rBG.front();
+											bgWeights[bIndex] += weight;
+										}											
+									}
 								}
 							}
 						}
 					}
 				}
 			}
+			
+			delete bgSpline;
+			logheights.clear();
+			uBG.clear();
+			vBG.clear();
+			wBG.clear();
+			hBG.clear();
+			qBG.clear();
+			rBG.clear();
+			
+			logheights.push_back(log(bgZ));
+			uBG.push_back(rhou);
+			vBG.push_back(rhov);
+			wBG.push_back(rhow);
+			hBG.push_back(hprime);
+			qBG.push_back(qvprime);
+			rBG.push_back(rhoprime);			
 		}
 	}				
 
+	// Solve for the last spline
+	bgSpline = new SplineD(&logheights.front(), logheights.size(), &uBG[0], 2, SplineBase::BC_ZERO_SECOND);
+	if (!bgSpline->ok())
+	{
+		cerr << "bgSpline setup failed." << endl;
+		return -1;
+	}
+	
+	// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
+	for (int zi = 0; zi < (kdim-1); zi++) {	
+		for (int zmu = -1; zmu <= 1; zmu += 2) {
+			real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+			real logzPos = log(zPos);
+			
+			for (int xi = 0; xi < (idim-1); xi++) {
+				for (int xmu = -1; xmu <= 1; xmu += 2) {
+					real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+					if (fabs(xPos-bgX) > xincr) continue;
+					
+					for (int yi = 0; yi < (jdim-1); yi++) {
+						for (int ymu = -1; ymu <= 1; ymu += 2) {
+							real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+							if (fabs(yPos-bgY) > yincr) continue;
+							
+							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
+							int bgI = xi*2 + (xmu+1)/2;
+							int bgJ = yi*2 + (ymu+1)/2;
+							int bgK = zi*2 + (zmu+1)/2;
+							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
+							if (rSquare < RSquare) {
+								real weight = (RSquare - rSquare)/(RSquare + rSquare);
+								if (logzPos > logheights.front()) {
+									bgSpline->solve(uBG.data());
+									bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
+									bgSpline->solve(vBG.data());
+									bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
+									bgSpline->solve(wBG.data());
+									bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
+									bgSpline->solve(hBG.data());
+									bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
+									bgSpline->solve(qBG.data());
+									bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
+									bgSpline->solve(rBG.data());
+									bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+									bgWeights[bIndex] += weight;
+								} else {
+									// Below the spline interpolation
+									bgU[bIndex] += weight*uBG.front();
+									bgU[bIndex +1] += weight*vBG.front();
+									bgU[bIndex +2] += weight*wBG.front();
+									bgU[bIndex +3] += weight*hBG.front();
+									bgU[bIndex +4] += weight*qBG.front();
+									bgU[bIndex +5] += weight*rBG.front();
+									bgWeights[bIndex] += weight;
+								}								
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	delete bgSpline;
+	logheights.clear();
+	uBG.clear();
+	vBG.clear();
+	wBG.clear();
+	hBG.clear();
+	qBG.clear();
+	rBG.clear();
+	
+	
 	int numbgObs = bgIn.size()*6/9;
 	if (numbgObs > 0) {
-		cout << numbgObs << " background observations loaded, checking for empty mish points" << endl;
+		cout << numbgObs << " background observations loaded" << endl;
 		// Check interpolation
 		for (int zi = 0; zi < (kdim-1); zi++) {	
 			for (int zmu = -1; zmu <= 1; zmu += 2) {
@@ -701,8 +849,12 @@ int VarDriver3D::loadBackgroundObs()
 								int bgJ = yi*2 + (ymu+1)/2;
 								int bgK = zi*2 + (zmu+1)/2;
 								int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-								if (bgWeights[bIndex] > 1.e10) {
-									cout << "Empty background mish at " << xPos << ", " << yPos << ", " << zPos << endl;
+								for (unsigned int var = 0; var < numVars; var++) {
+									if (bgWeights[bIndex] != 0) {
+										bgU[bIndex +var] /= bgWeights[bIndex];
+									} else {
+										cout << "Empty background mish at " << xPos << ", " << yPos << ", " << zPos << endl;
+									}
 								}							
 							}
 						}
@@ -713,6 +865,8 @@ int VarDriver3D::loadBackgroundObs()
 	} else {
 		cout << "No background observations loaded" << endl;
 	}
+	
+	
 	// Load the observations into a vector
 	bgObs = new real[numbgObs*12];
 	for (int m=0; m < numbgObs; m++) bgObs[m] = 0.;
@@ -720,7 +874,8 @@ int VarDriver3D::loadBackgroundObs()
 	for (int m=0; m < bgIn.size(); m+=9) {
 		real bgX = bgIn[m];
 		real bgY = bgIn[m+1];
-		real bgZ = bgIn[m+2];
+		real bgZ = exp(bgIn[m+2]);
+		if ((bgZ < kmin) or (bgZ > kmax)) continue;
 		for (int n = 0; n < 6; n++) {
 			bgObs[p] = bgIn[m+3+n];
 			// Error of background = 1
@@ -930,11 +1085,11 @@ bool VarDriver3D::initialize()
 	} */
 		
 	// Set the background to zero
-	double xMin = -500.;
-	double xMax =  500.;
+	double xMin = -700.;
+	double xMax =  700.;
 	int numXnodes = (int)((xMax - xMin)/xincr) + 1;
-	double yMin =  -500.;
-	double yMax =  500.;
+	double yMin =  -700.;
+	double yMax =  700.;
 	int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
 	double zMin =  0.;
 	double zMax =  18.;
@@ -946,7 +1101,7 @@ bool VarDriver3D::initialize()
 	bgWeights = new real[bgDim];
 	for (int i=0; i < bgDim; i++) {
 		bgU[i] = 0.;
-		bgWeights[i] = 1.e36;
+		bgWeights[i] = 0.;
 	}
 	
 	// Set the master dimensions
@@ -991,17 +1146,17 @@ bool VarDriver3D::initialize()
 		// Set up the Gaussian Grid by a previous samurai analysis
 		int numbgObs = loadBackgroundObs();
 	
-		/* First, adjust the background field
+		// Adjust the background field to the spline mis
 		bgCost3D = new CostFunction3D(numbgObs, stateSize);
 		bgCost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, bgObs);
 		real hlength = 2.;
-		real vlength = 2.;
+		real vlength = 1.;
 		bgCost3D->initState(hlength,hlength,vlength);
 		bgCost3D->minimize();
 		// Increment the variables
-		obCost3D->updateBG();
+		bgCost3D->updateBG(); 
 		
-		delete bgCost3D; */
+		delete bgCost3D;
 	}
 
 	// Read in the observations, process them into weights and positions
@@ -1029,7 +1184,7 @@ bool VarDriver3D::run()
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		real hlength = 2.;
-		real vlength = 1.5;
+		real vlength = 1.;
 		obCost3D->initState(hlength,hlength,vlength);
 		obCost3D->minimize();
 		// Increment the variables

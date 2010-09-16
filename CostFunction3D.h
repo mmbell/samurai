@@ -43,6 +43,7 @@ private:
 	real Basis(int m, real x, int M, real xmin, 
 				real DX, real DXrecip, int derivative,
 				int BL, int BR, real lambda = 0);
+	void fillBasisLookup();
 	bool filterArray(real* array, const int& arrLength);
 	bool setupSplines();
 	void obAdjustments();
@@ -92,7 +93,8 @@ private:
 	real constHeight;
 	real mcWeight;
 	int referenceState;
-	
+	real basis0[2000];
+	real basis1[2000];
 	float BoundaryConditions[9][4];
 	enum BoundaryConditionTypes {
 		R1T0 = 0,

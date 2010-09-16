@@ -529,8 +529,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	float radarLon = swpfile.getRadarLon();
 	float radarAlt = swpfile.getRadarAlt();
 	
-	for (int i=0; i < swpfile.getNumRays(); i++) {
-	//for (int i=0; i < swpfile.getNumRays(); i+=2) {
+	//for (int i=0; i < swpfile.getNumRays(); i++) {
+	for (int i=0; i < swpfile.getNumRays(); i+=5) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);

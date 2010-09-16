@@ -63,12 +63,12 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	constHeight = 0.;
 	
 	// Initialize background errors and filter scales
-	bgError[0] = 50.;
-	bgError[1] = 50.;
-	bgError[2] = 50.;
+	bgError[0] = 25.;
+	bgError[1] = 25.;
+	bgError[2] = 5.;
 	bgError[3] = 25.;
-	bgError[4] = 10.;	
-	bgError[5] = 10.;
+	bgError[4] = 25.;	
+	bgError[5] = 25.;
 
 	// These should be set by the xml file
 	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
@@ -101,7 +101,7 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
     DKrecip = 1./DK;
 
 	//	Mass continuity weight
-	mcWeight = 100 * (DI * DJ * DK);
+	mcWeight = 1.; // * (DI * DJ * DK);
 	
 	// Set up the initial recursive filter
 	real iFilterScale = 2.;
@@ -135,6 +135,9 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	stateB = new real[bState];
 	stateA = new real[bState];
 	stateC = new real[bState];
+	
+	/* Precalculate the basis functions for lookup table option
+	fillBasisLookup(); */
 	
 	// Set up the spline matrices
 	setupSplines();
@@ -227,19 +230,19 @@ double CostFunction3D::funcValue(double* state)
 	
 	updateHCq(state);
 
-	// Compute inner product of state and mass residualvectors
+	// Compute inner product of state vector
 	for (int n = 0; n < nState; n++) {
 		qIP += state[n]*state[n];
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
-	//#pragma omp parallel for reduction(+:obIP)
+	#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m*12+1])*(HCq[m]-innovation[m]);
 	}
 	
 	// Mass continuity on the nodes
-	//#pragma omp parallel for reduction(+:mcIP)
+	#pragma omp parallel for reduction(+:mcIP)
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -313,8 +316,7 @@ void CostFunction3D::updateHCq(double* state)
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						real basis3x = ibasis * jbasis * kbasis;
-						tempsum += stateC[cIndex + var] *  basis3x * obsVector[mi+6 + var];
+						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6 + var];
 					}
 				}
 			}
@@ -441,14 +443,13 @@ void CostFunction3D::calcInnovation()
 					if ((iNode < 0) or (iNode >= iDim) or 
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
+					int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					for (int var = 0; var < varDim; var++) {
 						if (obsVector[mi+6 + var] == 0) continue;
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-					    int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-						real basis3x = ibasis * jbasis * kbasis;
-						tempsum += bgState[stateIndex + var] * basis3x * obsVector[mi+6+var];
+						tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6+var];
 					}
 				}
 			}
@@ -469,14 +470,7 @@ void CostFunction3D::calcInnovation()
 				int jj = jIndex;
 				int kk = kIndex;
 				int hIndex = mObs + iDim*jDim*kIndex + iDim*jIndex + iIndex;
-				
-				real ibasis = 0.;
-				real jbasis = 0.;
-				real kbasis = 0.;
-				real idbasis = 0.;
-				real jdbasis = 0.;
-				real kdbasis = 0.;
-				real tempsum = 0.;
+				real tempsum = 0;
 				for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 					for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 						for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
@@ -485,19 +479,19 @@ void CostFunction3D::calcInnovation()
 								(kNode < 0) or (kNode >= kDim)) continue;
 							int bgIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 
-							idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
-							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
-							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
+							real idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
+							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+							real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
 							tempsum += (bgState[bgIndex] * idbasis * jbasis * kbasis);
 							
-							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
-							jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
+							real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
+							real jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
 							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
 							tempsum += (bgState[bgIndex + 1] * ibasis * jdbasis * kbasis);
 										
 							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
 							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
-							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
+							real kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
 							tempsum += (bgState[bgIndex + 2] * ibasis * jbasis * kdbasis);
 						}
 					}
@@ -530,7 +524,8 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			
+				
+				int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
 				for (int m = 0; m < mObs; m++) {
 					// Sum over obs this time
 					// Multiply state by H weights
@@ -546,15 +541,12 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 					if ((jIndex < jj-1) or (jIndex > jj+2)) continue;
 					int kk = (int)((k - kMin)*DKrecip);
 					if ((kIndex < kk-1) or (kIndex > kk+2)) continue;
-					real ibasis = 0;
-					real jbasis = 0;
-					real kbasis = 0;
+
 					for (int var = 0; var < varDim; var++) {
 						if (obsVector[mi+6 + var] == 0) continue;
-						ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
+						real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+						real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+						real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 						real qbasise = qhat* ibasis * jbasis * kbasis *invError;
 						#pragma omp atomic
 						Astate[aIndex + var] += qbasise * obsVector[mi+6+var];
@@ -575,31 +567,25 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 							real i = iNode*DI + iMin;
 							real j = jNode*DJ + jMin;
 							real k = kNode*DK + kMin;
-							real ibasis = 0.;
-							real jbasis = 0.;
-							real kbasis = 0.;
-							real idbasis = 0.;
-							real jdbasis = 0.;
-							real kdbasis = 0.;
 							
 							int hIndex = mObs + iDim*jDim*kNode + iDim*jNode + iNode;
-							int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;
+							if (yhat[hIndex] == 0) continue;
 							
-							idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
-							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
-							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
+							real idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
+							real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+							real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
 							#pragma omp atomic
 							Astate[aIndex] += mcWeight * (yhat[hIndex] * idbasis * jbasis * kbasis);
 							
-							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
-							jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
+							real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
+							real jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
 							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
 							#pragma omp atomic
 							Astate[aIndex + 1] += mcWeight * (yhat[hIndex] * ibasis * jdbasis * kbasis);
 							
 							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
 							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
-							kdbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
+							real kdbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
 							#pragma omp atomic
 							Astate[aIndex + 2] += mcWeight * (yhat[hIndex] * ibasis * jbasis * kdbasis);
 						}		
@@ -1435,7 +1421,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real satvp = 6.1078 * exp(5.0065 * log(273.15/temp)) * exp((5.0065 + 19.83923) * (1 - 273.15/temp));
 										real satqv = 1000.0 * 0.622 * satvp / airpress;
 										real relhum = -999.;
-										if ((satqv != 0) and (satqv >= qv))
+										if (satqv != 0)
 											relhum = 100*qv/satqv;
 										real vp = temp*rhoq*461./100.;
 										real press = airpress + vp;
@@ -1568,20 +1554,18 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 					if ((iNode < 0) or (iNode >= iDim) or 
 						(jNode < 0) or (jNode >= jDim) or
 						(kNode < 0) or (kNode >= kDim)) continue;
-					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+					int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					for (int var = 0; var < varDim; var++) {
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						real basis3x = ibasis * jbasis * kbasis;
-						tempsum += stateC[cIndex + var] * basis3x * obsVector[mi+6+var];
+						tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6+var];
 					}
 				}
 			}
 		}
 				
 		for (int t=0; t<12; t++) {
-			//obstream >> temp;
 			*od++ = obsVector[mi+t];
 		}
 		*od++ = tempsum;
@@ -1752,7 +1736,7 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!(lvlVar = dataFile.add_var("altitude", ncFloat, lvlDim)))
 		return NC_ERR;
-	if (!(timeVar = dataFile.add_var("time", ncFloat, timeDim)))
+	if (!(timeVar = dataFile.add_var("time", ncInt, timeDim)))
 		return NC_ERR;
 	
 	// Define units attributes for coordinate vars. This attaches a
@@ -1953,9 +1937,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	int time[2];
 	
 	// Hard code this for now, but it needs to be dynamic
-	time[0] = 1282046400;
-	real latReference = 15.400;
-	real lonReference = -68.603;
+	time[0] = 1284483600;
+	real latReference = 18.355;	
+	real lonReference = -82.836;
 	double latrad =latReference * 1.745329251994e-02;
 	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
@@ -2112,6 +2096,28 @@ void CostFunction3D::obAdjustments() {
 	}
 }	
 
+void CostFunction3D::fillBasisLookup()
+{
+
+	real ONESIXTH = 0.16666666666666666666666666667;
+	for (int i=0; i < 2000; i++) {
+		real z = 2.0 - double(i)/1000;
+		real b = (z*z*z) * ONESIXTH;
+		z -= 1.0;
+		if (z > 0)
+			b -= (z*z*z) * 4 * ONESIXTH;
+		basis0[i] = b;
+		
+		z = 2.0 - double(i)/1000;
+		b = (z*z) * ONESIXTH;
+		z -= 1.0;
+		if (z > 0)
+			b -= (z*z) * 4 * ONESIXTH;
+		basis1[i] = b;
+	}
+	
+}
+
 real CostFunction3D::Basis(int m, real x, int M, real xmin, 
 								real DX, real DXrecip, int derivative, 
 								int BL, int BR, real lambda)
@@ -2122,6 +2128,7 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 	real delta = (x - xm) * DXrecip;
 	real z = fabsf(delta);
 	real ONESIXTH = 0.16666666666666666666666666667;
+	real FOURSIXTH = 0.66666666666666666666666666667;
 	
 	switch (derivative) {
 		case 0:
@@ -2131,7 +2138,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				b = (z*z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					b -= (z*z*z) * 4 * ONESIXTH;
+					b -= (z*z*z) * FOURSIXTH;
+				//b = basis0[int(z*1000)];
 			}			
 			break;
 		case 1:
@@ -2141,7 +2149,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				b = (z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					b -= (z*z) * 4 * ONESIXTH;
+					b -= (z*z) * FOURSIXTH;
+				//b = basis1[int(z*1000)];
 				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
@@ -2304,7 +2313,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				bmod = (z*z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					bmod -= (z*z*z) * 4 * ONESIXTH;
+					bmod -= (z*z*z) * FOURSIXTH;
+				//bmod = basis0[int(z*1000)];
 			}			
 			break;
 		case 1:
@@ -2314,7 +2324,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				bmod = (z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					bmod -= (z*z) * 4 * ONESIXTH;
+					bmod -= (z*z) * FOURSIXTH;
+				//bmod = basis1[int(z*1000)];
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
@@ -2363,7 +2374,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				bmod = (z*z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					bmod -= (z*z*z) * 4 * ONESIXTH;
+					bmod -= (z*z*z) * FOURSIXTH;
+				//bmod = basis0[int(z*1000)];
 			}			
 			break;
 		case 1:
@@ -2373,7 +2385,8 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 				bmod = (z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					bmod -= (z*z) * 4 * ONESIXTH;
+					bmod -= (z*z) * FOURSIXTH;
+				//bmod = basis1[int(z*1000)];
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
