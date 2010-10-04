@@ -26,12 +26,10 @@ int main (int argc, char *argv[]) {
 			VarDriverRZ driver;
 			driver.initialize();
 			driver.run();
-		} else if (arg == "XYZ") {
-			VarDriver3D driver;
-			driver.initialize();
-			driver.run();
 		} else if (arg.right(3) == "xml") {
-			std::cout << "Not implemented\n";
+			VarDriver3D driver;
+			driver.initialize(arg);
+			driver.run();
 		}
 		std::cout << "Analysis complete!\n";
 	} else {

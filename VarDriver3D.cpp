@@ -21,13 +21,7 @@ VarDriver3D::VarDriver3D()
 	: VarDriver()
 {
 	numVars = 6;
-	maxJdim = 256; // Can I make this dynamic?
-	xincr = 50.;
-	yincr = 50.;
-	zincr = 0.5;
 	maxIter = 1.;
-	CQTOL = 0.5;
-	referenceState = jordan;
 }
 
 VarDriver3D::~VarDriver3D()
@@ -591,7 +585,8 @@ int VarDriver3D::loadBackgroundObs()
 	int time;
 	double lat, lon, alt, u, v, w, h, qv, rhoa;
 	double bgX, bgY, bgZ;
-	double RSquare = yincr*yincr;
+	float ROI = configHash.value("backgroundroi").toFloat();
+	double RSquare = ROI*ROI;
 	ifstream bgstream("./Background.in");
 	cout << "Loading background onto Gaussian mish..." << endl;
 	
@@ -626,10 +621,10 @@ int VarDriver3D::loadBackgroundObs()
 		bgX = (lon - tcVector[tci].getLon())*fac_lon;
 		double heightm = alt;
 		bgZ = heightm/1000.;
-		// Make sure the ob is in the domain
-		if ((bgX < imin) or (bgX > imax) or
-			(bgY < jmin) or (bgY > jmax))
-			//or(bgZ < kmin) or (bgZ > kmax)) Allow for higher values for interpolation purposes
+		// Make sure the ob is in the Cressman domain
+		if ((bgX < (imin-iincr)) or (bgX > (imax+iincr)) or
+			(bgY < (jmin-jincr)) or (bgY > (jmax+jincr))
+			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 				
 		real Um = tcVector[tci].getUmean();
@@ -686,18 +681,18 @@ int VarDriver3D::loadBackgroundObs()
 			// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
 			for (int zi = 0; zi < (kdim-1); zi++) {	
 				for (int zmu = -1; zmu <= 1; zmu += 2) {
-					real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+					real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
 					real logzPos = log(zPos);
 					
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
-							real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > xincr*2) continue;
+							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+							if (fabs(xPos-bgX) > iincr*2) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
-									real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > yincr*2) continue;
+									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+									if (fabs(yPos-bgY) > jincr*2) continue;
 									
 									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 									int bgI = xi*2 + (xmu+1)/2;
@@ -768,18 +763,18 @@ int VarDriver3D::loadBackgroundObs()
 	// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
 	for (int zi = 0; zi < (kdim-1); zi++) {	
 		for (int zmu = -1; zmu <= 1; zmu += 2) {
-			real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+			real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
 			real logzPos = log(zPos);
 			
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
-					real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > xincr) continue;
+					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+					if (fabs(xPos-bgX) > iincr) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
-							real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > yincr) continue;
+							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+							if (fabs(yPos-bgY) > jincr) continue;
 							
 							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 							int bgI = xi*2 + (xmu+1)/2;
@@ -836,15 +831,15 @@ int VarDriver3D::loadBackgroundObs()
 		// Check interpolation
 		for (int zi = 0; zi < (kdim-1); zi++) {	
 			for (int zmu = -1; zmu <= 1; zmu += 2) {
-				real zPos = kmin + zincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+				real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
 				
 				for (int xi = 0; xi < (idim-1); xi++) {
 					for (int xmu = -1; xmu <= 1; xmu += 2) {
-						real xPos = imin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
+						real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
 						
 						for (int yi = 0; yi < (jdim-1); yi++) {
 							for (int ymu = -1; ymu <= 1; ymu += 2) {
-								real yPos = jmin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
+								real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
 								int bgI = xi*2 + (xmu+1)/2;
 								int bgJ = yi*2 + (ymu+1)/2;
 								int bgK = zi*2 + (zmu+1)/2;
@@ -954,174 +949,58 @@ bool VarDriver3D::loadBGfromFile()
 	
 }	
 
-bool VarDriver3D::bilinearMish()
-{
-	
-	// Do a simple bilinear interpolation to the Mish	
-
-	double yMin = y.front();
-	double yMax = y.back();
-	int numYnodes = (int)((yMax - yMin)/yincr) + 1;
-	double xMin = x.front();
-	double xMax = (double)x.back();
-	int numXnodes = (int)((yMax - yMin)/yincr) + 1;
-	// Load the BG into a vector
-	bgU = new real[4*(numXnodes-1)*(numYnodes-1)*numVars];
-	//bgU[(numVars-1)*r.size()*zi +(numVars-1)*ri + vi] = BG[zi][vi].at(ri);
-
-	// Set the master dimensions
-	imin = xMin;
-	imax = xMax;
-	idim = numXnodes;
-	jmin = yMin;
-	jmax = yMax;
-	jdim = numYnodes;
-	
-	for (int xi = 0; xi < (idim-1); xi++) {
-		for (int xmu = -1; xmu <= 1; xmu += 2) {
-			real xPos = xMin + xincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-			for (int yi = 0; yi < (jdim-1); yi++) {
-				for (int ymu = -1; ymu <= 1; ymu += 2) {
-					real yPos = yMin + yincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-					int ii = -1;
-					int jj = -1;
-					// Find the brackets
-					for (unsigned int i=0; i < x.size()-1; i++) {
-						if ((x.at(i) <= xPos) and (x.at(i+1) > xPos)) {
-							ii = i; 
-							break;
-						}
-					}
-					for (unsigned int j=0; j < y.size()-1; j++) {
-						if ((y.at(j) <= yPos) and (y.at(j+1) > yPos)) {
-							jj = j; 
-							break;
-						}
-					}
-					if ((ii < 0) or (jj < 0)) { 
-						cout << "Problem in bilinear mish interpolation!\n";
-						break; 
-					}
-					real xmid = (xPos-x.at(ii))/(x.at(ii+1)-x.at(ii));
-					real ymid = (yPos-y.at(jj))/(y.at(jj+1)-y.at(jj));
-					int bgY = yi*2 + (ymu+1)/2;
-					int bgX = xi*2 + (xmu+1)/2;
-					for (unsigned int vi = 0; vi < numVars; vi++) {
-						bgU[numVars*(numXnodes-1)*2*bgY +numVars*bgX + vi] =
-						(1-xmid)*(1-ymid)*BG[jj][vi].at(ii) + xmid*(1-ymid)*BG[jj][vi].at(ii+1) +
-						xmid*ymid*BG[jj+1][vi].at(ii+1) + (1-xmid)*ymid*BG[jj+1][vi].at(ii);
-						//if (vi == 0) {
-						//	cout << bgU[(numVars-1)*(numrnodes-1)*2*bgZ +(numVars-1)*bgR + vi] <<
-						//	"\t" << BG[jj][vi].at(ii) << "\t" << BG[jj][vi].at(ii+1) <<
-						//	"\t" << BG[jj+1][vi].at(ii+1) << "\t" << BG[jj+1][vi].at(ii) << endl;
-						//}
-					}
-				}
-			}
-		}
-	}
-		
-	return true;
-	
-}
-
-real VarDriver3D::bilinearField(real xPos, real yPos, int var)
-{
-	
-	int ii = -1;
-	int jj = -1;
-	// Find the brackets
-	for (unsigned int i=0; i < x.size()-1; i++) {
-		if ((x.at(i) <= xPos) and (x.at(i+1) > xPos)) {
-			ii = i; 
-			break;
-		}
-	}
-	for (unsigned int j=0; j < y.size()-1; j++) {
-		if ((y.at(j) <= yPos) and (y.at(j+1) > yPos)) {
-			jj = j; 
-			break;
-		}
-	}
-	if ((ii < 0) or (jj < 0)) { 
-		cout << "Problem in bilinear field interpolation!\n"; 
-		return -999.; 
-	}
-	real xmid = (xPos-x.at(ii))/(x.at(ii+1)-x.at(ii));
-	real ymid = (yPos-y.at(jj))/(y.at(jj+1)-y.at(jj));
-	real field= 
-		(1-xmid)*(1-ymid)*BG[jj][var].at(ii) + xmid*(1-ymid)*BG[jj][var].at(ii+1) +
-		xmid*ymid*BG[jj+1][var].at(ii+1) + (1-xmid)*ymid*BG[jj+1][var].at(ii);
-	
-	return field;
-}
-	
-
-bool VarDriver3D::initialize()
+bool VarDriver3D::initialize(const QString& xmlfile)
 {
 	// Run a 3D vortex background field
 	cout << "Initializing SAMURAI 3D" << endl;
-
-	/* XML file read here?
+	
+	// Read XML configuration
 	if (!readXMLconfig(xmlfile)) {
 		cout << "Error reading XML configuration, quitting...\n";
 		exit(-1);
 	}
 	
-	QDomElement root = domDoc.documentElement();
-	// Creat a hash of tags and their
-	QDomNodeList nodeList = root.childNodes();
-	for (int i = 0; i < nodeList.count(); i++) {
-		QDomNode currNode = nodeList.item(i);
-		QDomElement group = currNode.toElement();
-		configHash.insert(group.tagName(), i);
-	}
+	// Set the initial background to zero
+	imin = configHash.value("xmin").toFloat();
+	imax = configHash.value("xmax").toFloat();
+	iincr = configHash.value("xincr").toFloat();
+	idim = (int)((imax - imin)/iincr) + 1;
+	jmin = configHash.value("ymin").toFloat();
+	jmax = configHash.value("ymax").toFloat();
+	jincr = configHash.value("yincr").toFloat();
+	jdim = (int)((jmax - jmin)/jincr) + 1;		
+	kmin = configHash.value("zmin").toFloat();
+	kmax = configHash.value("zmax").toFloat();
+	kincr = configHash.value("zincr").toFloat();
+	kdim = (int)((kmax - kmin)/kincr) + 1;
 	
-	// Cycle through the configuration
-	QDomElement child = groupList.item(indexForTagName.value(configName)).toElement();
-	QString paramValue;
-	if(!child.isNull()) {
-		paramValue = child.text();
-	} */
-		
-	// Set the background to zero
-	double xMin = -700.;
-	double xMax =  700.;
-	int numXnodes = (int)((xMax - xMin)/xincr) + 1;
-	double yMin =  -700.;
-	double yMax =  700.;
-	int numYnodes = (int)((yMax - yMin)/yincr) + 1;		
-	double zMin =  0.;
-	double zMax =  18.;
-	int numZnodes = (int)((zMax - zMin)/zincr) + 1;
+	// Define the sizes of the arrays we are passing to the cost function
+	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	cout << "State size = " << stateSize << ", Grid dimensions:\n";
+	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
+	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
+	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
+	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 	
 	// Load the BG into a empty vector
-	int bgDim = 8*(numXnodes-1)*(numYnodes-1)*(numZnodes-1)*numVars;
-	bgU = new real[bgDim];
-	bgWeights = new real[bgDim];
-	for (int i=0; i < bgDim; i++) {
+	bgU = new real[stateSize];
+	bgWeights = new real[stateSize];
+	for (int i=0; i < stateSize; i++) {
 		bgU[i] = 0.;
 		bgWeights[i] = 0.;
 	}
+		
 	
-	// Set the master dimensions
-	imin = xMin;
-	imax = xMax;
-	idim = numXnodes;
-	jmin = yMin;
-	jmax = yMax;
-	jdim = numYnodes;
-	kmin = zMin;
-	kmax = zMax;
-	kdim = numZnodes;
+	// Define the Reference state
+	if (configHash.value("refstate") == "jordan") {
+		referenceState = jordan;
+	} else {
+		cout << "Reference state not defined!\n";
+		exit(-1);
+	}
 	
-
-	// Define the sizes of the arrays we are passing to the cost function
-	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	
-	// Print the Reference state
 	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
-	for (real k = kmin; k < kmax+zincr; k+= zincr) {
+	for (real k = kmin; k < kmax+kincr; k+= kincr) {
 		cout << "                   " << k << "\t";
 		for (int i = 0; i < 6; i++) {
 			real var = getReferenceVariable(i, k*1000);
@@ -1136,29 +1015,44 @@ bool VarDriver3D::initialize()
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
 	readTCcenters();
-
-	int loadBG = 2;
-	if (loadBG == 1) {
-		// Set up the Gaussian Grid by linear interpolation
-		loadBGfromFile();
-		bilinearMish();
-	} else if (loadBG == 2) {
-		// Set up the Gaussian Grid by a previous samurai analysis
-		int numbgObs = loadBackgroundObs();
 	
-		// Adjust the background field to the spline mis
-		bgCost3D = new CostFunction3D(numbgObs, stateSize);
-		bgCost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, bgObs);
-		real hlength = 2.;
-		real vlength = 1.;
-		bgCost3D->initState(hlength,hlength,vlength);
-		bgCost3D->minimize();
-		// Increment the variables
-		bgCost3D->updateBG(); 
-		
-		delete bgCost3D;
+	// Get the reference center
+	QTime reftime = QTime::fromString(configHash.value("reftime"), "hh:mm:ss");
+	QString refstring = reftime.toString();
+	bool foundref = false;
+	for (unsigned int tci = 0; tci < tcVector.size(); tci++) {
+		QDateTime tctime = tcVector[tci].getTime();
+		if (reftime == tctime.time()) {
+			QString tempstring;
+			QDate refdate = tctime.date();
+			QDateTime unixtime(refdate, reftime, Qt::UTC);
+			configHash.insert("reflat", tempstring.setNum(tcVector[tci].getLat()));
+			configHash.insert("reflon", tempstring.setNum(tcVector[tci].getLon()));
+			configHash.insert("reftime", tempstring.setNum(unixtime.toTime_t()));
+			cout << "Found matching reference time " << refstring.toStdString()
+			<< " at " << tcVector[tci].getLat() << ", " << tcVector[tci].getLon() << "\n";
+			foundref = true;
+			break;
+		}
 	}
-
+	if (!foundref) {
+		cout << "Error finding reference time, please check date and time in XML file\n";
+		exit(-1);
+	}
+	
+	// Set up the Gaussian Grid by a previous samurai analysis
+	int numbgObs = loadBackgroundObs();
+		
+	// Adjust the background field to the spline mis
+	bgCost3D = new CostFunction3D(numbgObs, stateSize);
+	bgCost3D->initialize(configHash, bgU, bgObs);
+	bgCost3D->initState();
+	bgCost3D->minimize();
+	// Increment the variables
+	bgCost3D->updateBG(); 
+	
+	delete bgCost3D;
+	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file
 	bool preprocess = true;
@@ -1170,10 +1064,11 @@ bool VarDriver3D::initialize()
 	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
 	obCost3D = new CostFunction3D(obVector.size(), stateSize);
-	obCost3D->initialize(imin, imax, idim, jmin, jmax, jdim, kmin, kmax, kdim, bgU, obs);
+	obCost3D->initialize(configHash, bgU, obs);
 	
 	return true;
 }
+
 
 bool VarDriver3D::run()
 {
@@ -1183,9 +1078,7 @@ bool VarDriver3D::run()
 	while ((CQRMS > CQTOL) and (iter < maxIter)) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
-		real hlength = 2.;
-		real vlength = 1.;
-		obCost3D->initState(hlength,hlength,vlength);
+		obCost3D->initState();
 		obCost3D->minimize();
 		// Increment the variables
 		obCost3D->updateBG();

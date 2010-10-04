@@ -24,7 +24,7 @@ class Dorade
 public:
 	Dorade(const QString& swpFilename);
 	~Dorade();
-	bool readSwpfile();
+	bool readSwpfile(const QString& refname, const QString& velname, const QString& swname);
 	float getAzimuth(int& ray);
 	float getElevation(int& ray);
 	float* getReflectivity(int& ray);
@@ -59,6 +59,9 @@ private:
 	int refIndex;
 	int velIndex;
 	int swIndex;
+	QString ref_fld;
+	QString vel_fld;
+	QString sw_fld;
 	QString filename;
 	double isnanf(double x)   {  return  (((*(long *)&(x) & 0x7f800000L) == 0x7f800000L) && \
 										  ((*(long *)&(x) & 0x007fffffL) != 0x00000000L)); };

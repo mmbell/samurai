@@ -50,25 +50,20 @@ void CostFunction3D::finalize()
 	delete[] fieldNodes;	
 }
 
-void CostFunction3D::initialize(const real& imin, const real& imax, const int& idim,
-									const real& jmin, const real& jmax, const int& jdim,
-									const real& kmin, const real& kmax, const int& kdim,
-									real* bgU, real* obs)
+void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)
 {
 
 	// Initialize number of variables
 	varDim = 6;
-	
-	// Set the constant height for the XY case
-	constHeight = 0.;
-	
+	configHash = config;
+		
 	// Initialize background errors and filter scales
-	bgError[0] = 25.;
-	bgError[1] = 25.;
-	bgError[2] = 5.;
-	bgError[3] = 25.;
-	bgError[4] = 25.;	
-	bgError[5] = 25.;
+	bgError[0] = configHash.value("uerror").toFloat();
+	bgError[1] = configHash.value("verror").toFloat();;
+	bgError[2] = configHash.value("werror").toFloat();;
+	bgError[3] = configHash.value("herror").toFloat();;
+	bgError[4] = configHash.value("qverror").toFloat();;	
+	bgError[5] = configHash.value("rhoerror").toFloat();;
 
 	// These should be set by the xml file
 	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
@@ -79,34 +74,38 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 	iBCL[5] = R1T2; iBCR[5] = R1T2; jBCL[5] = R1T2; jBCR[5] = R1T2; kBCL[5] = R1T2; kBCR[5] = R1T2;
 	
 	// Also should be set in XML
-	referenceState = jordan;
+	// Define the Reference state
+	if (configHash.value("refstate") == "jordan") {
+		referenceState = jordan;
+	}
 	
 	// Assign local object pointers
 	bgFields = bgU;
 	rawObs = obs;
-	iMin = imin;
-	iMax = imax;
-	iDim = idim;
-	jMin = jmin;
-	jMax = jmax;
-	jDim = jdim;
-	kMin = kmin;
-	kMax = kmax;
-	kDim = kdim;
-	DI = (iMax - iMin) / (iDim - 1);
+	iMin = configHash.value("xmin").toFloat();
+	iMax = configHash.value("xmax").toFloat();
+	DI = configHash.value("xincr").toFloat();
+	iDim = (int)((iMax - iMin)/DI) + 1;
+	jMin = configHash.value("ymin").toFloat();
+	jMax = configHash.value("ymax").toFloat();
+	DJ = configHash.value("yincr").toFloat();
+	jDim = (int)((jMax - jMin)/DJ) + 1;
+	kMin = configHash.value("zmin").toFloat();
+	kMax = configHash.value("zmax").toFloat();
+	DK = configHash.value("zincr").toFloat();
+	kDim = (int)((kMax - kMin)/DK) + 1;
+
 	DIrecip = 1./DI;
-	DJ = (jMax - jMin) / (jDim - 1);
     DJrecip = 1./DJ;
-	DK = (kMax - kMin) / (kDim - 1);
     DKrecip = 1./DK;
 
 	//	Mass continuity weight
-	mcWeight = 1.; // * (DI * DJ * DK);
+	mcWeight = configHash.value("mcweight").toFloat();
 	
 	// Set up the initial recursive filter
-	real iFilterScale = 2.;
-	real jFilterScale = 2.;
-	real kFilterScale = 2.;	
+	real iFilterScale = configHash.value("xfilter").toFloat();
+	real jFilterScale = configHash.value("yfilter").toFloat();
+	real kFilterScale = configHash.value("zfilter").toFloat();	
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
@@ -144,7 +143,7 @@ void CostFunction3D::initialize(const real& imin, const real& imax, const int& i
 
 }	
 
-void CostFunction3D::initState(const real& iFilterScale, const real& jFilterScale, const real& kFilterScale)
+void CostFunction3D::initState()
 {
 
 	// Clear the state vector
@@ -164,10 +163,10 @@ void CostFunction3D::initState(const real& iFilterScale, const real& jFilterScal
 		stateC[b] = 0.0;
 	}
 	
-	// Change the filter scale
+	/* Change the filter scale
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
-	kFilter->setFilterLengthScale(kFilterScale);
+	kFilter->setFilterLengthScale(kFilterScale); */
 	
 	// SB Transform on the original bg fields
 	SBtransform(bgFields, stateB);
@@ -1937,9 +1936,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	int time[2];
 	
 	// Hard code this for now, but it needs to be dynamic
-	time[0] = 1284483600;
-	real latReference = 18.355;	
-	real lonReference = -82.836;
+	time[0] = configHash.value("reftime").toInt();
+	real latReference = configHash.value("reflat").toFloat();	
+	real lonReference = configHash.value("reflon").toFloat();
 	double latrad =latReference * 1.745329251994e-02;
 	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);

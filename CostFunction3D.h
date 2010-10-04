@@ -19,6 +19,7 @@
 #include <vector>
 #include <string>
 #include <QString>
+#include <QHash>
 
 class CostFunction3D: public CostFunction
 {
@@ -28,13 +29,10 @@ public:
 	typedef BSpline<real> SplineD;
 	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunction3D();
-    void initialize(const real& imin, const real& imax, const int& idim,
-					const real& imin, const real& imax, const int& jdim,
-					const real& kmin, const real& kmax, const int& kdim,
-					real* bgU, real* obs); 
+    void initialize(const QHash<QString, QString>& config, real* bgU, real* obs); 
 	void finalize();
 	void updateBG();
-	void initState(const real& iFilterScale, const real& jFilterScale, const real& kFilterScale);
+	void initState();
 	
 private:
 	double funcValue(double* state);
@@ -95,6 +93,8 @@ private:
 	int referenceState;
 	real basis0[2000];
 	real basis1[2000];
+	QHash<QString, QString> configHash;
+
 	float BoundaryConditions[9][4];
 	enum BoundaryConditionTypes {
 		R1T0 = 0,

@@ -25,7 +25,12 @@ Dorade::Dorade(const QString& swpFilename)
 		dptr[i] = new rdat_info[500];
 	}
 	// struct rdat_info *dptr = new rdat_info[500];
-	
+	refIndex = 0;
+	velIndex = 0;
+	swIndex = 0;
+	ref_fld = "DBZ";
+	vel_fld = "VG";
+	sw_fld = "SW";
 	
 	filename = swpFilename;
 }
@@ -48,7 +53,7 @@ Dorade::~Dorade()
   	
 }
 
-bool Dorade::readSwpfile()
+bool Dorade::readSwpfile(const QString& refname, const QString& velname, const QString& swname)
 {
 
 	// Check the byte order
@@ -56,22 +61,22 @@ bool Dorade::readSwpfile()
 		swap_bytes = true;
 	}
 	
+	ref_fld = refname;
+	vel_fld = velname;
+	sw_fld = swname;
+	
 	// Read in a dorade file
 	QByteArray bytes  = filename.toAscii();
 	const char* ccfilename = bytes.data();
 	sweepread(ccfilename, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr);
-	
-	/* ref_fld = "DZ";
-	vel_fld = "VG";
-	sw_fld = "SW"; */
-	
+		
 	return true;
 }
 
 float Dorade::getAzimuth(int& ray)
 {
-	if (ray<(sptr->num_rays)) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))) {
 		return ryptr[ray].azimuth;
 	} else {
 		return -999;
@@ -80,7 +85,7 @@ float Dorade::getAzimuth(int& ray)
 
 float Dorade::getElevation(int& ray)
 {
-	if (ray<(sptr->num_rays)) {
+	if ((ray >= 0) and(ray<(sptr->num_rays))) {
 		return ryptr[ray].elevation;
 	} else {
 		return -999;
@@ -90,7 +95,8 @@ float Dorade::getElevation(int& ray)
 
 float* Dorade::getReflectivity(int& ray)
 {
-	if (ray<(sptr->num_rays)) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))
+		and (refIndex >= 0) and (refIndex <(rptr->num_param_desc))) {
 		return dptr[refIndex][ray].data;
 	} else {
 		return 0;
@@ -99,7 +105,8 @@ float* Dorade::getReflectivity(int& ray)
 
 float* Dorade::getRadialVelocity(int& ray)
 {
-	if (ray<(sptr->num_rays)) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))
+		and (velIndex >= 0) and (velIndex <(rptr->num_param_desc))) {
 		return dptr[velIndex][ray].data ;
 	} else {
 		return 0;
@@ -108,7 +115,8 @@ float* Dorade::getRadialVelocity(int& ray)
 
 float* Dorade::getSpectrumWidth(int &ray)
 {
-	if (ray<(sptr->num_rays)) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))
+		and (swIndex >= 0) and (swIndex <(rptr->num_param_desc))) {
 		return dptr[swIndex][ray].data;
 	} else {
 		return 0;
@@ -502,11 +510,6 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	int strsize,datasize,arrsize;
 	strsize = datasize = arrsize = 0;
 	char tempname[PARM_NAME_LEN];
-	QString ref_fld = "DBZ";
-	//QString ref_fld = "DZ";
-	QString vel_fld = "VG";
-	QString sw_fld = "SW";
-	//QString sw_fld = "SPEC_WDT";
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
 	

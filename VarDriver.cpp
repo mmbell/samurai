@@ -522,27 +522,27 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 {
 
 	Dorade swpfile(metFile.fileName());
-	if(!swpfile.readSwpfile())
+	QString radardbz = configHash.value("radardbz");
+	QString radarvel = configHash.value("radarvel");
+	QString radarsw = configHash.value("radarsw");
+	if(!swpfile.readSwpfile(radardbz, radarvel, radarsw))
 		return false;
 
 	float radarLat = swpfile.getRadarLat();
 	float radarLon = swpfile.getRadarLon();
 	float radarAlt = swpfile.getRadarAlt();
-	
-	//for (int i=0; i < swpfile.getNumRays(); i++) {
-	for (int i=0; i < swpfile.getNumRays(); i+=5) {
+	int rayskip = configHash.value("radarskip").toInt();
+	int stride = configHash.value("radarstride").toInt();
+	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
 		float* veldata = swpfile.getRadialVelocity(i);	
 		float* swdata = swpfile.getSpectrumWidth(i);
 		QDateTime rayTime = swpfile.getRayTime(i);
-
 		float* gatesp = swpfile.getGateSpacing();
-		int stride = 5;
 		float beamwidth = sin(Pi*0.01);
 		for (int n=0; n < swpfile.getNumGates()-stride; n+=stride) {
-		//for (int n=0; n < swpfile.getNumGates(); n++) {
 			MetObs ob;
 			float range = gatesp[n+stride/2];
 			stride = (range*beamwidth)/75;
@@ -837,6 +837,14 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	if (root.tagName() != "samurai") {
 		cout << "The XML file " << xmlfile.toStdString() << " is not an SAMURAI configuration file\n.";
 		return false;
+	}
+		
+	// Parse the nodes to a hash
+	QDomNodeList nodeList = root.childNodes();
+	for (int i = 0; i < nodeList.count(); i++) {
+		QDomNode currNode = nodeList.item(i);
+		QDomElement group = currNode.toElement();
+		configHash.insert(group.tagName(), group.text());
 	}
 	
 	return true;

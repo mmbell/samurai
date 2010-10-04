@@ -33,7 +33,7 @@ public:
 	VarDriver3D();
 	~VarDriver3D();
 	// ESMF type calls
-	bool initialize();
+	bool initialize(const QString& xmlfile);
 	bool run();
 	bool finalize();
 	
@@ -54,9 +54,9 @@ private:
 	unsigned int* RnumGridpts;
 	vector<Observation> obVector;
 	int bc;
-	double yincr;
-	double xincr;
-	double zincr;
+	double iincr;
+	double jincr;
+	double kincr;
 	double CQTOL;
 	int maxIter;
 	real zLevel;
