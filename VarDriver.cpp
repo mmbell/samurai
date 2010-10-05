@@ -404,6 +404,8 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
+	/* TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     
+	 SurfP    VtWnd     Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 	

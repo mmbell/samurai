@@ -850,9 +850,8 @@ int VarDriver3D::loadBackgroundObs()
 	rBG.clear();
 	
 	
-	int numbgObs = bgIn.size()*6/9;
+	int numbgObs = bgIn.size()*7/11;
 	if (numbgObs > 0) {
-		cout << numbgObs << " background observations loaded" << endl;
 		// Check interpolation
 		for (int zi = 0; zi < (kdim-1); zi++) {	
 			for (int zmu = -1; zmu <= 1; zmu += 2) {
@@ -889,14 +888,17 @@ int VarDriver3D::loadBackgroundObs()
 	
 	// Load the observations into a vector
 	bgObs = new real[numbgObs*14];
-	for (int m=0; m < numbgObs; m++) bgObs[m] = 0.;
+	for (int m=0; m < numbgObs*14; m++) bgObs[m] = 0.;
 	int p = 0;
 	for (int m=0; m < bgIn.size(); m+=11) {
 		real bgX = bgIn[m];
 		real bgY = bgIn[m+1];
 		real bgZ = exp(bgIn[m+2]);
 		real bgTime = bgIn[m+3];
-		if ((bgZ < kmin) or (bgZ > kmax)) continue;
+		if ((bgZ < kmin) or (bgZ > kmax)) {
+			numbgObs -= 7;
+			continue;
+		}
 		for (unsigned int n = 0; n < numVars; n++) {
 			bgObs[p] = bgIn[m+4+n];
 			// Error of background = 1
@@ -911,7 +913,8 @@ int VarDriver3D::loadBackgroundObs()
 			p += 14;
 		}
 	}	
-	
+
+	cout << numbgObs << " background observations loaded" << endl;	
 	return numbgObs;
 }
 

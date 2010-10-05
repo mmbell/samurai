@@ -96,8 +96,8 @@
 		hitCount = 0;
 		ignoreCount = 0;
 		location = "";
-		modificationTime = 307994404.674662;
-		state = 0;
+		modificationTime = 307999030.227125;
+		state = 1;
 		symbolName = ibasis;
 	};
 	093A8D6F1207D22C00944A21 /* PBXTextBookmark */ = {
@@ -345,7 +345,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1118";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 23473;
@@ -355,7 +355,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1121";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 542;
 		vrLoc = 23435;
@@ -365,7 +365,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 909";
 		rLen = 0;
-		rLoc = 27823;
+		rLoc = 27789;
 		rType = 0;
 		vrLen = 1106;
 		vrLoc = 26822;
@@ -385,7 +385,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1121";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 542;
 		vrLoc = 23435;
@@ -399,6 +399,196 @@
 		rType = 0;
 		vrLen = 1336;
 		vrLoc = 26498;
+	};
+	097E8309125BA56700FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 657;
+		vrLoc = 23435;
+	};
+	097E830A125BA56700FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1400;
+		vrLoc = 26453;
+	};
+	097E830C125BA5A600FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E830D125BA5A600FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1380;
+		vrLoc = 26453;
+	};
+	097E830F125BA74900FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E8310125BA74900FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1383;
+		vrLoc = 26453;
+	};
+	097E8313125BA7BA00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E8314125BA7BA00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1593;
+		vrLoc = 26099;
+	};
+	097E831C125BA81000FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E831D125BA81000FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1635;
+		vrLoc = 26099;
+	};
+	097E831E125BA81000FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1502;
+		vrLoc = 25919;
+	};
+	097E8321125BACDF00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 657;
+		vrLoc = 23435;
+	};
+	097E8322125BACDF00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 672";
+		rLen = 0;
+		rLoc = 19774;
+		rType = 0;
+		vrLen = 1502;
+		vrLoc = 25919;
+	};
+	097E8323125BACDF00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 674";
+		rLen = 0;
+		rLoc = 19827;
+		rType = 0;
+		vrLen = 1469;
+		vrLoc = 25658;
+	};
+	097E8326125BAD1E00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1121";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E8327125BAD1E00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 674";
+		rLen = 0;
+		rLoc = 19827;
+		rType = 0;
+		vrLen = 1469;
+		vrLoc = 25658;
+	};
+	097E8328125BAD1E00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 674";
+		rLen = 0;
+		rLoc = 19827;
+		rType = 0;
+		vrLen = 1419;
+		vrLoc = 23074;
+	};
+	097E832C125BAFEC00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 1124";
+		rLen = 0;
+		rLoc = 33866;
+		rType = 0;
+		vrLen = 542;
+		vrLoc = 23435;
+	};
+	097E832D125BAFEC00FBE2DC /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
+		name = "VarDriver3D.cpp: 674";
+		rLen = 0;
+		rLoc = 19827;
+		rType = 0;
+		vrLen = 1404;
+		vrLoc = 25658;
 	};
 	0982EF84104EA40D00DB666F /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
@@ -786,7 +976,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 951";
 		rLen = 0;
-		rLoc = 29722;
+		rLoc = 29752;
 		rType = 0;
 		vrLen = 511;
 		vrLoc = 22482;
@@ -816,7 +1006,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1094";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 772;
 		vrLoc = 23151;
@@ -846,7 +1036,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1094";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 780;
 		vrLoc = 23112;
@@ -886,7 +1076,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1118";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 23473;
@@ -896,7 +1086,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1118";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 23473;
@@ -936,7 +1126,7 @@
 		fRef = 218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */;
 		name = "VarDriver3D.cpp: 1118";
 		rLen = 0;
-		rLoc = 33836;
+		rLoc = 33866;
 		rType = 0;
 		vrLen = 569;
 		vrLoc = 23473;
@@ -1039,10 +1229,10 @@
 	};
 	218268A416BE7C05F1B2BB4E /* VarDriver3D.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {830, 15736}}";
-			sepNavSelRange = "{19774, 0}";
-			sepNavVisRange = "{26498, 1336}";
-			sepNavWindowFrame = "{{299, 54}, {889, 824}}";
+			sepNavIntBoundsRect = "{{0, 0}, {830, 15358}}";
+			sepNavSelRange = "{19827, 0}";
+			sepNavVisRange = "{25658, 1417}";
+			sepNavWindowFrame = "{{318, -25}, {889, 824}}";
 		};
 	};
 	242670B24EA6ACAC229EFACA /* RecursiveFilter.h */ = {
@@ -1230,6 +1420,25 @@
 			097E82F4125B9C8D00FBE2DC /* PBXTextBookmark */ = 097E82F4125B9C8D00FBE2DC /* PBXTextBookmark */;
 			097E8306125B9F3500FBE2DC /* PBXTextBookmark */ = 097E8306125B9F3500FBE2DC /* PBXTextBookmark */;
 			097E8307125B9F3500FBE2DC /* PBXTextBookmark */ = 097E8307125B9F3500FBE2DC /* PBXTextBookmark */;
+			097E8309125BA56700FBE2DC /* PBXTextBookmark */ = 097E8309125BA56700FBE2DC /* PBXTextBookmark */;
+			097E830A125BA56700FBE2DC /* PBXTextBookmark */ = 097E830A125BA56700FBE2DC /* PBXTextBookmark */;
+			097E830C125BA5A600FBE2DC /* PBXTextBookmark */ = 097E830C125BA5A600FBE2DC /* PBXTextBookmark */;
+			097E830D125BA5A600FBE2DC /* PBXTextBookmark */ = 097E830D125BA5A600FBE2DC /* PBXTextBookmark */;
+			097E830F125BA74900FBE2DC /* PBXTextBookmark */ = 097E830F125BA74900FBE2DC /* PBXTextBookmark */;
+			097E8310125BA74900FBE2DC /* PBXTextBookmark */ = 097E8310125BA74900FBE2DC /* PBXTextBookmark */;
+			097E8313125BA7BA00FBE2DC /* PBXTextBookmark */ = 097E8313125BA7BA00FBE2DC /* PBXTextBookmark */;
+			097E8314125BA7BA00FBE2DC /* PBXTextBookmark */ = 097E8314125BA7BA00FBE2DC /* PBXTextBookmark */;
+			097E831C125BA81000FBE2DC /* PBXTextBookmark */ = 097E831C125BA81000FBE2DC /* PBXTextBookmark */;
+			097E831D125BA81000FBE2DC /* PBXTextBookmark */ = 097E831D125BA81000FBE2DC /* PBXTextBookmark */;
+			097E831E125BA81000FBE2DC /* PBXTextBookmark */ = 097E831E125BA81000FBE2DC /* PBXTextBookmark */;
+			097E8321125BACDF00FBE2DC /* PBXTextBookmark */ = 097E8321125BACDF00FBE2DC /* PBXTextBookmark */;
+			097E8322125BACDF00FBE2DC /* PBXTextBookmark */ = 097E8322125BACDF00FBE2DC /* PBXTextBookmark */;
+			097E8323125BACDF00FBE2DC /* PBXTextBookmark */ = 097E8323125BACDF00FBE2DC /* PBXTextBookmark */;
+			097E8326125BAD1E00FBE2DC /* PBXTextBookmark */ = 097E8326125BAD1E00FBE2DC /* PBXTextBookmark */;
+			097E8327125BAD1E00FBE2DC /* PBXTextBookmark */ = 097E8327125BAD1E00FBE2DC /* PBXTextBookmark */;
+			097E8328125BAD1E00FBE2DC /* PBXTextBookmark */ = 097E8328125BAD1E00FBE2DC /* PBXTextBookmark */;
+			097E832C125BAFEC00FBE2DC /* PBXTextBookmark */ = 097E832C125BAFEC00FBE2DC /* PBXTextBookmark */;
+			097E832D125BAFEC00FBE2DC /* PBXTextBookmark */ = 097E832D125BAFEC00FBE2DC /* PBXTextBookmark */;
 			0982EF84104EA40D00DB666F = 0982EF84104EA40D00DB666F /* PBXTextBookmark */;
 			098664321125E84A00D54CB9 = 098664321125E84A00D54CB9 /* PBXTextBookmark */;
 			098664481125E89800D54CB9 = 098664481125E89800D54CB9 /* PBXTextBookmark */;

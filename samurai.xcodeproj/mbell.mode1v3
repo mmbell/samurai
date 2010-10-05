@@ -216,10 +216,10 @@
 						<key>_historyCapacity</key>
 						<integer>0</integer>
 						<key>bookmark</key>
-						<string>097E8307125B9F3500FBE2DC</string>
+						<string>097E832D125BAFEC00FBE2DC</string>
 						<key>history</key>
 						<array>
-							<string>097E82F3125B9C8D00FBE2DC</string>
+							<string>097E8327125BAD1E00FBE2DC</string>
 						</array>
 					</dict>
 					<key>SplitCount</key>
@@ -364,7 +364,7 @@
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>097E8306125B9F3500FBE2DC</string>
+										<string>097E832C125BAFEC00FBE2DC</string>
 										<key>history</key>
 										<array>
 											<string>0973C6191041BB0100DBE167</string>
@@ -643,14 +643,14 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>097E8308125B9F3500FBE2DC</string>
+		<string>097E832E125BAFEC00FBE2DC</string>
 		<string>097E82FE125B9C8D00FBE2DC</string>
 		<string>097E82FF125B9C8D00FBE2DC</string>
 		<string>0973C5BB10419CE500DBE167</string>
-		<string>097E82F1125B9C8D00FBE2DC</string>
 		<string>/Users/mbell/Development/samurai/trunk/samurai.xcodeproj</string>
-		<string>1C78EAAD065D492600B07095</string>
+		<string>097E82F1125B9C8D00FBE2DC</string>
 		<string>1CD10A99069EF8BA00B06720</string>
+		<string>1C78EAAD065D492600B07095</string>
 	</array>
 	<key>WindowString</key>
 	<string>322 105 1130 773 0 0 1440 878 </string>
@@ -824,10 +824,10 @@
 									<key>Frame</key>
 									<string>{{0, 123}, {379, 512}}</string>
 									<key>RubberWindowFrame</key>
-									<string>161 137 1264 676 0 0 1440 878 </string>
+									<string>168 95 1264 676 0 0 1440 878 </string>
 								</dict>
 								<key>RubberWindowFrame</key>
-								<string>161 137 1264 676 0 0 1440 878 </string>
+								<string>168 95 1264 676 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXDebugSessionModule</string>
@@ -861,7 +861,7 @@
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debugV3</string>
 			<key>WindowString</key>
-			<string>161 137 1264 676 0 0 1440 878 </string>
+			<string>168 95 1264 676 0 0 1440 878 </string>
 			<key>WindowToolGUID</key>
 			<string>1CD10A99069EF8BA00B06720</string>
 			<key>WindowToolIsVisible</key>
@@ -989,7 +989,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {1160, 564}}</string>
 								<key>RubberWindowFrame</key>
-								<string>41 126 1160 605 0 0 1440 878 </string>
+								<string>25 60 1160 605 0 0 1440 878 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXDebugCLIModule</string>
@@ -1018,7 +1018,7 @@
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.consoleV3</string>
 			<key>WindowString</key>
-			<string>41 126 1160 605 0 0 1440 878 </string>
+			<string>25 60 1160 605 0 0 1440 878 </string>
 			<key>WindowToolGUID</key>
 			<string>1C78EAAD065D492600B07095</string>
 			<key>WindowToolIsVisible</key>
