@@ -85,8 +85,8 @@ private:
 	real* fieldNodes;
 	int varDim;
 	int bState;
-	real bgError[6];
-	int iBCL[6], iBCR[6], jBCL[6], jBCR[6], kBCL[6], kBCR[6];
+	real bgError[7];
+	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
 	real bgErrorScale;
 	real constHeight;
 	real mcWeight;

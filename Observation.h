@@ -10,7 +10,6 @@
 #define OBSERVATION_H
 #include "precision.h"
 
-
 class Observation
 {
 
@@ -46,17 +45,21 @@ public:
 	double inline getOb() const { return obNet; }
 	void setOb(const double &ob);
 
+	int inline getTime() const { return time; }
+	void setTime(const int& t);
+	
 private:
 	double radius;
 	double theta;
 	double altitude;
 	double cartesianX;
 	double cartesianY;
-	double weight[6];
+	double weight[7];
 	double error;
 	double obNet;
 	unsigned int numVars;
 	int type;
+	int time;
 };
 
 #endif

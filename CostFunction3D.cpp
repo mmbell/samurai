@@ -54,17 +54,18 @@ void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU
 {
 
 	// Initialize number of variables
-	varDim = 6;
+	varDim = 7;
 	configHash = config;
 		
 	// Initialize background errors and filter scales
 	bgError[0] = configHash.value("uerror").toFloat();
-	bgError[1] = configHash.value("verror").toFloat();;
-	bgError[2] = configHash.value("werror").toFloat();;
-	bgError[3] = configHash.value("herror").toFloat();;
-	bgError[4] = configHash.value("qverror").toFloat();;	
-	bgError[5] = configHash.value("rhoerror").toFloat();;
-
+	bgError[1] = configHash.value("verror").toFloat();
+	bgError[2] = configHash.value("werror").toFloat();
+	bgError[3] = configHash.value("herror").toFloat();
+	bgError[4] = configHash.value("qverror").toFloat();	
+	bgError[5] = configHash.value("rhoerror").toFloat();
+	bgError[6] = configHash.value("qrerror").toFloat();
+	
 	// These should be set by the xml file
 	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
 	iBCL[1] = R1T2; iBCR[1] = R1T2; jBCL[1] = R1T2; jBCR[1] = R1T2; kBCL[1] = R1T2; kBCR[1] = R1T2;
@@ -72,8 +73,8 @@ void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU
 	iBCL[3] = R1T2; iBCR[3] = R1T2; jBCL[3] = R1T2; jBCR[3] = R1T2; kBCL[3] = R1T2; kBCR[3] = R1T2;
 	iBCL[4] = R1T2; iBCR[4] = R1T2; jBCL[4] = R1T2; jBCR[4] = R1T2;	kBCL[4] = R1T2; kBCR[4] = R1T2;
 	iBCL[5] = R1T2; iBCR[5] = R1T2; jBCL[5] = R1T2; jBCR[5] = R1T2; kBCL[5] = R1T2; kBCR[5] = R1T2;
+	iBCL[6] = R1T2; iBCR[6] = R1T2; jBCL[6] = R1T2; jBCR[6] = R1T2; kBCL[6] = R1T2; kBCR[6] = R1T2;	
 	
-	// Also should be set in XML
 	// Define the Reference state
 	if (configHash.value("refstate") == "jordan") {
 		referenceState = jordan;
@@ -124,11 +125,11 @@ void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU
 	CTHTd = new real[nState];
 	stateU = new real[nState];
 	stateV = new real[nState];
-	obsVector = new real[mObs*12];
+	obsVector = new real[mObs*14];
 	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
-	fieldNodes = new real[24*nodes];	
+	fieldNodes = new real[nodes*25];	
 	bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[bState];
 	stateB = new real[bState];
@@ -237,7 +238,7 @@ double CostFunction3D::funcValue(double* state)
 	// Subtract d from HCq to yield mObs length vector and compute inner product
 	#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
-		obIP += (HCq[m]-innovation[m])*(obsVector[m*12+1])*(HCq[m]-innovation[m]);
+		obIP += (HCq[m]-innovation[m])*(obsVector[m*14+1])*(HCq[m]-innovation[m]);
 	}
 	
 	// Mass continuity on the nodes
@@ -291,7 +292,7 @@ void CostFunction3D::updateHCq(double* state)
 	// H
 	#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*12;
+		int mi = m*14;
 		real i = obsVector[mi+2];
 		real j = obsVector[mi+3];
 		real k = obsVector[mi+4];
@@ -311,11 +312,11 @@ void CostFunction3D::updateHCq(double* state)
 						(kNode < 0) or (kNode >= kDim)) continue;
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					for (int var = 0; var < varDim; var++) {
-						if (obsVector[mi+6 + var] == 0) continue;
+						if (obsVector[mi+7 + var] == 0) continue;
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6 + var];
+						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7 + var];
 					}
 				}
 			}
@@ -417,14 +418,14 @@ void CostFunction3D::calcInnovation()
 	cout << "Initializing innovation vector..." << endl;
 	for (int m = 0; m < mObs; m++) {
 		HCq[m] = 0.0;
-		innovation[m] = obsVector[m*12];
+		innovation[m] = obsVector[m*14];
 	}
 	
 	real innovationRMS = 0.;
 	real mcbgRMS = 0.;
 	#pragma omp parallel for reduction(+:innovationRMS)
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*12;
+		int mi = m*14;
 		real i = obsVector[mi+2];
 		real j = obsVector[mi+3];
 		real k = obsVector[mi+4];
@@ -444,11 +445,11 @@ void CostFunction3D::calcInnovation()
 						(kNode < 0) or (kNode >= kDim)) continue;
 					int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					for (int var = 0; var < varDim; var++) {
-						if (obsVector[mi+6 + var] == 0) continue;
+						if (obsVector[mi+7 + var] == 0) continue;
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6+var];
+						tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7+var];
 					}
 				}
 			}
@@ -528,7 +529,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 				for (int m = 0; m < mObs; m++) {
 					// Sum over obs this time
 					// Multiply state by H weights
-					int mi = m*12;
+					int mi = m*14;
 					real qhat = yhat[m];
 					real invError = obsVector[mi+1];
 					real i = obsVector[mi+2];
@@ -542,13 +543,13 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 					if ((kIndex < kk-1) or (kIndex > kk+2)) continue;
 
 					for (int var = 0; var < varDim; var++) {
-						if (obsVector[mi+6 + var] == 0) continue;
+						if (obsVector[mi+7 + var] == 0) continue;
 						real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 						real qbasise = qhat* ibasis * jbasis * kbasis *invError;
 						#pragma omp atomic
-						Astate[aIndex + var] += qbasise * obsVector[mi+6+var];
+						Astate[aIndex + var] += qbasise * obsVector[mi+7+var];
 					}
 				}
 				
@@ -1304,7 +1305,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
 	samuraistream << "rhoux\trhouy\trhouz\trhovx\trhovy\trhovz\trhowx\trhowy\trhowz\tMC residual\n";
 	samuraistream.precision(10);
-	real CoriolisF = 6e-5;
+	//real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -1354,6 +1355,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real hprime = 0.;
 										real qvprime = 0.;
 										real rhoprime = 0.;
+										real qrprime = 0.;
 										for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 											for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 												for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
@@ -1397,6 +1399,9 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 															case 5:
 																rhoprime += Astate[aIndex + 5] * basis3x;
 																break;
+															case 6:
+																qrprime += Astate[aIndex + 6] * basis3x;
+																break;
 														}
 													}
 												}
@@ -1406,6 +1411,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										// Get it to relevant variables for the flux calculation
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = bhypInvTransform(qBar + qvprime);
+										real qr = bhypInvTransform(qrprime);
 										real rhoq = qv * rhoa / 1000.;
 										real rho = rhoa + rhoq;
 										real v = rhov / rho;
@@ -1446,6 +1452,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											bgFields[bIndex + 3] = hprime;
 											bgFields[bIndex + 4] = qvprime;
 											bgFields[bIndex + 5] = rhoprime;
+											bgFields[bIndex + 6] = qrprime;
 										}
 										
 										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
@@ -1489,6 +1496,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											fieldNodes[fIndex * 21 + posIndex] = qv;
 											fieldNodes[fIndex * 22 + posIndex] = h;
 											fieldNodes[fIndex * 23 + posIndex] = rhowdz;
+											fieldNodes[fIndex * 24 + posIndex] = qr;
 										}
 									}
 								}
@@ -1524,19 +1532,21 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	*os++ = "Y";
 	*os++ = "Z";
 	*os++ = "Type";
-	*os++ = "Weight 1";
-	*os++ = "Weight 2";
-	*os++ = "Weight 3";
-	*os++ = "Weight 4";
-	*os++ = "Weight 5";
-	*os++ = "Weight 6";	
+	*os++ = "Time";
+	*os++ = "rhou";
+	*os++ = "rhov";
+	*os++ = "rhow";
+	*os++ = "h'";
+	*os++ = "qv'";
+	*os++ = "rhoa'";
+	*os++ = "qr";
 	*os++ = "Analysis";
 	*os++ = "Background";
 	qcstream << endl;
 	
 	ostream_iterator<double> od(qcstream, "\t ");
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*12;
+		int mi = m*14;
 		real i = obsVector[mi+2];
 		real j = obsVector[mi+3];
 		real k = obsVector[mi+4];
@@ -1558,15 +1568,21 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+6+var];
+						tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7+var];
 					}
 				}
 			}
 		}
 				
-		for (int t=0; t<12; t++) {
+		for (int t=0; t < 7; t++) {
 			*od++ = obsVector[mi+t];
 		}
+		
+		// Multiply the weight by the ob -- Observations.in has individual weights already
+		for (int t=7; t<14; t++) {
+			*od++ = obsVector[mi+t] * obsVector[mi];
+		}
+		
 		*od++ = tempsum;
 		*od++ = obsVector[mi]-innovation[m];
 		qcstream << endl;
@@ -1753,7 +1769,7 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	// Define the netCDF variables 
 	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
-	NcVar *rho, *press, *temp, *qv, *h, *rhowdz;
+	NcVar *rho, *press, *temp, *qv, *h, *rhowdz, *qr;
 		
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
 									 lvlDim, latDim, lonDim)))
@@ -1827,6 +1843,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	if (!(rhowdz = dataFile.add_var("DRHOWDZ", ncFloat, timeDim, 
 								  lvlDim, latDim, lonDim)))
 		return NC_ERR;
+	if (!(qr = dataFile.add_var("QR", ncFloat, timeDim, 
+									lvlDim, latDim, lonDim)))
+		return NC_ERR;
 	
 	
 	// Define units attributes for data variables.
@@ -1878,6 +1897,8 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!rhowdz->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
+	if (!qr->add_att("units", "g kg-1")) 
+		return NC_ERR;
 	
 	// Define long names for data variables.
 	if (!u->add_att("long_name", "u wind component"))
@@ -1928,6 +1949,8 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!rhowdz->add_att("long_name", "vertical mass flux gradient")) 
 		return NC_ERR;	
+	if (!qr->add_att("long_name", "precipitation mixing ratio")) 
+		return NC_ERR;
 	
 	// Write the coordinate variable data to the file.
 	real *lats = new real[iDim];
@@ -2019,6 +2042,8 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 			return NC_ERR;
 		if (!rhowdz->put_rec(&fieldNodes[iDim*jDim*kDim*23], rec)) 
 			return NC_ERR;
+		if (!qr->put_rec(&fieldNodes[iDim*jDim*kDim*24], rec)) 
+			return NC_ERR;
 	}
 	
 	// The file is automatically closed by the destructor. This frees
@@ -2036,8 +2061,8 @@ void CostFunction3D::obAdjustments() {
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*12;
-		for (int ob = 0; ob < 12; ob++) {
+		int mi = m*14;
+		for (int ob = 0; ob < 14; ob++) {
 			obsVector[mi+ob] = rawObs[mi+ob];
 		}
 		real type = obsVector[mi+5];
@@ -2471,7 +2496,7 @@ real CostFunction3D::getReferenceVariable(int refVariable, real heightm)
 		real qv = bhypInvTransform(qvbhyp);
 		rho = rhoa*qv/1000. + rhoa;
 		return rho;
-	} else if ((refVariable == href) or (refVariable = tempref) or (refVariable == pressref)) {
+	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
 		real press = 0.;
 		real temp = 0.;

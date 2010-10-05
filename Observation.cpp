@@ -10,17 +10,17 @@
 
 Observation::Observation()
 {
-	numVars = 6;
+	numVars = 7;
 	radius = -999;
 	theta = -999;
 	altitude = -999;
 	cartesianX = -999;
 	cartesianY = -999;
-	for (int i = 0; i<6; i++) weight[i] = -999;
+	for (int i = 0; i < numVars; i++) weight[i] = -999;
 	error = -999;
 	obNet = -999;
 	type = -999;
-	
+	time = -999;
 }
 
 Observation::~Observation()
@@ -73,4 +73,9 @@ void Observation::setError(const double &err)
 void Observation::setOb(const double &ob)
 {
 	obNet = ob;
+}
+
+void Observation::setTime(const int &t)
+{
+	time = t;
 }

@@ -20,7 +20,7 @@
 VarDriver3D::VarDriver3D()
 	: VarDriver()
 {
-	numVars = 6;
+	numVars = 7;
 	maxIter = 1.;
 }
 
@@ -168,7 +168,8 @@ void VarDriver3D::preProcessMetObs()
 			varOb.setCartesianX(obX);
 			varOb.setCartesianY(obY);
 			varOb.setAltitude(obZ);
-
+			varOb.setTime(obTime.toTime_t());
+			
 			real Um = tcVector[tci].getUmean();
 			real Vm = tcVector[tci].getVmean();
 
@@ -184,6 +185,7 @@ void VarDriver3D::preProcessMetObs()
 			varOb.setWeight(0., 3);
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
+			varOb.setWeight(0., 6);
 			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
@@ -416,7 +418,8 @@ void VarDriver3D::preProcessMetObs()
 					double Z = metOb.getReflectivity();
 					double H = metOb.getAltitude();
 					double ZZ=pow(10.0,(Z*0.1));
-					double hlow= 5600 - 1000 * .5; 
+					double zeroC = 4800.;
+					double hlow= zeroC; 
 					double hhi= hlow + 1000;
 					
 					/* density correction term (rhoo/rho)*0.45 [rho(Z)=rho_o exp-(z/H), where 
@@ -463,6 +466,22 @@ void VarDriver3D::preProcessMetObs()
 					varOb.setOb(Vdopp);
 					obVector.push_back(varOb);
 					
+					// Reflectivity observation
+					varOb.setWeight(0., 0);	
+					varOb.setWeight(0., 1);	
+					varOb.setWeight(0., 2);
+					
+					varOb.setWeight(1., 6);
+					// Z-M relationships from Gamache et al (1993) JAS
+					double rainmass = pow(ZZ/14630.,(double)0.6905);
+					double icemass = pow(ZZ/670.,(double)0.5587);
+					double precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
+					if (H < hlow) precipmass = rainmass;
+					if (H > hhi) precipmass = icemass;
+					double qr = bhypTransform(precipmass/rhoBar);
+					varOb.setOb(qr);
+					// Need a better error here
+					varOb.setError(1.0);
 					break;
 										
 			}
@@ -500,6 +519,7 @@ void VarDriver3D::preProcessMetObs()
 		*od++ = ob.getCartesianY();
 		*od++ = ob.getAltitude();		
 		*od++ = ob.getType();
+		*od++ = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++)
 			*od++ = ob.getWeight(var);
 
@@ -507,9 +527,9 @@ void VarDriver3D::preProcessMetObs()
 	}
 	
 	// Load the observations into a vector
-	obs = new real[obVector.size()*12];
+	obs = new real[obVector.size()*14];
 	for (unsigned int m=0; m < obVector.size(); m++) {
-		int n = m*12;
+		int n = m*14;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -517,8 +537,9 @@ void VarDriver3D::preProcessMetObs()
 		obs[n+3] = ob.getCartesianY();
 		obs[n+4] = ob.getAltitude();
 		obs[n+5] = ob.getType();
+		obs[n+6] = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++) {
-			obs[n+6+var] = ob.getWeight(var);
+			obs[n+7+var] = ob.getWeight(var);
 		}
 	}	
 	
@@ -539,16 +560,17 @@ bool VarDriver3D::loadMetObs()
 	Observation varOb;
 	double wgt[numVars];
 	double xPos, yPos, zPos, ob, error;
-	int type;
+	int type, time;
 	ifstream obstream("./Observations.in");
-	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type
-		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5])
+	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
+		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
 	{
 		varOb.setOb(ob);
 		varOb.setCartesianX(xPos);
 		varOb.setCartesianY(yPos);
 		varOb.setAltitude(zPos);
 		varOb.setType(type);
+		varOb.setTime(time);
 		varOb.setError(1./error);
 		for (unsigned int var = 0; var < numVars; var++)
 			varOb.setWeight(wgt[var],var);
@@ -556,9 +578,9 @@ bool VarDriver3D::loadMetObs()
 	}
 
 	// Load the observations into a vector
-	obs = new real[obVector.size()*12];
+	obs = new real[obVector.size()*14];
 	for (unsigned int m=0; m < obVector.size(); m++) {
-		int n = m*12;
+		int n = m*14;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -566,8 +588,9 @@ bool VarDriver3D::loadMetObs()
 		obs[n+3] = ob.getCartesianY();
 		obs[n+4] = ob.getAltitude();
 		obs[n+5] = ob.getType();
+		obs[n+6] = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++) {
-			obs[n+6+var] = ob.getWeight(var);
+			obs[n+7+var] = ob.getWeight(var);
 		}
 		
 	}	
@@ -588,7 +611,7 @@ int VarDriver3D::loadBackgroundObs()
 	float ROI = configHash.value("backgroundroi").toFloat();
 	double RSquare = ROI*ROI;
 	ifstream bgstream("./Background.in");
-	cout << "Loading background onto Gaussian mish..." << endl;
+	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
 	
 	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> h >> qv >> rhoa)
 	{
@@ -622,8 +645,8 @@ int VarDriver3D::loadBackgroundObs()
 		double heightm = alt;
 		bgZ = heightm/1000.;
 		// Make sure the ob is in the Cressman domain
-		if ((bgX < (imin-iincr)) or (bgX > (imax+iincr)) or
-			(bgY < (jmin-jincr)) or (bgY > (jmax+jincr))
+		if ((bgX < (imin-ROI)) or (bgX > (imax+ROI)) or
+			(bgY < (jmin-ROI)) or (bgY > (jmax+ROI))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 				
@@ -644,7 +667,7 @@ int VarDriver3D::loadBackgroundObs()
 		real qvprime = qv-qBar;
 		real rhoprime = (rhoa-rhoBar)*100;
 		real logZ = log(bgZ);
-		bgIn << bgX << bgY << logZ << rhou << rhov << rhow << hprime << qvprime << rhoprime;
+		bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << hprime << qvprime << rhoprime ;
 		if (logheights.size() == 0) {
 			// First column
 			logheights.push_back(logZ);
@@ -687,12 +710,12 @@ int VarDriver3D::loadBackgroundObs()
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
 							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > iincr*2) continue;
+							if (fabs(xPos-bgX) > ROI) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
 									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > jincr*2) continue;
+									if (fabs(yPos-bgY) > ROI) continue;
 									
 									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 									int bgI = xi*2 + (xmu+1)/2;
@@ -769,12 +792,12 @@ int VarDriver3D::loadBackgroundObs()
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
 					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > iincr) continue;
+					if (fabs(xPos-bgX) > ROI) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
 							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > jincr) continue;
+							if (fabs(yPos-bgY) > ROI) continue;
 							
 							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 							int bgI = xi*2 + (xmu+1)/2;
@@ -863,16 +886,17 @@ int VarDriver3D::loadBackgroundObs()
 	
 	
 	// Load the observations into a vector
-	bgObs = new real[numbgObs*12];
+	bgObs = new real[numbgObs*14];
 	for (int m=0; m < numbgObs; m++) bgObs[m] = 0.;
 	int p = 0;
-	for (int m=0; m < bgIn.size(); m+=9) {
+	for (int m=0; m < bgIn.size(); m+=10) {
 		real bgX = bgIn[m];
 		real bgY = bgIn[m+1];
 		real bgZ = exp(bgIn[m+2]);
+		real bgTime = bgIn[m+3];
 		if ((bgZ < kmin) or (bgZ > kmax)) continue;
-		for (int n = 0; n < 6; n++) {
-			bgObs[p] = bgIn[m+3+n];
+		for (unsigned int n = 0; n < numVars; n++) {
+			bgObs[p] = bgIn[m+4+n];
 			// Error of background = 1
 			bgObs[p+1] = 1.;
 			bgObs[p+2] = bgX;
@@ -880,8 +904,9 @@ int VarDriver3D::loadBackgroundObs()
 			bgObs[p+4] = bgZ;
 			// Null type
 			bgObs[p+5] = -1;
-			bgObs[p+6+n] = 1.;
-			p += 12;
+			bgObs[p+6] = bgTime;
+			bgObs[p+7+n] = 1.;
+			p += 14;
 		}
 	}	
 	
