@@ -667,7 +667,9 @@ int VarDriver3D::loadBackgroundObs()
 		real qvprime = qv-qBar;
 		real rhoprime = (rhoa-rhoBar)*100;
 		real logZ = log(bgZ);
-		bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << hprime << qvprime << rhoprime ;
+		// We assume here that the background precipitation field is always zero
+		real qr = 0.;
+		bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << hprime << qvprime << rhoprime << qr ;
 		if (logheights.size() == 0) {
 			// First column
 			logheights.push_back(logZ);
@@ -889,7 +891,7 @@ int VarDriver3D::loadBackgroundObs()
 	bgObs = new real[numbgObs*14];
 	for (int m=0; m < numbgObs; m++) bgObs[m] = 0.;
 	int p = 0;
-	for (int m=0; m < bgIn.size(); m+=10) {
+	for (int m=0; m < bgIn.size(); m+=11) {
 		real bgX = bgIn[m];
 		real bgY = bgIn[m+1];
 		real bgZ = exp(bgIn[m+2]);
