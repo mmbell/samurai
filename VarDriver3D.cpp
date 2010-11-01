@@ -77,11 +77,11 @@ void VarDriver3D::preProcessMetObs()
 				break;
 			case (cls):
 				if (!read_cls(metFile, metData))
-					cout << "Error reading frd file" << endl;
+					cout << "Error reading cls file" << endl;
 				break;
 			case (sec):
 				if (!read_sec(metFile, metData))
-					cout << "Error reading min file" << endl;
+					cout << "Error reading sec file" << endl;
 				break;
 			case (ten):
 				if (!read_ten(metFile, metData))
@@ -426,7 +426,10 @@ void VarDriver3D::preProcessMetObs()
 					 H is the scale height = 9.58125 from Gray's inner 2 deg composite] 
 					 0.45 density correction from Beard (1985, JOAT pp 468-471) 
 					 Adjusted to use Jordan hydrostatic scale height -MB */
-					double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
+					//double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
+					real rho = getReferenceVariable(rhoref, H);
+					real rhosfc = getReferenceVariable(rhoref, 0.);
+					real DCOR = pow((rhosfc/rho),(double)0.45);
 					
 					// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
 					double VTS=-DCOR * (0.817*pow(ZZ,(double)0.063));
@@ -446,7 +449,8 @@ void VarDriver3D::preProcessMetObs()
 					double w_term=VTR*(hhi-H)/1000 + VTS*(H-hlow)/1000;  
 					if (H < hlow) w_term=VTR; 
 					if (H > hhi) w_term=VTS;
-					
+					/*	cout << Z << "\t" << ZZ << "\t" << H << "\t" << DCOR << "\t" << VTS << "\t" << VTR 
+						<< "\t" << w_term << "\t"<< el << "\t" << sin(el) << "\t" << metOb.getRadialVelocity() << endl; */
 					double Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 					
 					varOb.setWeight(uWgt, 0);
@@ -472,16 +476,20 @@ void VarDriver3D::preProcessMetObs()
 					varOb.setWeight(0., 2);
 					
 					varOb.setWeight(1., 6);
-					// Z-M relationships from Gamache et al (1993) JAS
+					/* Z-M relationships from Gamache et al (1993) JAS
 					double rainmass = pow(ZZ/14630.,(double)0.6905);
 					double icemass = pow(ZZ/670.,(double)0.5587);
 					double precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
 					if (H < hlow) precipmass = rainmass;
 					if (H > hhi) precipmass = icemass;
-					double qr = bhypTransform(precipmass/rhoBar);
+					double qr = bhypTransform(precipmass/rhoBar); */
+					double qr = bhypTransform(ZZ);
 					varOb.setOb(qr);
 					// Need a better error here
-					varOb.setError(1.0);
+					varOb.setError(1000.0);
+					// Deleting for now
+					//obVector.push_back(varOb);
+					
 					break;
 										
 			}
@@ -610,6 +618,7 @@ int VarDriver3D::loadBackgroundObs()
 	double bgX, bgY, bgZ;
 	float ROI = configHash.value("backgroundroi").toFloat();
 	double RSquare = ROI*ROI;
+	double ROIsquare2 = ROI*sqrt(2.);
 	ifstream bgstream("./Background.in");
 	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
 	
@@ -645,8 +654,8 @@ int VarDriver3D::loadBackgroundObs()
 		double heightm = alt;
 		bgZ = heightm/1000.;
 		// Make sure the ob is in the Cressman domain
-		if ((bgX < (imin-ROI)) or (bgX > (imax+ROI)) or
-			(bgY < (jmin-ROI)) or (bgY > (jmax+ROI))
+		if ((bgX < (imin-ROIsquare2)) or (bgX > (imax+ROIsquare2)) or
+			(bgY < (jmin-ROIsquare2)) or (bgY > (jmax+ROIsquare2))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 				
@@ -712,12 +721,12 @@ int VarDriver3D::loadBackgroundObs()
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
 							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > ROI) continue;
+							if (fabs(xPos-bgX) > ROIsquare2) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
 									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > ROI) continue;
+									if (fabs(yPos-bgY) > ROIsquare2) continue;
 									
 									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 									int bgI = xi*2 + (xmu+1)/2;
@@ -794,12 +803,12 @@ int VarDriver3D::loadBackgroundObs()
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
 					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > ROI) continue;
+					if (fabs(xPos-bgX) > ROIsquare2) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
 							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > ROI) continue;
+							if (fabs(yPos-bgY) > ROIsquare2) continue;
 							
 							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 							int bgI = xi*2 + (xmu+1)/2;
@@ -895,7 +904,9 @@ int VarDriver3D::loadBackgroundObs()
 		real bgY = bgIn[m+1];
 		real bgZ = exp(bgIn[m+2]);
 		real bgTime = bgIn[m+3];
-		if ((bgZ < kmin) or (bgZ > kmax)) {
+		if ((bgX < imin) or (bgX > imax) or
+			(bgY < jmin) or (bgY > jmax) or
+			(bgZ < kmin) or (bgZ > kmax)) {
 			numbgObs -= 7;
 			continue;
 		}
@@ -1070,18 +1081,42 @@ bool VarDriver3D::initialize(const QString& xmlfile)
 		exit(-1);
 	}
 	
-	// Set up the Gaussian Grid by a previous samurai analysis
-	int numbgObs = loadBackgroundObs();
+	bool loadBG = true;
+	if (loadBG) {
+		/* Set the minimum filter length to the background resolution, not the analysis resolution
+		 to avoid artifacts when running interpolating to small mesoscale grids */
+		float hfilter = configHash.value("xfilter").toFloat();
+		float ares = hfilter*iincr;
+		float bgres = configHash.value("backgroundroi").toFloat();
+		if (ares < bgres) {
+			QString bgfilter;
+			bgfilter.setNum(bgres/iincr);
+			configHash.insert("xfilter", bgfilter);
+			configHash.insert("yfilter", bgfilter);
+		}
 		
-	// Adjust the background field to the spline mis
-	bgCost3D = new CostFunction3D(numbgObs, stateSize);
-	bgCost3D->initialize(configHash, bgU, bgObs);
-	bgCost3D->initState();
-	bgCost3D->minimize();
-	// Increment the variables
-	bgCost3D->updateBG(); 
-	
-	delete bgCost3D;
+		// Set up the Gaussian Grid by a previous samurai analysis
+		int numbgObs = loadBackgroundObs();
+		
+		// Adjust the background field to the spline mish
+		bgCost3D = new CostFunction3D(numbgObs, stateSize);
+		
+		bgCost3D->initialize(configHash, bgU, bgObs);
+		bgCost3D->initState();
+		bgCost3D->minimize();
+		// Increment the variables
+		bgCost3D->updateBG();
+		
+		delete bgCost3D;
+		
+		// Reset the horizontal filter
+		if (ares < bgres) {
+			QString afilter;
+			afilter.setNum(hfilter);
+			configHash.insert("xfilter", afilter);
+			configHash.insert("yfilter", afilter);
+		}
+	}
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file

@@ -1,12 +1,12 @@
 /*
- *  CostFunction3D.cpp
+ *  CostFunctionXYZ.cpp
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#include "CostFunction3D.h"
+#include "CostFunctionXYZ.h"
 #include "MetObs.h"
 #include <cmath>
 #include <QString>
@@ -16,16 +16,16 @@
 #include <QDir>
 #include <netcdfcpp.h>
 
-CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
+CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
 {
 }
 
-CostFunction3D::~CostFunction3D()
+CostFunctionXYZ::~CostFunctionXYZ()
 {
 }
 
-void CostFunction3D::finalize()
+void CostFunctionXYZ::finalize()
 {	
 
 	delete iFilter;
@@ -50,7 +50,7 @@ void CostFunction3D::finalize()
 	delete[] fieldNodes;	
 }
 
-void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)
+void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)
 {
 
 	// Initialize number of variables
@@ -61,7 +61,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU
 	bgError[0] = configHash.value("uerror").toFloat();
 	bgError[1] = configHash.value("verror").toFloat();
 	bgError[2] = configHash.value("werror").toFloat();
-	bgError[3] = configHash.value("herror").toFloat();
+	bgError[3] = configHash.value("terror").toFloat();
 	bgError[4] = configHash.value("qverror").toFloat();	
 	bgError[5] = configHash.value("rhoerror").toFloat();
 	bgError[6] = configHash.value("qrerror").toFloat();
@@ -150,7 +150,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>& config, real* bgU
 
 }	
 
-void CostFunction3D::initState()
+void CostFunctionXYZ::initState()
 {
 
 	// Clear the state vector
@@ -226,7 +226,7 @@ void CostFunction3D::initState()
 			
 }	
 
-double CostFunction3D::funcValue(double* state)
+double CostFunctionXYZ::funcValue(double* state)
 {
 
 	double qIP, obIP, mcIP;
@@ -263,7 +263,7 @@ double CostFunction3D::funcValue(double* state)
 	
 }
 
-void CostFunction3D::funcGradient(double* state, double* gradient)
+void CostFunctionXYZ::funcGradient(double* state, double* gradient)
 {
 	
 	updateHCq(state);
@@ -284,7 +284,7 @@ void CostFunction3D::funcGradient(double* state, double* gradient)
 	
 }
 
-void CostFunction3D::updateHCq(double* state)
+void CostFunctionXYZ::updateHCq(double* state)
 {
 
 	// SB transform from the q's
@@ -383,7 +383,7 @@ void CostFunction3D::updateHCq(double* state)
 	
 }
 
-void CostFunction3D::updateBG()
+void CostFunctionXYZ::updateBG()
 {
 
 	// SB transform from the q's
@@ -418,7 +418,7 @@ void CostFunction3D::updateBG()
 	
 }
 
-void CostFunction3D::calcInnovation()
+void CostFunctionXYZ::calcInnovation()
 {
 	// Initialize and fill the innovation vector
 	cout << "Initializing innovation vector..." << endl;
@@ -519,7 +519,7 @@ void CostFunction3D::calcInnovation()
 
 }	
 
-void CostFunction3D::calcHTranspose(const real* yhat, real* Astate) 
+void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate) 
 {
 	
 	// Clear the Astate
@@ -606,7 +606,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	
 }
 
-bool CostFunction3D::SAtransform(real* Bstate, real* Astate)
+bool CostFunctionXYZ::SAtransform(real* Bstate, real* Astate)
 {
 
 	#pragma omp parallel for
@@ -714,7 +714,7 @@ bool CostFunction3D::SAtransform(real* Bstate, real* Astate)
 	return true;
 }		
 
-void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
+void CostFunctionXYZ::SBtransform(real* Ustate, real* Bstate)
 {
 	// Clear the Bstate
 	for (int b = 0; b < bState; b++) {
@@ -770,7 +770,7 @@ void CostFunction3D::SBtransform(real* Ustate, real* Bstate)
 }
 
 
-void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
+void CostFunctionXYZ::SBtranspose(real* Bstate, real* Ustate)
 {
 		
 	// Clear the Ustate
@@ -825,7 +825,7 @@ void CostFunction3D::SBtranspose(real* Bstate, real* Ustate)
 	}
 }
 
-void CostFunction3D::SCtransform(real* Astate, real* Cstate)
+void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
 {
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
 	#pragma omp parallel for
@@ -880,7 +880,7 @@ void CostFunction3D::SCtransform(real* Astate, real* Cstate)
 	}
 }
 
-void CostFunction3D::SCtranspose(real* Cstate, real* Astate)
+void CostFunctionXYZ::SCtranspose(real* Cstate, real* Astate)
 {
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
@@ -940,7 +940,7 @@ void CostFunction3D::SCtranspose(real* Cstate, real* Astate)
 }
 
 
-bool CostFunction3D::setupSplines()
+bool CostFunctionXYZ::setupSplines()
 {
 	
 	// Do the spline via a Cholesky decomposition
@@ -1311,7 +1311,7 @@ bool CostFunction3D::setupSplines()
 	
 }
 
-bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
+bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
 {
 	
 	cout << "Outputting " << suffix.toStdString() << "...\n";
@@ -1345,7 +1345,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real heightm = 1000*k;
 										real rhoBar = getReferenceVariable(rhoaref, heightm);
 										real qBar = getReferenceVariable(qvbhypref, heightm);
-										real hBar = getReferenceVariable(href, heightm);
+										real tBar = getReferenceVariable(tempref, heightm);
 
 										int ii = (int)((i - iMin)*DIrecip);
 										int jj = (int)((j - jMin)*DJrecip);
@@ -1368,7 +1368,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real rhovdz = 0.;
 										real rhoudz = 0.;
 										real rhowdz = 0.;
-										real hprime = 0.;
+										real tprime = 0.;
 										real qvprime = 0.;
 										real rhoprime = 0.;
 										real qrprime = 0.;
@@ -1407,7 +1407,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 																rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
 																break;
 															case 3:
-																hprime += Astate[aIndex + 3] * basis3x;
+																tprime += Astate[aIndex + 3] * basis3x;
 																break;
 															case 4:
 																qvprime += Astate[aIndex + 4] * basis3x;
@@ -1428,10 +1428,13 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = bhypInvTransform(qBar + qvprime);
 										real qr = bhypInvTransform(qrprime);
-										if (qr > 0) {
-											qr = 10*log10(qr);
-										} else {
-											qr = -999.;
+										QString gridref = configHash.value("gridreflectivity");
+										if (gridref == "dbz") {
+											if (qr > 0) {
+												qr = 10*log10(qr);
+											} else {
+												qr = -999.;
+											}
 										}
 										real rhoq = qv * rhoa / 1000.;
 										real rho = rhoa + rhoq;
@@ -1440,9 +1443,9 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 										real w = rhow / rho;
 										real wspd = sqrt(u*u + v*v);
 										real KE = 0.5*rho*(v*v + u*u + w*w);
-										real rhoE = rho*(hBar + hprime*1.e3) + KE;
-										real h = hBar + hprime*1.e3;
-										real temp = (h - 2.501e3*(qv) - 9.81*heightm)/1005.7;
+										real temp = tBar + tprime;
+										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
+										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
 										real satvp = 6.1078 * exp(5.0065 * log(273.15/temp)) * exp((5.0065 + 19.83923) * (1 - 273.15/temp));
 										real satqv = 1000.0 * 0.622 * satvp / airpress;
@@ -1470,14 +1473,14 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 											bgFields[bIndex + 0] = rhou;
 											bgFields[bIndex + 1] = rhov;
 											bgFields[bIndex + 2] = rhow;
-											bgFields[bIndex + 3] = hprime;
+											bgFields[bIndex + 3] = tprime;
 											bgFields[bIndex + 4] = qvprime;
 											bgFields[bIndex + 5] = rhoprime;
 											bgFields[bIndex + 6] = qrprime;
 										}
 										
 										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
-										real tprime = temp - getReferenceVariable(tempref, heightm);
+										real hprime = h - getReferenceVariable(href, heightm);
 										
 										if (!ihalf and !jhalf and !khalf){
 											// On the node
@@ -1565,7 +1568,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	*os++ = "rhou";
 	*os++ = "rhov";
 	*os++ = "rhow";
-	*os++ = "h'";
+	*os++ = "T'";
 	*os++ = "qv'";
 	*os++ = "rhoa'";
 	*os++ = "qr";
@@ -1751,7 +1754,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate, bool up
 	
 }     
 
-bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
+bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 {
 	NcError err(NcError::verbose_nonfatal);
 	int NC_ERR = 0;
@@ -1954,6 +1957,10 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!qr->add_att("units", "g kg-1")) 
 		return NC_ERR;
+
+	if (!qr->add_att("missing_value", -999.0)) 
+		return NC_ERR;
+
 	if (!rhoudx->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
 	if (!rhovdx->add_att("units", "kg m-3s-1")) 
@@ -2163,7 +2170,7 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFile)
 	
 }
 
-void CostFunction3D::obAdjustments() {
+void CostFunctionXYZ::obAdjustments() {
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	for (int m = 0; m < mObs; m++) {
@@ -2226,7 +2233,7 @@ void CostFunction3D::obAdjustments() {
 	}
 }	
 
-void CostFunction3D::fillBasisLookup()
+void CostFunctionXYZ::fillBasisLookup()
 {
 
 	real ONESIXTH = 0.16666666666666666666666666667;
@@ -2248,7 +2255,7 @@ void CostFunction3D::fillBasisLookup()
 	
 }
 
-real CostFunction3D::Basis(int m, real x, int M, real xmin, 
+real CostFunctionXYZ::Basis(int m, real x, int M, real xmin, 
 								real DX, real DXrecip, int derivative, 
 								int BL, int BR, real lambda)
 {
@@ -2547,7 +2554,7 @@ real CostFunction3D::Basis(int m, real x, int M, real xmin,
 	
 }
 
-real CostFunction3D::getReferenceVariable(int refVariable, real heightm)
+real CostFunctionXYZ::getReferenceVariable(int refVariable, real heightm)
 {
 	real qvbhypcoeff[5];
 	real rhoacoeff[5];
@@ -2637,7 +2644,7 @@ real CostFunction3D::getReferenceVariable(int refVariable, real heightm)
 	return 0;
 }
 
-real CostFunction3D::bhypTransform(real qv)
+real CostFunctionXYZ::bhypTransform(real qv)
 {
 	
 	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
@@ -2645,7 +2652,7 @@ real CostFunction3D::bhypTransform(real qv)
 	
 }
 
-real CostFunction3D::bhypInvTransform(real qvbhyp)
+real CostFunctionXYZ::bhypInvTransform(real qvbhyp)
 {
 	real qv = 0.;
 	if (qvbhyp > 0) {

@@ -13,8 +13,8 @@
 		096F1C1512207B1700ED7FDC /* libhdf5.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1412207B1700ED7FDC /* libhdf5.a */; };
 		096F1C1712207B2000ED7FDC /* libcurl.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1612207B2000ED7FDC /* libcurl.a */; };
 		096F1C1A12207B4000ED7FDC /* libhdf5_hl.a in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 096F1C1912207B4000ED7FDC /* libhdf5_hl.a */; };
+		09918168125FC63500E6F186 /* CostFunctionXYZ.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */; };
 		0997BFEC12110C120063D87C /* samurai.app in Project Copy */ = {isa = PBXBuildFile; fileRef = 0997BFE912110C120063D87C /* samurai.app */; };
-		108D3A43C08311A85AE62FE2 /* CostFunctionXYZ_CPU.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */; settings = {ATTRIBUTES = (); }; };
 		12B02154B41B643409C9782C /* RecursiveFilter.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = E939C4205B9926CC9CE096F4 /* RecursiveFilter.cpp */; settings = {ATTRIBUTES = (); }; };
 		171209A99693EFE304E3E2EE /* CostFunctionAnalytic.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 786B97E2D0E53479AAF1DF68 /* CostFunctionAnalytic.cpp */; settings = {ATTRIBUTES = (); }; };
 		2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 118FCBAABA162BA17933C789 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
@@ -73,8 +73,9 @@
 		096F1C1412207B1700ED7FDC /* libhdf5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libhdf5.a; path = /usr/local/lib/libhdf5.a; sourceTree = "<absolute>"; };
 		096F1C1612207B2000ED7FDC /* libcurl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcurl.a; path = /usr/local/lib/libcurl.a; sourceTree = "<absolute>"; };
 		096F1C1912207B4000ED7FDC /* libhdf5_hl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libhdf5_hl.a; path = /usr/local/lib/libhdf5_hl.a; sourceTree = "<absolute>"; };
+		09918166125FC63500E6F186 /* CostFunctionXYZ.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CostFunctionXYZ.h; sourceTree = "<group>"; };
+		09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionXYZ.cpp; sourceTree = "<group>"; };
 		0997BFE912110C120063D87C /* samurai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = samurai.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0DAC4A383E5D3CA54A854D1B /* CostFunctionXYZ_CPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionXYZ_CPU.h; sourceTree = "<group>"; };
 		118FCBAABA162BA17933C789 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1271D6779C87908B34A5FA55 /* VarDriver1d.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VarDriver1d.cpp; sourceTree = "<group>"; };
 		12F30F954C9B134EAC0CB327 /* CostFunctionRZ_GPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionRZ_GPU.h; sourceTree = "<group>"; };
@@ -107,7 +108,6 @@
 		85EB71E17842DA156B973F57 /* CostFunctionRZ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CostFunctionRZ.h; sourceTree = "<group>"; };
 		87CE703DCE39A0EC868C792C /* VarDriverRZ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriverRZ.h; sourceTree = "<group>"; };
 		8EE92F8FA333C9E415C5B34E /* QtXml.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtXml.framework; path = /Library/Frameworks/QtXml.framework; sourceTree = "<absolute>"; };
-		927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CostFunctionXYZ_CPU.cpp; sourceTree = "<group>"; };
 		9B36DA7E32F0304E780E7972 /* QtGui.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtGui.framework; path = /Library/Frameworks/QtGui.framework; sourceTree = "<absolute>"; };
 		A2AA3C59236F594BFF7CF4A5 /* Observation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Observation.cpp; sourceTree = "<group>"; };
 		A88ACCD415D491DEA1E4444B /* VarDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VarDriver.h; sourceTree = "<group>"; };
@@ -155,6 +155,8 @@
 		05596AB53D8D521C69802C27 /* samurai */ = {
 			isa = PBXGroup;
 			children = (
+				09918166125FC63500E6F186 /* CostFunctionXYZ.h */,
+				09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */,
 				FB61758D0F0FDA4BA867C3D5 /* Sources */,
 				883D7615C4D2DE3FA1218F12 /* Headers */,
 				7CABE3C80E79AD2B307756D2 /* Sources [qmake] */,
@@ -199,7 +201,6 @@
 				7AA4722C73D30BF194873E68 /* CostFunctionRZ_CPU.h */,
 				12F30F954C9B134EAC0CB327 /* CostFunctionRZ_GPU.h */,
 				E96582BBE96865CD828A55BA /* CostFunctionXY_CPU.h */,
-				0DAC4A383E5D3CA54A854D1B /* CostFunctionXYZ_CPU.h */,
 				2D76CA6010DE016ECF280BCD /* CostFunctionVAR.h */,
 				3C3CD701C345E33A3586D248 /* CostFunction3D.h */,
 				5B7B571949CEC1350CF0E9E9 /* MetObs.h */,
@@ -251,7 +252,6 @@
 				34C89313414AAB929B069E6F /* CostFunctionRZ_CPU.cpp */,
 				C54ABF1B325B389753379268 /* CostFunctionRZ_GPU.cpp */,
 				E8999B6552587F60A1A985D9 /* CostFunctionXY_CPU.cpp */,
-				927B2FB9D47612808DADB5B8 /* CostFunctionXYZ_CPU.cpp */,
 				20D92169DB6B387271B52859 /* CostFunctionVAR.cpp */,
 				01C986BF664C456B84CE6490 /* CostFunction3D.cpp */,
 				118FCBAABA162BA17933C789 /* main.cpp */,
@@ -361,7 +361,6 @@
 				E2C7BE5534FF6384621AA250 /* CostFunctionRZ_CPU.cpp in Build Sources */,
 				672A261EE89CD6B11AD86E43 /* CostFunctionRZ_GPU.cpp in Build Sources */,
 				ACFD0DAB7862728F2BEF9018 /* CostFunctionXY_CPU.cpp in Build Sources */,
-				108D3A43C08311A85AE62FE2 /* CostFunctionXYZ_CPU.cpp in Build Sources */,
 				96D96FDAEEB3523E9F7A5CAE /* CostFunctionVAR.cpp in Build Sources */,
 				E81FA3C1D5CAF364AD8BB45D /* CostFunction3D.cpp in Build Sources */,
 				2B093CA6F071B023A473CED0 /* main.cpp in Build Sources */,
@@ -378,6 +377,7 @@
 				D60635FEFC8AEF747100E54D /* VarDriver3D.cpp in Build Sources */,
 				C812174DDF388E53DFDE91E1 /* Dorade.cpp in Build Sources */,
 				BF2DBD523D89A5B1D20EC5DE /* TCcenter.cpp in Build Sources */,
+				09918168125FC63500E6F186 /* CostFunctionXYZ.cpp in Build Sources */,
 			);
 			name = "Build Sources";
 			runOnlyForDeploymentPostprocessing = 0;

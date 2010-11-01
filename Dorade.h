@@ -36,6 +36,7 @@ public:
 	float getRadarLat();
 	float getRadarLon();
 	float getRadarAlt();
+	float getBeamwidthDeg();
 	QDateTime getRayTime(int& ray);
 	
 private:

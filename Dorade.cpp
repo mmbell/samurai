@@ -153,6 +153,12 @@ float Dorade::getRadarLon()
 	return aptr->lon;
 }
 
+float Dorade::getBeamwidthDeg()
+{
+	float bw = (rptr->horiz_beam_width + rptr->vert_beam_width) * 0.5; 
+	return bw;
+}
+
 QDateTime Dorade::getRayTime(int& ray)
 {
 	int year = vptr->year;

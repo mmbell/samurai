@@ -6,6 +6,7 @@
 #include "VarDriverXY.h"
 #include "VarDriverVAR.h"
 #include "VarDriver3D.h"
+#include "VarDriverXYZ.h"
 #include <iostream>
 #include <QApplication>
 
@@ -27,7 +28,7 @@ int main (int argc, char *argv[]) {
 			driver.initialize();
 			driver.run();
 		} else if (arg.right(3) == "xml") {
-			VarDriver3D driver;
+			VarDriverXYZ driver;
 			driver.initialize(arg);
 			driver.run();
 		}

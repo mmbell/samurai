@@ -13,7 +13,7 @@
 #include "VarDriver.h"
 #include "BSpline.h"
 #include "Observation.h"
-#include "CostFunctionXYZ_CPU.h"
+#include "CostFunctionXYZ.h"
 #include "CostFunctionAnalytic.h"
 #include "MetObs.h"
 #include "TCcenter.h"
@@ -33,7 +33,7 @@ public:
 	VarDriverXYZ();
 	~VarDriverXYZ();
 	// ESMF type calls
-	bool initialize();
+	bool initialize(const QString& xmlfile);
 	bool run();
 	bool finalize();
 	
@@ -45,29 +45,21 @@ private:
 	void preProcessMetObs();
 	bool loadMetObs();
 	bool loadBGfromFile();
+	int loadBackgroundObs();
 	bool bilinearMish();
-	real bilinearField(real radius, real height, int var);
-	bool setupMishAndRXform();
+	real bilinearField(real xPos, real yPos, int var);
 	
-	SplineD* scalarSpline;
-	SplineD* vecSpline;
-	SplineD* zSpline;
-	SplineD* zSplinePsi;
-	SplineD* ctrlSpline;
-	SplineD* rXformSpline;
-	vector<real> r;
-	vector<real> R;
-	vector<real> z;
-	vector<real> initCtrl;
-	vector<real>* RXform;
-	vector<real>* rXform;
+	vector<real> x;
+	vector<real> y;
 	unsigned int* RnumGridpts;
 	vector<Observation> obVector;
 	int bc;
-	double zincr;
-	double rincr;
+	double iincr;
+	double jincr;
+	double kincr;
 	double CQTOL;
 	int maxIter;
+	real zLevel;
 	
 	vector<real>** BG;
 	vector<real>** BGsave;
@@ -75,20 +67,22 @@ private:
 	// Passable variables
 	real* bgB;
 	real* bgU;
+	real* bgWeights;
 	real* obs;
+	real* bgObs;
 	const real* iaScalar;
 	const real* iaVector;
 	const real* jaScalar;
 	const real* jaVector;
 	real* ia;
 	real* ja;
-	real imin, imax, jmin, jmax;
+	real imin, imax, jmin, jmax, kmin, kmax;
 	int idim;
 	int jdim;
-	
+	int kdim;
 	// Cost Functions
-	CostFunctionXYZ_CPU* costXYZ;
-
+	CostFunctionXYZ* obCostXYZ;
+	CostFunctionXYZ* bgCostXYZ;
 };
 
 #endif
