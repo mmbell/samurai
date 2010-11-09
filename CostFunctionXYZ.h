@@ -38,9 +38,15 @@ private:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
-	real Basis(int m, real x, int M, real xmin, 
+	real FullBasis(int m, real x, int M, real xmin, 
 				real DX, real DXrecip, int derivative,
 				int BL, int BR, real lambda = 0);
+	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
+			   const real& DX, const real& DXrecip, const int& derivative,
+			   const int& BL, const int& BR, const real& lambda = 0);	
+	real BasisBC(real b, const int& m, const real& x, const int& M,const real& xmin, 
+			   const real& DX, const real& DXrecip, const int& derivative,
+			   const int& BL, const int& BR, const real& lambda = 0);	
 	void fillBasisLookup();
 	bool filterArray(real* array, const int& arrLength);
 	bool setupSplines();
@@ -91,8 +97,8 @@ private:
 	real constHeight;
 	real mcWeight;
 	int referenceState;
-	real basis0[2000];
-	real basis1[2000];
+	real basis0[200000];
+	real basis1[200000];
 	QHash<QString, QString> configHash;
 
 	float BoundaryConditions[9][4];

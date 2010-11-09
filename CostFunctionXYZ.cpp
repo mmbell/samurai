@@ -142,8 +142,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	stateA = new real[bState];
 	stateC = new real[bState];
 	
-	/* Precalculate the basis functions for lookup table option
-	fillBasisLookup(); */
+	// Precalculate the basis functions for lookup table option
+	fillBasisLookup();
 	
 	// Set up the spline matrices
 	setupSplines();
@@ -237,6 +237,7 @@ double CostFunctionXYZ::funcValue(double* state)
 	updateHCq(state);
 
 	// Compute inner product of state vector
+	#pragma omp parallel for reduction(+:qIP)
 	for (int n = 0; n < nState; n++) {
 		qIP += state[n]*state[n];
 	}
@@ -312,16 +313,22 @@ void CostFunctionXYZ::updateHCq(double* state)
 		
 		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 			if ((iNode < 0) or (iNode >= iDim)) continue; 
+			ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+			
 			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 				if ((jNode < 0) or (jNode >= jDim)) continue;
+				jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+				
 				for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 					if	((kNode < 0) or (kNode >= kDim)) continue;
+					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+					
 					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
-						ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+						}
 						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7 + var];
 					}
 				}
@@ -331,9 +338,9 @@ void CostFunctionXYZ::updateHCq(double* state)
 	}
 	
 	#pragma omp parallel for
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				real i = iIndex*DI + iMin;
 				real j = jIndex*DJ + jMin;
 				real k = kIndex*DK + kMin;
@@ -372,7 +379,7 @@ void CostFunctionXYZ::updateHCq(double* state)
 							jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
 							kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
 							tempsum += (stateC[cIndex+2] * ibasis * jbasis * kdbasis);
-							
+														
 						}
 					}
 				}
@@ -528,35 +535,43 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 	}
 	
 	// Calculate H Transpose	
-	#pragma omp parallel for
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+	//#pragma omp parallel for
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				
 				int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
 				for (int m = 0; m < mObs; m++) {
 					// Sum over obs this time
 					// Multiply state by H weights
 					int mi = m*14;
-					real qhat = yhat[m];
-					real invError = obsVector[mi+1];
 					real i = obsVector[mi+2];
-					real j = obsVector[mi+3];
-					real k = obsVector[mi+4];
 					int ii = (int)((i - iMin)*DIrecip);
 					if ((iIndex < ii-1) or (iIndex > ii+2)) continue;
+
+					real j = obsVector[mi+3];
 					int jj = (int)((j - jMin)*DJrecip);
 					if ((jIndex < jj-1) or (jIndex > jj+2)) continue;
+					
+					real k = obsVector[mi+4];
 					int kk = (int)((k - kMin)*DKrecip);
 					if ((kIndex < kk-1) or (kIndex > kk+2)) continue;
 
+
+					real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+					real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+					real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+					real invError = obsVector[mi+1];
+					real qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
+					
 					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
-						real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						real qbasise = qhat* ibasis * jbasis * kbasis *invError;
-						#pragma omp atomic
+						if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+							qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
+						}
+
+						//#pragma omp atomic
 						Astate[aIndex + var] += qbasise * obsVector[mi+7+var];
 					}
 				}
@@ -582,19 +597,20 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 							real idbasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[0], iBCR[0]);
 							real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
 							real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);							
-							#pragma omp atomic
+							//#pragma omp atomic
 							Astate[aIndex] += mcWeight * (yhat[hIndex] * idbasis * jbasis * kbasis);
 							
 							real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[1], iBCR[1]);
 							real jdbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[1], jBCR[1]);
-							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
-							#pragma omp atomic
+							// Extra calcs unless horizontal BC are different
+							//kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[1], kBCR[1]);							
+							//#pragma omp atomic
 							Astate[aIndex + 1] += mcWeight * (yhat[hIndex] * ibasis * jdbasis * kbasis);
 							
-							ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
-							jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
+							//ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[2], iBCR[2]);
+							//jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[2], jBCR[2]);
 							real kdbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[2], kBCR[2]);							
-							#pragma omp atomic
+							//#pragma omp atomic
 							Astate[aIndex + 2] += mcWeight * (yhat[hIndex] * ibasis * jbasis * kdbasis);
 						}		
 					}
@@ -720,43 +736,50 @@ void CostFunctionXYZ::SBtransform(real* Ustate, real* Bstate)
 	for (int b = 0; b < bState; b++) {
 		Bstate[b] = 0.;
 	}
-					
-	#pragma omp parallel for
-	for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-		for (int kmu = -1; kmu <= 1; kmu += 2) {
-			real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-			int kk = (int)((k - kMin)*DKrecip);
-			for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-				if ((kNode < 0) or (kNode >= kDim)) continue;
-		
-				for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-					for (int imu = -1; imu <= 1; imu += 2) {
-						real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-						int ii = (int)((i - iMin)*DIrecip);
-						for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-							if ((iNode < 0) or (iNode >= iDim)) continue;
-							
-							for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-								for (int jmu = -1; jmu <= 1; jmu += 2) {
-									real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-									int jj = (int)((j - jMin)*DJrecip);
-									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-										if ((jNode < 0) or (jNode >= jDim)) continue;
-										
-										int uI = iIndex*2 + (imu+1)/2;
-										int uJ = jIndex*2 + (jmu+1)/2;
+	real gausspoint = 0.5*sqrt(1./3.);
+	
+//#pragma omp parallel for
+	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+		for (int imu = -1; imu <= 1; imu += 2) {
+			real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
+			int ii = (int)((i - iMin)*DIrecip);
+			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+				if ((iNode < 0) or (iNode >= iDim)) continue;
+				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				int uI = iIndex*2 + (imu+1)/2;
+				
+				for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+					for (int jmu = -1; jmu <= 1; jmu += 2) {
+						real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
+						int jj = (int)((j - jMin)*DJrecip);
+						for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
+							if ((jNode < 0) or (jNode >= jDim)) continue;
+							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+							int uJ = jIndex*2 + (jmu+1)/2;
+							real ijbasis = ibasis * jbasis;
+							for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+								for (int kmu = -1; kmu <= 1; kmu += 2) {
+									real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
+									int kk = (int)((k - kMin)*DKrecip);
+									for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
+										if ((kNode < 0) or (kNode >= kDim)) continue;
+										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+										real ijkbasis = 0.125 * ijbasis * kbasis;
 										int uK = kIndex*2 + (kmu+1)/2;
 										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
 										int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+
 										for (int var = 0; var < varDim; var++) {
 											int ui = uIndex + var;
 											if (Ustate[ui] == 0) continue;
+											
 											int bi = bIndex + var;
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-											#pragma omp atomic
-											Bstate[bi] += 0.125 * Ustate[ui] * ibasis * jbasis * kbasis; 
+											if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+												kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+												ijkbasis = 0.125 * ibasis * jbasis * kbasis;
+											}
+											//#pragma omp atomic
+											Bstate[bi] += Ustate[ui] * ijkbasis; 
 										}
 									}	
 								}
@@ -777,42 +800,50 @@ void CostFunctionXYZ::SBtranspose(real* Bstate, real* Ustate)
 	for (int n = 0; n < nState; n++) {
 		Ustate[n] = 0;
 	}
+	real gausspoint = 0.5*sqrt(1./3.);
 	
-	#pragma omp parallel for
-	for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-		for (int kmu = -1; kmu <= 1; kmu += 2) {
-			real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-			int kk = (int)((k - kMin)*DKrecip);
-			for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-				if ((kNode < 0) or (kNode >= kDim)) continue;
-		
-				for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-					for (int imu = -1; imu <= 1; imu += 2) {
-						real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-						int ii = (int)((i - iMin)*DIrecip);
-						for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-							if ((iNode < 0) or (iNode >= iDim)) continue;
-							
-							for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-								for (int jmu = -1; jmu <= 1; jmu += 2) {
-									real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-									int jj = (int)((j - jMin)*DJrecip);
-									for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
-										if ((jNode < 0) or (jNode >= jDim)) continue;
-										int uI = iIndex*2 + (imu+1)/2;
-										int uJ = jIndex*2 + (jmu+1)/2;
-										int uK = kIndex*2 + (kmu+1)/2;
-										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+	//#pragma omp parallel for
+	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+		for (int imu = -1; imu <= 1; imu += 2) {
+			real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
+			int ii = (int)((i - iMin)*DIrecip);
+			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
+				if ((iNode < 0) or (iNode >= iDim)) continue;
+				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				int uI = iIndex*2 + (imu+1)/2;
+				
+				for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+					for (int jmu = -1; jmu <= 1; jmu += 2) {
+						real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
+						int jj = (int)((j - jMin)*DJrecip);
+						for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
+							if ((jNode < 0) or (jNode >= jDim)) continue;
+							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+							int uJ = jIndex*2 + (jmu+1)/2;
+							real ijbasis = ibasis * jbasis;
+							for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+								for (int kmu = -1; kmu <= 1; kmu += 2) {
+									real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
+									int kk = (int)((k - kMin)*DKrecip);
+									for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
+										if ((kNode < 0) or (kNode >= kDim)) continue;
+										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+										real ijkbasis = 0.125 * ijbasis * kbasis;
 										int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+										int uK = kIndex*2 + (kmu+1)/2;
+										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;										
+
 										for (int var = 0; var < varDim; var++) {
 											int bi = bIndex + var;
 											if (Bstate[bi] == 0) continue;
+											
 											int ui = uIndex + var;
-											real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-											real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-											real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-                                            #pragma omp atomic
-											Ustate[ui] += 0.125 * Bstate[bi] * ibasis * jbasis * kbasis; 
+											if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+												kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+												ijkbasis = 0.125 * ibasis * jbasis * kbasis;
+											}
+											//#pragma omp atomic
+											Ustate[ui] += Bstate[bi] * ijkbasis;
 										}
 									}	
 								}
@@ -2236,16 +2267,16 @@ void CostFunctionXYZ::obAdjustments() {
 void CostFunctionXYZ::fillBasisLookup()
 {
 
-	real ONESIXTH = 0.16666666666666666666666666667;
-	for (int i=0; i < 2000; i++) {
-		real z = 2.0 - double(i)/1000;
+	real ONESIXTH = 1./6.;
+	for (int i=0; i < 200000; i++) {
+		real z = 2.0 - double(i)/100000.;
 		real b = (z*z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)
 			b -= (z*z*z) * 4 * ONESIXTH;
 		basis0[i] = b;
 		
-		z = 2.0 - double(i)/1000;
+		z = 2.0 - double(i)/100000.;
 		b = (z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)
@@ -2255,7 +2286,7 @@ void CostFunctionXYZ::fillBasisLookup()
 	
 }
 
-real CostFunctionXYZ::Basis(int m, real x, int M, real xmin, 
+real CostFunctionXYZ::FullBasis(int m, real x, int M, real xmin, 
 								real DX, real DXrecip, int derivative, 
 								int BL, int BR, real lambda)
 {
@@ -2266,7 +2297,6 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 	real z = fabsf(delta);
 	real ONESIXTH = 0.16666666666666666666666666667;
 	real FOURSIXTH = 0.66666666666666666666666666667;
-	
 	switch (derivative) {
 		case 0:
 			if (z < 2.0)
@@ -2276,7 +2306,6 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					b -= (z*z*z) * FOURSIXTH;
-				//b = basis0[int(z*1000)];
 			}			
 			break;
 		case 1:
@@ -2287,7 +2316,7 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					b -= (z*z) * FOURSIXTH;
-				//b = basis1[int(z*1000)];
+				//b = basis1[int(z*100000.)];
 				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
@@ -2312,7 +2341,8 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 			break;
 	}
 	
-	// Add on the boundary conditions
+	if ((m > 1) and (m < M-1)) return b;
+	// Otherwise add on the boundary conditions
 	real bmod = 0;
 	int node = -2;
 	real coeffmod = 0.;
@@ -2451,7 +2481,7 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					bmod -= (z*z*z) * FOURSIXTH;
-				//bmod = basis0[int(z*1000)];
+				//bmod = basis0[int(z*100000.)];
 			}			
 			break;
 		case 1:
@@ -2462,7 +2492,7 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					bmod -= (z*z) * FOURSIXTH;
-				//bmod = basis1[int(z*1000)];
+				//bmod = basis1[int(z*100000.)];
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
@@ -2512,7 +2542,7 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					bmod -= (z*z*z) * FOURSIXTH;
-				//bmod = basis0[int(z*1000)];
+				//bmod = basis0[int(z*100000.)];
 			}			
 			break;
 		case 1:
@@ -2523,7 +2553,7 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 				z -= 1.0;
 				if (z > 0)
 					bmod -= (z*z) * FOURSIXTH;
-				//bmod = basis1[int(z*1000)];
+				//bmod = basis1[int(z*100000.)];
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 			}			
 			break;
@@ -2553,6 +2583,274 @@ real CostFunctionXYZ::Basis(int m, real x, int M, real xmin,
 	return b;
 	
 }
+
+real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real& xmin, 
+							const real& DX, const real& DXrecip, const int& derivative,
+							const int& BL, const int& BR, const real& lambda)
+/* (int m, real x, int M, real xmin, 
+							real DX, real DXrecip, int derivative, 
+							int BL, int BR, real lambda) */
+{
+	real b = 0;
+	real xm = xmin + (m * DX);
+	real delta = (x - xm) * DXrecip;
+	real z = abs(delta);
+	if (z < 2.0) {
+		real zi = z*100000.;
+		int z1 = int(zi);
+		switch (derivative) {
+			case 0:
+				b = basis0[z1];
+				//b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				break;
+			case 1:
+				b = basis1[z1];
+				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				break;
+			case 2:
+				z = 2.0 - z;
+				b = z;
+				z -= 1.0;
+				if (z > 0)
+					b -= z * 4;
+				b *= DXrecip * DXrecip;
+				break;
+			case 3:
+				if (z > 1.0) {
+					b = 1;
+				} else if (z < 1.0) {
+					b = -3.;
+				}
+				b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+				break;
+		}
+	}
+	if ((m > 1) and (m < M-1)) return b;
+	
+	// Otherwise add on the boundary conditions
+	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
+	return bc;
+}
+
+real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,const real& xmin, 
+							  const real& DX, const real& DXrecip, const int& derivative,
+							  const int& BL, const int& BR, const real& lambda)
+{
+
+	real bmod = 0;
+	int node = -2;
+	real coeffmod = 0.;
+	if (m == 0) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = -1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return b;
+			case 5:
+				// There is no contribution from this node 
+				return b;
+			case 6:
+				// There is no contribution from this node 
+				return b;				
+		}
+	} else if (m == 1) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = -1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return b;				
+		}
+		
+	} else if (m == M) {
+		// Right BC
+		switch (BR) {
+			case 0:
+				node = M+1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return 0.;
+			case 5:
+				// There is no contribution from this node 
+				return 0.;
+			case 6:
+				// There is no contribution from this node 
+				return 0.;				
+		}
+	} else if (m == M-1) {
+		// Left BC
+		switch (BL) {
+			case 0:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = M+1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return 0.;				
+		}
+	}
+	
+	real xm = xmin + (node * DX);
+	real delta = (x - xm) * DXrecip;
+	real z = abs(delta);
+	if (z < 2.0) {
+		real zi = z*100000.;
+		int z1 = int(zi);
+		switch (derivative) {
+			case 0:
+				bmod = basis0[z1];
+				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);	
+				break;
+			case 1:
+				bmod = basis1[z1];
+				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				break;
+			case 2:
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= DXrecip * DXrecip;
+				break;
+			case 3:
+				if (z > 1.0) {
+					bmod = 1;
+				} else if (z < 1.0) {
+					bmod = -3.;
+				}
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+				break;
+		}
+	}	
+	b += coeffmod * bmod;
+	
+	// R2 needs one more addition
+	if ((m == 1) and (BL == 4)) {
+		node = 0;
+		coeffmod = -0.5;
+	} else if ((m == M-1) and (BR == 4)) {
+		node = M;
+		coeffmod = -0.5;
+	} else {
+		return b;
+	}
+	
+	xm = xmin + (node * DX);
+	delta = (x - xm) * DXrecip;
+	z = abs(delta);
+	if (z < 2.0) {
+		real zi = z*100000.;
+		int z1 = int(zi);
+		switch (derivative) {
+			case 0:
+				bmod = basis0[z1];
+				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);	
+				break;
+			case 1:
+				bmod = basis1[z1];
+				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				break;
+			case 2:
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= DXrecip * DXrecip;
+				break;
+			case 3:
+				if (z > 1.0) {
+					bmod = 1;
+				} else if (z < 1.0) {
+					bmod = -3.;
+				}
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+				break;
+		}
+	}
+	b += coeffmod * bmod;
+	
+	return b;
+	
+}
+
 
 real CostFunctionXYZ::getReferenceVariable(int refVariable, real heightm)
 {
