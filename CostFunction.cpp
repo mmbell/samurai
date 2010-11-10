@@ -48,7 +48,7 @@ int CostFunction::getLengthStateVector()
 bool CostFunction::minimize()
 {
 	
-	double ftol = 1.0e-5;
+	double ftol = 1.0e-4;
 	double minimum = 1e34;
 	cout << "\tInner Loop Conjugate Gradient" << endl;
 	conjugateGradient(currState, currGradient, ftol, minimum);
@@ -77,6 +77,7 @@ void CostFunction::conjugateGradient(double* q, double* xi, const double ftol, d
 		cout << "\t\tIteration: " << its << "\tJ: " << fq << endl;
 		dlinmin(q, xi, fret);
 		if (2.0*fabs(fret-fq) <= ftol*(fabs(fret)+fabs(fq)+EPS)) {
+			cout << "\tMinimum J: " << fret << endl;
 			cout << "\tFound minimum in " << its << " iterations." << endl;
 			delete[] g;
 			delete[] h;

@@ -1,11 +1,19 @@
 // !$*UTF8*$!
 {
+	00281B2985F19D1494BEBCA4 /* CostFunction.cpp */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {849, 4326}}";
+			sepNavSelRange = "{702, 0}";
+			sepNavVisRange = "{644, 1023}";
+			sepNavWindowFrame = "{{314, 110}, {908, 767}}";
+		};
+	};
 	01C986BF664C456B84CE6490 /* CostFunction3D.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1107, 36848}}";
-			sepNavSelRange = "{53964, 0}";
-			sepNavVisRange = "{52560, 1583}";
-			sepNavWindowFrame = "{{264, 28}, {1166, 850}}";
+			sepNavIntBoundsRect = "{{0, 0}, {900, 37618}}";
+			sepNavSelRange = "{17311, 0}";
+			sepNavVisRange = "{75353, 896}";
+			sepNavWindowFrame = "{{553, 26}, {831, 852}}";
 		};
 	};
 	028A9E6B2F8E120088F3EA60 /* VarDriver3D.h */ = {
@@ -96,8 +104,8 @@
 		hitCount = 0;
 		ignoreCount = 0;
 		location = "";
-		modificationTime = 311033198.726123;
-		state = 1;
+		modificationTime = 311110953.931345;
+		state = 0;
 		symbolName = ibasis;
 	};
 	093A8D6F1207D22C00944A21 /* PBXTextBookmark */ = {
@@ -427,18 +435,18 @@
 	};
 	09918166125FC63500E6F186 /* CostFunctionXYZ.h */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {961, 1708}}";
-			sepNavSelRange = "{1216, 0}";
-			sepNavVisRange = "{425, 1938}";
-			sepNavWindowFrame = "{{379, 33}, {1020, 845}}";
+			sepNavIntBoundsRect = "{{0, 0}, {961, 1960}}";
+			sepNavSelRange = "{1255, 0}";
+			sepNavVisRange = "{713, 1785}";
+			sepNavWindowFrame = "{{672, -20}, {1020, 845}}";
 		};
 	};
 	09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {861, 40936}}";
-			sepNavSelRange = "{17669, 0}";
-			sepNavVisRange = "{16954, 2248}";
-			sepNavWindowFrame = "{{499, 45}, {920, 833}}";
+			sepNavIntBoundsRect = "{{0, 0}, {861, 41706}}";
+			sepNavSelRange = "{88652, 0}";
+			sepNavVisRange = "{4033, 359}";
+			sepNavWindowFrame = "{{337, 111}, {908, 767}}";
 		};
 	};
 	099181C012604B2A00E6F186 /* PBXTextBookmark */ = {
@@ -446,7 +454,7 @@
 		fRef = 811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */;
 		name = "VarDriverXYZ.cpp: 1067";
 		rLen = 0;
-		rLoc = 34562;
+		rLoc = 34679;
 		rType = 0;
 		vrLen = 243;
 		vrLoc = 0;
@@ -456,7 +464,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 130";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 405;
 		vrLoc = 3578;
@@ -755,7 +763,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 146";
 		rLen = 0;
-		rLoc = 4279;
+		rLoc = 4243;
 		rType = 0;
 		vrLen = 1040;
 		vrLoc = 74740;
@@ -765,7 +773,7 @@
 		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
 		name = "CostFunctionXYZ.h: 94";
 		rLen = 0;
-		rLoc = 2757;
+		rLoc = 2744;
 		rType = 0;
 		vrLen = 799;
 		vrLoc = 2063;
@@ -785,7 +793,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2290";
 		rLen = 0;
-		rLoc = 75549;
+		rLoc = 75035;
 		rType = 0;
 		vrLen = 1048;
 		vrLoc = 74706;
@@ -795,7 +803,7 @@
 		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
 		name = "CostFunctionXYZ.h: 94";
 		rLen = 0;
-		rLoc = 2757;
+		rLoc = 2744;
 		rType = 0;
 		vrLen = 799;
 		vrLoc = 2063;
@@ -815,7 +823,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2796";
 		rLen = 0;
-		rLoc = 85242;
+		rLoc = 84944;
 		rType = 0;
 		vrLen = 982;
 		vrLoc = 83832;
@@ -825,7 +833,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2592";
 		rLen = 0;
-		rLoc = 81096;
+		rLoc = 80582;
 		rType = 0;
 		vrLen = 1167;
 		vrLoc = 80179;
@@ -855,7 +863,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 439;
 		vrLoc = 3528;
@@ -865,7 +873,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2592";
 		rLen = 0;
-		rLoc = 81096;
+		rLoc = 80582;
 		rType = 0;
 		vrLen = 1086;
 		vrLoc = 80174;
@@ -875,7 +883,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2813";
 		rLen = 0;
-		rLoc = 85314;
+		rLoc = 85016;
 		rType = 0;
 		vrLen = 1083;
 		vrLoc = 80427;
@@ -885,7 +893,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 439;
 		vrLoc = 3528;
@@ -895,7 +903,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2602";
 		rLen = 0;
-		rLoc = 81139;
+		rLoc = 80625;
 		rType = 0;
 		vrLen = 1106;
 		vrLoc = 80288;
@@ -905,7 +913,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -915,7 +923,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2591";
 		rLen = 0;
-		rLoc = 81139;
+		rLoc = 80625;
 		rType = 0;
 		vrLen = 1992;
 		vrLoc = 9265;
@@ -925,7 +933,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 358";
 		rLen = 0;
-		rLoc = 9807;
+		rLoc = 9417;
 		rType = 0;
 		vrLen = 1841;
 		vrLoc = 9539;
@@ -935,7 +943,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -945,7 +953,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -955,7 +963,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2585";
 		rLen = 0;
-		rLoc = 80943;
+		rLoc = 80429;
 		rType = 0;
 		vrLen = 1073;
 		vrLoc = 80056;
@@ -965,7 +973,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80943;
+		rLoc = 80429;
 		rType = 0;
 		vrLen = 1037;
 		vrLoc = 80140;
@@ -975,7 +983,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 439;
 		vrLoc = 3528;
@@ -985,7 +993,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1035;
 		vrLoc = 80140;
@@ -995,7 +1003,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1019;
 		vrLoc = 80140;
@@ -1009,7 +1017,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2583";
 		rLen = 0;
-		rLoc = 80918;
+		rLoc = 80404;
 		rType = 0;
 		vrLen = 0;
 		vrLoc = 0;
@@ -1019,7 +1027,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 439;
 		vrLoc = 3528;
@@ -1029,7 +1037,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1039,7 +1047,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1035;
 		vrLoc = 80140;
@@ -1049,7 +1057,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1059,7 +1067,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1035;
 		vrLoc = 80140;
@@ -1069,7 +1077,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1358;
 		vrLoc = 10965;
@@ -1079,7 +1087,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1089,7 +1097,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2584";
 		rLen = 0;
-		rLoc = 80956;
+		rLoc = 80442;
 		rType = 0;
 		vrLen = 1358;
 		vrLoc = 10965;
@@ -1099,7 +1107,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2833";
 		rLen = 0;
-		rLoc = 85894;
+		rLoc = 85596;
 		rType = 0;
 		vrLen = 979;
 		vrLoc = 84679;
@@ -1109,7 +1117,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1123,7 +1131,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1133,7 +1141,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1143,7 +1151,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 2126;
 		vrLoc = 22844;
@@ -1153,7 +1161,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1167,7 +1175,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1187,7 +1195,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 2126;
 		vrLoc = 22844;
@@ -1197,7 +1205,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 2066;
 		vrLoc = 22922;
@@ -1221,7 +1229,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2582";
 		rLen = 0;
-		rLoc = 80865;
+		rLoc = 80351;
 		rType = 0;
 		vrLen = 1144;
 		vrLoc = 79826;
@@ -1251,7 +1259,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1261,7 +1269,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1271,7 +1279,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1285,7 +1293,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1295,7 +1303,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 775";
 		rLen = 0;
-		rLoc = 25138;
+		rLoc = 24773;
 		rType = 0;
 		vrLen = 2067;
 		vrLoc = 22997;
@@ -1305,7 +1313,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1315,7 +1323,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 775";
 		rLen = 0;
-		rLoc = 25138;
+		rLoc = 24773;
 		rType = 0;
 		vrLen = 1908;
 		vrLoc = 23245;
@@ -1325,7 +1333,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 838";
 		rLen = 0;
-		rLoc = 27475;
+		rLoc = 27110;
 		rType = 0;
 		vrLen = 1913;
 		vrLoc = 25690;
@@ -1335,7 +1343,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1345,7 +1353,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 840";
 		rLen = 0;
-		rLoc = 27475;
+		rLoc = 27110;
 		rType = 0;
 		vrLen = 2038;
 		vrLoc = 25489;
@@ -1355,7 +1363,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1365,7 +1373,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 840";
 		rLen = 0;
-		rLoc = 27475;
+		rLoc = 27110;
 		rType = 0;
 		vrLen = 2038;
 		vrLoc = 25489;
@@ -1375,7 +1383,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2817";
 		rLen = 0;
-		rLoc = 85700;
+		rLoc = 85402;
 		rType = 0;
 		vrLen = 1044;
 		vrLoc = 84261;
@@ -1385,7 +1393,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1395,33 +1403,17 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2811";
 		rLen = 0;
-		rLoc = 85415;
+		rLoc = 85117;
 		rType = 0;
 		vrLen = 981;
 		vrLoc = 84625;
-	};
-	09B9ED3C128A0A4B0034A27F /* CostFunctionXYZ.cpp:149 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
-		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		countType = 0;
-		delayBeforeContinue = 0;
-		fileReference = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
-		functionName = "CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)";
-		hitCount = 0;
-		ignoreCount = 0;
-		lineNumber = 149;
-		modificationTime = 311036491.490912;
-		state = 1;
 	};
 	09B9ED3D128A0A4E0034A27F /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1431,7 +1423,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2811";
 		rLen = 0;
-		rLoc = 85415;
+		rLoc = 85117;
 		rType = 0;
 		vrLen = 1978;
 		vrLoc = 9223;
@@ -1441,7 +1433,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2811";
 		rLen = 0;
-		rLoc = 85415;
+		rLoc = 85117;
 		rType = 0;
 		vrLen = 1242;
 		vrLoc = 3443;
@@ -1455,7 +1447,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1465,7 +1457,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1475,7 +1467,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2630";
 		rLen = 0;
-		rLoc = 81781;
+		rLoc = 81320;
 		rType = 0;
 		vrLen = 1142;
 		vrLoc = 80992;
@@ -1485,7 +1477,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2763";
 		rLen = 0;
-		rLoc = 84207;
+		rLoc = 83836;
 		rType = 0;
 		vrLen = 899;
 		vrLoc = 83593;
@@ -1505,7 +1497,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 505;
 		vrLoc = 3528;
@@ -1515,7 +1507,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2763";
 		rLen = 0;
-		rLoc = 84207;
+		rLoc = 83836;
 		rType = 0;
 		vrLen = 990;
 		vrLoc = 83593;
@@ -1525,7 +1517,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 571";
 		rLen = 0;
-		rLoc = 17669;
+		rLoc = 17063;
 		rType = 0;
 		vrLen = 2248;
 		vrLoc = 16954;
@@ -1539,6 +1531,644 @@
 		rType = 0;
 		vrLen = 1938;
 		vrLoc = 425;
+	};
+	09B9ED58128A10CB0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 126";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 505;
+		vrLoc = 3528;
+	};
+	09B9ED59128A10CB0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 578";
+		rLen = 0;
+		rLoc = 17242;
+		rType = 0;
+		vrLen = 2155;
+		vrLoc = 17394;
+	};
+	09B9ED5A128A10CB0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 47";
+		rLen = 0;
+		rLoc = 1216;
+		rType = 0;
+		vrLen = 1938;
+		vrLoc = 425;
+	};
+	09B9ED60128A15D60034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 403;
+		vrLoc = 3552;
+	};
+	09B9ED61128A15D60034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 578";
+		rLen = 0;
+		rLoc = 17242;
+		rType = 0;
+		vrLen = 2155;
+		vrLoc = 17394;
+	};
+	09B9ED62128A15D60034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 49";
+		rLen = 0;
+		rLoc = 807;
+		rType = 0;
+		vrLen = 1415;
+		vrLoc = 4291;
+	};
+	09B9ED63128A15D60034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 47";
+		rLen = 0;
+		rLoc = 1216;
+		rType = 0;
+		vrLen = 1938;
+		vrLoc = 425;
+	};
+	09B9ED69128A203C0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 403;
+		vrLoc = 3552;
+	};
+	09B9ED6A128A203C0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 417";
+		rLen = 0;
+		rLoc = 11672;
+		rType = 0;
+		vrLen = 1601;
+		vrLoc = 12054;
+	};
+	09B9ED6B128A203C0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 47";
+		rLen = 0;
+		rLoc = 1216;
+		rType = 0;
+		vrLen = 1938;
+		vrLoc = 425;
+	};
+	09B9ED6E128A2A4F0034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+	};
+	09B9ED73128A4C3B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 374;
+		vrLoc = 3552;
+	};
+	09B9ED74128A4C3B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 391";
+		rLen = 0;
+		rLoc = 10962;
+		rType = 0;
+		vrLen = 1003;
+		vrLoc = 7231;
+	};
+	09B9ED77128A4C3B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 558";
+		rLen = 0;
+		rLoc = 17311;
+		rType = 0;
+		vrLen = 1924;
+		vrLoc = 17370;
+	};
+	09B9ED78128A4C3B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 47";
+		rLen = 0;
+		rLoc = 1216;
+		rType = 0;
+		vrLen = 1904;
+		vrLoc = 425;
+	};
+	09B9ED7D128A52510034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+	};
+	09B9ED7F128A540E0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 374;
+		vrLoc = 3552;
+	};
+	09B9ED80128A540E0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 391";
+		rLen = 0;
+		rLoc = 10962;
+		rType = 0;
+		vrLen = 1102;
+		vrLoc = 7234;
+	};
+	09B9ED83128A540E0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 558";
+		rLen = 0;
+		rLoc = 17311;
+		rType = 0;
+		vrLen = 878;
+		vrLoc = 7156;
+	};
+	09B9ED84128A540E0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1187;
+		vrLoc = 1738;
+	};
+	09B9ED87128A546D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 374;
+		vrLoc = 3552;
+	};
+	09B9ED88128A546D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 391";
+		rLen = 0;
+		rLoc = 10962;
+		rType = 0;
+		vrLen = 1102;
+		vrLoc = 7234;
+	};
+	09B9ED89128A546D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 558";
+		rLen = 0;
+		rLoc = 17311;
+		rType = 0;
+		vrLen = 936;
+		vrLoc = 7156;
+	};
+	09B9ED8A128A546D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1187;
+		vrLoc = 1738;
+	};
+	09B9ED8D128A555B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 374;
+		vrLoc = 3552;
+	};
+	09B9ED8E128A555B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 391";
+		rLen = 0;
+		rLoc = 10962;
+		rType = 0;
+		vrLen = 1389;
+		vrLoc = 2704;
+	};
+	09B9ED8F128A555B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 558";
+		rLen = 0;
+		rLoc = 17311;
+		rType = 0;
+		vrLen = 936;
+		vrLoc = 7156;
+	};
+	09B9ED90128A555B0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1187;
+		vrLoc = 1738;
+	};
+	09B9ED93128A55770034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 374;
+		vrLoc = 3552;
+	};
+	09B9ED94128A55770034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 391";
+		rLen = 0;
+		rLoc = 10962;
+		rType = 0;
+		vrLen = 1389;
+		vrLoc = 2704;
+	};
+	09B9ED95128A55770034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 01C986BF664C456B84CE6490 /* CostFunction3D.cpp */;
+		name = "CostFunction3D.cpp: 558";
+		rLen = 0;
+		rLoc = 17311;
+		rType = 0;
+		vrLen = 936;
+		vrLoc = 7156;
+	};
+	09B9ED96128A55770034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1187;
+		vrLoc = 1738;
+	};
+	09B9ED9C128B0CA80034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2596";
+		rLen = 0;
+		rLoc = 80404;
+		rType = 0;
+		vrLen = 0;
+		vrLoc = 0;
+	};
+	09B9ED9D128B0CAC0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 403;
+		vrLoc = 3552;
+	};
+	09B9ED9E128B0CAC0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1213;
+		vrLoc = 1738;
+	};
+	09B9EDA1128B0D110034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+	};
+	09B9EDA7128B0E020034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2968";
+		rLen = 0;
+		rLoc = 88335;
+		rType = 0;
+		vrLen = 0;
+		vrLoc = 0;
+	};
+	09B9EDA8128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */;
+		name = "VarDriverXYZ.cpp: 1207";
+		rLen = 0;
+		rLoc = 37325;
+		rType = 0;
+		vrLen = 281;
+		vrLoc = 0;
+	};
+	09B9EDA9128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 403;
+		vrLoc = 3552;
+	};
+	09B9EDAA128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 127";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 403;
+		vrLoc = 3552;
+	};
+	09B9EDAB128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */;
+		name = "VarDriverXYZ.cpp: 1207";
+		rLen = 0;
+		rLoc = 37325;
+		rType = 0;
+		vrLen = 281;
+		vrLoc = 0;
+	};
+	09B9EDAC128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 125";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 441;
+		vrLoc = 3526;
+	};
+	09B9EDAD128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1213;
+		vrLoc = 1738;
+	};
+	09B9EDAE128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1185;
+		vrLoc = 1738;
+	};
+	09B9EDB1128B0E040034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 125";
+		rLen = 0;
+		rLoc = 3700;
+		rType = 0;
+		vrLen = 1220;
+		vrLoc = 5300;
+	};
+	09B9EDB4128B0E630034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+	};
+	09B9EDB5128B0F180034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2968";
+		rLen = 0;
+		rLoc = 88335;
+		rType = 0;
+		vrLen = 391;
+		vrLoc = 3996;
+	};
+	09B9EDB8128B0F180034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 744";
+		rLen = 0;
+		rLoc = 22904;
+		rType = 0;
+		vrLen = 1672;
+		vrLoc = 28132;
+	};
+	09B9EDB9128B0F180034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1211;
+		vrLoc = 1738;
+	};
+	09B9EDC2128B11580034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2968";
+		rLen = 0;
+		rLoc = 88335;
+		rType = 0;
+		vrLen = 357;
+		vrLoc = 3996;
+	};
+	09B9EDC3128B11580034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 744";
+		rLen = 0;
+		rLoc = 22904;
+		rType = 0;
+		vrLen = 828;
+		vrLoc = 5849;
+	};
+	09B9EDC4128B11580034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 744";
+		rLen = 0;
+		rLoc = 22904;
+		rType = 0;
+		vrLen = 882;
+		vrLoc = 7041;
+	};
+	09B9EDC5128B11580034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918166125FC63500E6F186 /* CostFunctionXYZ.h */;
+		name = "CostFunctionXYZ.h: 93";
+		rLen = 0;
+		rLoc = 2575;
+		rType = 0;
+		vrLen = 1185;
+		vrLoc = 1738;
+	};
+	09B9EDD8128B1CE10034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 139";
+		rLen = 0;
+		rLoc = 4071;
+		rType = 0;
+		vrLen = 393;
+		vrLoc = 3996;
+	};
+	09B9EDD9128B1CE10034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 168";
+		rLen = 0;
+		rLoc = 4696;
+		rType = 0;
+		vrLen = 1989;
+		vrLoc = 13848;
+	};
+	09B9EDDA128B1CE10034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 416";
+		rLen = 0;
+		rLoc = 12069;
+		rType = 0;
+		vrLen = 775;
+		vrLoc = 0;
+	};
+	09B9EDDC128B1D740034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 139";
+		rLen = 0;
+		rLoc = 4071;
+		rType = 0;
+		vrLen = 393;
+		vrLoc = 3996;
+	};
+	09B9EDDD128B1D740034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 416";
+		rLen = 0;
+		rLoc = 12069;
+		rType = 0;
+		vrLen = 775;
+		vrLoc = 0;
+	};
+	09B9EDE1128B248E0034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+	};
+	09B9EDE2128B249D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2966";
+		rLen = 0;
+		rLoc = 88653;
+		rType = 0;
+		vrLen = 324;
+		vrLoc = 4068;
+	};
+	09B9EDE5128B249D0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2966";
+		rLen = 0;
+		rLoc = 88653;
+		rType = 0;
+		vrLen = 1262;
+		vrLoc = 22350;
+	};
+	09B9EDE7128B24CD0034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+	};
+	09B9EDE9128B261C0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2966";
+		rLen = 0;
+		rLoc = 88653;
+		rType = 0;
+		vrLen = 324;
+		vrLoc = 4068;
+	};
+	09B9EDEC128B261C0034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 223";
+		rLen = 0;
+		rLoc = 6312;
+		rType = 0;
+		vrLen = 972;
+		vrLoc = 81421;
+	};
+	09B9EDF1128B26920034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2966";
+		rLen = 0;
+		rLoc = 88653;
+		rType = 0;
+		vrLen = 323;
+		vrLoc = 4068;
+	};
+	09B9EDF3128B28A20034A27F /* PBXBookmark */ = {
+		isa = PBXBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+	};
+	09B9EDF6128B2A210034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2966";
+		rLen = 0;
+		rLoc = 88653;
+		rType = 0;
+		vrLen = 324;
+		vrLoc = 4068;
+	};
+	09B9EDF9128B2A210034A27F /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
+		name = "CostFunctionXYZ.cpp: 2612";
+		rLen = 0;
+		rLoc = 81254;
+		rType = 0;
+		vrLen = 1159;
+		vrLoc = 80559;
 	};
 	09BB24B611F4111F00C73F9F /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
@@ -1718,7 +2348,7 @@
 		fRef = 811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */;
 		name = "VarDriverXYZ.cpp: 1110";
 		rLen = 0;
-		rLoc = 34562;
+		rLoc = 34679;
 		rType = 0;
 		vrLen = 281;
 		vrLoc = 0;
@@ -1728,7 +2358,7 @@
 		fRef = 811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */;
 		name = "VarDriverXYZ.cpp: 1110";
 		rLen = 0;
-		rLoc = 34562;
+		rLoc = 34679;
 		rType = 0;
 		vrLen = 281;
 		vrLoc = 0;
@@ -1738,7 +2368,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 444;
 		vrLoc = 3523;
@@ -1748,7 +2378,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 126";
 		rLen = 0;
-		rLoc = 3715;
+		rLoc = 3700;
 		rType = 0;
 		vrLen = 444;
 		vrLoc = 3523;
@@ -1784,7 +2414,7 @@
 		fRef = 09918167125FC63500E6F186 /* CostFunctionXYZ.cpp */;
 		name = "CostFunctionXYZ.cpp: 2336";
 		rLen = 0;
-		rLoc = 76315;
+		rLoc = 75801;
 		rType = 0;
 		vrLen = 895;
 		vrLoc = 75525;
@@ -1894,10 +2524,10 @@
 	};
 	811FF96A459C806614B55E5F /* VarDriverXYZ.cpp */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {861, 16996}}";
-			sepNavSelRange = "{34562, 0}";
+			sepNavIntBoundsRect = "{{0, 0}, {861, 17094}}";
+			sepNavSelRange = "{37325, 0}";
 			sepNavVisRange = "{0, 281}";
-			sepNavWindowFrame = "{{388, -31}, {1020, 845}}";
+			sepNavWindowFrame = "{{533, 33}, {1020, 845}}";
 		};
 	};
 	91B15E841AA80083484172DE /* Project object */ = {
@@ -1909,7 +2539,6 @@
 		);
 		breakpoints = (
 			093A8D6D1207D1F200944A21 /* ibasis */,
-			09B9ED3C128A0A4B0034A27F /* CostFunctionXYZ.cpp:149 */,
 		);
 		codeSenseManager = 0973C5AA10419C5A00DBE167 /* Code sense */;
 		executables = (
@@ -2137,6 +2766,74 @@
 			09B9ED4F128A0E2D0034A27F /* PBXTextBookmark */ = 09B9ED4F128A0E2D0034A27F /* PBXTextBookmark */;
 			09B9ED50128A0E2D0034A27F /* PBXTextBookmark */ = 09B9ED50128A0E2D0034A27F /* PBXTextBookmark */;
 			09B9ED51128A0E2D0034A27F /* PBXTextBookmark */ = 09B9ED51128A0E2D0034A27F /* PBXTextBookmark */;
+			09B9ED58128A10CB0034A27F /* PBXTextBookmark */ = 09B9ED58128A10CB0034A27F /* PBXTextBookmark */;
+			09B9ED59128A10CB0034A27F /* PBXTextBookmark */ = 09B9ED59128A10CB0034A27F /* PBXTextBookmark */;
+			09B9ED5A128A10CB0034A27F /* PBXTextBookmark */ = 09B9ED5A128A10CB0034A27F /* PBXTextBookmark */;
+			09B9ED60128A15D60034A27F /* PBXTextBookmark */ = 09B9ED60128A15D60034A27F /* PBXTextBookmark */;
+			09B9ED61128A15D60034A27F /* PBXTextBookmark */ = 09B9ED61128A15D60034A27F /* PBXTextBookmark */;
+			09B9ED62128A15D60034A27F /* PBXTextBookmark */ = 09B9ED62128A15D60034A27F /* PBXTextBookmark */;
+			09B9ED63128A15D60034A27F /* PBXTextBookmark */ = 09B9ED63128A15D60034A27F /* PBXTextBookmark */;
+			09B9ED69128A203C0034A27F /* PBXTextBookmark */ = 09B9ED69128A203C0034A27F /* PBXTextBookmark */;
+			09B9ED6A128A203C0034A27F /* PBXTextBookmark */ = 09B9ED6A128A203C0034A27F /* PBXTextBookmark */;
+			09B9ED6B128A203C0034A27F /* PBXTextBookmark */ = 09B9ED6B128A203C0034A27F /* PBXTextBookmark */;
+			09B9ED6E128A2A4F0034A27F /* PBXBookmark */ = 09B9ED6E128A2A4F0034A27F /* PBXBookmark */;
+			09B9ED73128A4C3B0034A27F /* PBXTextBookmark */ = 09B9ED73128A4C3B0034A27F /* PBXTextBookmark */;
+			09B9ED74128A4C3B0034A27F /* PBXTextBookmark */ = 09B9ED74128A4C3B0034A27F /* PBXTextBookmark */;
+			09B9ED77128A4C3B0034A27F /* PBXTextBookmark */ = 09B9ED77128A4C3B0034A27F /* PBXTextBookmark */;
+			09B9ED78128A4C3B0034A27F /* PBXTextBookmark */ = 09B9ED78128A4C3B0034A27F /* PBXTextBookmark */;
+			09B9ED7D128A52510034A27F /* PBXBookmark */ = 09B9ED7D128A52510034A27F /* PBXBookmark */;
+			09B9ED7F128A540E0034A27F /* PBXTextBookmark */ = 09B9ED7F128A540E0034A27F /* PBXTextBookmark */;
+			09B9ED80128A540E0034A27F /* PBXTextBookmark */ = 09B9ED80128A540E0034A27F /* PBXTextBookmark */;
+			09B9ED83128A540E0034A27F /* PBXTextBookmark */ = 09B9ED83128A540E0034A27F /* PBXTextBookmark */;
+			09B9ED84128A540E0034A27F /* PBXTextBookmark */ = 09B9ED84128A540E0034A27F /* PBXTextBookmark */;
+			09B9ED87128A546D0034A27F /* PBXTextBookmark */ = 09B9ED87128A546D0034A27F /* PBXTextBookmark */;
+			09B9ED88128A546D0034A27F /* PBXTextBookmark */ = 09B9ED88128A546D0034A27F /* PBXTextBookmark */;
+			09B9ED89128A546D0034A27F /* PBXTextBookmark */ = 09B9ED89128A546D0034A27F /* PBXTextBookmark */;
+			09B9ED8A128A546D0034A27F /* PBXTextBookmark */ = 09B9ED8A128A546D0034A27F /* PBXTextBookmark */;
+			09B9ED8D128A555B0034A27F /* PBXTextBookmark */ = 09B9ED8D128A555B0034A27F /* PBXTextBookmark */;
+			09B9ED8E128A555B0034A27F /* PBXTextBookmark */ = 09B9ED8E128A555B0034A27F /* PBXTextBookmark */;
+			09B9ED8F128A555B0034A27F /* PBXTextBookmark */ = 09B9ED8F128A555B0034A27F /* PBXTextBookmark */;
+			09B9ED90128A555B0034A27F /* PBXTextBookmark */ = 09B9ED90128A555B0034A27F /* PBXTextBookmark */;
+			09B9ED93128A55770034A27F /* PBXTextBookmark */ = 09B9ED93128A55770034A27F /* PBXTextBookmark */;
+			09B9ED94128A55770034A27F /* PBXTextBookmark */ = 09B9ED94128A55770034A27F /* PBXTextBookmark */;
+			09B9ED95128A55770034A27F /* PBXTextBookmark */ = 09B9ED95128A55770034A27F /* PBXTextBookmark */;
+			09B9ED96128A55770034A27F /* PBXTextBookmark */ = 09B9ED96128A55770034A27F /* PBXTextBookmark */;
+			09B9ED9C128B0CA80034A27F /* PBXTextBookmark */ = 09B9ED9C128B0CA80034A27F /* PBXTextBookmark */;
+			09B9ED9D128B0CAC0034A27F /* PBXTextBookmark */ = 09B9ED9D128B0CAC0034A27F /* PBXTextBookmark */;
+			09B9ED9E128B0CAC0034A27F /* PBXTextBookmark */ = 09B9ED9E128B0CAC0034A27F /* PBXTextBookmark */;
+			09B9EDA1128B0D110034A27F /* PBXBookmark */ = 09B9EDA1128B0D110034A27F /* PBXBookmark */;
+			09B9EDA7128B0E020034A27F /* PBXTextBookmark */ = 09B9EDA7128B0E020034A27F /* PBXTextBookmark */;
+			09B9EDA8128B0E040034A27F /* PBXTextBookmark */ = 09B9EDA8128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDA9128B0E040034A27F /* PBXTextBookmark */ = 09B9EDA9128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDAA128B0E040034A27F /* PBXTextBookmark */ = 09B9EDAA128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDAB128B0E040034A27F /* PBXTextBookmark */ = 09B9EDAB128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDAC128B0E040034A27F /* PBXTextBookmark */ = 09B9EDAC128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDAD128B0E040034A27F /* PBXTextBookmark */ = 09B9EDAD128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDAE128B0E040034A27F /* PBXTextBookmark */ = 09B9EDAE128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDB1128B0E040034A27F /* PBXTextBookmark */ = 09B9EDB1128B0E040034A27F /* PBXTextBookmark */;
+			09B9EDB4128B0E630034A27F /* PBXBookmark */ = 09B9EDB4128B0E630034A27F /* PBXBookmark */;
+			09B9EDB5128B0F180034A27F /* PBXTextBookmark */ = 09B9EDB5128B0F180034A27F /* PBXTextBookmark */;
+			09B9EDB8128B0F180034A27F /* PBXTextBookmark */ = 09B9EDB8128B0F180034A27F /* PBXTextBookmark */;
+			09B9EDB9128B0F180034A27F /* PBXTextBookmark */ = 09B9EDB9128B0F180034A27F /* PBXTextBookmark */;
+			09B9EDC2128B11580034A27F /* PBXTextBookmark */ = 09B9EDC2128B11580034A27F /* PBXTextBookmark */;
+			09B9EDC3128B11580034A27F /* PBXTextBookmark */ = 09B9EDC3128B11580034A27F /* PBXTextBookmark */;
+			09B9EDC4128B11580034A27F /* PBXTextBookmark */ = 09B9EDC4128B11580034A27F /* PBXTextBookmark */;
+			09B9EDC5128B11580034A27F /* PBXTextBookmark */ = 09B9EDC5128B11580034A27F /* PBXTextBookmark */;
+			09B9EDD8128B1CE10034A27F /* PBXTextBookmark */ = 09B9EDD8128B1CE10034A27F /* PBXTextBookmark */;
+			09B9EDD9128B1CE10034A27F /* PBXTextBookmark */ = 09B9EDD9128B1CE10034A27F /* PBXTextBookmark */;
+			09B9EDDA128B1CE10034A27F /* PBXTextBookmark */ = 09B9EDDA128B1CE10034A27F /* PBXTextBookmark */;
+			09B9EDDC128B1D740034A27F /* PBXTextBookmark */ = 09B9EDDC128B1D740034A27F /* PBXTextBookmark */;
+			09B9EDDD128B1D740034A27F /* PBXTextBookmark */ = 09B9EDDD128B1D740034A27F /* PBXTextBookmark */;
+			09B9EDE1128B248E0034A27F /* PBXBookmark */ = 09B9EDE1128B248E0034A27F /* PBXBookmark */;
+			09B9EDE2128B249D0034A27F /* PBXTextBookmark */ = 09B9EDE2128B249D0034A27F /* PBXTextBookmark */;
+			09B9EDE5128B249D0034A27F /* PBXTextBookmark */ = 09B9EDE5128B249D0034A27F /* PBXTextBookmark */;
+			09B9EDE7128B24CD0034A27F /* PBXBookmark */ = 09B9EDE7128B24CD0034A27F /* PBXBookmark */;
+			09B9EDE9128B261C0034A27F /* PBXTextBookmark */ = 09B9EDE9128B261C0034A27F /* PBXTextBookmark */;
+			09B9EDEC128B261C0034A27F /* PBXTextBookmark */ = 09B9EDEC128B261C0034A27F /* PBXTextBookmark */;
+			09B9EDF1128B26920034A27F /* PBXTextBookmark */ = 09B9EDF1128B26920034A27F /* PBXTextBookmark */;
+			09B9EDF3128B28A20034A27F /* PBXBookmark */ = 09B9EDF3128B28A20034A27F /* PBXBookmark */;
+			09B9EDF6128B2A210034A27F /* PBXTextBookmark */ = 09B9EDF6128B2A210034A27F /* PBXTextBookmark */;
+			09B9EDF9128B2A210034A27F /* PBXTextBookmark */ = 09B9EDF9128B2A210034A27F /* PBXTextBookmark */;
 			09BB24B611F4111F00C73F9F = 09BB24B611F4111F00C73F9F /* PBXTextBookmark */;
 			09BB24B911F4111F00C73F9F = 09BB24B911F4111F00C73F9F /* PBXTextBookmark */;
 			09C4F558107393FD00017ADA = 09C4F558107393FD00017ADA /* PBXTextBookmark */;

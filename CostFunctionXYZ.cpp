@@ -136,11 +136,11 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
 	fieldNodes = new real[nodes*33];	
-	bState = iDim*jDim*kDim*varDim;	
-	bgState = new real[bState];
-	stateB = new real[bState];
-	stateA = new real[bState];
-	stateC = new real[bState];
+	//bState = iDim*jDim*kDim*varDim;	
+	bgState = new real[nState];
+	stateB = new real[nState];
+	stateA = new real[nState];
+	stateC = new real[nState];
 	
 	// Precalculate the basis functions for lookup table option
 	fillBasisLookup();
@@ -162,12 +162,10 @@ void CostFunctionXYZ::initState()
 		tempGradient[n] = 0.0;
 		xt[n] = 0.0;
 		df[n] = 0.0;
-	}
-	for (int b = 0; b < bState; b++) {
-		bgState[b] = 0.0;
-		stateA[b] = 0.0;
-		stateB[b] = 0.0;
-		stateC[b] = 0.0;
+		bgState[n] = 0.0;
+		stateA[n] = 0.0;
+		stateB[n] = 0.0;
+		stateC[n] = 0.0;
 	}
 	
 	/* Change the filter scale
@@ -220,9 +218,9 @@ void CostFunctionXYZ::initState()
 	SCtranspose(stateC, stateA);
 	
 	// S^T (Inverse SA transform) yield B's, put it in the tempState
-	SAtransform(stateA, stateB);
+	SAtransform(stateA, CTHTd);
 	
-	SBtranspose(stateB, CTHTd);
+	//SBtranspose(stateB, CTHTd);
 			
 }	
 
@@ -276,10 +274,10 @@ void CostFunctionXYZ::funcGradient(double* state, double* gradient)
 	
 	SAtransform(stateA, stateB);
 	
-	SBtranspose(stateB, stateU);
+	//SBtranspose(stateB, stateU);
 	
 	for (int n = 0; n < nState; n++) {
-		gradient[n] = state[n] + stateU[n] - CTHTd[n];
+		gradient[n] = state[n] + stateB[n] - CTHTd[n];
 	}
 	
 	
@@ -289,10 +287,10 @@ void CostFunctionXYZ::updateHCq(double* state)
 {
 
 	// SB transform from the q's
-	SBtransform(state, stateB);
+	//SBtransform(state, stateB);
 	
 	// S (SA transform) yield A's, put it in the tempState
-	SAtransform(stateB, stateA);
+	SAtransform(state, stateA);
 	
 	SCtransform(stateA, stateC);
 	
@@ -394,10 +392,10 @@ void CostFunctionXYZ::updateBG()
 {
 
 	// SB transform from the q's
-	SBtransform(currState, stateB);
+	//SBtransform(currState, stateB);
 	
 	// S (SA transform) yield A's
-	SAtransform(stateB, stateA);
+	SAtransform(currState, stateA);
 	
 	SCtransform(stateA, stateC);
 	
@@ -530,33 +528,30 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 {
 	
 	// Clear the Astate
-	for (int b = 0; b < bState; b++) {
-		Astate[b] = 0.;
+	for (int n = 0; n < nState; n++) {
+		Astate[n] = 0.;
 	}
 	
 	// Calculate H Transpose	
 	//#pragma omp parallel for
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				
-				int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
-				for (int m = 0; m < mObs; m++) {
-					// Sum over obs this time
-					// Multiply state by H weights
-					int mi = m*14;
-					real i = obsVector[mi+2];
-					int ii = (int)((i - iMin)*DIrecip);
-					if ((iIndex < ii-1) or (iIndex > ii+2)) continue;
+	for (int m = 0; m < mObs; m++) {
+		// Sum over obs this time
+		// Multiply state by H weights
+		int mi = m*14;
+		real i = obsVector[mi+2];
+		int ii = (int)((i - iMin)*DIrecip);
+		
+		real j = obsVector[mi+3];
+		int jj = (int)((j - jMin)*DJrecip);
+		
+		real k = obsVector[mi+4];
+		int kk = (int)((k - kMin)*DKrecip);
 
-					real j = obsVector[mi+3];
-					int jj = (int)((j - jMin)*DJrecip);
-					if ((jIndex < jj-1) or (jIndex > jj+2)) continue;
+		for (int iIndex = ii-1; iIndex < ii+3; iIndex++) {
+			for (int jIndex = jj-1; jIndex < jj+3; jIndex++) {
+				for (int kIndex = kk-1; kIndex < kk+3; kIndex++) {
 					
-					real k = obsVector[mi+4];
-					int kk = (int)((k - kMin)*DKrecip);
-					if ((kIndex < kk-1) or (kIndex > kk+2)) continue;
-
+					int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
 
 					real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
 					real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
@@ -575,6 +570,15 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 						Astate[aIndex + var] += qbasise * obsVector[mi+7+var];
 					}
 				}
+			}
+		}
+	}
+	
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int kIndex = 0; kIndex < kDim; kIndex++) {
+				
+				int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;	
 				
 				// Mass continuity transpose				
 				int ii = iIndex;
@@ -586,7 +590,7 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 						if ((jNode < 0) or (jNode >= jDim)) continue;
 						for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 							if	((kNode < 0) or (kNode >= kDim)) continue;
-														
+							
 							real i = iNode*DI + iMin;
 							real j = jNode*DJ + jMin;
 							real k = kNode*DK + kMin;
@@ -733,8 +737,8 @@ bool CostFunctionXYZ::SAtransform(real* Bstate, real* Astate)
 void CostFunctionXYZ::SBtransform(real* Ustate, real* Bstate)
 {
 	// Clear the Bstate
-	for (int b = 0; b < bState; b++) {
-		Bstate[b] = 0.;
+	for (int n = 0; n < nState; n++) {
+		Bstate[n] = 0.;
 	}
 	real gausspoint = 0.5*sqrt(1./3.);
 	
@@ -2605,8 +2609,8 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 				break;
 			case 1:
 				b = basis1[z1];
-				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
 				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
 				break;
 			case 2:
 				z = 2.0 - z;
@@ -2633,7 +2637,7 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 	return bc;
 }
 
-real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,const real& xmin, 
+real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M, const real& xmin, 
 							  const real& DX, const real& DXrecip, const int& derivative,
 							  const int& BL, const int& BR, const real& lambda)
 {
@@ -2641,128 +2645,135 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 	real bmod = 0;
 	int node = -2;
 	real coeffmod = 0.;
-	if (m == 0) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = -1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				// There is no contribution from this node 
-				return b;
-			case 5:
-				// There is no contribution from this node 
-				return b;
-			case 6:
-				// There is no contribution from this node 
-				return b;				
-		}
-	} else if (m == 1) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				node = -1;
-				coeffmod = 1.;
-				break;
-			case 5:
-				node = -1;
-				coeffmod = -1.;
-				break;				
-			case 6:
-				// There is no contribution from this node 
-				return b;				
-		}
-		
-	} else if (m == M) {
-		// Right BC
-		switch (BR) {
-			case 0:
-				node = M+1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				// There is no contribution from this node 
-				return 0.;
-			case 5:
-				// There is no contribution from this node 
-				return 0.;
-			case 6:
-				// There is no contribution from this node 
-				return 0.;				
-		}
-	} else if (m == M-1) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-			case 5:
-				node = M+1;
-				coeffmod = -1.;
-				break;				
-			case 6:
-				// There is no contribution from this node 
-				return 0.;				
-		}
+	switch (m) {
+		case 0:
+			// Left BC
+			switch (BL) {
+				case 0:
+					node = -1;
+					coeffmod = -4.;
+					break;
+				case 1:
+					node = -1;
+					coeffmod = 0.;
+					break;
+				case 2:
+					node = -1;
+					coeffmod = 2.;
+					break;
+				case 3:
+					node = -1;
+					coeffmod = -4./(3.*lambda + 1.);
+					break;
+				case 4:
+					// There is no contribution from this node 
+					return b;
+				case 5:
+					// There is no contribution from this node 
+					return b;
+				case 6:
+					// There is no contribution from this node 
+					return b;				
+			}
+			break;
+		case 1:
+			// Left BC
+			switch (BL) {
+				case 0:
+					node = -1;
+					coeffmod = -1.;
+					break;
+				case 1:
+					node = -1;
+					coeffmod = 1.;
+					break;
+				case 2:
+					node = -1;
+					coeffmod = -1.;
+					break;
+				case 3:
+					node = -1;
+					coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+					break;
+				case 4:
+					node = -1;
+					coeffmod = 1.;
+					break;
+				case 5:
+					node = -1;
+					coeffmod = -1.;
+					break;				
+				case 6:
+					// There is no contribution from this node 
+					return b;				
+			}
+			break;
+		default:
+			if (m == M) {
+				// Right BC
+				switch (BR) {
+					case 0:
+						node = M+1;
+						coeffmod = -4.;
+						break;
+					case 1:
+						node = M+1;
+						coeffmod = 0.;
+						break;
+					case 2:
+						node = M+1;
+						coeffmod = 2.;
+						break;
+					case 3:
+						node = M+1;
+						coeffmod = -4./(3.*lambda + 1.);
+						break;
+					case 4:
+						// There is no contribution from this node 
+						return 0.;
+					case 5:
+						// There is no contribution from this node 
+						return 0.;
+					case 6:
+						// There is no contribution from this node 
+						return 0.;				
+				} 
+			}
+			if (m == (M-1)) {
+				// Right BC
+				switch (BR) {
+					case 0:
+						node = M+1;
+						coeffmod = -1.;
+						break;
+					case 1:
+						node = M+1;
+						coeffmod = 1.;
+						break;
+					case 2:
+						node = M+1;
+						coeffmod = -1.;
+						break;
+					case 3:
+						node = M+1;
+						coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+						break;
+					case 4:
+						node = M+1;
+						coeffmod = 1.;
+						break;
+					case 5:
+						node = M+1;
+						coeffmod = -1.;
+						break;				
+					case 6:
+						// There is no contribution from this node 
+						return 0.;				
+				}
+			}
+			break;
 	}
+	
 	
 	real xm = xmin + (node * DX);
 	real delta = (x - xm) * DXrecip;

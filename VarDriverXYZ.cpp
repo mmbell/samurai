@@ -1060,17 +1060,19 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 	kdim = (int)((kmax - kmin)/kincr) + 1;
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	int stateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	cout << "State size = " << stateSize << ", Grid dimensions:\n";
+	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	int bStateSize = idim*jdim*kdim*numVars;
+	cout << "Physical (mish) State size = " << uStateSize << "\n";
+	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 	
 	// Load the BG into a empty vector
-	bgU = new real[stateSize];
-	bgWeights = new real[stateSize];
-	for (int i=0; i < stateSize; i++) {
+	bgU = new real[uStateSize];
+	bgWeights = new real[uStateSize];
+	for (int i=0; i < uStateSize; i++) {
 		bgU[i] = 0.;
 		bgWeights[i] = 0.;
 	}
@@ -1147,7 +1149,7 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 		}
 			
 		// Adjust the background field to the spline mish
-		bgCostXYZ = new CostFunctionXYZ(numbgObs, stateSize);
+		bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
 		
 		bgCostXYZ->initialize(configHash, bgU, bgObs);
 		bgCostXYZ->initState();
@@ -1176,7 +1178,7 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 	}
 	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
-	obCostXYZ = new CostFunctionXYZ(obVector.size(), stateSize);
+	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
 	obCostXYZ->initialize(configHash, bgU, obs);
 	
 	return true;
