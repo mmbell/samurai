@@ -388,7 +388,9 @@ float MetObs::getVaporPressure() const
 float MetObs::getSatVaporPressure() const
 {
 	if (temperature != -999) {
-		return (6.1078 * exp(5.0065 * log(273.15/temperature)) * exp((5.0065 + 19.83923) * (1 - 273.15/temperature)));
+		float tempc = temperature - 273.15;
+		//return (6.1078 * exp(5.0065 * log(273.15/temperature)) * exp((5.0065 + 19.83923) * (1 - 273.15/temperature)));
+		return (6.112 * exp((17.62 * tempc)/(243.12 + tempc)));
 	} else {
 		return -999;
 	}

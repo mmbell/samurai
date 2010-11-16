@@ -46,7 +46,6 @@ void CostFunctionXYZ::finalize()
 	delete[] iL;
 	delete[] jL;
 	delete[] stateU;
-	delete[] stateV;
 	delete[] fieldNodes;	
 }
 
@@ -130,7 +129,6 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	// These are local to this one
 	CTHTd = new real[nState];
 	stateU = new real[nState];
-	stateV = new real[nState];
 	obsVector = new real[mObs*14];
 	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
@@ -548,9 +546,11 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 		int kk = (int)((k - kMin)*DKrecip);
 
 		for (int iIndex = ii-1; iIndex < ii+3; iIndex++) {
+			if ((iIndex < 0) or (iIndex >= iDim)) continue;
 			for (int jIndex = jj-1; jIndex < jj+3; jIndex++) {
+				if ((jIndex < 0) or (jIndex >= jDim)) continue;
 				for (int kIndex = kk-1; kIndex < kk+3; kIndex++) {
-					
+					if ((kIndex < 0) or (kIndex >= kDim)) continue;
 					int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
 
 					real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
@@ -626,7 +626,7 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 	
 }
 
-bool CostFunctionXYZ::SAtransform(real* Bstate, real* Astate)
+bool CostFunctionXYZ::SAtransform(const real* Bstate, real* Astate)
 {
 
 	#pragma omp parallel for
@@ -734,7 +734,7 @@ bool CostFunctionXYZ::SAtransform(real* Bstate, real* Astate)
 	return true;
 }		
 
-void CostFunctionXYZ::SBtransform(real* Ustate, real* Bstate)
+void CostFunctionXYZ::SBtransform(const real* Ustate, real* Bstate)
 {
 	// Clear the Bstate
 	for (int n = 0; n < nState; n++) {
@@ -797,7 +797,7 @@ void CostFunctionXYZ::SBtransform(real* Ustate, real* Bstate)
 }
 
 
-void CostFunctionXYZ::SBtranspose(real* Bstate, real* Ustate)
+void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 {
 		
 	// Clear the Ustate
@@ -860,7 +860,7 @@ void CostFunctionXYZ::SBtranspose(real* Bstate, real* Ustate)
 	}
 }
 
-void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
+void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 {
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
 	#pragma omp parallel for
@@ -879,7 +879,7 @@ void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
 					}
 					kFilter->filterArray(kTemp, kDim);
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
+						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
 				}
 			}
@@ -888,11 +888,11 @@ void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
 		for (int kIndex = 0; kIndex < kDim; kIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 				}
 				jFilter->filterArray(jTemp, jDim);
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 				}
 			}
 		}
@@ -900,7 +900,7 @@ void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					iTemp[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 				}
 				iFilter->filterArray(iTemp, iDim);
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -915,7 +915,7 @@ void CostFunctionXYZ::SCtransform(real* Astate, real* Cstate)
 	}
 }
 
-void CostFunctionXYZ::SCtranspose(real* Cstate, real* Astate)
+void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 {
 	
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
@@ -934,7 +934,7 @@ void CostFunctionXYZ::SCtranspose(real* Cstate, real* Astate)
 				}
 				iFilter->filterArray(iTemp, iDim);
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
 				}
 			}
 		}
@@ -942,15 +942,11 @@ void CostFunctionXYZ::SCtranspose(real* Cstate, real* Astate)
 		for (int kIndex = 0; kIndex < kDim; kIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 				}
 				jFilter->filterArray(jTemp, jDim);
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					if (kFilter != NULL) {
-						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-					} else {
-						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-					}
+					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 				}
 			}
 		}
@@ -959,7 +955,7 @@ void CostFunctionXYZ::SCtranspose(real* Cstate, real* Astate)
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						kTemp[kIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
 					kFilter->filterArray(kTemp, kDim);
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1354,7 +1350,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	QString samuraiout = "samurai_XYZ_" + suffix + ".out";
 	ofstream samuraistream(samuraiout.toAscii().data());
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
-	samuraistream << "rhoux\trhouy\trhouz\trhovx\trhovy\trhovz\trhowx\trhowy\trhowz\tMC residual\n";
+	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\n";
 	samuraistream.precision(10);
 	//real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1394,16 +1390,12 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 										real rhov = 0.;
 										real rhou = 0.;
 										real rhow = 0.;
-										real rhovdx = 0.;
-										real rhoudx = 0.;
-										real rhowdx = 0.;
-										real rhovdy = 0.;
-										real rhoudy = 0.;
-										real rhowdy = 0.;
-										real rhovdz = 0.;
-										real rhoudz = 0.;
-										real rhowdz = 0.;
+										real rhovdx = 0.; real rhoudx = 0.; real rhowdx = 0.;
+										real rhovdy = 0.; real rhoudy = 0.; real rhowdy = 0.;
+										real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
 										real tprime = 0.;
+										real rhoadx = 0.; real rhoady = 0.; real rhoadz = 0.;
+										real qvdx = 0.; real qvdy = 0.; real qvdz = 0.;
 										real qvprime = 0.;
 										real rhoprime = 0.;
 										real qrprime = 0.;
@@ -1446,9 +1438,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 																break;
 															case 4:
 																qvprime += Astate[aIndex + 4] * basis3x;
+																qvdx += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
+																qvdy += Astate[aIndex + 4] * ibasis * jdbasis * kbasis;
+																qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis; 
 																break;
 															case 5:
 																rhoprime += Astate[aIndex + 5] * basis3x;
+																rhoadx += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
+																rhoady += Astate[aIndex + 5] * ibasis * jdbasis * kbasis;
+																rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
 																break;
 															case 6:
 																qrprime += Astate[aIndex + 6] * basis3x;
@@ -1482,12 +1480,12 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
 										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
-										real satvp = 6.1078 * exp(5.0065 * log(273.15/temp)) * exp((5.0065 + 19.83923) * (1 - 273.15/temp));
-										real satqv = 1000.0 * 0.622 * satvp / airpress;
-										real relhum = -999.;
-										if (satqv != 0)
-											relhum = 100*qv/satqv;
+										real tempc = temp - 273.15;
+										real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
 										real vp = temp*rhoq*461./100.;
+										real relhum = -999.;
+										if (satvp != 0)
+											relhum = 100*vp/satvp;
 										real press = airpress + vp;
 										
 										// Vorticity units are 10-5
@@ -1514,17 +1512,38 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											bgFields[bIndex + 6] = qrprime;
 										}
 										
-										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
-										real hprime = h - getReferenceVariable(href, heightm);
-										
 										if (!ihalf and !jhalf and !khalf){
 											// On the node
+											
+											real pprime = press - getReferenceVariable(pressref, heightm)/100.;
+											real hprime = h - getReferenceVariable(href, heightm);
+
+											// Calculate the kinematic derivatives
+											// rhoa derivatives divided by 100
+											// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
+											real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
+											real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
+											real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
+											real rhobardz = 1000 * getReferenceVariable(rhoref, heightm, 1);
+											rhodz += rhobardz;
+											// Units 10-5
+											real udx = 100. * (rhoudx - u*rhodx);
+											real udy = 100. * (rhoudy - u*rhody);
+											real udz = 100. * (rhoudz - u*rhodz);
+											
+											real vdx = 100. * (rhovdx - v*rhodx);
+											real vdy = 100. * (rhovdy - v*rhody);
+											real vdz = 100. * (rhovdz - v*rhodz);
+											
+											real wdx = 100. * (rhowdx - w*rhodx);
+											real wdy = 100. * (rhowdy - w*rhody);
+											real wdz = 100. * (rhowdz - w*rhodz);
 											samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
 											<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 											<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
-											<< rhoudx << "\t" << rhoudy << "\t" << rhoudz << "\t"
-											<< rhovdx << "\t" << rhovdy << "\t" << rhovdz << "\t"
-											<< rhowdx << "\t" << rhowdy << "\t" << rhowdz << "\t" << mcresidual << "\n";
+											<< udx << "\t" << udy << "\t" << udz << "\t"
+											<< vdx << "\t" << vdy << "\t" << vdz << "\t"
+											<< wdx << "\t" << wdy << "\t" << wdz << "\t" << rhowdz * 100. << "\t" << mcresidual << "\n";
 
 											// Sum up the TPW in the vertical, top level is tpw
 											tpw += qv * rhoa * DK;
@@ -1555,15 +1574,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											fieldNodes[fIndex * 21 + posIndex] = qv;
 											fieldNodes[fIndex * 22 + posIndex] = h;
 											fieldNodes[fIndex * 23 + posIndex] = qr;
-											fieldNodes[fIndex * 24 + posIndex] = rhoudx;
-											fieldNodes[fIndex * 25 + posIndex] = rhovdx;
-											fieldNodes[fIndex * 26 + posIndex] = rhowdx;
-											fieldNodes[fIndex * 27 + posIndex] = rhoudy;
-											fieldNodes[fIndex * 28 + posIndex] = rhovdy;
-											fieldNodes[fIndex * 29 + posIndex] = rhowdy;
-											fieldNodes[fIndex * 30 + posIndex] = rhoudz;
-											fieldNodes[fIndex * 31 + posIndex] = rhovdz;
-											fieldNodes[fIndex * 32 + posIndex] = rhowdz;
+											fieldNodes[fIndex * 24 + posIndex] = udx;
+											fieldNodes[fIndex * 25 + posIndex] = vdx;
+											fieldNodes[fIndex * 26 + posIndex] = wdx;
+											fieldNodes[fIndex * 27 + posIndex] = udy;
+											fieldNodes[fIndex * 28 + posIndex] = vdy;
+											fieldNodes[fIndex * 29 + posIndex] = wdy;
+											fieldNodes[fIndex * 30 + posIndex] = udz;
+											fieldNodes[fIndex * 31 + posIndex] = vdz;
+											fieldNodes[fIndex * 32 + posIndex] = wdz;
 										}
 									}
 								}
@@ -1645,8 +1664,12 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 		for (int t=0; t < 6; t++) {
 			*od++ = obsVector[mi+t];
 		}
-		int time = obsVector[mi+6];
-		*od++ = time;
+		int unixtime = obsVector[mi+6];
+		QDateTime obtime;
+		obtime.setTime_t(unixtime);
+		obtime.setTimeSpec(Qt::UTC);
+		QString timestring = obtime.toString("hh:mm:ss.zzz");
+		qcstream << timestring.toStdString() << "\t";
 		
 		// Multiply the weight by the ob -- Observations.in has individual weights already
 		for (int t=7; t<14; t++) {
@@ -1841,7 +1864,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
 	NcVar *rho, *press, *temp, *qv, *h, *qr;
-	NcVar *rhoudx, *rhovdx, *rhowdx, *rhoudy, *rhovdy, *rhowdy, *rhoudz, *rhovdz, *rhowdz;
+	NcVar *dudx, *dvdx, *dwdx, *dudy, *dvdy, *dwdy, *dudz, *dvdz, *dwdz;
 		
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
 									 lvlDim, latDim, lonDim)))
@@ -1915,31 +1938,31 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	if (!(qr = dataFile.add_var("QR", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhoudx = dataFile.add_var("DRHOUDX", ncFloat, timeDim, 
+	if (!(dudx = dataFile.add_var("DUDX", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhovdx = dataFile.add_var("DRHOVDX", ncFloat, timeDim, 
+	if (!(dvdx = dataFile.add_var("DVDX", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhowdx = dataFile.add_var("DRHOWDX", ncFloat, timeDim, 
+	if (!(dwdx = dataFile.add_var("DWDX", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhoudy = dataFile.add_var("DRHOUDY", ncFloat, timeDim, 
+	if (!(dudy = dataFile.add_var("DUDY", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhovdy = dataFile.add_var("DRHOVDY", ncFloat, timeDim, 
+	if (!(dvdy = dataFile.add_var("DVDY", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhowdy = dataFile.add_var("DRHOWDY", ncFloat, timeDim, 
+	if (!(dwdy = dataFile.add_var("DWDY", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhoudz = dataFile.add_var("DRHOUDZ", ncFloat, timeDim, 
+	if (!(dudz = dataFile.add_var("DUDZ", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhovdz = dataFile.add_var("DRHOVDZ", ncFloat, timeDim, 
+	if (!(dvdz = dataFile.add_var("DVDZ", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(rhowdz = dataFile.add_var("DRHOWDZ", ncFloat, timeDim, 
+	if (!(dwdz = dataFile.add_var("DWDZ", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	
@@ -1996,23 +2019,23 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	if (!qr->add_att("missing_value", -999.0)) 
 		return NC_ERR;
 
-	if (!rhoudx->add_att("units", "kg m-3s-1")) 
+	if (!dudx->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhovdx->add_att("units", "kg m-3s-1")) 
+	if (!dvdx->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhowdx->add_att("units", "kg m-3s-1")) 
+	if (!dwdx->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhoudy->add_att("units", "kg m-3s-1")) 
+	if (!dudy->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhovdy->add_att("units", "kg m-3s-1")) 
+	if (!dvdy->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhowdy->add_att("units", "kg m-3s-1")) 
+	if (!dwdy->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhoudz->add_att("units", "kg m-3s-1")) 
+	if (!dudz->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhovdz->add_att("units", "kg m-3s-1")) 
+	if (!dvdz->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
-	if (!rhowdz->add_att("units", "kg m-3s-1")) 
+	if (!dwdz->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
 	
 	// Define long names for data variables.
@@ -2064,23 +2087,23 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!qr->add_att("long_name", "precipitation mixing ratio")) 
 		return NC_ERR;
-	if (!rhoudx->add_att("long_name", "mass flux gradient")) 
+	if (!dudx->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhovdx->add_att("long_name", "mass flux gradient")) 
+	if (!dvdx->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhowdx->add_att("long_name", "mass flux gradient")) 
+	if (!dwdx->add_att("long_name", "wind gradient")) 
 		return NC_ERR;
-	if (!rhoudy->add_att("long_name", "mass flux gradient")) 
+	if (!dudy->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhovdy->add_att("long_name", "mass flux gradient")) 
+	if (!dvdy->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhowdy->add_att("long_name", "mass flux gradient")) 
+	if (!dwdy->add_att("long_name", "wind gradient")) 
 		return NC_ERR;
-	if (!rhoudz->add_att("long_name", "mass flux gradient")) 
+	if (!dudz->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhovdz->add_att("long_name", "mass flux gradient")) 
+	if (!dvdz->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
-	if (!rhowdz->add_att("long_name", "mass flux gradient")) 
+	if (!dwdz->add_att("long_name", "wind gradient")) 
 		return NC_ERR;
 	
 	// Write the coordinate variable data to the file.
@@ -2173,23 +2196,23 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 			return NC_ERR;
 		if (!qr->put_rec(&fieldNodes[iDim*jDim*kDim*23], rec)) 
 			return NC_ERR;
-		if (!rhoudx->put_rec(&fieldNodes[iDim*jDim*kDim*24], rec)) 
+		if (!dudx->put_rec(&fieldNodes[iDim*jDim*kDim*24], rec)) 
 			return NC_ERR;
-		if (!rhovdx->put_rec(&fieldNodes[iDim*jDim*kDim*25], rec)) 
+		if (!dvdx->put_rec(&fieldNodes[iDim*jDim*kDim*25], rec)) 
 			return NC_ERR;
-		if (!rhowdx->put_rec(&fieldNodes[iDim*jDim*kDim*26], rec)) 
+		if (!dwdx->put_rec(&fieldNodes[iDim*jDim*kDim*26], rec)) 
 			return NC_ERR;
-		if (!rhoudy->put_rec(&fieldNodes[iDim*jDim*kDim*27], rec)) 
+		if (!dudy->put_rec(&fieldNodes[iDim*jDim*kDim*27], rec)) 
 			return NC_ERR;
-		if (!rhovdy->put_rec(&fieldNodes[iDim*jDim*kDim*28], rec)) 
+		if (!dvdy->put_rec(&fieldNodes[iDim*jDim*kDim*28], rec)) 
 			return NC_ERR;
-		if (!rhowdy->put_rec(&fieldNodes[iDim*jDim*kDim*29], rec)) 
+		if (!dwdy->put_rec(&fieldNodes[iDim*jDim*kDim*29], rec)) 
 			return NC_ERR;
-		if (!rhoudz->put_rec(&fieldNodes[iDim*jDim*kDim*30], rec)) 
+		if (!dudz->put_rec(&fieldNodes[iDim*jDim*kDim*30], rec)) 
 			return NC_ERR;
-		if (!rhovdz->put_rec(&fieldNodes[iDim*jDim*kDim*31], rec)) 
+		if (!dvdz->put_rec(&fieldNodes[iDim*jDim*kDim*31], rec)) 
 			return NC_ERR;
-		if (!rhowdz->put_rec(&fieldNodes[iDim*jDim*kDim*32], rec)) 
+		if (!dwdz->put_rec(&fieldNodes[iDim*jDim*kDim*32], rec)) 
 			return NC_ERR;
 
 	}
@@ -2863,46 +2886,56 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 }
 
 
-real CostFunctionXYZ::getReferenceVariable(int refVariable, real heightm)
+real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& heightm, const int& dz)
 {
 	real qvbhypcoeff[5];
 	real rhoacoeff[5];
 	real dpdzcoeff[5];
-	
+
 	if (referenceState == jordan) {
-		qvbhypcoeff[0] = 9.5108;
-		qvbhypcoeff[1] = -0.002761;
-		qvbhypcoeff[2] = 3.0362e-7;
-		qvbhypcoeff[3] = -1.476e-11;
-		qvbhypcoeff[4] = 2.6515e-16;
+		qvbhypcoeff[0] = 9.4826;
+		qvbhypcoeff[1] = -0.0026721;
+		qvbhypcoeff[2] = 2.8312e-07;
+		qvbhypcoeff[3] = -1.3217e-11;
+		qvbhypcoeff[4] = 2.2749e-16;
 		
-		rhoacoeff[0] = 1.1451;
-		rhoacoeff[1] = -0.00010098;
-		rhoacoeff[2] = 3.1546e-09;
-		rhoacoeff[3] = -2.6251e-14;
-		rhoacoeff[4] = -5.5556e-19;
+		rhoacoeff[0] = 1.1439;
+		rhoacoeff[1] = -0.00010117;
+		rhoacoeff[2] = 3.2486e-09;
+		rhoacoeff[3] = -3.4898e-14;
+		rhoacoeff[4] = -2.6925e-19;
 		
 		dpdzcoeff[0] = -11.432;
-		dpdzcoeff[1] = 0.0010267;
-		dpdzcoeff[2] = -2.7622e-08;
-		dpdzcoeff[3] = -5.2937e-13;
-		dpdzcoeff[4] = 3.4713e-17;
+		dpdzcoeff[1] = 0.0010633;
+		dpdzcoeff[2] = -4.0545e-08;
+		dpdzcoeff[3] =  7.9634e-13;
+		dpdzcoeff[4] = -5.8778e-18;
 		
 	}
 	
 	if (refVariable == qvbhypref) {
 		real qvbhyp = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i); 
-			qvbhyp += qvbhypcoeff[i] * power;
+		for (int i = dz; i < 5; i++) {
+			real power = pow(heightm, i-dz);
+			if (dz) {
+				qvbhyp += qvbhypcoeff[i] * power * i;
+			} else {
+				qvbhyp += qvbhypcoeff[i] * power;
+			}
 		}
-		if (qvbhyp < 0.) qvbhyp = 0.;
+		if (!dz) {
+			if (qvbhyp < 0.) qvbhyp = 0.;
+		}
 		return qvbhyp;
 	} else if (refVariable == rhoaref) {
 		real rhoa = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i); 
-			rhoa += rhoacoeff[i] * power;
+		for (int i = dz; i < 5; i++) {
+			real power = pow(heightm, i-dz); 
+			if (dz) {
+				rhoa += rhoacoeff[i] * power * i;
+			} else {
+				rhoa += rhoacoeff[i] * power;
+			}
 		}
 		return rhoa;
 	} else if (refVariable == rhoref) {
@@ -2917,9 +2950,21 @@ real CostFunctionXYZ::getReferenceVariable(int refVariable, real heightm)
 		if (qvbhyp < 0.) qvbhyp = 0.;
 		real qv = bhypInvTransform(qvbhyp);
 		rho = rhoa*qv/1000. + rhoa;
+		if (dz) {
+			real rhoadz = 0.;
+			real qvdz = 0.;
+			for (int i = dz; i < 5; i++) {
+				real power = pow(heightm, i-dz); 
+				rhoadz += rhoacoeff[i] * power * i;
+				qvdz += qvbhypcoeff[i] * power * i;
+			}
+			rho = rhoadz * (1 + qv/1000.) + rhoa * (qvdz/500.);
+			return rho;
+		}
 		return rho;
 	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
+		if (dz) return 0; // Need to go ahead and code this
 		real press = 0.;
 		real temp = 0.;
 		real rho = 0.;

@@ -52,17 +52,17 @@ private:
 	bool setupSplines();
 	void obAdjustments();
 	void solveBC(real* A, real* B);
-	bool SAtransform(real* Bstate, real* Astate);
+	bool SAtransform(const real* Bstate, real* Astate);
 	bool SAtransform_ori(real* Bstate, real* Astate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
 	bool outputAnalysis(const QString& suffix, real* Astate, bool updateMish);
-	void SBtransform(real* Ustate, real* Bstate);
-	void SBtranspose(real* Bstate, real* Ustate);
-	void SCtransform(real* Astate, real* Cstate);
-	void SCtranspose(real* Cstate, real* Astate);
+	void SBtransform(const real* Ustate, real* Bstate);
+	void SBtranspose(const real* Bstate, real* Ustate);
+	void SCtransform(const real* Astate, real* Cstate);
+	void SCtranspose(const real* Cstate, real* Astate);
 	
-	real getReferenceVariable(int refVariable, real heightm);
+	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
 	real bhypInvTransform(real qvbhyp);
 	void writeAsi();
@@ -80,7 +80,6 @@ private:
 	real* stateB;
 	real* stateC;
 	real* stateU;
-	real* stateV;
 	real* CTHTd;
 	real* HCq;
 	real* innovation;

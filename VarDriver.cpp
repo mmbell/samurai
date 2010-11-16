@@ -861,46 +861,73 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	
 }
 
-real VarDriver::getReferenceVariable(int refVariable, real heightm)
+real VarDriver::bhypTransform(real qv)
+{
+	
+	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
+	return qvbhyp;
+	
+}
+
+real VarDriver::bhypInvTransform(real qvbhyp)
+{
+	real qv = 0.;
+	if (qvbhyp > 0) {
+		qv = sqrt(qvbhyp*qvbhyp + 1.e-14) + qvbhyp - 1.e-7;
+	}
+	return qv;
+}
+
+real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm, const int& dz)
 {
 	real qvbhypcoeff[5];
 	real rhoacoeff[5];
 	real dpdzcoeff[5];
 	
 	if (referenceState == jordan) {
-		qvbhypcoeff[0] = 9.5108;
-		qvbhypcoeff[1] = -0.002761;
-		qvbhypcoeff[2] = 3.0362e-7;
-		qvbhypcoeff[3] = -1.476e-11;
-		qvbhypcoeff[4] = 2.6515e-16;
+		qvbhypcoeff[0] = 9.4826;
+		qvbhypcoeff[1] = -0.0026721;
+		qvbhypcoeff[2] = 2.8312e-07;
+		qvbhypcoeff[3] = -1.3217e-11;
+		qvbhypcoeff[4] = 2.2749e-16;
 		
-		rhoacoeff[0] = 1.1451;
-		rhoacoeff[1] = -0.00010098;
-		rhoacoeff[2] = 3.1546e-09;
-		rhoacoeff[3] = -2.6251e-14;
-		rhoacoeff[4] = -5.5556e-19;
+		rhoacoeff[0] = 1.1439;
+		rhoacoeff[1] = -0.00010117;
+		rhoacoeff[2] = 3.2486e-09;
+		rhoacoeff[3] = -3.4898e-14;
+		rhoacoeff[4] = -2.6925e-19;
 		
 		dpdzcoeff[0] = -11.432;
-		dpdzcoeff[1] = 0.0010267;
-		dpdzcoeff[2] = -2.7622e-08;
-		dpdzcoeff[3] = -5.2937e-13;
-		dpdzcoeff[4] = 3.4713e-17;
+		dpdzcoeff[1] = 0.0010633;
+		dpdzcoeff[2] = -4.0545e-08;
+		dpdzcoeff[3] =  7.9634e-13;
+		dpdzcoeff[4] = -5.8778e-18;
 		
 	}
-
+	
 	if (refVariable == qvbhypref) {
 		real qvbhyp = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i); 
-			qvbhyp += qvbhypcoeff[i] * power;
+		for (int i = dz; i < 5; i++) {
+			real power = pow(heightm, i-dz);
+			if (dz) {
+				qvbhyp += qvbhypcoeff[i] * power * i;
+			} else {
+				qvbhyp += qvbhypcoeff[i] * power;
+			}
 		}
-		if (qvbhyp < 0.) qvbhyp = 0.;
+		if (!dz) {
+			if (qvbhyp < 0.) qvbhyp = 0.;
+		}
 		return qvbhyp;
 	} else if (refVariable == rhoaref) {
 		real rhoa = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i); 
-			rhoa += rhoacoeff[i] * power;
+		for (int i = dz; i < 5; i++) {
+			real power = pow(heightm, i-dz); 
+			if (dz) {
+				rhoa += rhoacoeff[i] * power * i;
+			} else {
+				rhoa += rhoacoeff[i] * power;
+			}
 		}
 		return rhoa;
 	} else if (refVariable == rhoref) {
@@ -915,9 +942,21 @@ real VarDriver::getReferenceVariable(int refVariable, real heightm)
 		if (qvbhyp < 0.) qvbhyp = 0.;
 		real qv = bhypInvTransform(qvbhyp);
 		rho = rhoa*qv/1000. + rhoa;
+		if (dz) {
+			real rhoadz = 0.;
+			real qvdz = 0.;
+			for (int i = dz; i < 5; i++) {
+				real power = pow(heightm, i-dz); 
+				rhoadz += rhoacoeff[i] * power * i;
+				qvdz += qvbhypcoeff[i] * power * i;
+			}
+			rho = rhoadz * (1 + qv/1000.) + rhoa * (qvdz/500.);
+			return rho;
+		}
 		return rho;
 	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
+		if (dz) return 0; // Need to go ahead and code this
 		real press = 0.;
 		real temp = 0.;
 		real rho = 0.;
@@ -950,22 +989,4 @@ real VarDriver::getReferenceVariable(int refVariable, real heightm)
 	
 	return 0;
 }
-
-real VarDriver::bhypTransform(real qv)
-{
-	
-	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
-	return qvbhyp;
-	
-}
-
-real VarDriver::bhypInvTransform(real qvbhyp)
-{
-	real qv = 0.;
-	if (qvbhyp > 0) {
-		qv = sqrt(qvbhyp*qvbhyp + 1.e-14) + qvbhyp - 1.e-7;
-	}
-	return qv;
-}
-
 

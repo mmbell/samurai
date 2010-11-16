@@ -97,7 +97,7 @@ protected:
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
 	bool readXMLconfig(const QString& xmlfile);
-	real getReferenceVariable(int refVariable, real heightm);
+	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
 	real bhypInvTransform(real qvbhyp);
 	
