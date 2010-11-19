@@ -48,7 +48,7 @@ int CostFunction::getLengthStateVector()
 bool CostFunction::minimize()
 {
 	
-	double ftol = 1.0e-4;
+	double ftol = 1.0e-5;
 	double minimum = 1e34;
 	cout << "\tInner Loop Conjugate Gradient" << endl;
 	conjugateGradient(currState, currGradient, ftol, minimum);

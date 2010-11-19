@@ -1457,46 +1457,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											}
 										}
 										
-										// Get it to relevant variables for the flux calculation
-										real rhoa = rhoBar + rhoprime / 100;
-										real qv = bhypInvTransform(qBar + qvprime);
-										real qr = bhypInvTransform(qrprime);
-										QString gridref = configHash.value("gridreflectivity");
-										if (gridref == "dbz") {
-											if (qr > 0) {
-												qr = 10*log10(qr);
-											} else {
-												qr = -999.;
-											}
-										}
-										real rhoq = qv * rhoa / 1000.;
-										real rho = rhoa + rhoq;
-										real v = rhov / rho;
-										real u = rhou / rho;
-										real w = rhow / rho;
-										real wspd = sqrt(u*u + v*v);
-										real KE = 0.5*rho*(v*v + u*u + w*w);
-										real temp = tBar + tprime;
-										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-										real rhoE = rho*h + KE;
-										real airpress = temp*rhoa*287./100.;
-										real tempc = temp - 273.15;
-										real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
-										real vp = temp*rhoq*461./100.;
-										real relhum = -999.;
-										if (satvp != 0)
-											relhum = 100*vp/satvp;
-										real press = airpress + vp;
-										
-										// Vorticity units are 10-5
-										real vorticity = 100*(rhovdx - rhoudy)/rho;
-										real divergence = 100*(rhoudx + rhovdy)/rho;
-										real s1 = 100*(rhoudx - rhovdy)/rho;
-										real s2 = 100*(rhovdx + rhoudy)/rho;
-										real strain = sqrt(s1*s1 + s2*s2);
-										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-										real mcresidual = rhoudx + rhovdy + rhowdz;
-										
+																				
 										// Output it
 										if (updateMish and imu and jmu and kmu and ihalf and jhalf and khalf) {
 											int bgI = iIndex*2 + (imu+1)/2;
@@ -1514,6 +1475,35 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 										
 										if (!ihalf and !jhalf and !khalf){
 											// On the node
+											real rhoa = rhoBar + rhoprime / 100;
+											real qv = bhypInvTransform(qBar + qvprime);
+											real qr = bhypInvTransform(qrprime);
+											QString gridref = configHash.value("gridreflectivity");
+											if (gridref == "dbz") {
+												if (qr > 0) {
+													qr = 10*log10(qr);
+												} else {
+													qr = -999.;
+												}
+											}
+											real rhoq = qv * rhoa / 1000.;
+											real rho = rhoa + rhoq;
+											real v = rhov / rho;
+											real u = rhou / rho;
+											real w = rhow / rho;
+											real wspd = sqrt(u*u + v*v);
+											real KE = 0.5*rho*(v*v + u*u + w*w);
+											real temp = tBar + tprime;
+											real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
+											real rhoE = rho*h + KE;
+											real airpress = temp*rhoa*287./100.;
+											real tempc = temp - 273.15;
+											real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
+											real vp = temp*rhoq*461./100.;
+											real relhum = -999.;
+											if (satvp != 0)
+												relhum = 100*vp/satvp;
+											real press = airpress + vp;
 											
 											real pprime = press - getReferenceVariable(pressref, heightm)/100.;
 											real hprime = h - getReferenceVariable(href, heightm);
@@ -1527,17 +1517,27 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											real rhobardz = 1000 * getReferenceVariable(rhoref, heightm, 1);
 											rhodz += rhobardz;
 											// Units 10-5
-											real udx = 100. * (rhoudx - u*rhodx);
-											real udy = 100. * (rhoudy - u*rhody);
-											real udz = 100. * (rhoudz - u*rhodz);
+											real udx = 100. * (rhoudx - u*rhodx) / rho;
+											real udy = 100. * (rhoudy - u*rhody) / rho;
+											real udz = 100. * (rhoudz - u*rhodz) / rho;
 											
-											real vdx = 100. * (rhovdx - v*rhodx);
-											real vdy = 100. * (rhovdy - v*rhody);
-											real vdz = 100. * (rhovdz - v*rhodz);
+											real vdx = 100. * (rhovdx - v*rhodx) / rho;
+											real vdy = 100. * (rhovdy - v*rhody) / rho;
+											real vdz = 100. * (rhovdz - v*rhodz) / rho;
 											
-											real wdx = 100. * (rhowdx - w*rhodx);
-											real wdy = 100. * (rhowdy - w*rhody);
-											real wdz = 100. * (rhowdz - w*rhodz);
+											real wdx = 100. * (rhowdx - w*rhodx) / rho;
+											real wdy = 100. * (rhowdy - w*rhody) / rho;
+											real wdz = 100. * (rhowdz - w*rhodz) / rho;
+											
+											// Vorticity units are 10-5
+											real vorticity = (vdx - udy);
+											real divergence = (udx + vdy);
+											real s1 = (udx - vdy);
+											real s2 = (vdx + udy);
+											real strain = sqrt(s1*s1 + s2*s2);
+											real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+											real mcresidual = rhoudx + rhovdy + rhowdz;
+											
 											samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
 											<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 											<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
