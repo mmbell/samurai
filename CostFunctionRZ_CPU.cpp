@@ -1452,7 +1452,6 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	*os++ = "Analysis";
 	*os++ = "Background";
 	qcstream << endl;
-	double temp;
 	
 	ostream_iterator<double> od(qcstream, "\t ");
 	for (int m = 0; m < mObs; m++) {
@@ -1471,7 +1470,7 @@ bool CostFunctionRZ_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 			invI = 0.;
 		}
 		real j = obsVector[mi+9];
-		real type = obsVector[mi+10];
+		//real type = obsVector[mi+10];
 		real tempsum = 0;
 		int ii = (int)((i - iMin)*DIrecip);
 		int jj = (int)((j - jMin)*DJrecip);

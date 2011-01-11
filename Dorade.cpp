@@ -1,6 +1,5 @@
 /*
  *  Dorade.cpp
- *  samurai
  *
  *  Copyright 2008 Michael Bell
  *  All rights reserved.
@@ -9,9 +8,10 @@
 
 #include "Dorade.h"
 
-Dorade::Dorade(const QString& swpFilename) 
+Dorade::Dorade() 
 {
 	swap_bytes = false;
+	ssptr = new sswb_info;
 	vptr = new vold_info;
 	rptr = new radd_info;
 	cptr = new celv_info;
@@ -24,20 +24,47 @@ Dorade::Dorade(const QString& swpFilename)
 	for (int i=0; i<20; i++) {
 		dptr[i] = new rdat_info[500];
 	}
-	// struct rdat_info *dptr = new rdat_info[500];
-	refIndex = 0;
-	velIndex = 0;
-	swIndex = 0;
+	rangles = new radar_angles[500];
+	rkptr = new rktb_info;
+	rtptr = new rot_table_entry[500];
+	refIndex = velIndex = swIndex = 0;
 	ref_fld = "DBZ";
 	vel_fld = "VG";
-	sw_fld = "SW";
+	sw_fld = "SW";	
+}
+
+Dorade::Dorade(const QString& swpFilename) 
+{
+
+	swap_bytes = false;
+	ssptr = new sswb_info;
+	vptr = new vold_info;
+	rptr = new radd_info;
+	cptr = new celv_info;
+	cfptr = new cfac_info;
+	pptr = new parm_info[20];
+	sptr = new swib_info;
+	ryptr = new ryib_info[500];
+	aptr = new asib_info[500];
+	dptr = new rdat_info*[20];
+	for (int i=0; i<20; i++) {
+		dptr[i] = new rdat_info[500];
+	}
+	rangles = new radar_angles[500];
+	rkptr = new rktb_info;
+	rtptr = new rot_table_entry[500];
+	refIndex = velIndex = swIndex = 0;
+	ref_fld = "DBZ";
+	vel_fld = "VG";
+	sw_fld = "SW";	
 	
-	filename = swpFilename;
+	setFilename(swpFilename);
+
 }
 
 Dorade::~Dorade()
 {
-	
+	delete ssptr;
 	delete vptr;
 	delete rptr;
 	delete cptr;
@@ -50,10 +77,12 @@ Dorade::~Dorade()
 		delete[] dptr[i];
 	}
 	delete[] dptr;
-  	
+	delete[] rangles;
+	delete rkptr;
+	delete[] rtptr;
 }
 
-bool Dorade::readSwpfile(const QString& refname, const QString& velname, const QString& swname)
+bool Dorade::readSwpfile()
 {
 
 	// Check the byte order
@@ -61,19 +90,97 @@ bool Dorade::readSwpfile(const QString& refname, const QString& velname, const Q
 		swap_bytes = true;
 	}
 	
+	// Read in a dorade file
+	const char* ccfilename = filename.toAscii().data();
+	sweepread(ccfilename, ssptr, vptr, rptr, cptr,
+			  cfptr, pptr, sptr, ryptr, aptr, dptr);
+	
+	return true;
+}
+
+bool Dorade::readSwpfile(const QString& refname, const QString& velname, const QString& swname)
+{
+		
 	ref_fld = refname;
 	vel_fld = velname;
 	sw_fld = swname;
 	
-	// Read in a dorade file
-	QByteArray bytes  = filename.toAscii();
-	const char* ccfilename = bytes.data();
-	sweepread(ccfilename, vptr, rptr, cptr,
-			  cfptr, pptr, sptr, ryptr, aptr, dptr);
+	readSwpfile();
+	return true;
+}
+
+bool Dorade::writeSwpfile()
+{
+
+	// Check the byte order
+	if (!machineBigEndian()) {
+		swap_bytes = true;
+	}
+	
+	const char* ccfilename = filename.toAscii().data();
+	int flag = 0;
+	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
+			  cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
 		
 	return true;
 }
 
+
+bool Dorade::writeSwpfile(const QString& suffix)
+{
+
+	// Check the byte order
+	if (!machineBigEndian()) {
+		swap_bytes = true;
+	}
+	
+	// Add a suffix to indicate we've modified the file
+	filename += "." + suffix;
+	const char* ccfilename = filename.toAscii().data();
+	int flag = 0;
+	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
+			  cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
+		
+	return true;
+}
+
+bool Dorade::writeDoradefile(const QString& doradeFilename)
+{
+	
+	// Check the byte order
+	if (!machineBigEndian()) {
+		swap_bytes = true;
+	}
+	
+	// Change the output file to a dorade file
+	const char* ccfilename = doradeFilename.toAscii().data();
+	int flag = 1;
+	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
+			   cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
+	
+	return true;
+}
+
+
+QString Dorade::getFilename()
+{
+	return filename;
+}
+
+void Dorade::setFilename(const QString& newname)
+{
+	filename = newname;
+}
+
+QString Dorade::getRadarname()
+{
+
+	QStringList pathparts = filename.split("/");
+	QStringList fileparts = pathparts.last().split(".");
+	QString radarname = fileparts[2];
+	return radarname;
+	
+}
 float Dorade::getAzimuth(int& ray)
 {
 	if ((ray >= 0) and (ray<(sptr->num_rays))) {
@@ -85,7 +192,7 @@ float Dorade::getAzimuth(int& ray)
 
 float Dorade::getElevation(int& ray)
 {
-	if ((ray >= 0) and(ray<(sptr->num_rays))) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))) {
 		return ryptr[ray].elevation;
 	} else {
 		return -999;
@@ -95,8 +202,7 @@ float Dorade::getElevation(int& ray)
 
 float* Dorade::getReflectivity(int& ray)
 {
-	if ((ray >= 0) and (ray<(sptr->num_rays))
-		and (refIndex >= 0) and (refIndex <(rptr->num_param_desc))) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))) {
 		return dptr[refIndex][ray].data;
 	} else {
 		return 0;
@@ -105,8 +211,7 @@ float* Dorade::getReflectivity(int& ray)
 
 float* Dorade::getRadialVelocity(int& ray)
 {
-	if ((ray >= 0) and (ray<(sptr->num_rays))
-		and (velIndex >= 0) and (velIndex <(rptr->num_param_desc))) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))) {
 		return dptr[velIndex][ray].data ;
 	} else {
 		return 0;
@@ -115,13 +220,39 @@ float* Dorade::getRadialVelocity(int& ray)
 
 float* Dorade::getSpectrumWidth(int &ray)
 {
-	if ((ray >= 0) and (ray<(sptr->num_rays))
-		and (swIndex >= 0) and (swIndex <(rptr->num_param_desc))) {
+	if ((ray >= 0) and (ray<(sptr->num_rays))) {
 		return dptr[swIndex][ray].data;
 	} else {
 		return 0;
 	}
 }
+
+float* Dorade::getRayData(int &ray, const QString& field)
+{
+
+	int fldIndex = -1;
+	for (int j=0; j<(rptr->num_param_desc); j++) {
+		QString fieldName(pptr[j].parm_name);
+		if (fieldName.size() > 8) fieldName.resize(8);
+		fieldName.remove(QRegExp("[\\s+]"));
+		if (field == fieldName) {
+			// Match
+			fldIndex = j;
+			break;
+		}
+	}
+	if (fldIndex < 0) {
+		// No match
+		return NULL;
+	}
+
+	if (ray<(sptr->num_rays)) {
+		return dptr[fldIndex][ray].data;
+	} else {
+		return NULL;
+	}
+}
+
 
 int Dorade::getNumRays()
 {
@@ -140,7 +271,7 @@ float* Dorade::getGateSpacing()
 
 float Dorade::getRadarAlt()
 {
-	return aptr->alt_agl;
+	return (aptr->alt_agl + cfptr->c_alt_agl);
 }
 
 float Dorade::getRadarLat()
@@ -153,6 +284,48 @@ float Dorade::getRadarLon()
 	return aptr->lon;
 }
 
+float Dorade::getRadarAlt(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].alt_agl;
+}
+
+float Dorade::getRadarLat(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].lat;
+}
+
+float Dorade::getRadarLon(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].lon;
+}
+
+float Dorade::getFLwind_u(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].ew_horiz_wind;	
+}
+
+float Dorade::getFLwind_v(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].ns_horiz_wind;	
+}
+
+float Dorade::getHeading(const int& ray)
+{
+	if (ray < 0) return -999.;
+	if (ray > sptr->num_rays) return -999.;
+	return aptr[ray].head;	
+}
+
 float Dorade::getBeamwidthDeg()
 {
 	float bw = (rptr->horiz_beam_width + rptr->vert_beam_width) * 0.5; 
@@ -162,20 +335,79 @@ float Dorade::getBeamwidthDeg()
 QDateTime Dorade::getRayTime(int& ray)
 {
 	int year = vptr->year;
-	int jd = ryptr[ray].julian_day;
-	//int month = vptr->mon;
-	//int day = vptr->day;
-	QDate date(year,1,1);
-	date = date.addDays(jd-1);
+	int month = vptr->mon;
+	int day = vptr->day;
 	int hour = ryptr[ray].hour;
 	int min = ryptr[ray].min;
 	int sec = ryptr[ray].sec;
 	int msec = ryptr[ray].msec;
-	//QDate date = QDate(year, month, day);
+	QDate date = QDate(year, month, day);
 	QTime time = QTime(hour, min, sec, msec);
 	return QDateTime(date, time, Qt::UTC);
 }
+
+bool Dorade::copyField(const QString& oldFieldName, const QString& newFieldName, 
+					   const QString& newFieldDesc, const QString& newFieldUnits)
+{
+
+	// Copy a field over and rename it
+	int oldIndex = -1;
+	int newIndex = rptr->num_param_desc;
+
+	for (int j=0; j<(rptr->num_param_desc); j++) {
+		QString fieldName = pptr[j].parm_name;
+		if (fieldName.size() > 8) fieldName.resize(8);
+		fieldName.remove(QRegExp("[\\s+]"));
+		if (oldFieldName == fieldName) {
+			// Match
+			oldIndex = j;
+			break;
+		}
+	}
+	if ((oldIndex < 0) or (oldIndex > newIndex)) {
+		// No match
+		return false;
+	}
+
+	// Increment rptr & sswb
+	rptr->num_param_desc++;
+	ssptr->num_params++;
 	
+	// Copy parm info, rename it
+	pptr[newIndex] = pptr[oldIndex];
+	memset(pptr[newIndex].parm_name,' ',8);
+	for (int c=0; c < 8; c++) {
+		if (c < newFieldName.toAscii().size())
+			pptr[newIndex].parm_name[c] = newFieldName.toAscii().at(c);
+	}
+	memset(pptr[newIndex].parm_desc,' ',40);
+	for (int c=0; c < 40; c++) {
+		if (c < newFieldDesc.toAscii().size())
+			pptr[newIndex].parm_desc[c] = newFieldDesc.toAscii().at(c);
+	}
+
+	memset(pptr[newIndex].parm_unit,' ',8);
+	for (int c=0; c < 8; c++) {
+		if (c < newFieldUnits.toAscii().size())
+			pptr[newIndex].parm_unit[c] = newFieldUnits.toAscii().at(c);
+	}
+
+	// Copy the RDAT blocks
+	for (int i=0; i<(sptr->num_rays); i++) {
+		dptr[newIndex][i] = dptr[oldIndex][i];
+		memset(dptr[newIndex][i].parm_name,' ',8);
+		for (int c=0; c < 8; c++) {
+			if (c < newFieldName.toAscii().size())
+				dptr[newIndex][i].parm_name[c] = newFieldName.toAscii().at(c);
+		}
+	}
+	
+	return true;
+}
+
+
+/* Private routines */
+/**************************************************/
 bool Dorade::machineBigEndian(){
 	
     union {
@@ -188,7 +420,7 @@ bool Dorade::machineBigEndian(){
     
     return word.val == 1;
 }
-
+/**************************************************/
 int short Dorade::swap2(char *ov)		/* swap integer*2 */
 {
     union {
@@ -198,7 +430,7 @@ int short Dorade::swap2(char *ov)		/* swap integer*2 */
     u.nv[1] = *ov++; u.nv[0] = *ov++;
     return(u.newval);
 }
-
+/**************************************************/
 int long Dorade::swap4(char *ov )		/* swap integer*4 */
 {
 	union {
@@ -211,7 +443,7 @@ int long Dorade::swap4(char *ov )		/* swap integer*4 */
 	return(u.newval);
 }
 /**************************************************/
-void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
+void Dorade::sweepread(const char swp_fname[],struct sswb_info *ssptr, struct vold_info *vptr,
 			   struct radd_info *rptr,struct celv_info *cptr,
 			   struct cfac_info *cfptr,struct parm_info *pptr,
 			   struct swib_info *sptr,struct ryib_info *ryptr,
@@ -256,22 +488,25 @@ void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
 	/* OPEN THE SWEEP FILE */
 	if ( (fp = fopen(swp_fname,"rb"))==NULL) {
 		printf("Can't open %s\n",swp_fname);
-		return;
 	}
 	
 	while ( !feof(fp) ) {
 		
 		/* READ THE DESCRIPTOR IDENTIFIER */
+		//printf ("at %d\n",ftell(fp));
 		if ( (fread(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
 		}
-		/*printf ("reading %s\n",identifier);*/
-		
 		/* READ THE DESCRIPTOR LENGTH */
 		desc_len=read_long(fp);
-		
-		if ( (strncmp(identifier,"VOLD",IDENT_LEN)) == 0) {
+		//printf ("reading %s at %d\n",identifier,ftell(fp));
+		if ( (strncmp(identifier,"SSWB",IDENT_LEN)) == 0) {
+			/* READ THE SSWB DESCRIPTOR */
+			/*printf ("reading vold\n");*/
+			read_sswb(fp,ssptr);
+			
+		} else if ( (strncmp(identifier,"VOLD",IDENT_LEN)) == 0) {
 			/* READ THE VOLUME DESCRIPTOR */
 			/*printf ("reading vold\n");*/
 			read_vold(fp,vptr);
@@ -371,8 +606,16 @@ void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
 			}
 			
 		} else if ( (strncmp(identifier,"NULL",IDENT_LEN)) == 0) {
+			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(long)));
+
+		} else if ( (strncmp(identifier,"RKTB",IDENT_LEN)) == 0) {
+			/* READ THE ROTATION ANGLE DESCRIPTOR */
+			/*printf ("reading rktb\n");*/
+			rktb_size = desc_len;
+			read_rktb(fp);
+			// That should be the end
 			break;
-			
+						
 		} else {
 			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(long)));
 		} /* endif */
@@ -384,10 +627,405 @@ void Dorade::sweepread(const char swp_fname[],struct vold_info *vptr,
 	if (rptr->scan_mode == 9) {
 		// Airborne data, need to calculate ground relative azimuth and elevation
 		for (int i=0; i < sptr->num_rays; i++) {
-			calcAirborneAngles(&aptr[i], cfptr, &ryptr[i]);
+			calcAirborneAngles(&aptr[i], cfptr, &ryptr[i], &rangles[i]);
 		}
 	}
 }
+/**************************************************/
+void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vold_info *vptr,
+			   struct radd_info *rptr,struct celv_info *cptr,
+			   struct cfac_info *cfptr,struct parm_info *pptr,
+			   struct swib_info *sptr,struct ryib_info *ryptr,
+			   struct asib_info *aptr, struct rdat_info **dptr, int doradeFlag)
+{
+
+	FILE *fp;
+	char* identifier;
+	QString block;
+	int desc_len;
+	identifier = new char[4];
+	if (doradeFlag) {
+		if ( (fp = fopen(swp_fname,"ab"))==NULL) {
+			printf("Can't open %s\n",swp_fname);
+		}
+	} else {
+		if ( (fp = fopen(swp_fname,"wb"))==NULL) {
+			printf("Can't open %s\n",swp_fname);
+		}
+	}
+	/* Write it out one block at a time */
+	if (!doradeFlag) {
+		/* SSWB */
+		block = "SSWB";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(sswb_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)ssptr,sizeof (struct sswb_info),1,fp) !=1 ) {
+			puts("ERROR WRITING SSWB DESCRIPTOR\n");
+			exit(-1);
+		}
+	}
+	
+	/* VOLD */
+	block = "VOLD";
+	identifier = block.toAscii().data();
+	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+		printf("sweep file read error..can't read identifier\n");
+		exit(-1);
+	}
+	desc_len = sizeof(vold_info)+8;
+	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		printf("sweep file read error..\n");
+	}
+	if ( fwrite ((char *)vptr,sizeof (struct vold_info),1,fp) !=1 ) {
+		puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	}
+	
+	/* RADD */
+	block = "RADD";
+	identifier = block.toAscii().data();
+	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+		printf("sweep file read error..can't read identifier\n");
+		exit(-1);
+	}
+	desc_len = sizeof(radd_info)+8;
+	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		printf("sweep file read error..\n");
+	}
+	// Try uncompressed data
+	//rptr->compress_flag = 0;
+	rptr->compress_flag = 1;
+	if ( fwrite ((char *)rptr,sizeof (struct radd_info),1,fp) !=1 ) {
+		puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	}
+
+	/* PARAMETERS */
+	/* GO BACK TO FIRST PARAMETER DESCRIPTOR */
+	//for (int i=0; i<rptr->num_param_desc; i++) {*pptr--;}
+	for (int i=0; i<rptr->num_param_desc; i++) {
+		block = "PARM";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(parm_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)&pptr[i],sizeof (struct parm_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+	}
+
+	/* CELV */
+	block = "CELV";
+	identifier = block.toAscii().data();
+	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+		printf("sweep file read error..can't read identifier\n");
+		exit(-1);
+	}
+	desc_len = sizeof(celv_info)+8;
+	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		printf("sweep file read error..\n");
+	}
+	if ( fwrite ((char *)cptr,sizeof (struct celv_info),1,fp) !=1 ) {
+		puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	}
+
+	/* CFAC */
+	block = "CFAC";
+	identifier = block.toAscii().data();
+	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+		printf("sweep file read error..can't read identifier\n");
+		exit(-1);
+	}
+	desc_len = sizeof(cfac_info) + 8;
+	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		printf("sweep file read error..\n");
+	}
+	if ( fwrite ((char *)cfptr,sizeof (struct cfac_info),1,fp) !=1 ) {
+		puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	}
+
+	/* SWIB */
+	block = "SWIB";
+	identifier = block.toAscii().data();
+	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+		printf("sweep file read error..can't read identifier\n");
+		exit(-1);
+	}
+	desc_len = sizeof(swib_info)+8;
+	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		printf("sweep file read error..\n");
+	}
+	if ( fwrite ((char *)sptr,sizeof (struct swib_info),1,fp) !=1 ) {
+		puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	}
+
+	/* RAYS */
+	for (int i=0; i<(sptr->num_rays); i++) {
+		// Update RKTB
+		rtptr[i].offset = ftell(fp);
+		/* RYIB */
+		block = "RYIB";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(ryib_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)&ryptr[i],sizeof (struct ryib_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+		
+		/* ASIB */
+		block = "ASIB";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(asib_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)&aptr[i],sizeof (struct asib_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+		
+		short arr_com[MAX_GATES], arr_uncom[MAX_GATES];
+		unsigned int num_words;
+		for (int j=0; j<(rptr->num_param_desc); j++) {
+			/* RDAT */
+			/* RESCALE THE DATA */
+			int arrsize = cptr->total_gates;
+			long baddata_flag = pptr[j].baddata_flag;
+			float scale_fac = pptr[j].scale_fac;
+			for (int k=0;k<arrsize;k++) {
+				arr_uncom[k]=0;
+				if (dptr[j][i].data[k] != baddata_flag) {
+					arr_uncom[k] = dptr[j][i].data[k]*scale_fac;
+				} else {
+					arr_uncom[k] = dptr[j][i].data[k];
+				}
+				//printf("%d\n",arr_uncom[k]);
+			}
+			
+			/* COMPRESS A RAY OF DATA */
+			num_words=dd_compress((unsigned short *)&arr_uncom,(unsigned short *)&arr_com,(unsigned short)baddata_flag,arrsize);
+
+			block = "RDAT";
+			identifier = block.toAscii().data();
+			if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+				printf("sweep file read error..can't read identifier\n");
+				exit(-1);
+			}
+			//desc_len = PARM_NAME_LEN + num_words*sizeof(short)+8;
+			unsigned int bytes = LONGS_TO_BYTES(SHORTS_TO_LONGS(num_words));
+			desc_len = bytes + PARM_NAME_LEN + 8;
+			// Uncompressed
+			//desc_len = PARM_NAME_LEN + arrsize*sizeof(short)+8;
+			if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+				printf("sweep file read error..\n");
+			}
+			if ( fwrite ((char *)&dptr[j][i].parm_name,sizeof(char),PARM_NAME_LEN,fp) != PARM_NAME_LEN ) {
+				puts("ERROR WRITING RDAT DESCRIPTOR\n");
+				exit(-1);
+			}
+			if ( fwrite ((char *)&arr_com,sizeof (char),bytes,fp) != bytes ) {
+				puts("ERROR WRITING RDAT DATA\n");
+				exit(-1);
+			}
+			// Uncompressed
+			/*if ( fwrite ((char *)&arr_uncom,sizeof (short),arrsize,fp) != (unsigned int)arrsize ) {
+				puts("ERROR WRITING RDAT DATA\n");
+				exit(-1);
+			} */
+		}
+		rtptr[i].size=ftell(fp)-rtptr[i].offset;
+		
+	}
+	
+	if (doradeFlag) {
+		/* VOLD */
+		block = "VOLD";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(vold_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)vptr,sizeof (struct vold_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+		
+		/* RADD */
+		block = "RADD";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(radd_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		// Try uncompressed data
+		//rptr->compress_flag = 0;
+		rptr->compress_flag = 1;
+		if ( fwrite ((char *)rptr,sizeof (struct radd_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+		
+		/* PARAMETERS */
+		/* GO BACK TO FIRST PARAMETER DESCRIPTOR */
+		//for (int i=0; i<rptr->num_param_desc; i++) {*pptr--;}
+		for (int i=0; i<rptr->num_param_desc; i++) {
+			block = "PARM";
+			identifier = block.toAscii().data();
+			if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+				printf("sweep file read error..can't read identifier\n");
+				exit(-1);
+			}
+			desc_len = sizeof(parm_info)+8;
+			if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+				printf("sweep file read error..\n");
+			}
+			if ( fwrite ((char *)&pptr[i],sizeof (struct parm_info),1,fp) !=1 ) {
+				puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+				exit(-1);
+			}
+		}
+		
+		/* CELV */
+		block = "CELV";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(celv_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)cptr,sizeof (struct celv_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}
+		
+		/* CFAC */
+		block = "CFAC";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(cfac_info) + 8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)cfptr,sizeof (struct cfac_info),1,fp) !=1 ) {
+			puts("ERROR WRITING VOLUME DESCRIPTOR\n");
+			exit(-1);
+		}		
+	} else {
+		/* NULL */
+		block = "NULL";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = 8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		
+		/* RKTB */
+		block = "RKTB";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		if ( (fwrite((char *)&rktb_size,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		if ( fwrite ((char *)rkptr,sizeof (struct rktb_info),1,fp) !=1 ) {
+			puts("ERROR WRITING RKTB INFO\n");
+			exit(-1);
+		}
+		// Now write each of the entries
+		unsigned int bufsize = rktb_size - sizeof(struct rktb_info) - 8;
+		char * rkbuf = new char[bufsize];
+		for (int i=0; i< rkptr->num_rays; i++) {
+			*(rot_table_entry *)(rkbuf + rkptr->first_key_offset - 28 + i*sizeof(rot_table_entry)) = rtptr[i];
+		}
+		if ( (fwrite(rkbuf,sizeof(char),bufsize,fp)) != bufsize) {
+			printf("sweep file read error..\n");
+		}
+		delete[] rkbuf;
+		
+		// Fix the SSWB block
+		int filesize = ftell(fp);
+		int offset = filesize - rktb_size;
+		rewind(fp);
+		block = "SSWB";
+		identifier = block.toAscii().data();
+		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
+			printf("sweep file read error..can't read identifier\n");
+			exit(-1);
+		}
+		desc_len = sizeof(sswb_info)+8;
+		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			printf("sweep file read error..\n");
+		}
+		ssptr->sizeof_file = filesize;
+		ssptr->key_table[0].offset = offset;
+		if ( fwrite ((char *)ssptr,sizeof (struct sswb_info),1,fp) !=1 ) {
+			puts("ERROR WRITING SSWB DESCRIPTOR\n");
+			exit(-1);
+		}
+	}
+	
+	fclose(fp);
+	
+}
+/**************************************************/
+void Dorade::read_sswb(FILE *fp,struct sswb_info *ssptr) 
+{
+	
+	/* READ THE VOLUME DESCRIPTOR */
+	if ( fread ((char *)ssptr,sizeof (struct sswb_info),1,fp) !=1 ) {
+		puts("ERROR READING VOLUME DESCRIPTOR\n");
+		exit(-1);
+	} /* endif */
+	
+}
+
 /**************************************************/
 void Dorade::read_vold(FILE *fp,struct vold_info *vptr) 
 {
@@ -448,7 +1086,7 @@ void Dorade::read_celv(FILE *fp,struct celv_info *cptr,int desc_len)
 	/*
 	 cptr->gate_spacing=calloc(cptr->total_gates,sizeof(float));
 	 if (!cptr->gate_spacing) {
-		 printf ("doublelocation error..aborting..\n");
+		 printf ("Reallocation error..aborting..\n");
 		 exit(1);
 	 } 
 	 */
@@ -496,6 +1134,29 @@ void Dorade::read_asib(FILE *fp,struct asib_info *aptr)
 	} /* endif */
 
 }
+/**************************************************/
+void Dorade::read_rktb(FILE *fp) 
+{
+	
+	/* READ THE ROTATION ANGLES DESCRIPTOR */
+	if ( fread ((char *)rkptr,sizeof (struct rktb_info),1,fp) !=1 ) {
+		puts("ERROR READING RKTB DESCRIPTOR\n");
+		exit(-1);
+	} /* endif */
+	// Now read each of the entries
+	unsigned int bufsize = rktb_size - sizeof(struct rktb_info) - 8;
+	char * rkbuf = new char[bufsize];
+	if ( fread ((char *)rkbuf,sizeof (char),bufsize,fp) != bufsize ) {
+		puts("ERROR READING ROTATION ANGLE DESCRIPTOR\n");
+		exit(-1);
+	}
+	
+	for (int i=0; i< rkptr->num_rays; i++) {
+		rtptr[i] = *(rot_table_entry *)(rkbuf + rkptr->first_key_offset - 28 + i*sizeof(rot_table_entry));
+	}
+	delete[] rkbuf;
+}
+
 /***************************************************/
 void Dorade::read_rdat(FILE *fp,int fld_num,
                int desc_len,int *match,short parm_type,
@@ -513,9 +1174,12 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	*  dptr=pointer to rdat structure
 	*/ 
 	
-	int strsize,datasize,arrsize;
-	strsize = datasize = arrsize = 0;
+	int datasize,arrsize;
+	datasize = arrsize = 0;
 	char tempname[PARM_NAME_LEN];
+	QString ref_fld = "DBZ";
+	QString vel_fld = "VG";
+	QString sw_fld =  "SW";
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
 	
@@ -525,7 +1189,8 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	{printf("sweep file read error..can't read parameter name\n");}
 	
 	/* CALCULATE LENGTH OF TEMPNAME */
-	for (unsigned int strsize=0;strsize<strlen(tempname);strsize++) {
+	unsigned int strsize = 0;
+	for (strsize=0;strsize<strlen(tempname);strsize++) {
 		if (isspace(tempname[strsize])) {break;}
 	}
 		
@@ -533,6 +1198,7 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	/* Modified to read all fields, but record ref, vel, and sw indices - MB */
 	QString fld_name(tempname);
 	if (fld_name.size() > 8) fld_name.resize(8);
+	fld_name.remove(QRegExp("[\\s+]"));
 	if (fld_name.trimmed() == ref_fld) {
 		refIndex = fld_num;
 	} else if (fld_name.trimmed() == vel_fld) {
@@ -553,14 +1219,20 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 					   +PARM_NAME_LEN))/datasize;
 	/* READ IN THE DATA */
 	if (datasize==1) {
-		read_ch_arr(fp,arrsize);
+		//read_ch_arr(fp,arrsize);
+		printf("sweep file read error..wrong datasize\n");
+		exit(1);
 	} else if (datasize==2) {
 		read_sh_arr(fp,arrsize,beam_count,total_gates,compression,
 					baddata_flag,scale_fac,rdat);
 	} else if (datasize==3) {
-		read_lg_arr(fp,arrsize);
+		//read_lg_arr(fp,arrsize);
+		printf("sweep file read error..wrong datasize\n");
+		exit(1);
 	} else if (datasize==4) {
-		read_fl_arr(fp,arrsize);
+		//read_fl_arr(fp,arrsize);
+		printf("sweep file read error..wrong datasize\n");
+		exit(1);
 	} /* endif */
 
 	//} else {
@@ -575,7 +1247,7 @@ void Dorade::read_sh_arr(FILE *fp,int arrsize,int beam_count,
 				 long baddata_flag,float scale_fac,
                  struct rdat_info *rdat) {
 	
-	static short arr_com[MAX_GATES], arr_uncom[MAX_GATES];
+	short arr_com[MAX_GATES], arr_uncom[MAX_GATES];
 	int i,num;
 	int empty_run=0;
 	
@@ -605,14 +1277,13 @@ void Dorade::read_sh_arr(FILE *fp,int arrsize,int beam_count,
 
 }
 
-/* Not implemented */
+/* Not implemented
 void Dorade::read_ch_arr(FILE *fp,int arrsize) {
 }
 void Dorade::read_lg_arr(FILE *fp,int arrsize) {
 }
 void Dorade::read_fl_arr(FILE *fp,int arrsize) {
-}
-
+} */
 /***************************************************/
 void Dorade::get_field(struct parm_info parm[],int num_desc,int *fld_num)
 {	
@@ -703,7 +1374,103 @@ for(; n--;) {
 return(wcount);
 }
 
-void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, struct ryib_info* ra)
+
+int Dorade::dd_compress(unsigned short *src, unsigned short *dst, unsigned short flag, int n )
+{
+
+    /* implement hrd compression of 16-bit values
+     * and return the number of 16-bit words of compressed data
+     */
+    // int mark;
+	int kount=0, wcount=0, data_run=0;
+    unsigned short *ss=src, *dd=dst;
+    unsigned short *rlcode=NULL, *end=src+n-1;
+
+    if(n < 2) {
+	printf("Trying to compress less than 2 values\n");
+	exit(1);
+    }
+
+    for(;ss < end;) {
+	/* for each run examine the first two values
+	 */
+	kount = 2;
+	rlcode = dd++;
+	if(*(ss+1) != flag || *ss != flag) { /* data run */
+	    data_run = 1;
+	    *dd++ = *ss++;
+	    *dd++ = *ss++;
+	}
+	else { /* flag run */
+	    data_run = 0;
+	    ss += 2;
+	}
+
+	for(;ss < end;) { /* for rest of the run */
+	    if(data_run) {
+		if(*(ss-1) == flag && *ss == flag && kount > 2) {
+		    /* break data run
+		     */
+		    *rlcode = SIGN16 | --kount;
+		    wcount += kount+1; /* data plus code word */
+		    ss--;
+		    dd--;
+		    break;
+		}
+		/* continue the data run */
+		kount++;
+		*dd++ = *ss++;
+	    }
+	    else { /* flag run */
+		if(*ss != flag) { /* break flag run */
+		    *rlcode = kount;
+		    wcount++; /* code word only */
+		    break;
+		}
+		ss++;
+		kount++; /* continue flag run */
+	    }
+	}
+    }
+    /* now look at the last value
+     */
+    if(data_run) { /* just stuff it no matter what it is */
+	if(ss == end) {
+	    *dd++ = *ss;
+	    kount++;
+	}
+	*rlcode = SIGN16 | kount;
+	wcount += kount +1;
+    }
+    else if(*ss == flag) {
+	*rlcode = ++kount;
+	wcount++;
+    }
+    else { /* there is one last datum at the end of a flag run */
+	if(kount == 2) {	/* special case for just two flags */
+	    *rlcode = SIGN16 | 3;
+	    *dd++ = flag;
+	    *dd++ = flag;
+	    *dd++ = *ss;
+	    wcount += 4;
+	}
+	else {
+	    *rlcode = --kount;
+	    wcount++;
+	    *dd++ = SIGN16 | 2;
+	    *dd++ = flag;
+	    *dd++ = *ss;
+	    wcount += 3;
+	}
+    }
+    *dd++ = 1;
+    wcount++;
+    return(wcount);
+}
+
+
+void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, struct ryib_info* ra, 
+								struct radar_angles *angles)
 {
     /* compute the true azimuth, elevation, etc. from platform
      * parameters using Testud's equations with their different
@@ -720,16 +1487,16 @@ void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, 
      * "Mapping of the Airborne Doppler Radar Data"
      */
     d = asib->roll;
-    R = isnanf(d) ? 0 : RADIANS(d +cfac->c_roll);
+    R = d != d ? RADIANS(d +cfac->c_roll) : 0;
 	
     d = asib->pitch;
-    P = isnanf(d) ? 0 : RADIANS(d +cfac->c_pitch);
+    P = d != d ? RADIANS(d +cfac->c_pitch) : 0;
 	
     d = asib->head;
-    H = isnanf(d) ? 0 : RADIANS(d +cfac->c_head);
+    H = d != d ? RADIANS(d +cfac->c_head) : 0;
 	
     d = asib->drift;
-    D = isnanf(d) ? 0 : RADIANS(d +cfac->c_drift);
+    D = d != d ? RADIANS(d +cfac->c_drift) : 0;
 	
     sinP = sin(P);
     cosP = cos(P);
@@ -742,32 +1509,37 @@ void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, 
     cosT = cos(T);
 	
     d = asib->rot_ang;
-    theta_a = isnanf(d) ? 0 : RADIANS(d +cfac->c_rotang);
+    theta_a = d != d ? RADIANS(d +cfac->c_rotang) : 0;
     
     d = asib->tilt_ang;
-    tau_a = isnanf(d) ? 0 : RADIANS(d +cfac->c_tiltang);
+    tau_a = d != d ? RADIANS(d +cfac->c_tiltang) : 0;
     sin_tau_a = sin(tau_a);
     cos_tau_a = cos(tau_a);
     sin_theta_rc = sin(theta_a + R); /* roll corrected rotation angle */
     cos_theta_rc = cos(theta_a + R); /* roll corrected rotation angle */
 	
-    xsubt = (cos_theta_rc * sinD * cos_tau_a * sinP
+    angles->x = xsubt = (cos_theta_rc * sinD * cos_tau_a * sinP
 					 + cosD * sin_theta_rc * cos_tau_a
 					 -sinD * cosP * sin_tau_a);
-    ysubt = (-cos_theta_rc * cosD * cos_tau_a * sinP
+    angles->y = ysubt = (-cos_theta_rc * cosD * cos_tau_a * sinP
 					 + sinD * sin_theta_rc * cos_tau_a
 					 + cosP * cosD * sin_tau_a);
-    zsubt = (cosP * cos_tau_a * cos_theta_rc
+    angles->z = zsubt = (cosP * cos_tau_a * cos_theta_rc
 					 + sinP * sin_tau_a);
 	
-    //ra->rotation_angle = theta_t = atan2(xsubt, zsubt);
-    //ra->tilt = tau_t = asin(ysubt);
+    angles->rotation_angle = atan2(xsubt, zsubt); // theta_t 
+    angles->tilt = asin(ysubt); // tau_t
     lambda_t = atan2(xsubt, ysubt);
 	double azrad = fmod(lambda_t + T, 6.283185307);
 	double elrad = asin(zsubt);
-    ra->azimuth = FMOD360(DEGREES(azrad)+360.);
-    ra->elevation = DEGREES(elrad);    
+	
+    angles->azimuth = ra->azimuth = FMOD360(DEGREES(azrad)+360.);
+	angles->elevation = ra->elevation = DEGREES(elrad);    
 	return;
 	
 }
 
+	
+	
+	
+	

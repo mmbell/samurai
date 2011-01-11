@@ -14,7 +14,6 @@
 #include <QTextStream>
 #include <QFile>
 #include "RecursiveFilter.h"
-#include "GRIB.h"
 
 VarDriverRZ::VarDriverRZ()
 	: VarDriver()
@@ -190,9 +189,9 @@ void VarDriverRZ::preProcessMetObs()
 			real hBar = 3.4633e5 - 10.751*height + 0.0021949*height*height - 1.7019e-7*height*height*height
 				+ 4.858e-12*height*height*height*height;
 			// Use bilinear interpolation here too for now, eventually probably a spline
-			real rhoaBG = bilinearField(rad, height, 4)/100. + rhoBar;
-			real qBG = bilinearField(rad, height, 3) + qBar;
-			real rhoBG = rhoaBG*(1+qBG/1000.);
+			//real rhoaBG = bilinearField(rad, height, 4)/100. + rhoBar;
+			//real qBG = bilinearField(rad, height, 3) + qBar;
+			//real rhoBG = rhoaBG*(1+qBG/1000.);
 			
 			// Initialize the weights
 			varOb.setWeight(0., 0);
@@ -653,6 +652,7 @@ bool VarDriverRZ::loadBGfromFNL()
 			m.gtime.year, m.gtime.month, m.gtime.day,
 			m.gtime.hour, m.gtime.minute);
 	*/
+	return false;
 }
 
 bool VarDriverRZ::bilinearMish()

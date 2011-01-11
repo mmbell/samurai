@@ -186,7 +186,6 @@ void CostFunctionXY_CPU::initState()
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
 								int iBCL, jBCL;
-								int order;
 								iBCL = R1T2;
 								jBCL = R1T2;
 								real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
@@ -1242,7 +1241,7 @@ bool CostFunctionXY_CPU::outputAnalysis(const QString& suffix, real* Astate, boo
 	ofstream fluxstream(fluxout.toAscii().data());
 	fluxstream << "X\tY\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\th\tPsi\tChi\n";
 	fluxstream.precision(10);
-	real CoriolisF = 6e-5;
+	//real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {

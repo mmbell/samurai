@@ -504,8 +504,8 @@ void VarDriverXYZ::preProcessMetObs()
 						obVector.push_back(varOb); */
 						
 					} else if (gridref == "dbz") {
-						qr =  bhypTransform(ZZ);
-						
+						//qr =  bhypTransform(ZZ);
+						qr = bhypTransform(Z + 35.);
 						/* Include an observation of this quantity in the variational synthesis
 						 varOb.setOb(qr);
 						 varOb.setWeight(1., 6);
@@ -1127,14 +1127,14 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 		exit(-1);
 	}
 	
-	bool loadBG = true;
+	bool loadBG = configHash.value("load_background").toInt();
 	int numbgObs = 0;
 	if (loadBG) {
 		// Set up the Gaussian Grid by a previous samurai analysis
 		numbgObs = loadBackgroundObs();
 	}
 	
-	bool adjustBG = false;
+	bool adjustBG = configHash.value("adjust_background").toInt();
 	if (adjustBG) {
 		/* Set the minimum filter length to the background resolution, not the analysis resolution
 		 to avoid artifacts when running interpolating to small mesoscale grids */

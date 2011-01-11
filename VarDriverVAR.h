@@ -14,7 +14,6 @@
 #include "BSpline.h"
 #include "Observation.h"
 #include "CostFunctionVAR.h"
-#include "CostFunctionAnalytic.h"
 #include "MetObs.h"
 #include "TCcenter.h"
 #include <iostream>

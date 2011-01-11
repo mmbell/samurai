@@ -16,7 +16,7 @@ Observation::Observation()
 	altitude = -999;
 	cartesianX = -999;
 	cartesianY = -999;
-	for (int i = 0; i < numVars; i++) weight[i] = -999;
+	for (unsigned int i = 0; i < numVars; i++) weight[i] = -999;
 	error = -999;
 	obNet = -999;
 	type = -999;

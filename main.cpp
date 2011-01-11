@@ -1,11 +1,8 @@
 
 #include "precision.h"
-#include "VarDriver1d.h"
-#include "VarDriver2d.h"
 #include "VarDriverRZ.h"
 #include "VarDriverXY.h"
 #include "VarDriverVAR.h"
-#include "VarDriver3D.h"
 #include "VarDriverXYZ.h"
 #include <iostream>
 #include <QApplication>

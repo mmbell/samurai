@@ -184,7 +184,7 @@ void VarDriverXY::preProcessMetObs()
 			varOb.setWeight(0., 3);
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
-			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd, vBG, uBG; 
+			double u, v, w, rho, rhoa, qv, energy, rhov, rhou, rhow, wspd, vBG; // uBG not used in SFMR calculation 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
 					varOb.setType(MetObs::dropsonde);

@@ -186,7 +186,6 @@ void CostFunctionVAR::initState()
 							for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 								if ((jNode < 0) or (jNode >= jDim)) continue;
 								int iBCL, jBCL;
-								int order;
 								iBCL = R1T2;
 								jBCL = R1T2;
 								real im = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL, R1T2);
@@ -384,8 +383,6 @@ void CostFunctionVAR::updateHCq(double* state)
 		int jj = (int)((j - jMin)*DJrecip);
 		real ibasis = 0;
 		real jbasis = 0;
-		real idbasis = 0;
-		real jdbasis = 0;
 		
 		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				
@@ -474,10 +471,7 @@ void CostFunctionVAR::calcInnovation()
 		int ii = (int)((i - iMin)*DIrecip);
 		int jj = (int)((j - jMin)*DJrecip);
 		real ibasis = 0;
-		real jbasis = 0;
-		real idbasis = 0;
-		real jdbasis = 0;
-		
+		real jbasis = 0;		
 		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				
 				if ((iNode < 0) or (iNode >= iDim) or (jNode < 0) or (jNode >= jDim)) continue;
@@ -1213,7 +1207,7 @@ bool CostFunctionVAR::outputAnalysis(const QString& suffix, real* Astate, bool u
 	ofstream fluxstream(fluxout.toAscii().data());
 	fluxstream << "X\tY\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\th\n";
 	fluxstream.precision(10);
-	real CoriolisF = 6e-5;
+	//real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -1239,7 +1233,6 @@ bool CostFunctionVAR::outputAnalysis(const QString& suffix, real* Astate, bool u
 							real jbasis = 0.;
 							real idbasis = 0.;
 							real jdbasis = 0.;
-							real psi = 0.;
 							real chi = 0.;
 							real rhov = 0.;
 							real rhou = 0.;
@@ -1370,10 +1363,6 @@ bool CostFunctionVAR::outputAnalysis(const QString& suffix, real* Astate, bool u
 		int jj = (int)((j - jMin)*DJrecip);
 		real ibasis = 0;
 		real jbasis = 0;
-		real idbasis = 0;
-		real jdbasis = 0;
-		real iddbasis = 0;
-		real jddbasis = 0;
 		
 		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {				

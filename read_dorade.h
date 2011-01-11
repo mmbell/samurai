@@ -12,10 +12,53 @@
 #define PARM_UNIT_LEN 8
 #define THRESHOLD_FLD_LEN 8
 #define MAX_BEAMS 1300 
-#define MAX_GATES 2000
+#define MAX_GATES 1500
+#define MAX_KEYS 8
+#define SIGN16 0x8000
+# define SHORTS_TO_LONGS(x) ((((x)-1)>>1)+1)
+# define LONGS_TO_BYTES(x) ((x)<<2)
 /***************************************************/
 /* STRUCTURES */
 /***************************************************/
+struct key_table_info {
+    long offset;
+    long size;
+    long type;
+};
+
+struct sswb_info {
+    /* parameters from the first version */
+    long last_used;		/* Unix time */
+    long start_time;
+    long stop_time;
+    long sizeof_file;
+    long compression_flag;
+    long volume_time_stamp;	/* to reference current volume */
+    long num_params;		/* number of parameters */
+	
+    /* end of first version parameters */
+	
+    char radar_name[8];
+	
+    double d_start_time;
+    double d_stop_time;
+    /*
+     * "last_used" is an age off indicator where > 0 implies Unix time
+     * of the last access and
+     * 0 implies this sweep should not be aged off
+     */
+    long version_num;
+    long num_key_tables;
+    long status;
+    long place_holder[7];
+    struct key_table_info key_table[MAX_KEYS];
+    /*
+     * offset and key info to a table containing key value such as
+     * the rot. angle and the offset to the corresponding ray
+     * in the disk file
+     */
+
+};
 struct vold_info {
 
    short ver_num;
@@ -182,4 +225,31 @@ struct rdat_info {
    char parm_name[PARM_NAME_LEN];
    float data[MAX_GATES];
 
+};
+
+struct radar_angles {
+    /* all angles are in radians
+     */
+    float azimuth;
+    float elevation;
+    float x;
+    float y;
+    float z;
+    float psi;
+    float rotation_angle;
+    float tilt;
+};
+
+struct rot_table_entry {
+    float rotation_angle;
+    long offset;
+    long size;
+};
+
+struct rktb_info {
+    float angle2ndx;
+    long ndx_que_size;
+    long first_key_offset;
+    long angle_table_offset;
+    long num_rays;
 };

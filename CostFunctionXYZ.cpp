@@ -1350,7 +1350,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	QString samuraiout = "samurai_XYZ_" + suffix + ".out";
 	ofstream samuraistream(samuraiout.toAscii().data());
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
-	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\n";
+	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
 	samuraistream.precision(10);
 	//real CoriolisF = 6e-5;
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1480,10 +1480,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											real qr = bhypInvTransform(qrprime);
 											QString gridref = configHash.value("gridreflectivity");
 											if (gridref == "dbz") {
-												if (qr > 0) {
+												/* if (qr > 0) {
 													qr = 10*log10(qr);
 												} else {
 													qr = -999.;
+												} */
+												if (qr <= 0) {
+													qr = -999.;
+												} else {
+													qr -= 35;
 												}
 											}
 											real rhoq = qv * rhoa / 1000.;
@@ -1543,7 +1548,8 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
 											<< udx << "\t" << udy << "\t" << udz << "\t"
 											<< vdx << "\t" << vdy << "\t" << vdz << "\t"
-											<< wdx << "\t" << wdy << "\t" << wdz << "\t" << rhowdz * 100. << "\t" << mcresidual << "\n";
+											<< wdx << "\t" << wdy << "\t" << wdz << "\t" 
+											<< rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
 
 											// Sum up the TPW in the vertical, top level is tpw
 											tpw += qv * rhoa * DK;

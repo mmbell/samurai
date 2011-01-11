@@ -546,7 +546,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 		float* swdata = swpfile.getSpectrumWidth(i);
 		QDateTime rayTime = swpfile.getRayTime(i);
 		float* gatesp = swpfile.getGateSpacing();
-		float gatespacing = gatesp[2] - gatesp[1];
+
 		// Beamwidth needs to be dynamic
 		float beamwidth = swpfile.getBeamwidthDeg();
 		beamwidth = sin(beamwidth*Pi/180.);
@@ -572,9 +572,9 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				dz = 10*log10(dz);
 				vr = vr/count;
 				sw = sw/count;
-				double relX = -range*sin(az*Pi/180.)*cos(el*Pi/180.);
-				double relY = -range*cos(az*Pi/180.)*cos(el*Pi/180.);					
-				double rEarth = 6370000.;
+				double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
+				double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+				double rEarth = 6366805.6;
 				// Take into account curvature of the earth
 				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 				double latrad = radarLat * Pi/180.0;
@@ -582,8 +582,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 				double fac_lon = 111.41513 * cos(latrad)
 				- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-				double gateLon = radarLon - (relX/1000)/fac_lon;
-				double gateLat = radarLat - (relY/1000)/fac_lat;
+				double gateLon = radarLon + (relX/1000)/fac_lon;
+				double gateLat = radarLat + (relY/1000)/fac_lat;
 				double gateAlt = relZ + radarAlt*1000;
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
@@ -596,6 +596,9 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				ob.setSpectrumWidth(sw);
 				ob.setTime(rayTime);
 				metObVector->push_back(ob);
+				/*cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
+				<< gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
+				<< az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl;*/
 			}
 		}
 	}
@@ -857,6 +860,24 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 		configHash.insert(group.tagName(), group.text());
 	}
 	
+	// Validate the hash
+	QStringList configKeys;
+	configKeys << "xmin" << "xmax" << "xincr" <<
+	"ymin" << "ymax" << "yincr" <<
+	"zmin" << "zmax" << "zincr" <<
+	"xfilter" << "yfilter" << "zfilter" <<
+	"refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
+	"gridreflectivity" << "backgroundroi" <<
+	"load_background" << "adjust_background" <<
+	"uerror" << "verror" << "werror" << "terror" << 
+	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride";
+	for (int i = 0; i < configKeys.count(); i++) {
+		if (!configHash.contains(configKeys.at(i))) {
+			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
+			exit(-1);
+		}			
+	}
 	return true;
 	
 }
