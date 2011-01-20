@@ -4,34 +4,23 @@
 
 TEMPLATE = app
 TARGET = 
-DEPENDPATH += . BSpline
-INCLUDEPATH += . BSpline
 
 # Input
 HEADERS += BandedMatrix.h \
+           BSpline.h \
            CostFunction.h \
-           CostFunctionAnalytic.h \
-           CostFunctionR.h \
-           CostFunctionRZ.h \
            CostFunctionRZ_CPU.h \
-           CostFunctionRZ_GPU.h \
-           CostFunctionXY_CPU.h \ 
-           CostFunctionXYZ_CPU.h \
-		   CostFunctionVAR.h \
-		   CostFunction3D.h \
+           CostFunctionXY_CPU.h \
+           CostFunctionXYZ.h \ 
+           CostFunctionVAR.h \
            MetObs.h \
            Observation.h \
-           ParametricVortex.h \
            RecursiveFilter.h \
            VarDriver.h \
-           VarDriver1d.h \
-           VarDriver2d.h \
            VarDriverRZ.h \
            VarDriverXY.h \
            VarDriverXYZ.h \
-		   VarDriverVAR.h \
-		   VarDriver3D.h \
-           BSpline/BSpline.h \
+	   VarDriverVAR.h \
            Dorade.h \
            read_dorade.h \
            TCcenter.h
@@ -39,28 +28,19 @@ SOURCES += BSpline.cpp \
            BSplineD.cpp \
            BSplineF.cpp \
            CostFunction.cpp \
-           CostFunctionAnalytic.cpp \
-           CostFunctionR.cpp \
-           CostFunctionRZ.cpp \
            CostFunctionRZ_CPU.cpp \
-           CostFunctionRZ_GPU.cpp \
            CostFunctionXY_CPU.cpp \
-           CostFunctionXYZ_CPU.cpp \
-		   CostFunctionVAR.cpp \
-		   CostFunction3D.cpp \ 
+           CostFunctionXYZ.cpp \
+	   CostFunctionVAR.cpp \
            main.cpp \
            MetObs.cpp \
            Observation.cpp \
-           ParametricVortex.cpp \
            RecursiveFilter.cpp \
            VarDriver.cpp \
-           VarDriver1d.cpp \
-           VarDriver2d.cpp \
            VarDriverRZ.cpp \
            VarDriverXY.cpp \ 
            VarDriverXYZ.cpp \ 
-		   VarDriverVAR.cpp \
-		   VarDriver3D.cpp \
+	   VarDriverVAR.cpp \
            Dorade.cpp \
            TCcenter.cpp
 QT += xml
