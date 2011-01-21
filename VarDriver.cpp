@@ -33,6 +33,7 @@ VarDriver::VarDriver()
 	dataSuffix["ascat"] = ascat;
 	dataSuffix["nopp"] = nopp;
 	dataSuffix["cimss"] = cimss;
+	dataSuffix["dwl"] = dwl;
 	
 }
 
@@ -818,6 +819,101 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 	return true;		
 	
 }
+
+bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	// Skip two lines
+	in.readLine(); in.readLine();
+
+	QDateTime datetime;
+	QDate date;
+	QString line;
+	bool start = false;
+	while (!in.atEnd()) {
+		line = in.readLine();
+		if (line.contains("rawfile")) {
+			// Get the datetime
+			date = QDate::fromString(line.mid(10,8), "yyyyMMdd");
+		} else if (line.contains("%~~")) {
+			start = true;
+		} else if (start) {
+			QStringList lineparts = line.split(QRegExp("\\s+"));
+			QTime time = QTime::fromString(lineparts[0], "HHmmss");
+			datetime = QDateTime(date, time, Qt::UTC);
+			float radarLat = lineparts[1].toFloat();
+			float radarLon = lineparts[2].toFloat();
+			float radarAlt = lineparts[3].toFloat();
+			float az = lineparts[6].toFloat();
+			float el = lineparts[7].toFloat();
+			//int rayskip = configHash.value("radarskip").toInt();
+			int minstride = configHash.value("radarstride").toInt();
+			int stride = minstride;
+		
+			for (int n=0; n < lineparts[10].toInt(); n+=stride) {
+				MetObs ob;
+				int offset = n*5;
+				float range = lineparts[12+offset].toFloat();
+				float dz = 0;
+				float vr = 0;
+				float sw = 0;
+				float count = 0;
+				for (int g=n; g<(n+stride); g++) {
+					offset = g*5;
+					float veldata = lineparts[14+offset].toFloat();
+					float refdata = lineparts[15+offset].toFloat();
+					float swdata = lineparts[16+offset].toFloat();
+					if (veldata == -999) continue;
+					dz += pow(10.0,(refdata*0.1));
+					vr += veldata;
+					sw += swdata;
+					count++;
+				}
+				if (count > 0) {
+					dz = dz/count;
+					dz = 10*log10(dz);
+					vr = vr/count;
+					sw = sw/count;
+					double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
+					double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+					double rEarth = 6366805.6;
+					// Take into account curvature of the earth
+					double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
+					double latrad = radarLat * Pi/180.0;
+					double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
+					+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
+					double fac_lon = 111.41513 * cos(latrad)
+					- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+					double gateLon = radarLon + (relX/1000)/fac_lon;
+					double gateLat = radarLat + (relY/1000)/fac_lat;
+					double gateAlt = relZ + radarAlt;
+					ob.setObType(MetObs::radar);
+					ob.setLat(gateLat);
+					ob.setLon(gateLon);
+					ob.setAltitude(gateAlt);
+					ob.setAzimuth(az);
+					ob.setElevation(el);
+					ob.setRadialVelocity(vr);
+					ob.setReflectivity(dz);
+					ob.setSpectrumWidth(sw);
+					ob.setTime(datetime);
+					metObVector->push_back(ob);
+					/*cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
+					 << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
+					 << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl;*/
+				}
+			}
+		}
+	}
+	
+	return true;
+	
+}
+
 
 bool VarDriver::readXMLconfig(const QString& xmlfile)
 {

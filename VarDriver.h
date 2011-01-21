@@ -65,7 +65,8 @@ protected:
 		ascat,
 		nopp,
 		eol,
-		cimss
+		cimss,
+		dwl
 	};
 	
 	enum referenceStates {
@@ -93,6 +94,7 @@ protected:
 	bool read_ascat(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
 	bool readXMLconfig(const QString& xmlfile);
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
