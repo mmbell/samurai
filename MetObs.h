@@ -114,7 +114,8 @@ class MetObs
 			sfmr,
 			qscat,
 			ascat,
-			AMV
+			AMV,
+			lidar
 		};
 		
 	protected:

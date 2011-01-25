@@ -891,7 +891,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					double gateLon = radarLon + (relX/1000)/fac_lon;
 					double gateLat = radarLat + (relY/1000)/fac_lat;
 					double gateAlt = relZ + radarAlt;
-					ob.setObType(MetObs::radar);
+					ob.setObType(MetObs::lidar);
 					ob.setLat(gateLat);
 					ob.setLon(gateLon);
 					ob.setAltitude(gateAlt);
@@ -902,9 +902,9 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					ob.setSpectrumWidth(sw);
 					ob.setTime(datetime);
 					metObVector->push_back(ob);
-					/*cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
+					/*cout << datetime.toString(Qt::ISODate).toStdString() << "\t" 
 					 << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
-					 << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl;*/
+					 << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; */
 				}
 			}
 		}

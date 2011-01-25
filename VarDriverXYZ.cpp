@@ -124,6 +124,10 @@ void VarDriverXYZ::preProcessMetObs()
 				if (!read_cimss(metFile, metData))
 					cout << "Error reading cimss file" << endl;
 				break;
+			case (dwl):
+				if (!read_dwl(metFile, metData))
+					cout << "Error reading dwl file" << endl;
+				break;
 			case (cen):
 				continue;				
 			default:
@@ -410,7 +414,49 @@ void VarDriverXYZ::preProcessMetObs()
 					}
 					break;
 					
+				case (MetObs::lidar):
+				{
+					varOb.setType(MetObs::lidar);
+					// Geometry terms
+					double az = metOb.getAzimuth()*Pi/180.;
+					double el = metOb.getElevation()*Pi/180.;
+					double uWgt = sin(az)*cos(el);
+					double vWgt = cos(az)*cos(el);
+					double wWgt = sin(el);
+					
+					// Fall speed is assumed zero for now since we are dealing with aerosols, perhaps this could be done better
+					// Reflectivity observations only used for QC -- need to move this into a pre-processing step
+					double db = metOb.getReflectivity();
+					double vr = metOb.getRadialVelocity();
+					//if ((db < 22.0) or (fabs(vr) > 10.0)) continue;
+					if (fabs(vr) > 10.0) continue;
+					double w_term = 0.0;  
+					double Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+					
+					varOb.setWeight(uWgt, 0);
+					varOb.setWeight(vWgt, 1);
+					varOb.setWeight(wWgt, 2);
+					
+					// Theoretically, rhoPrime could be included as a prognostic variable here...
+					// However, adding another unknown without an extra equation makes the problem even more underdetermined
+					// so assume it is small and ignore it
+					// double rhopWgt = -Vdopp;
+					//varOb.setWeight(rhopWgt, 5);
+					
+					// Set the error according to the spectrum width and potential fall speed error (assume 1 m/s here)
+					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*1.;
+					if (DopplerError < 1.0) DopplerError = 1.0;
+					varOb.setError(DopplerError);
+					varOb.setOb(Vdopp);
+					obVector.push_back(varOb);
+					varOb.setWeight(0., 0);	
+					varOb.setWeight(0., 1);	
+					varOb.setWeight(0., 2);
+					
+					break;
+				}	
 				case (MetObs::radar):
+				{
 					varOb.setType(MetObs::radar);
 					// Geometry terms
 					double az = metOb.getAzimuth()*Pi/180.;
@@ -547,6 +593,7 @@ void VarDriverXYZ::preProcessMetObs()
 					}
 					
 					break;
+				}	
 							
 			}
 
