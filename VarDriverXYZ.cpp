@@ -428,7 +428,8 @@ void VarDriverXYZ::preProcessMetObs()
 					// Reflectivity observations only used for QC -- need to move this into a pre-processing step
 					double db = metOb.getReflectivity();
 					double vr = metOb.getRadialVelocity();
-					//if ((db < 22.0) or (fabs(vr) > 10.0)) continue;
+					
+					// Simple threshold, but this is not a good general solution!
 					if (fabs(vr) > 10.0) continue;
 					double w_term = 0.0;  
 					double Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
@@ -443,8 +444,8 @@ void VarDriverXYZ::preProcessMetObs()
 					// double rhopWgt = -Vdopp;
 					//varOb.setWeight(rhopWgt, 5);
 					
-					// Set the error according to the spectrum width and potential fall speed error (assume 1 m/s here)
-					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*1.;
+					// Set the error according to the spectrum width and power
+					double DopplerError = metOb.getSpectrumWidth() + ln(50/db);
 					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);

@@ -848,7 +848,8 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			float radarLat = lineparts[1].toFloat();
 			float radarLon = lineparts[2].toFloat();
 			float radarAlt = lineparts[3].toFloat();
-			float az = lineparts[6].toFloat();
+			float achdg = lineparts[4].toFloat();
+			float az = lineparts[6].toFloat() + achdg;
 			float el = lineparts[7].toFloat();
 			//int rayskip = configHash.value("radarskip").toInt();
 			int minstride = configHash.value("radarstride").toInt();
