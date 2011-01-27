@@ -445,7 +445,7 @@ void VarDriverXYZ::preProcessMetObs()
 					//varOb.setWeight(rhopWgt, 5);
 					
 					// Set the error according to the spectrum width and power
-					double DopplerError = metOb.getSpectrumWidth() + ln(50/db);
+					double DopplerError = metOb.getSpectrumWidth() + log(50/db);
 					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);

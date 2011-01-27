@@ -431,10 +431,10 @@ int short Dorade::swap2(char *ov)		/* swap integer*2 */
     return(u.newval);
 }
 /**************************************************/
-int long Dorade::swap4(char *ov )		/* swap integer*4 */
+int Dorade::swap4(char *ov )		/* swap integer*4 */
 {
 	union {
-		int long newval;
+		int newval;
 		char nv[4];
 	}u;
 	
@@ -499,7 +499,7 @@ void Dorade::sweepread(const char swp_fname[],struct sswb_info *ssptr, struct vo
 			exit(-1);
 		}
 		/* READ THE DESCRIPTOR LENGTH */
-		desc_len=read_long(fp);
+		desc_len=read_int(fp);
 		//printf ("reading %s at %d\n",identifier,ftell(fp));
 		if ( (strncmp(identifier,"SSWB",IDENT_LEN)) == 0) {
 			/* READ THE SSWB DESCRIPTOR */
@@ -606,7 +606,7 @@ void Dorade::sweepread(const char swp_fname[],struct sswb_info *ssptr, struct vo
 			}
 			
 		} else if ( (strncmp(identifier,"NULL",IDENT_LEN)) == 0) {
-			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(long)));
+			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(int)));
 
 		} else if ( (strncmp(identifier,"RKTB",IDENT_LEN)) == 0) {
 			/* READ THE ROTATION ANGLE DESCRIPTOR */
@@ -617,7 +617,7 @@ void Dorade::sweepread(const char swp_fname[],struct sswb_info *ssptr, struct vo
 			break;
 						
 		} else {
-			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(long)));
+			skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(int)));
 		} /* endif */
 
 	} /* endwhile */
@@ -663,7 +663,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(sswb_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)ssptr,sizeof (struct sswb_info),1,fp) !=1 ) {
@@ -680,7 +680,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		exit(-1);
 	}
 	desc_len = sizeof(vold_info)+8;
-	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+	if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	if ( fwrite ((char *)vptr,sizeof (struct vold_info),1,fp) !=1 ) {
@@ -696,7 +696,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		exit(-1);
 	}
 	desc_len = sizeof(radd_info)+8;
-	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+	if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	// Try uncompressed data
@@ -718,7 +718,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(parm_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)&pptr[i],sizeof (struct parm_info),1,fp) !=1 ) {
@@ -735,7 +735,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		exit(-1);
 	}
 	desc_len = sizeof(celv_info)+8;
-	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+	if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	if ( fwrite ((char *)cptr,sizeof (struct celv_info),1,fp) !=1 ) {
@@ -751,7 +751,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		exit(-1);
 	}
 	desc_len = sizeof(cfac_info) + 8;
-	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+	if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	if ( fwrite ((char *)cfptr,sizeof (struct cfac_info),1,fp) !=1 ) {
@@ -767,7 +767,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		exit(-1);
 	}
 	desc_len = sizeof(swib_info)+8;
-	if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+	if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	if ( fwrite ((char *)sptr,sizeof (struct swib_info),1,fp) !=1 ) {
@@ -787,7 +787,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(ryib_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)&ryptr[i],sizeof (struct ryib_info),1,fp) !=1 ) {
@@ -803,7 +803,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(asib_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)&aptr[i],sizeof (struct asib_info),1,fp) !=1 ) {
@@ -817,7 +817,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			/* RDAT */
 			/* RESCALE THE DATA */
 			int arrsize = cptr->total_gates;
-			long baddata_flag = pptr[j].baddata_flag;
+			int baddata_flag = pptr[j].baddata_flag;
 			float scale_fac = pptr[j].scale_fac;
 			for (int k=0;k<arrsize;k++) {
 				arr_uncom[k]=0;
@@ -839,11 +839,11 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 				exit(-1);
 			}
 			//desc_len = PARM_NAME_LEN + num_words*sizeof(short)+8;
-			unsigned int bytes = LONGS_TO_BYTES(SHORTS_TO_LONGS(num_words));
+			unsigned int bytes = INTS_TO_BYTES(SHORTS_TO_INTS(num_words));
 			desc_len = bytes + PARM_NAME_LEN + 8;
 			// Uncompressed
 			//desc_len = PARM_NAME_LEN + arrsize*sizeof(short)+8;
-			if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 				printf("sweep file read error..\n");
 			}
 			if ( fwrite ((char *)&dptr[j][i].parm_name,sizeof(char),PARM_NAME_LEN,fp) != PARM_NAME_LEN ) {
@@ -873,7 +873,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(vold_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)vptr,sizeof (struct vold_info),1,fp) !=1 ) {
@@ -889,7 +889,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(radd_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		// Try uncompressed data
@@ -911,7 +911,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 				exit(-1);
 			}
 			desc_len = sizeof(parm_info)+8;
-			if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+			if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 				printf("sweep file read error..\n");
 			}
 			if ( fwrite ((char *)&pptr[i],sizeof (struct parm_info),1,fp) !=1 ) {
@@ -928,7 +928,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(celv_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)cptr,sizeof (struct celv_info),1,fp) !=1 ) {
@@ -944,7 +944,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(cfac_info) + 8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)cfptr,sizeof (struct cfac_info),1,fp) !=1 ) {
@@ -960,7 +960,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = 8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		
@@ -971,7 +971,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
 		}
-		if ( (fwrite((char *)&rktb_size,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite((char *)&rktb_size,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		if ( fwrite ((char *)rkptr,sizeof (struct rktb_info),1,fp) !=1 ) {
@@ -1000,7 +1000,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			exit(-1);
 		}
 		desc_len = sizeof(sswb_info)+8;
-		if ( (fwrite(&desc_len,sizeof(long),1,fp)) != 1) {
+		if ( (fwrite(&desc_len,sizeof(int),1,fp)) != 1) {
 			printf("sweep file read error..\n");
 		}
 		ssptr->sizeof_file = filesize;
@@ -1080,7 +1080,7 @@ void Dorade::read_celv(FILE *fp,struct celv_info *cptr,int desc_len)
 	int skip;
 	
 	/* TOTAL GATES */
-	cptr->total_gates=read_long(fp);
+	cptr->total_gates=read_int(fp);
 	
 	/* ALLOCATE THE ARRAY */
 	/*
@@ -1160,8 +1160,8 @@ void Dorade::read_rktb(FILE *fp)
 /***************************************************/
 void Dorade::read_rdat(FILE *fp,int fld_num,
                int desc_len,int *match,short parm_type,
-			   int beam_count,long total_gates,
-               short compression,long baddata_flag,
+			   int beam_count,int total_gates,
+               short compression,int baddata_flag,
 			   float scale_fac,struct rdat_info *rdat)
 {
 	
@@ -1212,10 +1212,10 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	strncpy(rdat->parm_name,tempname,strsize);
 	if (parm_type==1) {datasize=sizeof(char);}
 	else if (parm_type==2) {datasize=sizeof(short);}
-	else if (parm_type==3) {datasize=sizeof(long);}
+	else if (parm_type==3) {datasize=sizeof(int);}
 	else if (parm_type==4) {datasize=sizeof(float);}
 	/* SIZE OF ARRAY */
-	arrsize=(desc_len-(IDENT_LEN+sizeof(long)
+	arrsize=(desc_len-(IDENT_LEN+sizeof(int)
 					   +PARM_NAME_LEN))/datasize;
 	/* READ IN THE DATA */
 	if (datasize==1) {
@@ -1236,15 +1236,15 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	} /* endif */
 
 	//} else {
-	//	skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(long)+PARM_NAME_LEN));
+	//	skip_bytes(fp,desc_len-(IDENT_LEN+sizeof(int)+PARM_NAME_LEN));
 	//}
 
 }
 
 /***************************************************/
 void Dorade::read_sh_arr(FILE *fp,int arrsize,int beam_count,
-				 long total_gates,short compression,
-				 long baddata_flag,float scale_fac,
+				 int total_gates,short compression,
+				 int baddata_flag,float scale_fac,
                  struct rdat_info *rdat) {
 	
 	short arr_com[MAX_GATES], arr_uncom[MAX_GATES];
@@ -1299,12 +1299,12 @@ void Dorade::get_field(struct parm_info parm[],int num_desc,int *fld_num)
 	
 }
 /***************************************************/
-long Dorade::read_long(FILE *fp)
+int Dorade::read_int(FILE *fp)
 {
 	
-	long temp;
+	int temp;
 	
-	if ( (fread(&temp,sizeof(long),1,fp)) != 1) {
+	if ( (fread(&temp,sizeof(int),1,fp)) != 1) {
 		printf("sweep file read error..\n");
 	}
 	return temp;
