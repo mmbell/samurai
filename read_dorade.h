@@ -15,26 +15,26 @@
 #define MAX_GATES 1500
 #define MAX_KEYS 8
 #define SIGN16 0x8000
-# define SHORTS_TO_LONGS(x) ((((x)-1)>>1)+1)
-# define LONGS_TO_BYTES(x) ((x)<<2)
+# define SHORTS_TO_INTS(x) ((((x)-1)>>1)+1)
+# define INTS_TO_BYTES(x) ((x)<<2)
 /***************************************************/
 /* STRUCTURES */
 /***************************************************/
 struct key_table_info {
-    long offset;
-    long size;
-    long type;
+    int offset;
+    int size;
+    int type;
 };
 
 struct sswb_info {
     /* parameters from the first version */
-    long last_used;		/* Unix time */
-    long start_time;
-    long stop_time;
-    long sizeof_file;
-    long compression_flag;
-    long volume_time_stamp;	/* to reference current volume */
-    long num_params;		/* number of parameters */
+    int last_used;		/* Unix time */
+    int start_time;
+    int stop_time;
+    int sizeof_file;
+    int compression_flag;
+    int volume_time_stamp;	/* to reference current volume */
+    int num_params;		/* number of parameters */
 	
     /* end of first version parameters */
 	
@@ -47,10 +47,10 @@ struct sswb_info {
      * of the last access and
      * 0 implies this sweep should not be aged off
      */
-    long version_num;
-    long num_key_tables;
-    long status;
-    long place_holder[7];
+    int version_num;
+    int num_key_tables;
+    int status;
+    int place_holder[7];
     struct key_table_info key_table[MAX_KEYS];
     /*
      * offset and key info to a table containing key value such as
@@ -63,7 +63,7 @@ struct vold_info {
 
    short ver_num;
    short vol_num;
-   long max_bytes;
+   int max_bytes;
    char proj_name[PROJ_NAME_LEN];
    short year;
    short mon;
@@ -158,13 +158,13 @@ struct parm_info {
    float threshold_val;
    float scale_fac;
    float offset_fac;
-   long baddata_flag;
+   int baddata_flag;
     
 };
 
 struct celv_info {
 
-   long total_gates;
+   int total_gates;
    float gate_spacing[MAX_GATES];
 
 };
@@ -172,19 +172,19 @@ struct celv_info {
 struct swib_info {
 
    char rad_name[RAD_NAME_LEN];
-   long sweep_num;
-   long num_rays;
+   int sweep_num;
+   int num_rays;
    float start_ang;
    float stop_ang;
    float fixed_ang;
-   long filter_flag;
+   int filter_flag;
    
 };
 
 struct ryib_info {
 
-   long sweep_num;
-   long julian_day;
+   int sweep_num;
+   int julian_day;
    short hour;
    short min;
    short sec;
@@ -193,7 +193,7 @@ struct ryib_info {
    float elevation;
    float peak_power;
    float scan_rate;
-   long ray_status;
+   int ray_status;
 
 };
 
@@ -242,14 +242,14 @@ struct radar_angles {
 
 struct rot_table_entry {
     float rotation_angle;
-    long offset;
-    long size;
+    int offset;
+    int size;
 };
 
 struct rktb_info {
     float angle2ndx;
-    long ndx_que_size;
-    long first_key_offset;
-    long angle_table_offset;
-    long num_rays;
+    int ndx_que_size;
+    int first_key_offset;
+    int angle_table_offset;
+    int num_rays;
 };

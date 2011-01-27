@@ -77,13 +77,13 @@ private:
 	struct rktb_info *rkptr;
 	struct rot_table_entry *rtptr;
 	unsigned int rktb_size;
-	long int volumeTime;
+	int volumeTime;
 	short int volumeDate;
 	void swapVolHeader();
 	void swapRadarHeader();
 	bool machineBigEndian();
 	int short swap2(char *ov);
-	int long swap4(char *ov);
+	int swap4(char *ov);
 	int refIndex;
 	int velIndex;
 	int swIndex;
@@ -91,8 +91,8 @@ private:
 	QString vel_fld;
 	QString sw_fld;	
 	QString filename;
-	/*double isnanf(double x)   {  return  (((*(long *)&(x) & 0x7f800000L) == 0x7f800000L) && \
-										  ((*(long *)&(x) & 0x007fffffL) != 0x00000000L)); }; */
+	/*double isnanf(double x)   {  return  (((*(int *)&(x) & 0x7f800000L) == 0x7f800000L) && \
+										  ((*(int *)&(x) & 0x007fffffL) != 0x00000000L)); }; */
 	double RADIANS(double x)  { return ((x)*0.017453292); };
 	double FMOD360(double x)  { return (fmod((double)((x)+720.), (double)360.)); };
     double DEGREES(double x)  { return ((x)*57.29577951); };
@@ -120,18 +120,18 @@ private:
 	void read_rktb(FILE *fp);
 	void read_rdat(FILE *fp,int fld_num,
 				   int desc_len,int *match,short parm_type,
-				   int beam_count,long total_gates,
-				   short compression,long baddata_flag,
+				   int beam_count,int total_gates,
+				   short compression,int baddata_flag,
 				   float scale_fac, struct rdat_info *rdat);
 	//void read_ch_arr(FILE *fp,int arrsize);
 	void read_sh_arr(FILE *fp,int arrsize,int beam_count,
-					 long total_gates,short compression,
-					 long baddata_flag,float scale_fac,
+					 int total_gates,short compression,
+					 int baddata_flag,float scale_fac,
 					 struct rdat_info *rdat);
 	//void read_lg_arr(FILE *fp,int arrsize);
 	//void read_fl_arr(FILE *fp,int arrsize);
 	void get_field(struct parm_info parm[],int num_desc,int *fld_num);
-	long read_long(FILE *fp);
+	int read_int(FILE *fp);
 	void skip_bytes(FILE *fp,int numskip);
 	int dd_hrd16_uncompressx(short *ss,short *dd, int flag,
 							 int *empty_run,int wmax ,int beam_count);
