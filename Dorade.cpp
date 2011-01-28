@@ -335,13 +335,13 @@ float Dorade::getBeamwidthDeg()
 QDateTime Dorade::getRayTime(int& ray)
 {
 	int year = vptr->year;
-	int month = vptr->mon;
-	int day = vptr->day;
+	int jd = ryptr[ray].julian_day;
+	QDate date = QDate(year,1,1);
+	date = date.addDays(jd-1);
 	int hour = ryptr[ray].hour;
 	int min = ryptr[ray].min;
 	int sec = ryptr[ray].sec;
 	int msec = ryptr[ray].msec;
-	QDate date = QDate(year, month, day);
 	QTime time = QTime(hour, min, sec, msec);
 	return QDateTime(date, time, Qt::UTC);
 }
@@ -1177,13 +1177,10 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	int datasize,arrsize;
 	datasize = arrsize = 0;
 	char tempname[PARM_NAME_LEN];
-	QString ref_fld = "DBZ";
-	QString vel_fld = "VG";
-	QString sw_fld =  "SW";
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
 	
-	/* READ THE PARAMETER NAEM */
+	/* READ THE PARAMETER NAME */
 	if ( (fread(tempname,sizeof(char),PARM_NAME_LEN,fp))
          != PARM_NAME_LEN)
 	{printf("sweep file read error..can't read parameter name\n");}
@@ -1487,16 +1484,16 @@ void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, 
      * "Mapping of the Airborne Doppler Radar Data"
      */
     d = asib->roll;
-    R = d != d ? RADIANS(d +cfac->c_roll) : 0;
+    R = d != d ? 0 : RADIANS(d +cfac->c_roll);
 	
     d = asib->pitch;
-    P = d != d ? RADIANS(d +cfac->c_pitch) : 0;
+    P = d != d ? 0 : RADIANS(d +cfac->c_pitch);
 	
     d = asib->head;
-    H = d != d ? RADIANS(d +cfac->c_head) : 0;
+    H = d != d ? 0 : RADIANS(d +cfac->c_head);
 	
     d = asib->drift;
-    D = d != d ? RADIANS(d +cfac->c_drift) : 0;
+    D = d != d ? 0 : RADIANS(d +cfac->c_drift);
 	
     sinP = sin(P);
     cosP = cos(P);
@@ -1509,10 +1506,10 @@ void Dorade::calcAirborneAngles(struct asib_info *asib, struct cfac_info *cfac, 
     cosT = cos(T);
 	
     d = asib->rot_ang;
-    theta_a = d != d ? RADIANS(d +cfac->c_rotang) : 0;
+    theta_a = d != d ? 0 : RADIANS(d +cfac->c_rotang);
     
     d = asib->tilt_ang;
-    tau_a = d != d ? RADIANS(d +cfac->c_tiltang) : 0;
+    tau_a = d != d ? 0 : RADIANS(d +cfac->c_tiltang);
     sin_tau_a = sin(tau_a);
     cos_tau_a = cos(tau_a);
     sin_theta_rc = sin(theta_a + R); /* roll corrected rotation angle */

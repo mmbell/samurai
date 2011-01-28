@@ -597,9 +597,9 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				ob.setSpectrumWidth(sw);
 				ob.setTime(rayTime);
 				metObVector->push_back(ob);
-				/*cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
+				/* cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
 				<< gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
-				<< az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl;*/
+				<< az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; */
 			}
 		}
 	}
