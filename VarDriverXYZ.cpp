@@ -772,6 +772,10 @@ int VarDriverXYZ::loadBackgroundObs()
 	double RSquare = ROI*ROI;
 	double ROIsquare2 = ROI*sqrt(2.);
 	ifstream bgstream("./Background.in");
+	if (!bgstream.good()) {
+		cout << "Error opening Background.in for reading.\n";
+		exit(1);
+	}
 	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
 	
 	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa)
