@@ -23,6 +23,7 @@ HEADERS += BandedMatrix.h \
 	   VarDriverVAR.h \
            Dorade.h \
            read_dorade.h \
+           precision.h \
            TCcenter.h
 SOURCES += BSpline.cpp \
            BSplineD.cpp \
