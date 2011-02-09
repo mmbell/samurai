@@ -13,6 +13,7 @@
 #include <QTextStream>
 #include <QDomDocument>
 #include <QDomNodeList>
+#include <GeographicLib/TransverseMercatorExact.hpp>
 
 VarDriver::VarDriver()
 {
@@ -527,19 +528,21 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 {
 
 	Dorade swpfile(metFile.fileName());
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+
 	QString radardbz = configHash.value("radardbz");
 	QString radarvel = configHash.value("radarvel");
 	QString radarsw = configHash.value("radarsw");
 	if(!swpfile.readSwpfile(radardbz, radarvel, radarsw))
 		return false;
 
-	float radarLat = swpfile.getRadarLat();
-	float radarLon = swpfile.getRadarLon();
-	float radarAlt = swpfile.getRadarAlt();
 	int rayskip = configHash.value("radarskip").toInt();
 	int minstride = configHash.value("radarstride").toInt();
 	int stride = minstride;
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
+		float radarLat = swpfile.getRadarLat(i);
+		float radarLon = swpfile.getRadarLon(i);
+		float radarAlt = swpfile.getRadarAlt(i);		
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -578,14 +581,19 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				double rEarth = 6366805.6;
 				// Take into account curvature of the earth
 				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-				double latrad = radarLat * Pi/180.0;
+				double radarX, radarY, gateLat, gateLon;
+				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+				double gateAlt = relZ + radarAlt*1000;
+				
+				/* double latrad = radarLat * Pi/180.0;
 				double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 				+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 				double fac_lon = 111.41513 * cos(latrad)
 				- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
 				double gateLon = radarLon + (relX/1000)/fac_lon;
-				double gateLat = radarLat + (relY/1000)/fac_lat;
-				double gateAlt = relZ + radarAlt*1000;
+				double gateLat = radarLat + (relY/1000)/fac_lat; */
+
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
 				ob.setLon(gateLon);

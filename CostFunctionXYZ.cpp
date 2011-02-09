@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QDir>
 #include <netcdfcpp.h>
+#include <GeographicLib/TransverseMercatorExact.hpp>
 
 CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
@@ -2122,22 +2123,25 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	time[0] = configHash.value("reftime").toInt();
 	real latReference = configHash.value("reflat").toFloat();	
 	real lonReference = configHash.value("reflon").toFloat();
-	double latrad =latReference * 1.745329251994e-02;
+	real refX, refY;
+	
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	/* double latrad =latReference * 1.745329251994e-02;
 	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 	double fac_lon = 111.41513 * cos(latrad)
-	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad); */
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		real i = iMin + DI * iIndex;
-		lons[iIndex] = lonReference + i/fac_lon;
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			real i = iMin + DI * iIndex;
+			real j = jMin + DJ * jIndex;
+			tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lons[iIndex]);
+		}
 	}
 	if (!lonVar->put(lons, iDim))
 		return NC_ERR;       
 
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-		real j = jMin + DJ * jIndex;
-		lats[jIndex] = latReference + j/fac_lat;
-	}
 	if (!latVar->put(lats, jDim))
 		return NC_ERR;       
 	
