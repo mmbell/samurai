@@ -664,7 +664,7 @@ void VarDriverXYZ::preProcessMetObs()
 	cout << obVector.size() << " total observations including pseudo W obs" << endl;
 	
 	// Write the Obs to a summary text file
-	ofstream obstream("Observations.in");
+	ofstream obstream("samurai_Observations.in");
 	// Header messes up reload
 	/*ostream_iterator<string> os(obstream, "\t ");
 	*os++ = "Type";
@@ -733,7 +733,7 @@ bool VarDriverXYZ::loadMetObs()
 	double wgt[numVars];
 	double xPos, yPos, zPos, ob, error;
 	int type, time;
-	ifstream obstream("./Observations.in");
+	ifstream obstream("./samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
 		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
 	{
@@ -789,7 +789,7 @@ int VarDriverXYZ::loadBackgroundObs()
 	float ROI = configHash.value("backgroundroi").toFloat();
 	double RSquare = ROI*ROI;
 	double ROIsquare2 = ROI*sqrt(2.);
-	ifstream bgstream("./Background.in");
+	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening Background.in for reading.\n";
 		exit(1);

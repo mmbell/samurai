@@ -976,7 +976,8 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	"load_background" << "adjust_background" <<
 	"uerror" << "verror" << "werror" << "terror" << 
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
-	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride";
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" <<
+	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
