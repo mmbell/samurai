@@ -17,7 +17,6 @@
 
 VarDriver::VarDriver()
 {
-	CoriolisF = 6e-5;
 	Pi = acos(-1);
 	
 	// Set up the datatype hash
@@ -924,41 +923,11 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 }
 
 
-bool VarDriver::readXMLconfig(const QString& xmlfile)
+bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
-
-	//QDomDocument domDoc("Configuration");
-	QFile file(xmlfile);
-	if (!file.open(QIODevice::ReadOnly)) {
-		cout << "Error Opening Configuration File, Check Permissions on " << xmlfile.toStdString() << "\n";
-		return false;
-	}
-	
-	QString errorStr;
-	int errorLine;
-	int errorColumn;
-	
-	// Set the DOM document contents to those of the file
-	if (!domDoc.setContent(&file, true, &errorStr, &errorLine, &errorColumn)) {
-		QString errorReport = QString("XML Parse Error in "+xmlfile+" at Line %1, Column %2:\n%3")
-		.arg(errorLine)
-		.arg(errorColumn)
-		.arg(errorStr);
-		cout << errorReport.toStdString() << "\n";
-		file.close();
-		return false;
-	}
-	file.close();
-	
-	// Basic check to see if this is really a SAMURAI configuration file
-	QDomElement root = domDoc.documentElement();
-	if (root.tagName() != "samurai") {
-		cout << "The XML file " << xmlfile.toStdString() << " is not an SAMURAI configuration file\n.";
-		return false;
-	}
-		
+			
 	// Parse the nodes to a hash
-	QDomNodeList nodeList = root.childNodes();
+	QDomNodeList nodeList = config.childNodes();
 	for (int i = 0; i < nodeList.count(); i++) {
 		QDomNode currNode = nodeList.item(i);
 		QDomElement group = currNode.toElement();
@@ -981,7 +950,7 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
-			exit(-1);
+			return false;
 		}			
 	}
 	return true;

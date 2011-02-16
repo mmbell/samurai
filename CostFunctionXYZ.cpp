@@ -34,20 +34,23 @@ void CostFunctionXYZ::finalize()
 	delete kFilter;
 	delete[] currState;
 	delete[] currGradient;
-	delete[] innovation;
 	delete[] tempState;
 	delete[] tempGradient;
-	delete[] HCq;
 	delete[] xt;
 	delete[] df;
+	delete[] CTHTd;
+	delete[] stateU;
+	delete[] obsVector;
+	delete[] HCq;
+	delete[] innovation;
+	delete[] fieldNodes;
+	delete[] bgState;
 	delete[] stateA;
 	delete[] stateB;
 	delete[] stateC;
-	delete[] CTHTd;
 	delete[] iL;
 	delete[] jL;
-	delete[] stateU;
-	delete[] fieldNodes;
+	delete[] kL;
 	delete[] basis0;
 	delete[] basis1;
 	
@@ -100,8 +103,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	kDim = (int)((kMax - kMin)/DK) + 1;
 
 	DIrecip = 1./DI;
-    DJrecip = 1./DJ;
-    DKrecip = 1./DK;
+	DJrecip = 1./DJ;
+	DKrecip = 1./DK;
 
 	//	Mass continuity weight
 	mcWeight = configHash.value("mcweight").toFloat();
@@ -113,12 +116,11 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
+	kFilter = new RecursiveFilter(4,kFilterScale);
 	// Disable vertical filter if less than 1
-	if (kFilterScale > 0) {
-		kFilter = new RecursiveFilter(4,kFilterScale);
-	} else {
-		cout << "Disable vertical recursive filter...\n";
+	if (kFilterScale < 0) {
 		kFilter = NULL;
+		cout << "Disabling recursive filter...\n";
 	}
 	
 	// Allocate memory for the needed arrays
@@ -140,8 +142,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	fieldNodes = new real[nodes*33];	
 	//bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[nState];
-	stateB = new real[nState];
 	stateA = new real[nState];
+	stateB = new real[nState];
 	stateC = new real[nState];
 	
 	// Precalculate the basis functions for lookup table option
@@ -1007,7 +1009,6 @@ bool CostFunctionXYZ::setupSplines()
 	real** P = new real*[iDim];
 	real* p = new real[iDim];
 	iL = new real[varDim*iDim*4];
-	real* iBL = new real[varDim*iDim*4];
 	for (int i = 0; i < iDim; i++) {
 		P[i] = new real[iDim];
 		p[i] = 0.;
@@ -1015,7 +1016,6 @@ bool CostFunctionXYZ::setupSplines()
 		
 	for (int i = 0; i < varDim*iDim*4; i++) {
 		iL[i] = 0;
-		iBL[i] = 0;
 	}
 	
 	real cutoff_wl = configHash.value("x_spline_cutoff").toFloat();

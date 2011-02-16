@@ -91,10 +91,11 @@ bool Dorade::readSwpfile()
 	}
 	
 	// Read in a dorade file
-	const char* ccfilename = filename.toAscii().data();
+	char* ccfilename =new char[filename.size() + 1];
+	strcpy(ccfilename, filename.toAscii().data());
 	sweepread(ccfilename, ssptr, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr);
-	
+	delete[] ccfilename;
 	return true;
 }
 
@@ -105,7 +106,18 @@ bool Dorade::readSwpfile(const QString& refname, const QString& velname, const Q
 	vel_fld = velname;
 	sw_fld = swname;
 	
-	readSwpfile();
+	// Check the byte order
+	if (!machineBigEndian()) {
+		swap_bytes = true;
+	}
+	
+	// Read in a dorade file	
+	char* ccfilename = new char[filename.size() + 1];
+	strcpy(ccfilename, filename.toAscii().data());
+	sweepread(ccfilename, ssptr, vptr, rptr, cptr,
+			  cfptr, pptr, sptr, ryptr, aptr, dptr);
+
+	delete[] ccfilename;
 	return true;
 }
 
@@ -443,7 +455,7 @@ int Dorade::swap4(char *ov )		/* swap integer*4 */
 	return(u.newval);
 }
 /**************************************************/
-void Dorade::sweepread(const char swp_fname[],struct sswb_info *ssptr, struct vold_info *vptr,
+void Dorade::sweepread(const char* swp_fname,struct sswb_info *ssptr, struct vold_info *vptr,
 			   struct radd_info *rptr,struct celv_info *cptr,
 			   struct cfac_info *cfptr,struct parm_info *pptr,
 			   struct swib_info *sptr,struct ryib_info *ryptr,
@@ -1176,9 +1188,11 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	
 	int datasize,arrsize;
 	datasize = arrsize = 0;
-	char tempname[PARM_NAME_LEN];
+	unsigned int strsize = 0;	
+	char tempname[PARM_NAME_LEN+1];
 	memset(rdat->parm_name,' ',PARM_NAME_LEN);
 	memset(tempname,' ',PARM_NAME_LEN);
+	tempname[PARM_NAME_LEN] = '\0';
 	
 	/* READ THE PARAMETER NAME */
 	if ( (fread(tempname,sizeof(char),PARM_NAME_LEN,fp))
@@ -1186,8 +1200,7 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	{printf("sweep file read error..can't read parameter name\n");}
 	
 	/* CALCULATE LENGTH OF TEMPNAME */
-	unsigned int strsize = 0;
-	for (strsize=0;strsize<strlen(tempname);strsize++) {
+	for(strsize = 0; strsize < PARM_NAME_LEN; strsize++) {
 		if (isspace(tempname[strsize])) {break;}
 	}
 		

@@ -31,6 +31,10 @@ VarDriverVAR::VarDriverVAR()
 
 VarDriverVAR::~VarDriverVAR()
 {
+}
+
+bool VarDriverVAR::finalize()
+{
 	for (unsigned int yi = 0; yi < maxJdim; yi++) {
 		delete[] BG[yi];
 		delete[] BGsave[yi];
@@ -39,9 +43,10 @@ VarDriverVAR::~VarDriverVAR()
 	delete[] BGsave;
 	delete[] obs;
 	delete costVAR;
-}
-
-
+	
+	return true;
+}	
+	
 void VarDriverVAR::preProcessMetObs()
 {
 	

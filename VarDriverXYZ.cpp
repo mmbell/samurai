@@ -27,15 +27,6 @@ VarDriverXYZ::VarDriverXYZ()
 
 VarDriverXYZ::~VarDriverXYZ()
 {
-	for (unsigned int yi = 0; yi < maxJdim; yi++) {
-		delete[] BG[yi];
-		delete[] BGsave[yi];
-	}
-	delete[] BG;
-	delete[] BGsave;
-	delete[] obs;
-	delete[] bgObs;
-	delete obCostXYZ;
 }
 
 
@@ -1111,16 +1102,13 @@ int VarDriverXYZ::loadBackgroundObs()
 	return numbgObs;
 }
 
-bool VarDriverXYZ::initialize(const QString& xmlfile)
+bool VarDriverXYZ::initialize(const QDomElement& configuration)
 {
 	// Run a XYZ vortex background field
 	cout << "Initializing SAMURAI XYZ" << endl;
-	
-	// Read XML configuration
-	if (!readXMLconfig(xmlfile)) {
-		cout << "Error reading XML configuration, quitting...\n";
-		exit(-1);
-	}
+
+	// Parse the XML configuration file
+	if (!parseXMLconfig(configuration)) return false;
 	
 	// Set the initial background to zero
 	imin = configHash.value("xmin").toFloat();
@@ -1233,6 +1221,7 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 		bgCostXYZ->minimize();
 		// Increment the variables
 		bgCostXYZ->updateBG();
+		bgCostXYZ->finalize();
 		
 		delete bgCostXYZ;
 		
@@ -1265,9 +1254,9 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 bool VarDriverXYZ::run()
 {
 	// CQRMS not used currently
-	double CQRMS = 999;
+	// double CQRMS = 999;
 	int iter=0;
-	while ((CQRMS > CQTOL) and (iter < maxIter)) {
+	while (iter < maxIter) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		obCostXYZ->initState();
@@ -1282,4 +1271,14 @@ bool VarDriverXYZ::run()
 
 }
 
-
+bool VarDriverXYZ::finalize()
+{
+	obCostXYZ->finalize();
+	delete[] obs;
+	delete[] bgObs;
+	delete[] bgU;
+	delete[] bgWeights;
+	delete bgCostXYZ;
+	delete obCostXYZ;	
+	return true;
+}

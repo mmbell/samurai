@@ -31,7 +31,9 @@ class VarDriver
 public:
 	VarDriver();
 	virtual ~VarDriver();
+	virtual bool initialize(const QDomElement& configuration) = 0;
 	virtual bool run() = 0;
+	virtual bool finalize() = 0;
 
 protected:
 	
@@ -96,7 +98,7 @@ protected:
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
 	bool readTCcenters();
-	bool readXMLconfig(const QString& xmlfile);
+	bool parseXMLconfig(const QDomElement& config);
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
 	real bhypInvTransform(real qvbhyp);
