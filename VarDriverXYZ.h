@@ -32,7 +32,7 @@ public:
 	VarDriverXYZ();
 	~VarDriverXYZ();
 	// ESMF type calls
-	bool initialize(const QString& xmlfile);
+	bool initialize(const QDomElement& configuration);
 	bool run();
 	bool finalize();
 	

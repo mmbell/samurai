@@ -41,6 +41,19 @@ VarDriverXY::~VarDriverXY()
 	delete costXY;
 }
 
+bool VarDriverXY::finalize()
+{
+	for (unsigned int yi = 0; yi < maxJdim; yi++) {
+		delete[] BG[yi];
+		delete[] BGsave[yi];
+	}
+	delete[] BG;
+	delete[] BGsave;
+	delete[] obs;
+	delete costXY;
+	
+	return true;
+}
 
 void VarDriverXY::preProcessMetObs()
 {

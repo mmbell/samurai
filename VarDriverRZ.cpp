@@ -30,6 +30,11 @@ VarDriverRZ::VarDriverRZ()
 
 VarDriverRZ::~VarDriverRZ()
 {
+
+}
+
+bool VarDriverRZ::finalize()
+{
 	for (unsigned int zi = 0; zi < maxHeights; zi++) {
 		delete[] BG[zi];
 		delete[] BGsave[zi];
@@ -48,9 +53,9 @@ VarDriverRZ::~VarDriverRZ()
 	//delete[] ia;
 	//delete[] ja;
 	delete costRZ;
-
+	
+	return true;
 }
-
 
 void VarDriverRZ::preProcessMetObs()
 {

@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QDir>
 #include <netcdfcpp.h>
+#include <GeographicLib/TransverseMercatorExact.hpp>
 
 CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
@@ -33,20 +34,26 @@ void CostFunctionXYZ::finalize()
 	delete kFilter;
 	delete[] currState;
 	delete[] currGradient;
-	delete[] innovation;
 	delete[] tempState;
 	delete[] tempGradient;
-	delete[] HCq;
 	delete[] xt;
 	delete[] df;
+	delete[] CTHTd;
+	delete[] stateU;
+	delete[] obsVector;
+	delete[] HCq;
+	delete[] innovation;
+	delete[] fieldNodes;
+	delete[] bgState;
 	delete[] stateA;
 	delete[] stateB;
 	delete[] stateC;
-	delete[] CTHTd;
 	delete[] iL;
 	delete[] jL;
-	delete[] stateU;
-	delete[] fieldNodes;	
+	delete[] kL;
+	delete[] basis0;
+	delete[] basis1;
+	
 }
 
 void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)
@@ -96,8 +103,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	kDim = (int)((kMax - kMin)/DK) + 1;
 
 	DIrecip = 1./DI;
-    DJrecip = 1./DJ;
-    DKrecip = 1./DK;
+	DJrecip = 1./DJ;
+	DKrecip = 1./DK;
 
 	//	Mass continuity weight
 	mcWeight = configHash.value("mcweight").toFloat();
@@ -109,12 +116,11 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	bgErrorScale = 1.;
 	iFilter = new RecursiveFilter(4,iFilterScale);
 	jFilter = new RecursiveFilter(4,jFilterScale);
+	kFilter = new RecursiveFilter(4,kFilterScale);
 	// Disable vertical filter if less than 1
-	if (kFilterScale > 0) {
-		kFilter = new RecursiveFilter(4,kFilterScale);
-	} else {
-		cout << "Disable vertical recursive filter...\n";
+	if (kFilterScale < 0) {
 		kFilter = NULL;
+		cout << "Disabling recursive filter...\n";
 	}
 	
 	// Allocate memory for the needed arrays
@@ -136,11 +142,13 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	fieldNodes = new real[nodes*33];	
 	//bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[nState];
-	stateB = new real[nState];
 	stateA = new real[nState];
+	stateB = new real[nState];
 	stateC = new real[nState];
 	
 	// Precalculate the basis functions for lookup table option
+	basis0 = new real[2000000];
+	basis1 = new real[2000000];
 	fillBasisLookup();
 	
 	// Set up the spline matrices
@@ -400,7 +408,7 @@ void CostFunctionXYZ::updateBG()
 	outputAnalysis("increment", stateC, false);	
 	
 	// In BG update we are directly summing C + A
-	ofstream cstream("CoeffAnalysis.out");
+	ofstream cstream("samurai_Coefficients.out");
 	cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -865,13 +873,14 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
 	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
-		// These are local for parallelization
-		real* iTemp = new real[iDim];
-		real* jTemp = new real[jDim];
-		real* kTemp = new real[kDim];
-		
+				
 		//FK
 		if (kFilter != NULL) {
+			// These are local for parallelization
+			real* iTemp = new real[iDim];
+			real* jTemp = new real[jDim];
+			real* kTemp = new real[kDim];
+			
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -883,35 +892,45 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 					}
 				}
 			}
-		}
-		//FJ
-		for (int kIndex = 0; kIndex < kDim; kIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-				}
-				jFilter->filterArray(jTemp, jDim);
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-				}
-			}
-		}
-		//FI
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			
+			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					for (int jIndex = 0; jIndex < jDim; jIndex++) {
+						jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					}
+					jFilter->filterArray(jTemp, jDim);
+					for (int jIndex = 0; jIndex < jDim; jIndex++) {
+						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+					}
 				}
-				iFilter->filterArray(iTemp, iDim);
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					// D
-					Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var]; 
+			}
+			//FI
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+					for (int iIndex = 0; iIndex < iDim; iIndex++) {
+						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					}
+					iFilter->filterArray(iTemp, iDim);
+					for (int iIndex = 0; iIndex < iDim; iIndex++) {
+						// D
+						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var]; 
+					}
+				}
+			}
+			delete[] iTemp;
+			delete[] jTemp;
+			delete[] kTemp;
+		} else {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+					for (int kIndex = 0; kIndex < kDim; kIndex++) {
+						int ai = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var ;
+						Cstate[ai]= Astate[ai] * bgError[var];
+					}
 				}
 			}
 		}
-		delete[] iTemp;
-		delete[] jTemp;
-		delete[] kTemp;
 	}
 }
 
@@ -921,37 +940,38 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
 	#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
-		// These are local for parallelization
-		real* iTemp = new real[iDim];
-		real* jTemp = new real[jDim];
-		real* kTemp = new real[kDim];
-		
-		//FI & D
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+		if (kFilter != NULL) {
+			
+			// These are local for parallelization
+			real* iTemp = new real[iDim];
+			real* jTemp = new real[jDim];
+			real* kTemp = new real[kDim];
+			
+			//FI & D
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+					for (int iIndex = 0; iIndex < iDim; iIndex++) {
+						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] * bgError[var];
+					}
+					iFilter->filterArray(iTemp, iDim);
+					for (int iIndex = 0; iIndex < iDim; iIndex++) {
+						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
+					}
+				}
+			}
+			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] * bgError[var];
-				}
-				iFilter->filterArray(iTemp, iDim);
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
-				}
-			}
-		}
-		//FJ
-		for (int kIndex = 0; kIndex < kDim; kIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-				}
-				jFilter->filterArray(jTemp, jDim);
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+					for (int jIndex = 0; jIndex < jDim; jIndex++) {
+						jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+					}
+					jFilter->filterArray(jTemp, jDim);
+					for (int jIndex = 0; jIndex < jDim; jIndex++) {
+						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+					}
 				}
 			}
-		}
-		//FK
-		if (kFilter != NULL) {
+			//FK
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -963,10 +983,19 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 					}
 				}
 			}
-		}
-		delete[] iTemp;
-		delete[] jTemp;
-		delete[] kTemp;
+			delete[] iTemp;
+			delete[] jTemp;
+			delete[] kTemp;
+		} else {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+					for (int kIndex = 0; kIndex < kDim; kIndex++) {
+						int ai = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var ;
+						Astate[ai]= Cstate[ai] * bgError[var];
+					}
+				}
+			}
+		}		
 	}		
 }
 
@@ -980,7 +1009,6 @@ bool CostFunctionXYZ::setupSplines()
 	real** P = new real*[iDim];
 	real* p = new real[iDim];
 	iL = new real[varDim*iDim*4];
-	real* iBL = new real[varDim*iDim*4];
 	for (int i = 0; i < iDim; i++) {
 		P[i] = new real[iDim];
 		p[i] = 0.;
@@ -988,10 +1016,9 @@ bool CostFunctionXYZ::setupSplines()
 		
 	for (int i = 0; i < varDim*iDim*4; i++) {
 		iL[i] = 0;
-		iBL[i] = 0;
 	}
 	
-	real cutoff_wl = 2;
+	real cutoff_wl = configHash.value("x_spline_cutoff").toFloat();
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {				
 		for (int i = 0; i < iDim; i++) {
@@ -1092,7 +1119,7 @@ bool CostFunctionXYZ::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = 2;
+	cutoff_wl = configHash.value("y_spline_cutoff").toFloat();;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 
@@ -1187,7 +1214,7 @@ bool CostFunctionXYZ::setupSplines()
 		kL[k] = 0;
 	}
 	
-	cutoff_wl = 2;
+	cutoff_wl = configHash.value("z_spline_cutoff").toFloat();;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		
@@ -2122,22 +2149,25 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	time[0] = configHash.value("reftime").toInt();
 	real latReference = configHash.value("reflat").toFloat();	
 	real lonReference = configHash.value("reflon").toFloat();
-	double latrad =latReference * 1.745329251994e-02;
+	real refX, refY;
+	
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	/* double latrad =latReference * 1.745329251994e-02;
 	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 	double fac_lon = 111.41513 * cos(latrad)
-	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
+	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad); */
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		real i = iMin + DI * iIndex;
-		lons[iIndex] = lonReference + i/fac_lon;
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			real i = (iMin + DI * iIndex)*1000;
+			real j = (jMin + DJ * jIndex)*1000;
+			tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lons[iIndex]);
+		}
 	}
 	if (!lonVar->put(lons, iDim))
 		return NC_ERR;       
 
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-		real j = jMin + DJ * jIndex;
-		lats[jIndex] = latReference + j/fac_lat;
-	}
 	if (!latVar->put(lats, jDim))
 		return NC_ERR;       
 	
@@ -2301,15 +2331,15 @@ void CostFunctionXYZ::fillBasisLookup()
 {
 
 	real ONESIXTH = 1./6.;
-	for (int i=0; i < 200000; i++) {
-		real z = 2.0 - double(i)/100000.;
+	for (int i=0; i < 2000000; i++) {
+		real z = 2.0 - double(i)/1000000.;
 		real b = (z*z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)
 			b -= (z*z*z) * 4 * ONESIXTH;
 		basis0[i] = b;
 		
-		z = 2.0 - double(i)/100000.;
+		z = 2.0 - double(i)/1000000.;
 		b = (z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)
@@ -2627,9 +2657,9 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 	real b = 0;
 	real xm = xmin + (m * DX);
 	real delta = (x - xm) * DXrecip;
-	real z = abs(delta);
+	real z = fabs(delta);
 	if (z < 2.0) {
-		real zi = z*100000.;
+		real zi = z*1000000.;
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
@@ -2696,13 +2726,13 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 					break;
 				case 4:
 					// There is no contribution from this node 
-					return b;
+					return 0;
 				case 5:
 					// There is no contribution from this node 
-					return b;
+					return 0;
 				case 6:
 					// There is no contribution from this node 
-					return b;				
+					return 0;				
 			}
 			break;
 		case 1:
@@ -2734,7 +2764,7 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 					break;				
 				case 6:
 					// There is no contribution from this node 
-					return b;				
+					return 0;				
 			}
 			break;
 		default:
@@ -2806,9 +2836,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 	
 	real xm = xmin + (node * DX);
 	real delta = (x - xm) * DXrecip;
-	real z = abs(delta);
+	real z = fabs(delta);
 	if (z < 2.0) {
-		real zi = z*100000.;
+		real zi = z*1000000.;
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
@@ -2853,9 +2883,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 	
 	xm = xmin + (node * DX);
 	delta = (x - xm) * DXrecip;
-	z = abs(delta);
+	z = fabs(delta);
 	if (z < 2.0) {
-		real zi = z*100000.;
+		real zi = z*1000000.;
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:

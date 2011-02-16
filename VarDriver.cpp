@@ -13,10 +13,10 @@
 #include <QTextStream>
 #include <QDomDocument>
 #include <QDomNodeList>
+#include <GeographicLib/TransverseMercatorExact.hpp>
 
 VarDriver::VarDriver()
 {
-	CoriolisF = 6e-5;
 	Pi = acos(-1);
 	
 	// Set up the datatype hash
@@ -527,19 +527,21 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 {
 
 	Dorade swpfile(metFile.fileName());
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+
 	QString radardbz = configHash.value("radardbz");
 	QString radarvel = configHash.value("radarvel");
 	QString radarsw = configHash.value("radarsw");
 	if(!swpfile.readSwpfile(radardbz, radarvel, radarsw))
 		return false;
 
-	float radarLat = swpfile.getRadarLat();
-	float radarLon = swpfile.getRadarLon();
-	float radarAlt = swpfile.getRadarAlt();
 	int rayskip = configHash.value("radarskip").toInt();
 	int minstride = configHash.value("radarstride").toInt();
 	int stride = minstride;
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
+		float radarLat = swpfile.getRadarLat(i);
+		float radarLon = swpfile.getRadarLon(i);
+		float radarAlt = swpfile.getRadarAlt(i);		
 		float az = swpfile.getAzimuth(i);
 		float el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
@@ -578,14 +580,19 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				double rEarth = 6366805.6;
 				// Take into account curvature of the earth
 				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-				double latrad = radarLat * Pi/180.0;
+				double radarX, radarY, gateLat, gateLon;
+				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+				double gateAlt = relZ + radarAlt*1000;
+				
+				/* double latrad = radarLat * Pi/180.0;
 				double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 				+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 				double fac_lon = 111.41513 * cos(latrad)
 				- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
 				double gateLon = radarLon + (relX/1000)/fac_lon;
-				double gateLat = radarLat + (relY/1000)/fac_lat;
-				double gateAlt = relZ + radarAlt*1000;
+				double gateLat = radarLat + (relY/1000)/fac_lat; */
+
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
 				ob.setLon(gateLon);
@@ -916,41 +923,11 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 }
 
 
-bool VarDriver::readXMLconfig(const QString& xmlfile)
+bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
-
-	//QDomDocument domDoc("Configuration");
-	QFile file(xmlfile);
-	if (!file.open(QIODevice::ReadOnly)) {
-		cout << "Error Opening Configuration File, Check Permissions on " << xmlfile.toStdString() << "\n";
-		return false;
-	}
-	
-	QString errorStr;
-	int errorLine;
-	int errorColumn;
-	
-	// Set the DOM document contents to those of the file
-	if (!domDoc.setContent(&file, true, &errorStr, &errorLine, &errorColumn)) {
-		QString errorReport = QString("XML Parse Error in "+xmlfile+" at Line %1, Column %2:\n%3")
-		.arg(errorLine)
-		.arg(errorColumn)
-		.arg(errorStr);
-		cout << errorReport.toStdString() << "\n";
-		file.close();
-		return false;
-	}
-	file.close();
-	
-	// Basic check to see if this is really a SAMURAI configuration file
-	QDomElement root = domDoc.documentElement();
-	if (root.tagName() != "samurai") {
-		cout << "The XML file " << xmlfile.toStdString() << " is not an SAMURAI configuration file\n.";
-		return false;
-	}
-		
+			
 	// Parse the nodes to a hash
-	QDomNodeList nodeList = root.childNodes();
+	QDomNodeList nodeList = config.childNodes();
 	for (int i = 0; i < nodeList.count(); i++) {
 		QDomNode currNode = nodeList.item(i);
 		QDomElement group = currNode.toElement();
@@ -968,11 +945,12 @@ bool VarDriver::readXMLconfig(const QString& xmlfile)
 	"load_background" << "adjust_background" <<
 	"uerror" << "verror" << "werror" << "terror" << 
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
-	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride";
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" <<
+	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
-			exit(-1);
+			return false;
 		}			
 	}
 	return true;

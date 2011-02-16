@@ -95,8 +95,8 @@ private:
 	real constHeight;
 	real mcWeight;
 	int referenceState;
-	real basis0[200000];
-	real basis1[200000];
+	real* basis0;
+	real* basis1;
 	QHash<QString, QString> configHash;
 
 	float BoundaryConditions[9][4];

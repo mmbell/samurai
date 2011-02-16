@@ -16,6 +16,7 @@
 #include <QVector>
 #include <iomanip>
 #include "RecursiveFilter.h"
+#include <GeographicLib/TransverseMercatorExact.hpp>
 
 VarDriverXYZ::VarDriverXYZ()
 	: VarDriver()
@@ -26,15 +27,6 @@ VarDriverXYZ::VarDriverXYZ()
 
 VarDriverXYZ::~VarDriverXYZ()
 {
-	for (unsigned int yi = 0; yi < maxJdim; yi++) {
-		delete[] BG[yi];
-		delete[] BGsave[yi];
-	}
-	delete[] BG;
-	delete[] BGsave;
-	delete[] obs;
-	delete[] bgObs;
-	delete obCostXYZ;
 }
 
 
@@ -42,7 +34,11 @@ void VarDriverXYZ::preProcessMetObs()
 {
 	
 	vector<real> rhoP;
-	
+
+	// Geographic functions
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	real referenceLon = configHash.value("reflon").toFloat();
+
 	// Cressman for the reflectivity
 	double ROI = 1.25*(configHash.value("xincr").toFloat());
 	double RSquare = ROI*ROI;
@@ -159,15 +155,21 @@ void VarDriverXYZ::preProcessMetObs()
 			Observation varOb;
 			
 			// Get the X, Y & Z
-			double latrad = tcVector[tci].getLat() * Pi/180.0;
+			double tcX, tcY, metX, metY;
+			tm.Forward(referenceLon, tcVector[tci].getLat() , tcVector[tci].getLon() , tcX, tcY);
+			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
+			double obX = (metX - tcX)/1000.;
+			double obY = (metY - tcY)/1000.;
+			double heightm = metOb.getAltitude();
+			double obZ = heightm/1000.;
+			
+			/* double latrad = tcVector[tci].getLat() * Pi/180.0;
 			double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 			+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 			double fac_lon = 111.41513 * cos(latrad)
 			- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
 			double obY = (metOb.getLat() - tcVector[tci].getLat())*fac_lat;
-			double obX = (metOb.getLon() - tcVector[tci].getLon())*fac_lon;
-			double heightm = metOb.getAltitude();
-			double obZ = heightm/1000.;
+			double obX = (metOb.getLon() - tcVector[tci].getLon())*fac_lon; */
 			// Make sure the ob is in the domain
 			if ((obX < imin) or (obX > imax) or
 				(obY < jmin) or (obY > jmax) or
@@ -653,7 +655,7 @@ void VarDriverXYZ::preProcessMetObs()
 	cout << obVector.size() << " total observations including pseudo W obs" << endl;
 	
 	// Write the Obs to a summary text file
-	ofstream obstream("Observations.in");
+	ofstream obstream("samurai_Observations.in");
 	// Header messes up reload
 	/*ostream_iterator<string> os(obstream, "\t ");
 	*os++ = "Type";
@@ -722,7 +724,7 @@ bool VarDriverXYZ::loadMetObs()
 	double wgt[numVars];
 	double xPos, yPos, zPos, ob, error;
 	int type, time;
-	ifstream obstream("./Observations.in");
+	ifstream obstream("./samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
 		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
 	{
@@ -761,7 +763,14 @@ bool VarDriverXYZ::loadMetObs()
 
 int VarDriverXYZ::loadBackgroundObs()
 {
-	//SplineD::Debug(1);
+	// Turn Debug on if there are problems with the vertical spline interpolation,
+	// Eventually this should be replaced with the internal spline code
+	// SplineD::Debug(1);
+
+	// Geographic functions
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	real referenceLon = configHash.value("reflon").toFloat();
+	
 	QList<real> bgIn;
 	QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
 	SplineD* bgSpline;
@@ -771,7 +780,7 @@ int VarDriverXYZ::loadBackgroundObs()
 	float ROI = configHash.value("backgroundroi").toFloat();
 	double RSquare = ROI*ROI;
 	double ROIsquare2 = ROI*sqrt(2.);
-	ifstream bgstream("./Background.in");
+	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening Background.in for reading.\n";
 		exit(1);
@@ -800,15 +809,22 @@ int VarDriverXYZ::loadBackgroundObs()
 		}
 		
 		// Get the X, Y & Z
-		double latrad = tcVector[tci].getLat() * Pi/180.0;
+		double tcX, tcY, metX, metY;
+		tm.Forward(referenceLon, tcVector[tci].getLat() , tcVector[tci].getLon() , tcX, tcY);
+		tm.Forward(referenceLon, lat, lon , metX, metY);
+		bgX = (metX - tcX)/1000.;
+		bgY = (metY - tcY)/1000.;
+		double heightm = alt;
+		bgZ = heightm/1000.;
+		
+		/* double latrad = tcVector[tci].getLat() * Pi/180.0;
 		double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 		+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 		double fac_lon = 111.41513 * cos(latrad)
 		- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
 		bgY = (lat - tcVector[tci].getLat())*fac_lat;
-		bgX = (lon - tcVector[tci].getLon())*fac_lon;
-		double heightm = alt;
-		bgZ = heightm/1000.;
+		bgX = (lon - tcVector[tci].getLon())*fac_lon; */
+		
 		// Make sure the ob is in the Cressman domain
 		if ((bgX < (imin-ROIsquare2)) or (bgX > (imax+ROIsquare2)) or
 			(bgY < (jmin-ROIsquare2)) or (bgY > (jmax+ROIsquare2))
@@ -1086,16 +1102,13 @@ int VarDriverXYZ::loadBackgroundObs()
 	return numbgObs;
 }
 
-bool VarDriverXYZ::initialize(const QString& xmlfile)
+bool VarDriverXYZ::initialize(const QDomElement& configuration)
 {
 	// Run a XYZ vortex background field
 	cout << "Initializing SAMURAI XYZ" << endl;
-	
-	// Read XML configuration
-	if (!readXMLconfig(xmlfile)) {
-		cout << "Error reading XML configuration, quitting...\n";
-		exit(-1);
-	}
+
+	// Parse the XML configuration file
+	if (!parseXMLconfig(configuration)) return false;
 	
 	// Set the initial background to zero
 	imin = configHash.value("xmin").toFloat();
@@ -1208,6 +1221,7 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 		bgCostXYZ->minimize();
 		// Increment the variables
 		bgCostXYZ->updateBG();
+		bgCostXYZ->finalize();
 		
 		delete bgCostXYZ;
 		
@@ -1240,9 +1254,9 @@ bool VarDriverXYZ::initialize(const QString& xmlfile)
 bool VarDriverXYZ::run()
 {
 	// CQRMS not used currently
-	double CQRMS = 999;
+	// double CQRMS = 999;
 	int iter=0;
-	while ((CQRMS > CQTOL) and (iter < maxIter)) {
+	while (iter < maxIter) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		obCostXYZ->initState();
@@ -1257,4 +1271,14 @@ bool VarDriverXYZ::run()
 
 }
 
-
+bool VarDriverXYZ::finalize()
+{
+	obCostXYZ->finalize();
+	delete[] obs;
+	delete[] bgObs;
+	delete[] bgU;
+	delete[] bgWeights;
+	delete bgCostXYZ;
+	delete obCostXYZ;	
+	return true;
+}

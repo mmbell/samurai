@@ -1,6 +1,6 @@
 build/*
 libs/*
-samurai.xcodeproj/*
+*.xcodeproj/*
 .svn
 .DS_Store
 profile
