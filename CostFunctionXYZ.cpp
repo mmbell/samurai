@@ -1860,11 +1860,11 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	// Define the dimensions. NetCDF will hand back an ncDim object for
 	// each.
 	NcDim *lvlDim, *latDim, *lonDim, *timeDim;
-	if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
+	if (!(lonDim = dataFile.add_dim("longitude", iDim)))
 		return NC_ERR;
 	if (!(latDim = dataFile.add_dim("latitude", jDim)))
 		return NC_ERR;
-	if (!(lonDim = dataFile.add_dim("longitude", iDim)))
+	if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
 		return NC_ERR;
 	// Add an unlimited dimension...
 	if (!(timeDim = dataFile.add_dim("time")))
@@ -1872,9 +1872,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	
 	// Define the coordinate variables.
 	NcVar *latVar, *lonVar, *lvlVar, *timeVar;
-	if (!(latVar = dataFile.add_var("latitude", ncFloat, latDim)))
-		return NC_ERR;
 	if (!(lonVar = dataFile.add_var("longitude", ncFloat, lonDim)))
+		return NC_ERR;
+	if (!(latVar = dataFile.add_var("latitude", ncFloat, latDim)))
 		return NC_ERR;
 	if (!(lvlVar = dataFile.add_var("altitude", ncFloat, lvlDim)))
 		return NC_ERR;
@@ -2140,8 +2140,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	
 	// Write the coordinate variable data to the file.
-	real *lats = new real[iDim];
-	real *lons = new real[jDim];
+	real *lons = new real[iDim];
+	real *lats = new real[jDim];
 	real *levs = new real[kDim];
 	int time[2];
 	
@@ -2159,12 +2159,19 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	double fac_lon = 111.41513 * cos(latrad)
 	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad); */
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			real i = (iMin + DI * iIndex)*1000;
-			real j = (jMin + DJ * jIndex)*1000;
-			tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lons[iIndex]);
-		}
+		real i = (iMin + DI * iIndex)*1000;
+		real j = (jMin + DJ * (jDim/2))*1000;
+		real latnull = 0;
+		tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
 	}
+	
+	for (int jIndex = 0; jIndex < jDim; jIndex++) {
+		real i = (iMin + DI * (iDim/2))*1000;
+		real j = (jMin + DJ * jIndex)*1000;
+		real lonnull = 0;
+		tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);		
+	}
+	
 	if (!lonVar->put(lons, iDim))
 		return NC_ERR;       
 
