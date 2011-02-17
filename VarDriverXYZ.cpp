@@ -1110,19 +1110,35 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	// Parse the XML configuration file
 	if (!parseXMLconfig(configuration)) return false;
 	
-	// Set the initial background to zero
+	// Define the grid dimensions
 	imin = configHash.value("xmin").toFloat();
 	imax = configHash.value("xmax").toFloat();
 	iincr = configHash.value("xincr").toFloat();
 	idim = (int)((imax - imin)/iincr) + 1;
+	
 	jmin = configHash.value("ymin").toFloat();
 	jmax = configHash.value("ymax").toFloat();
 	jincr = configHash.value("yincr").toFloat();
-	jdim = (int)((jmax - jmin)/jincr) + 1;		
+	jdim = (int)((jmax - jmin)/jincr) + 1;
+	
 	kmin = configHash.value("zmin").toFloat();
 	kmax = configHash.value("zmax").toFloat();
 	kincr = configHash.value("zincr").toFloat();
 	kdim = (int)((kmax - kmin)/kincr) + 1;
+
+	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
+	if (idim < 4) {
+		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}
+	if (jdim < 4) {
+		cout << "Y dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}	
+	if (kdim < 4) {
+		cout << "Z dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}
 	
 	// Define the sizes of the arrays we are passing to the cost function
 	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
@@ -1140,8 +1156,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	for (int i=0; i < uStateSize; i++) {
 		bgU[i] = 0.;
 		bgWeights[i] = 0.;
-	}
-		
+	}		
 	
 	// Define the Reference state
 	if (configHash.value("refstate") == "jordan") {
