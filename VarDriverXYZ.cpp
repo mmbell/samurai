@@ -1293,7 +1293,6 @@ bool VarDriverXYZ::finalize()
 	delete[] bgObs;
 	delete[] bgU;
 	delete[] bgWeights;
-	delete bgCostXYZ;
 	delete obCostXYZ;	
 	return true;
 }

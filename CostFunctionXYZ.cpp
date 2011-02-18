@@ -20,6 +20,15 @@
 CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
 {
+	// Set up the boundary condition hash
+	bcHash["R1T0"] = R1T0;
+	bcHash["R1T1"] = R1T1;
+	bcHash["R1T2"] = R1T2;
+	bcHash["R1T10"] = R1T10;
+	bcHash["R2T10"] = R2T10;
+	bcHash["R2T20"] = R2T20;
+	bcHash["R3"] = R3;
+	bcHash["PERIODIC"] = PERIODIC;	
 }
 
 CostFunctionXYZ::~CostFunctionXYZ()
@@ -72,14 +81,26 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	bgError[5] = configHash.value("rhoerror").toFloat();
 	bgError[6] = configHash.value("qrerror").toFloat();
 	
-	// These should be set by the xml file
-	iBCL[0] = R1T2; iBCR[0] = R1T2; jBCL[0] = R1T2; jBCR[0] = R1T2; kBCL[0] = R1T2; kBCR[0] = R1T2;
-	iBCL[1] = R1T2; iBCR[1] = R1T2; jBCL[1] = R1T2; jBCR[1] = R1T2; kBCL[1] = R1T2; kBCR[1] = R1T2;
-	iBCL[2] = R1T2; iBCR[2] = R1T2; jBCL[2] = R1T2; jBCR[2] = R1T2; kBCL[2] = R1T0; kBCR[2] = R1T0;
-	iBCL[3] = R1T2; iBCR[3] = R1T2; jBCL[3] = R1T2; jBCR[3] = R1T2; kBCL[3] = R1T2; kBCR[3] = R1T2;
-	iBCL[4] = R1T2; iBCR[4] = R1T2; jBCL[4] = R1T2; jBCR[4] = R1T2;	kBCL[4] = R1T2; kBCR[4] = R1T2;
-	iBCL[5] = R1T2; iBCR[5] = R1T2; jBCL[5] = R1T2; jBCR[5] = R1T2; kBCL[5] = R1T2; kBCR[5] = R1T2;
-	iBCL[6] = R1T2; iBCR[6] = R1T2; jBCL[6] = R1T2; jBCR[6] = R1T2; kBCL[6] = R1T2; kBCR[6] = R1T2;	
+	// Vertical boundary conditions on W fixed for now
+	kBCL[2] = R1T0; kBCR[2] = R1T0;
+	
+	// Horizontal boundary conditions
+	int hbc = bcHash.value(configHash.value("horizontalbc"));	
+	iBCL[0] = hbc; iBCR[0] = hbc; jBCL[0] = hbc; jBCR[0] = hbc; 
+	iBCL[1] = hbc; iBCR[1] = hbc; jBCL[1] = hbc; jBCR[1] = hbc; 
+	iBCL[2] = hbc; iBCR[2] = hbc; jBCL[2] = hbc; jBCR[2] = hbc; 
+	iBCL[3] = hbc; iBCR[3] = hbc; jBCL[3] = hbc; jBCR[3] = hbc; 
+	iBCL[4] = hbc; iBCR[4] = hbc; jBCL[4] = hbc; jBCR[4] = hbc; 
+	iBCL[5] = hbc; iBCR[5] = hbc; jBCL[5] = hbc; jBCR[5] = hbc; 
+	iBCL[6] = hbc; iBCR[6] = hbc; jBCL[6] = hbc; jBCR[6] = hbc;
+	
+	int vbc = bcHash.value(configHash.value("verticalbc"));
+	kBCL[0] = vbc; kBCR[0] = vbc;
+	kBCL[1] = vbc; kBCR[1] = vbc;
+	kBCL[3] = vbc; kBCR[3] = vbc;
+	kBCL[4] = vbc; kBCR[4] = vbc;
+	kBCL[5] = vbc; kBCR[5] = vbc;
+	kBCL[6] = vbc; kBCR[6] = vbc;
 	
 	// Define the Reference state
 	if (configHash.value("refstate") == "jordan") {
@@ -2739,7 +2760,11 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 					return 0;
 				case 6:
 					// There is no contribution from this node 
-					return 0;				
+					return 0;	
+				case 7:
+					node = M;
+					coeffmod = 1.;
+					break;
 			}
 			break;
 		case 1:
@@ -2771,7 +2796,11 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 					break;				
 				case 6:
 					// There is no contribution from this node 
-					return 0;				
+					return 0;	
+				case 7:
+					node = M+1;
+					coeffmod = 1.;
+					break;
 			}
 			break;
 		default:
@@ -2802,7 +2831,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 						return 0.;
 					case 6:
 						// There is no contribution from this node 
-						return 0.;				
+						return 0.;
+					case 7:
+						// No modification to this node
+						return b;
 				} 
 			}
 			if (m == (M-1)) {
@@ -2834,7 +2866,11 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 						break;				
 					case 6:
 						// There is no contribution from this node 
-						return 0.;				
+						return 0.;
+					case 7:
+						node = -1;
+						coeffmod = 1.;
+						break;
 				}
 			}
 			break;

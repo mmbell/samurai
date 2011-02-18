@@ -95,11 +95,11 @@ private:
 	real constHeight;
 	real mcWeight;
 	int referenceState;
+
 	real* basis0;
 	real* basis1;
 	QHash<QString, QString> configHash;
-
-	float BoundaryConditions[9][4];
+	QHash<QString, int> bcHash;
 	enum BoundaryConditionTypes {
 		R1T0 = 0,
 		R1T1 = 1,
@@ -108,7 +108,7 @@ private:
 		R2T10 = 4,
 		R2T20 = 5,
 		R3 = 6,
-		R3X = 7
+		PERIODIC = 7
 	};
 	
 	RecursiveFilter* iFilter;

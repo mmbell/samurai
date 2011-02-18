@@ -537,6 +537,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 
 	int rayskip = configHash.value("radarskip").toInt();
 	int minstride = configHash.value("radarstride").toInt();
+	bool dynamicStride = configHash.value("dynamicstride").toInt();
 	int stride = minstride;
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
 		float radarLat = swpfile.getRadarLat(i);
@@ -549,15 +550,16 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 		float* swdata = swpfile.getSpectrumWidth(i);
 		QDateTime rayTime = swpfile.getRayTime(i);
 		float* gatesp = swpfile.getGateSpacing();
+		float gatelength = gatesp[1] - gatesp[0];
+		float beamwidth = sin(swpfile.getBeamwidthDeg()*Pi/180.);
 
-		// Beamwidth needs to be dynamic
-		float beamwidth = swpfile.getBeamwidthDeg();
-		beamwidth = sin(beamwidth*Pi/180.);
 		for (int n=0; n < swpfile.getNumGates()-stride; n+=stride) {
 			MetObs ob;
 			float range = gatesp[n+stride/2];
-			//stride = (range*beamwidth)/gatespacing;
-			if (stride < minstride) stride = minstride;
+			if (dynamicStride) {
+				stride = (range*beamwidth)/gatelength;
+				if (stride < minstride) stride = minstride;
+			}
 			float dz = 0;
 			float vr = 0;
 			float sw = 0;
@@ -577,7 +579,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				sw = sw/count;
 				double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
 				double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
-				double rEarth = 6366805.6;
+				double rEarth = 6371000.0;
 				// Take into account curvature of the earth
 				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 				double radarX, radarY, gateLat, gateLon;
@@ -585,14 +587,6 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 				double gateAlt = relZ + radarAlt*1000;
 				
-				/* double latrad = radarLat * Pi/180.0;
-				double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-				+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-				double fac_lon = 111.41513 * cos(latrad)
-				- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-				double gateLon = radarLon + (relX/1000)/fac_lon;
-				double gateLat = radarLat + (relY/1000)/fac_lat; */
-
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
 				ob.setLon(gateLon);
@@ -833,6 +827,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 	
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	QTextStream in(&metFile);
 	// Skip two lines
 	in.readLine(); in.readLine();
@@ -859,8 +854,10 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			float az = lineparts[6].toFloat() + achdg;
 			float el = lineparts[7].toFloat();
 			//int rayskip = configHash.value("radarskip").toInt();
-			int minstride = configHash.value("radarstride").toInt();
-			int stride = minstride;
+			//int minstride = configHash.value("radarstride").toInt();
+
+			// Lidar data is sufficiently sparse to include it all for now
+			int stride = 1;
 		
 			for (int n=0; n < lineparts[10].toInt(); n+=stride) {
 				MetObs ob;
@@ -888,16 +885,12 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					sw = sw/count;
 					double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
 					double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
-					double rEarth = 6366805.6;
+					double rEarth = 6371000.0;
 					// Take into account curvature of the earth
 					double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-					double latrad = radarLat * Pi/180.0;
-					double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-					+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-					double fac_lon = 111.41513 * cos(latrad)
-					- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-					double gateLon = radarLon + (relX/1000)/fac_lon;
-					double gateLat = radarLat + (relY/1000)/fac_lat;
+					double radarX, radarY, gateLat, gateLon;
+					tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+					tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 					double gateAlt = relZ + radarAlt;
 					ob.setObType(MetObs::lidar);
 					ob.setLat(gateLat);
@@ -945,7 +938,8 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"load_background" << "adjust_background" <<
 	"uerror" << "verror" << "werror" << "terror" << 
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
-	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" <<
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
+	"horizontalbc" << "verticalbc" <<
 	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
