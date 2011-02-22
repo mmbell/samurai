@@ -151,8 +151,8 @@ bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
 			ob.setTime(datetime.addMSecs(msec));
 			ob.setLat(lineparts[17].toFloat());
 			ob.setLon(lineparts[18].toFloat());
-			float altT = lineparts[5].toFloat();
-			float altW = lineparts[12].toFloat();
+			real altT = lineparts[5].toFloat();
+			real altW = lineparts[12].toFloat();
 			ob.setAltitude((altT + altW)/2);
 			ob.setPressure(lineparts[2].toFloat());
 			if (lineparts[3] != "-999.00") {
@@ -201,7 +201,7 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 			MetObs ob;
 			ob.setStationName(aircraft);
 			QStringList lineparts = line.split(QRegExp("\\s+"));
-			int msec = (int)lineparts[1].toFloat()*1000;
+			int msec = lineparts[1].toInt()*1000;
 			ob.setTime(datetime.addMSecs(msec));
 			if (lineparts[11].toFloat() != 999.) { 
 				ob.setLon(lineparts[11].toFloat());
@@ -244,7 +244,7 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 				ob.setWindSpeed(-999.);
 			}
 			if ((lineparts[10].toFloat() != 99.0) and (lineparts[2].toFloat() != 9999.0)) {
-				float w = lineparts[10].toFloat()+(-0.01*lineparts[2].toFloat()+22.);
+				real w = lineparts[10].toFloat()+(-0.01*lineparts[2].toFloat()+22.);
 				ob.setVerticalVelocity(w);
 			} else {
 				ob.setVerticalVelocity(-999.);
@@ -539,18 +539,18 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 		
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		lineparts[2].chop(1);
-		double latmin = lineparts[2].toFloat();
-		double lat = lineparts[1].toFloat() + latmin/60;
+		real latmin = lineparts[2].toFloat();
+		real lat = lineparts[1].toFloat() + latmin/60;
 		ob.setLat(lat);
 		lineparts[4].chop(1);
-		double lonmin = lineparts[4].toFloat();
-		double lon = -(lineparts[3].toFloat() + lonmin/60);
+		real lonmin = lineparts[4].toFloat();
+		real lon = -(lineparts[3].toFloat() + lonmin/60);
 		ob.setLon(lon);
 		ob.setAltitude(lineparts[11].toFloat());
 		
 		// Calculate pressure from palt using HRD formula
-		double palt = lineparts[10].toFloat();
-		double press =  1013.25*pow((1-palt/44331.),(1/.190263));
+		real palt = lineparts[10].toFloat();
+		real press =  1013.25*pow((1-palt/44331.),(1/.190263));
 		ob.setPressure(press);
 		ob.setTemperature(lineparts[5].toFloat() + 273.15);
 		ob.setDewpoint(lineparts[6].toFloat() + 273.15);
@@ -588,30 +588,30 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	bool dynamicStride = configHash.value("dynamicstride").toInt();
 	int stride = minstride;
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
-		float radarLat = swpfile.getRadarLat(i);
-		float radarLon = swpfile.getRadarLon(i);
-		float radarAlt = swpfile.getRadarAlt(i);		
-		float az = swpfile.getAzimuth(i);
-		float el = swpfile.getElevation(i);
+		real radarLat = swpfile.getRadarLat(i);
+		real radarLon = swpfile.getRadarLon(i);
+		real radarAlt = swpfile.getRadarAlt(i);		
+		real az = swpfile.getAzimuth(i);
+		real el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
 		float* veldata = swpfile.getRadialVelocity(i);	
 		float* swdata = swpfile.getSpectrumWidth(i);
 		QDateTime rayTime = swpfile.getRayTime(i);
 		float* gatesp = swpfile.getGateSpacing();
-		float gatelength = gatesp[1] - gatesp[0];
-		float beamwidth = sin(swpfile.getBeamwidthDeg()*Pi/180.);
+		real gatelength = gatesp[1] - gatesp[0];
+		real beamwidth = sin(swpfile.getBeamwidthDeg()*Pi/180.);
 
 		for (int n=0; n < swpfile.getNumGates()-stride; n+=stride) {
 			MetObs ob;
-			float range = gatesp[n+stride/2];
+			real range = gatesp[n+stride/2];
 			if (dynamicStride) {
 				stride = (range*beamwidth)/gatelength;
 				if (stride < minstride) stride = minstride;
 			}
-			float dz = 0;
-			float vr = 0;
-			float sw = 0;
-			float count = 0;
+			real dz = 0;
+			real vr = 0;
+			real sw = 0;
+			real count = 0;
 			for (int g=n; g<(n+stride); g++) {
 				if (veldata[g] == -32768) continue;
 				if (gatesp[g] <= 0) continue;
@@ -625,16 +625,16 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				dz = 10*log10(dz);
 				vr = vr/count;
 				sw = sw/count;
-				double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
-				double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
-				double rEarth = 6371000.0;
+				real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
+				real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+				real rEarth = 6371000.0;
 				
 				// Take into account curvature of the earth for the height of the radar beam
-				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-				double radarX, radarY, gateLat, gateLon;
+				real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
+				real radarX, radarY, gateLat, gateLon;
 				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
 				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
-				double gateAlt = relZ + radarAlt*1000;
+				real gateAlt = relZ + radarAlt*1000;
 				
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
@@ -731,9 +731,9 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 		QString speed = line.mid(28,5);
 		QString dir = line.mid(34,6);
 		QString rainprob = line.mid(46,5);
-		float rainflag = rainprob.toFloat();
+		real rainflag = rainprob.toFloat();
 		if (rainflag > 0.50) { continue; }
-		float dirdeg = dir.toFloat() + 180.;
+		real dirdeg = dir.toFloat() + 180.;
 		if (dirdeg > 360.) dirdeg -= 360.;
 		ob.setLat(lat.toFloat());
 		ob.setLon(lon.toFloat());
@@ -770,7 +770,7 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setLat(lineparts[0].toFloat());
 		ob.setLon(lineparts[1].toFloat());
 		ob.setAltitude(10.0);
-		float speed = lineparts[2].toFloat() / 1.94384449;
+		real speed = lineparts[2].toFloat() / 1.94384449;
 		ob.setWindSpeed(speed);
 		ob.setWindDirection(lineparts[3].toFloat());
 		ob.setObType(MetObs::ascat);
@@ -853,12 +853,12 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setLon(-lineparts[5].toFloat());
 		// Convert pressure to altitude using Newton's method
 		real presslevel = 100*lineparts[6].toFloat();
-		double height = 9000;
-		double pmin = 1e34;
+		real height = 9000;
+		real pmin = 1e34;
 		int iter = 0;
 		while ((fabs(pmin) > 1.) and (iter < 5000)) {
-			double p = getReferenceVariable(pressref, height)-presslevel;
-			double pprime = (getReferenceVariable(pressref, height+500.) - getReferenceVariable(pressref, height-500.))/1000.;
+			real p = getReferenceVariable(pressref, height)-presslevel;
+			real pprime = (getReferenceVariable(pressref, height+500.) - getReferenceVariable(pressref, height-500.))/1000.;
 			if (pprime != 0) {
 				height = height - p/pprime;
 				pmin = p;
@@ -905,12 +905,12 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			QStringList lineparts = line.split(QRegExp("\\s+"));
 			QTime time = QTime::fromString(lineparts[0], "HHmmss");
 			datetime = QDateTime(date, time, Qt::UTC);
-			float radarLat = lineparts[1].toFloat();
-			float radarLon = lineparts[2].toFloat();
-			float radarAlt = lineparts[3].toFloat();
-			float achdg = lineparts[4].toFloat();
-			float az = lineparts[6].toFloat() + achdg;
-			float el = lineparts[7].toFloat();
+			real radarLat = lineparts[1].toFloat();
+			real radarLon = lineparts[2].toFloat();
+			real radarAlt = lineparts[3].toFloat();
+			real achdg = lineparts[4].toFloat();
+			real az = lineparts[6].toFloat() + achdg;
+			real el = lineparts[7].toFloat();
 
 			// Lidar data is sufficiently sparse compared to radar data to include it all for now
 			// Could implement some data thinning here
@@ -919,16 +919,16 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			for (int n=0; n < lineparts[10].toInt(); n+=stride) {
 				MetObs ob;
 				int offset = n*5;
-				float range = lineparts[12+offset].toFloat();
-				float dz = 0;
-				float vr = 0;
-				float sw = 0;
-				float count = 0;
+				real range = lineparts[12+offset].toFloat();
+				real dz = 0;
+				real vr = 0;
+				real sw = 0;
+				real count = 0;
 				for (int g=n; g<(n+stride); g++) {
 					offset = g*5;
-					float veldata = lineparts[14+offset].toFloat();
-					float refdata = lineparts[15+offset].toFloat();
-					float swdata = lineparts[16+offset].toFloat();
+					real veldata = lineparts[14+offset].toFloat();
+					real refdata = lineparts[15+offset].toFloat();
+					real swdata = lineparts[16+offset].toFloat();
 					if (veldata == -999) continue;
 					dz += pow(10.0,(refdata*0.1));
 					vr += veldata;
@@ -940,15 +940,15 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					dz = 10*log10(dz);
 					vr = vr/count;
 					sw = sw/count;
-					double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
-					double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
-					double rEarth = 6371000.0;
+					real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
+					real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+					real rEarth = 6371000.0;
 					// Take into account curvature of the earth
-					double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-					double radarX, radarY, gateLat, gateLon;
+					real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
+					real radarX, radarY, gateLat, gateLon;
 					tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
 					tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
-					double gateAlt = relZ + radarAlt;
+					real gateAlt = relZ + radarAlt;
 					ob.setObType(MetObs::lidar);
 					ob.setLat(gateLat);
 					ob.setLon(gateLon);
@@ -1013,7 +1013,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 /* Biased Hyperbolic transform for positive definite quanitity
 	See Ooyama (2001) Journal of Atmospheric Sciences */
 
-real VarDriver::bhypTransform(real qv)
+real VarDriver::bhypTransform(const real& qv)
 {
 	
 	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
@@ -1023,7 +1023,7 @@ real VarDriver::bhypTransform(real qv)
 
 /* Quasi-Inverse of Biased Hyperbolic transform for positive definite quanitity */
 
-real VarDriver::bhypInvTransform(real qvbhyp)
+real VarDriver::bhypInvTransform(const real& qvbhyp)
 {
 	real qv = 0.;
 	if (qvbhyp > 0) {

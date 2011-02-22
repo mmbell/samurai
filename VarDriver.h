@@ -37,10 +37,10 @@ public:
 
 protected:
 	
-	float CoriolisF;
-	float Pi;
-	float rhoBase;
-	float rhoInvScaleHeight;
+	real CoriolisF;
+	real Pi;
+	real rhoBase;
+	real rhoInvScaleHeight;
 	unsigned int numVars;
 	unsigned int numHeights;
 	unsigned int maxHeights;
@@ -100,8 +100,8 @@ protected:
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
-	real bhypTransform(real qv);
-	real bhypInvTransform(real qvbhyp);
+	real bhypTransform(const real& qv);
+	real bhypInvTransform(const real& qvbhyp);
 	
 };
 

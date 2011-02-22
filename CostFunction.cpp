@@ -48,8 +48,8 @@ int CostFunction::getLengthStateVector()
 bool CostFunction::minimize()
 {
 	
-	double ftol = 1.0e-5;
-	double minimum = 1e34;
+	real ftol = 1.0e-5;
+	real minimum = 1e34;
 	cout << "\tInner Loop Conjugate Gradient" << endl;
 	conjugateGradient(currState, currGradient, ftol, minimum);
 	return true;
@@ -57,15 +57,15 @@ bool CostFunction::minimize()
 }
 
 
-void CostFunction::conjugateGradient(double* q, double* xi, const double ftol, double fret)
+void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fret)
 {
 	const int ITMAX = 2000;
-	const double EPS = 1.0e-18;
+	const real EPS = 1.0e-18;
 	int j, its;
-	double gg, gam, fq, dgg;
+	real gg, gam, fq, dgg;
 	
-	double* g = new double[nState];
-	double* h = new double[nState];
+	real* g = new real[nState];
+	real* h = new real[nState];
 
 	fq = funcValue(q);
 	funcGradient(q, xi);
@@ -106,11 +106,11 @@ void CostFunction::conjugateGradient(double* q, double* xi, const double ftol, d
 	return;
 }
 
-void CostFunction::dlinmin(double* &p, double* &xi, double &fret)
+void CostFunction::dlinmin(real* &p, real* &xi, real &fret)
 {
-	const double TOL=2.0e-8;
+	const real TOL=2.0e-8;
 	int j;
-	double xx,xmin,fx,fb,fa,bx,ax;
+	real xx,xmin,fx,fb,fa,bx,ax;
 	
 	// Fill the temporary state vector
 	for (j=0; j<nState; j++) {
@@ -127,19 +127,19 @@ void CostFunction::dlinmin(double* &p, double* &xi, double &fret)
 	}
 }
 
-double CostFunction::f1dim(const double x)
+real CostFunction::f1dim(const real x)
 {
 	int j;
-	double f1 = 0.0;
+	real f1 = 0.0;
 	for (j=0; j<nState; j++) xt[j] = tempState[j] + x*tempGradient[j];
 	f1 = funcValue(xt);
 	return f1;
 }
 
-double CostFunction::df1dim(const double x)
+real CostFunction::df1dim(const real x)
 {
 	int j;
-	double df1 = 0.0;
+	real df1 = 0.0;
 	for (j=0; j<nState; j++) {
 		xt[j] = tempState[j] + x*tempGradient[j];
 		df[j] = 0;
@@ -149,21 +149,21 @@ double CostFunction::df1dim(const double x)
 	return df1;
 }
 
-inline void CostFunction::mov3(double &a, double &b, double &c,
-							   const double d, const double e, const double f)
+inline void CostFunction::mov3(real &a, real &b, real &c,
+							   const real d, const real e, const real f)
 {
 	a=d; b=e; c=f;
 }
 
-double CostFunction::dbrent(const double ax, const double bx, const double cx,
-							const double tol, double &xmin)
+real CostFunction::dbrent(const real ax, const real bx, const real cx,
+							const real tol, real &xmin)
 {
 	const int ITMAX=100;
-	const double ZEPS=numeric_limits<double>::epsilon()*1.0e-3; // Replace with actual machine epsilon
+	const real ZEPS=numeric_limits<real>::epsilon()*1.0e-3; // Replace with actual machine epsilon
 	bool ok1, ok2;
 	int iter;
-	double a,b,d=0.0,d1,d2,du,dv,dw,dx,e=0.0;
-	double fu,fv,fw,fx,olde,tol1,tol2,u,u1,u2,v,w,x,xm;
+	real a,b,d=0.0,d1,d2,du,dv,dw,dx,e=0.0;
+	real fu,fv,fw,fx,olde,tol1,tol2,u,u1,u2,v,w,x,xm;
 	
 	a=(ax < cx ? ax : cx);
 	b=(ax > cx ? ax : cx);
@@ -240,18 +240,18 @@ double CostFunction::dbrent(const double ax, const double bx, const double cx,
 	return 0.0;
 }
 
-inline void CostFunction::shft3(double &a, double &b, double &c, const double d)
+inline void CostFunction::shft3(real &a, real &b, real &c, const real d)
 {
 	a=b;
 	b=c;
 	c=d;
 }
 
-void CostFunction::mnbrack(double &ax, double &bx, double &cx, 
-						   double &fa, double &fb, double &fc)
+void CostFunction::mnbrack(real &ax, real &bx, real &cx, 
+						   real &fa, real &fb, real &fc)
 {
-	const double GOLD=1.618034, GLIMIT=100.0, TINY=1.0e-20;
-	double ulim,u,r,q,fu;
+	const real GOLD=1.618034, GLIMIT=100.0, TINY=1.0e-20;
+	real ulim,u,r,q,fu;
 	
 	fa = f1dim(ax);
 	fb = f1dim(bx);

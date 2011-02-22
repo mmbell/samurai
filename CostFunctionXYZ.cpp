@@ -208,7 +208,7 @@ void CostFunctionXYZ::initState()
 	
 	// Compute and display the variable RMS and BG errors for reference
 	for (int var = 0; var < varDim; var++) {
-		double varScale = 0;
+		real varScale = 0;
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -219,7 +219,7 @@ void CostFunctionXYZ::initState()
 		}
 		varScale = sqrt(varScale/(iDim*jDim*kDim));
 		if (varScale) {
-			double errPct = 100*bgError[var]/varScale;
+			real errPct = 100*bgError[var]/varScale;
 			cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var] 
 			<< " ( " << errPct << " %)" << endl;
 		} else {
@@ -251,10 +251,10 @@ void CostFunctionXYZ::initState()
 			
 }	
 
-double CostFunctionXYZ::funcValue(double* state)
+real CostFunctionXYZ::funcValue(real* state)
 {
 
-	double qIP, obIP, mcIP;
+	real qIP, obIP, mcIP;
 	qIP = 0.;
 	obIP = 0.;
 	mcIP = 0.;
@@ -284,12 +284,12 @@ double CostFunctionXYZ::funcValue(double* state)
 		}
 	}
 	
-	double J = 0.5*(qIP + obIP + mcIP);
+	real J = 0.5*(qIP + obIP + mcIP);
 	return J;
 	
 }
 
-void CostFunctionXYZ::funcGradient(double* state, double* gradient)
+void CostFunctionXYZ::funcGradient(real* state, real* gradient)
 {
 	
 	updateHCq(state);
@@ -310,7 +310,7 @@ void CostFunctionXYZ::funcGradient(double* state, double* gradient)
 	
 }
 
-void CostFunctionXYZ::updateHCq(double* state)
+void CostFunctionXYZ::updateHCq(real* state)
 {
 
 	// SB transform from the q's
@@ -1089,7 +1089,7 @@ bool CostFunctionXYZ::setupSplines()
 		// Cholesky decomp of P+Q
 		for (int i=0;i<iDim;i++) {
 			for (int j=i;j<iDim;j++) {
-				double sum=P[i][j];
+				real sum=P[i][j];
 				for (int k=i-1;k>=0;k--) {
 					sum -= P[i][k]*P[j][k];
 				}
@@ -1184,7 +1184,7 @@ bool CostFunctionXYZ::setupSplines()
 		// Cholesky decomp
 		for (int i=0;i<jDim;i++) {
 			for (int j=i;j<jDim;j++) {
-				double sum=P[i][j];
+				real sum=P[i][j];
 				for (int k=i-1;k>=0;k--) {
 					sum -= P[i][k]*P[j][k];
 				}
@@ -1279,7 +1279,7 @@ bool CostFunctionXYZ::setupSplines()
 		// Cholesky decomp
 		for (int i=0;i<kDim;i++) {
 			for (int j=i;j<kDim;j++) {
-				double sum=P[i][j];
+				real sum=P[i][j];
 				for (int k=i-1;k>=0;k--) {
 					sum -= P[i][k]*P[j][k];
 				}
@@ -1685,7 +1685,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	qcstream << endl;
 	qcstream.precision(10);
 
-	ostream_iterator<double> od(qcstream, "\t ");
+	ostream_iterator<real> od(qcstream, "\t ");
 	for (int m = 0; m < mObs; m++) {
 		int mi = m*14;
 		real i = obsVector[mi+2];
@@ -2174,10 +2174,10 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
-	/* double latrad =latReference * 1.745329251994e-02;
-	double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
+	/* real latrad =latReference * 1.745329251994e-02;
+	real fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-	double fac_lon = 111.41513 * cos(latrad)
+	real fac_lon = 111.41513 * cos(latrad)
 	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad); */
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		real i = (iMin + DI * iIndex)*1000;
@@ -2360,14 +2360,14 @@ void CostFunctionXYZ::fillBasisLookup()
 
 	real ONESIXTH = 1./6.;
 	for (int i=0; i < 2000000; i++) {
-		real z = 2.0 - double(i)/1000000.;
+		real z = 2.0 - real(i)/1000000.;
 		real b = (z*z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)
 			b -= (z*z*z) * 4 * ONESIXTH;
 		basis0[i] = b;
 		
-		z = 2.0 - double(i)/1000000.;
+		z = 2.0 - real(i)/1000000.;
 		b = (z*z) * ONESIXTH;
 		z -= 1.0;
 		if (z > 0)

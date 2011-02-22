@@ -25,11 +25,9 @@ class CostFunctionXYZ: public CostFunction
 {
 	
 public:
-	typedef BSplineBase<real> SplineBase;
-	typedef BSpline<real> SplineD;
 	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYZ();
-    void initialize(const QHash<QString, QString>& config, real* bgU, real* obs); 
+       void initialize(const QHash<QString, QString>& config, real* bgU, real* obs); 
 	void finalize();
 	void updateBG();
 	void initState();

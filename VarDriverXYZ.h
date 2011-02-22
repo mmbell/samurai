@@ -31,6 +31,7 @@ class VarDriverXYZ : public VarDriver
 public:
 	VarDriverXYZ();
 	~VarDriverXYZ();
+	
 	// ESMF type calls
 	bool initialize(const QDomElement& configuration);
 	bool run();
@@ -45,44 +46,28 @@ private:
 	bool loadMetObs();
 	bool loadBGfromFile();
 	int loadBackgroundObs();
-	bool bilinearMish();
-	real bilinearField(real xPos, real yPos, int var);
 	void updateAnalysisParams();
 
-	vector<real> x;
-	vector<real> y;
-	unsigned int* RnumGridpts;
 	vector<Observation> obVector;
-	int bc;
-	double iincr;
-	double jincr;
-	double kincr;
-	double CQTOL;
 	int maxIter;
-	real zLevel;
+
+	// Cost Functions
+	CostFunctionXYZ* obCostXYZ;
+	CostFunctionXYZ* bgCostXYZ;
 	
-	vector<real>** BG;
-	vector<real>** BGsave;
-	
-	// Passable variables
+	// Variables passed to Cost function
 	real* bgB;
 	real* bgU;
 	real* bgWeights;
 	real* obs;
 	real* bgObs;
-	const real* iaScalar;
-	const real* iaVector;
-	const real* jaScalar;
-	const real* jaVector;
-	real* ia;
-	real* ja;
 	real imin, imax, jmin, jmax, kmin, kmax;
+	real iincr;
+	real jincr;
+	real kincr;	
 	int idim;
 	int jdim;
 	int kdim;
-	// Cost Functions
-	CostFunctionXYZ* obCostXYZ;
-	CostFunctionXYZ* bgCostXYZ;
 };
 
 #endif

@@ -28,34 +28,34 @@ public:
 protected:
 	int mObs;
 	int nState;
-	double* currState;
-	double* currGradient;
-	double* tempState;
-	double* tempGradient;
-	double* xt;
-	double* df;
-	virtual double funcValue(double* state) = 0;
-	virtual void funcGradient(double* state, double* gradient) = 0;
+	real* currState;
+	real* currGradient;
+	real* tempState;
+	real* tempGradient;
+	real* xt;
+	real* df;
+	virtual real funcValue(real* state) = 0;
+	virtual void funcGradient(real* state, real* gradient) = 0;
 	
-	void conjugateGradient(double* q, double* xi, const double ftol, double funcMin);
-	void dlinmin(double* &p, double* &xi, double &fret);
-	double f1dim(const double x);
-	double df1dim(const double x);
-	inline void mov3(double &a, double &b, double &c,
-					 const double d, const double e, const double f);
-	double dbrent(const double ax, const double bx, const double cx,
-				  const double tol, double &xmin);
-	inline void shft3(double &a, double &b, double &c, const double d);
-	void mnbrack(double &ax, double &bx, double &cx, 
-				 double &fa, double &fb, double &fc);
+	void conjugateGradient(real* q, real* xi, const real ftol, real funcMin);
+	void dlinmin(real* &p, real* &xi, real &fret);
+	real f1dim(const real x);
+	real df1dim(const real x);
+	inline void mov3(real &a, real &b, real &c,
+					 const real d, const real e, const real f);
+	real dbrent(const real ax, const real bx, const real cx,
+				  const real tol, real &xmin);
+	inline void shft3(real &a, real &b, real &c, const real d);
+	void mnbrack(real &ax, real &bx, real &cx, 
+				 real &fa, real &fb, real &fc);
 	
 private:
-	inline double MAX(const double &a, const double &b) 
+	inline real MAX(const real &a, const real &b) 
 	{return b > a ? (b) : (a); }
-	inline double SIGN(const double &a, const double &b) 
+	inline real SIGN(const real &a, const real &b) 
 	{return b >= 0 ? (a >= 0 ? a : -a) : (a >= 0 ? -a : a); }
-	inline void SWAP(double &a, double &b)
-	{double dum=a; a=b; b=dum;}
+	inline void SWAP(real &a, real &b)
+	{real dum=a; a=b; b=dum;}
 	
 };
 

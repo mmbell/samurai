@@ -44,9 +44,9 @@ void VarDriverXYZ::preProcessMetObs()
 	real referenceLon = configHash.value("reflon").toFloat();
 
 	// Exponential for the reflectivity
-	double ROI = 1.25*(configHash.value("xincr").toFloat());
-	double RSquare = ROI*ROI;
-	double ROIsquare2 = ROI*sqrt(2.);
+	real ROI = 1.25*(configHash.value("xincr").toFloat());
+	real RSquare = ROI*ROI;
+	real ROIsquare2 = ROI*sqrt(2.);
 	
 	// Check the data directory for files
 	QDir dataPath("./vardata");
@@ -158,13 +158,13 @@ void VarDriverXYZ::preProcessMetObs()
 			real Vm = frameVector[fi].getVmean();
 						
 			// Get the X, Y & Z
-			double tcX, tcY, metX, metY;
+			real tcX, tcY, metX, metY;
 			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
 			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
-			double obX = (metX - tcX)/1000.;
-			double obY = (metY - tcY)/1000.;
-			double heightm = metOb.getAltitude();
-			double obZ = heightm/1000.;
+			real obX = (metX - tcX)/1000.;
+			real obY = (metY - tcY)/1000.;
+			real heightm = metOb.getAltitude();
+			real obZ = heightm/1000.;
 			
 			// Make sure the ob is in the domain
 			if ((obX < imin) or (obX > imax) or
@@ -192,7 +192,7 @@ void VarDriverXYZ::preProcessMetObs()
 			varOb.setWeight(0., 4);
 			varOb.setWeight(0., 5);
 			varOb.setWeight(0., 6);
-			double u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd; 
+			real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
 					varOb.setType(MetObs::dropsonde);
@@ -415,24 +415,24 @@ void VarDriverXYZ::preProcessMetObs()
 				{
 					varOb.setType(MetObs::lidar);
 					// Geometry terms
-					double az = metOb.getAzimuth()*Pi/180.;
-					double el = metOb.getElevation()*Pi/180.;
-					double uWgt = sin(az)*cos(el);
-					double vWgt = cos(az)*cos(el);
-					double wWgt = sin(el);
+					real az = metOb.getAzimuth()*Pi/180.;
+					real el = metOb.getElevation()*Pi/180.;
+					real uWgt = sin(az)*cos(el);
+					real vWgt = cos(az)*cos(el);
+					real wWgt = sin(el);
 					
 					// Fall speed is assumed zero since we are dealing with aerosols
-					double db = metOb.getReflectivity();
-					double vr = metOb.getRadialVelocity();
-					double w_term = 0.0;  
-					double Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+					real db = metOb.getReflectivity();
+					real vr = metOb.getRadialVelocity();
+					real w_term = 0.0;  
+					real Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 					
 					varOb.setWeight(uWgt, 0);
 					varOb.setWeight(vWgt, 1);
 					varOb.setWeight(wWgt, 2);
 										
 					// Set the error according to the spectrum width and power
-					double DopplerError = metOb.getSpectrumWidth() + log(50/db);
+					real DopplerError = metOb.getSpectrumWidth() + log(50/db);
 					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);
@@ -447,46 +447,46 @@ void VarDriverXYZ::preProcessMetObs()
 				{
 					varOb.setType(MetObs::radar);
 					// Geometry terms
-					double az = metOb.getAzimuth()*Pi/180.;
-					double el = metOb.getElevation()*Pi/180.;
-					double uWgt = sin(az)*cos(el);
-					double vWgt = cos(az)*cos(el);
-					double wWgt = sin(el);
+					real az = metOb.getAzimuth()*Pi/180.;
+					real el = metOb.getElevation()*Pi/180.;
+					real uWgt = sin(az)*cos(el);
+					real vWgt = cos(az)*cos(el);
+					real wWgt = sin(el);
 					
 					// Fall speed
-					double Z = metOb.getReflectivity();
-					double H = metOb.getAltitude();
-					double ZZ=pow(10.0,(Z*0.1));
-					double zeroC = 4800.;
-					double hlow= zeroC; 
-					double hhi= hlow + 1000;
+					real Z = metOb.getReflectivity();
+					real H = metOb.getAltitude();
+					real ZZ=pow(10.0,(Z*0.1));
+					real zeroC = 4800.;
+					real hlow= zeroC; 
+					real hhi= hlow + 1000;
 					
 					/* density correction term (rhoo/rho)*0.45 
 					 0.45 density correction from Beard (1985, JOAT pp 468-471) */
 					real rho = getReferenceVariable(rhoref, H);
 					real rhosfc = getReferenceVariable(rhoref, 0.);
-					real DCOR = pow((rhosfc/rho),(double)0.45);
+					real DCOR = pow((rhosfc/rho),(real)0.45);
 					
 					// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
-					double VTS=-DCOR * (0.817*pow(ZZ,(double)0.063));
+					real VTS=-DCOR * (0.817*pow(ZZ,(real)0.063));
 					
 					// The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
-					double VTR=-DCOR * (2.6*pow(ZZ,(double).107));
+					real VTR=-DCOR * (2.6*pow(ZZ,(real).107));
 					
 					/* Test if height is in the transition region between SNOW and RAIN
 					   defined as hlow in km < H < hhi in km
 					   if in the transition region do a linear weight of VTR and VTS */
 					if ((Z > 20) and (Z <= 30)) {
-						double WEIGHTR=(Z-20)/(10);
-						double WEIGHTS=1.-WEIGHTR;
+						real WEIGHTR=(Z-20)/(10);
+						real WEIGHTS=1.-WEIGHTR;
 						VTS=(VTR*WEIGHTR+VTS*WEIGHTS)/(WEIGHTR+WEIGHTS);
 					} else if (Z > 30) {
 						VTS=VTR;
 					}
-					double w_term=VTR*(hhi-H)/1000 + VTS*(H-hlow)/1000;  
+					real w_term=VTR*(hhi-H)/1000 + VTS*(H-hlow)/1000;  
 					if (H < hlow) w_term=VTR; 
 					if (H > hhi) w_term=VTS;
-					double Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+					real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 					
 					varOb.setWeight(uWgt, 0);
 					varOb.setWeight(vWgt, 1);
@@ -495,11 +495,11 @@ void VarDriverXYZ::preProcessMetObs()
 					/* Theoretically, rhoPrime could be included as a prognostic variable here...
 					   However, adding another unknown without an extra equation makes the problem even more underdetermined
 					   so assume it is small and ignore it
-					   double rhopWgt = -Vdopp;
+					   real rhopWgt = -Vdopp;
 					  varOb.setWeight(rhopWgt, 5); */
 					
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
-					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
+					real DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
 					if (DopplerError < 1.0) DopplerError = 1.0;
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);
@@ -510,21 +510,21 @@ void VarDriverXYZ::preProcessMetObs()
 					
 					// Reflectivity observations
 					QString gridref = configHash.value("gridreflectivity");
-					double qr = 0.;
+					real qr = 0.;
 					if (gridref == "qr") {
 						// Do the gridding as part of the variational synthesis using Z-M relationships
 						// Z-M relationships from Gamache et al (1993) JAS
-						double rainmass = pow(ZZ/14630.,(double)0.6905);
-						double icemass = pow(ZZ/670.,(double)0.5587);
+						real rainmass = pow(ZZ/14630.,(real)0.6905);
+						real icemass = pow(ZZ/670.,(real)0.5587);
 						if ((Z > 20) and (Z <= 30)) {
-							double WEIGHTR=(Z-20)/(10);
-							double WEIGHTS=1.-WEIGHTR;
+							real WEIGHTR=(Z-20)/(10);
+							real WEIGHTS=1.-WEIGHTR;
 							icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
 						} else if (Z > 30) {
 							icemass=rainmass;
 						}
 						
-						double precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
+						real precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
 						if (H < hlow) precipmass = rainmass;
 						if (H > hhi) precipmass = icemass;
 						qr = bhypTransform(precipmass/rhoBar);
@@ -657,7 +657,7 @@ void VarDriverXYZ::preProcessMetObs()
 	*os++ = "Weight 6";
 	obstream << endl; */
 
-	ostream_iterator<double> od(obstream, "\t ");
+	ostream_iterator<real> od(obstream, "\t ");
 	for (unsigned int i=0; i < obVector.size(); i++) {
 		Observation ob = obVector.at(i);
 		*od++ = ob.getOb();
@@ -706,8 +706,8 @@ bool VarDriverXYZ::loadMetObs()
 {
 	
 	Observation varOb;
-	double wgt[numVars];
-	double xPos, yPos, zPos, ob, error;
+	real wgt[numVars];
+	real xPos, yPos, zPos, ob, error;
 	int type, time;
 	
 	// Open and read the file
@@ -764,11 +764,11 @@ int VarDriverXYZ::loadBackgroundObs()
 	QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
 	SplineD* bgSpline;
 	int time;
-	double lat, lon, alt, u, v, w, t, qv, rhoa;
-	double bgX, bgY, bgZ;
-	float ROI = configHash.value("backgroundroi").toFloat();
-	double RSquare = ROI*ROI;
-	double ROIsquare2 = ROI*sqrt(2.);
+	real lat, lon, alt, u, v, w, t, qv, rhoa;
+	real bgX, bgY, bgZ;
+	real ROI = configHash.value("backgroundroi").toFloat();
+	real RSquare = ROI*ROI;
+	real ROIsquare2 = ROI*sqrt(2.);
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening Background.in for reading.\n";
@@ -801,12 +801,12 @@ int VarDriverXYZ::loadBackgroundObs()
 		real Vm = frameVector[tci].getVmean();
 
 		// Get the X, Y & Z
-		double tcX, tcY, metX, metY;
+		real tcX, tcY, metX, metY;
 		tm.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
 		tm.Forward(referenceLon, lat, lon , metX, metY);
 		bgX = (metX - tcX)/1000.;
 		bgY = (metY - tcY)/1000.;
-		double heightm = alt;
+		real heightm = alt;
 		bgZ = heightm/1000.;
 				
 		// Make sure the ob is in the Interpolation domain
@@ -1205,9 +1205,9 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	if (adjustBG) {
 		/* Set the minimum filter length to the background resolution, not the analysis resolution
 		 to avoid artifacts when running interpolating to small mesoscale grids */
-		float hfilter = configHash.value("xfilter").toFloat();
-		float ares = hfilter*iincr;
-		float bgres = configHash.value("backgroundroi").toFloat();
+		real hfilter = configHash.value("xfilter").toFloat();
+		real ares = hfilter*iincr;
+		real bgres = configHash.value("backgroundroi").toFloat();
 		if (ares < bgres) {
 			QString bgfilter;
 			bgfilter.setNum(bgres/iincr);
