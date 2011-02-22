@@ -1,6 +1,7 @@
 build/*
 libs/*
 *.xcodeproj/*
+*.app/*
 .svn
 .DS_Store
 profile

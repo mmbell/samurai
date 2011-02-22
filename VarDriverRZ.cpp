@@ -68,8 +68,8 @@ void VarDriverRZ::preProcessMetObs()
 	dataPath.setSorting(QDir::Name);
 	QStringList filenames = dataPath.entryList();
 
-	QDateTime startTime = tcVector.front().getTime();
-	QDateTime endTime = tcVector.back().getTime();
+	QDateTime startTime = frameVector.front().getTime();
+	QDateTime endTime = frameVector.back().getTime();
 	QString start = startTime.toString(Qt::ISODate);
 	QString end = endTime.toString(Qt::ISODate);
 	cout << "TC centers found from " << start.toAscii().data() << " to " << end.toAscii().data() << endl;	
@@ -150,7 +150,7 @@ void VarDriverRZ::preProcessMetObs()
 			//cout << "Obtime: " << obTime.toString(Qt::ISODate).toAscii().data() << endl;
 			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int tci = startTime.secsTo(obTime);
-			if ((tci < 0) or (tci > (int)tcVector.size())) {
+			if ((tci < 0) or (tci > (int)frameVector.size())) {
 				cout << "Time problem with observation " << tci << endl;
 				continue;
 			}
@@ -159,13 +159,13 @@ void VarDriverRZ::preProcessMetObs()
 			Observation varOb;
 			
 			// Get the radius
-			double latrad = tcVector[tci].getLat() * Pi/180.0;
+			double latrad = frameVector[tci].getLat() * Pi/180.0;
 			double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 			+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 			double fac_lon = 111.41513 * cos(latrad)
 			- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-			double y = (metOb.getLat() - tcVector[tci].getLat())*fac_lat;
-			double x = (metOb.getLon() - tcVector[tci].getLon())*fac_lon;
+			double y = (metOb.getLat() - frameVector[tci].getLat())*fac_lat;
+			double x = (metOb.getLon() - frameVector[tci].getLon())*fac_lon;
 			double rad = sqrt(x*x + y*y);
 			
 			// Make sure the ob is in the domain
@@ -175,8 +175,8 @@ void VarDriverRZ::preProcessMetObs()
 				continue;
 			
 			varOb.setRadius(rad);
-			real Um = tcVector[tci].getUmean();
-			real Vm = tcVector[tci].getVmean();
+			real Um = frameVector[tci].getUmean();
+			real Vm = frameVector[tci].getVmean();
 
 			real height = metOb.getAltitude();
 			varOb.setAltitude(height);
@@ -845,7 +845,7 @@ bool VarDriverRZ::initialize()
 	// Read in the TC centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
-	readTCcenters();
+	readFrameCenters();
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file

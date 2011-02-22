@@ -24,7 +24,7 @@ HEADERS += BandedMatrix.h \
            Dorade.h \
            read_dorade.h \
            precision.h \
-           TCcenter.h
+           FrameCenter.h
 SOURCES += BSpline.cpp \
            BSplineD.cpp \
            BSplineF.cpp \
@@ -43,5 +43,18 @@ SOURCES += BSpline.cpp \
            VarDriverXYZ.cpp \ 
 	   VarDriverVAR.cpp \
            Dorade.cpp \
-           TCcenter.cpp
+           FrameCenter.cpp
+macx-xcode {
+  SOURCES += mac_debug.xcconfig \
+             mac_release.xcconfig
+}
 QT += xml
+
+# External libraries
+macx {
+  LOCALINCLUDE = /Users/mmbell/Development/include /opt/local/include
+  LOCALLIB = -L/opt/local/lib -L/Users/mmbell/Development/lib
+}
+INCLUDEPATH = $$LOCALINCLUDE
+LIBS += $$LOCALLIB -lcurl -lGeographic -lhdf5 -lnetcdf -lnetcdf_c++
+

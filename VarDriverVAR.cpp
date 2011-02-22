@@ -130,8 +130,8 @@ void VarDriverVAR::preProcessMetObs()
 		processedFiles++;
 		
 		// Process the metObs into Observations
-		QDateTime startTime = tcVector.front().getTime();
-		QDateTime endTime = tcVector.back().getTime();
+		QDateTime startTime = frameVector.front().getTime();
+		QDateTime endTime = frameVector.back().getTime();
 		for (int i = 0; i < metData->size(); ++i) {
 			
 			// Make sure the ob is within the time limits
@@ -142,7 +142,7 @@ void VarDriverVAR::preProcessMetObs()
 			QString tcend = endTime.toString(Qt::ISODate);		
 			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int tci = startTime.secsTo(obTime);
-			if ((tci < 0) or (tci > (int)tcVector.size())) {
+			if ((tci < 0) or (tci > (int)frameVector.size())) {
 				cout << "Time problem with observation " << tci << endl;
 				continue;
 			}
@@ -151,13 +151,13 @@ void VarDriverVAR::preProcessMetObs()
 			Observation varOb;
 			
 			// Get the X, Y & Z
-			double latrad = tcVector[tci].getLat() * Pi/180.0;
+			double latrad = frameVector[tci].getLat() * Pi/180.0;
 			double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
 			+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
 			double fac_lon = 111.41513 * cos(latrad)
 			- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-			double obY = (metOb.getLat() - tcVector[tci].getLat())*fac_lat;
-			double obX = (metOb.getLon() - tcVector[tci].getLon())*fac_lon;
+			double obY = (metOb.getLat() - frameVector[tci].getLat())*fac_lat;
+			double obX = (metOb.getLon() - frameVector[tci].getLon())*fac_lon;
 			double height = metOb.getAltitude();
 			// Make sure the ob is in the domain
 			if ((obX < x.front()) or (obX > x.back()) or
@@ -167,8 +167,8 @@ void VarDriverVAR::preProcessMetObs()
 			
 			varOb.setCartesianX(obX);
 			varOb.setCartesianY(obY);
-			real Um = tcVector[tci].getUmean();
-			real Vm = tcVector[tci].getVmean();
+			real Um = frameVector[tci].getUmean();
+			real Vm = frameVector[tci].getVmean();
 
 			varOb.setAltitude(height);
 			
@@ -820,7 +820,7 @@ bool VarDriverVAR::initialize()
 	// Read in the TC centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
-	readTCcenters();
+	readFrameCenters();
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.out file

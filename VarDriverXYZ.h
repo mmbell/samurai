@@ -15,7 +15,7 @@
 #include "Observation.h"
 #include "CostFunctionXYZ.h"
 #include "MetObs.h"
-#include "TCcenter.h"
+#include "FrameCenter.h"
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -47,7 +47,8 @@ private:
 	int loadBackgroundObs();
 	bool bilinearMish();
 	real bilinearField(real xPos, real yPos, int var);
-	
+	void updateAnalysisParams();
+
 	vector<real> x;
 	vector<real> y;
 	unsigned int* RnumGridpts;

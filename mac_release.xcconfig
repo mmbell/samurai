@@ -1,0 +1,12 @@
+//
+//  mac_release.xcconfig
+//  samurai
+//
+//  Copyright Michael Bell 2011.
+//
+
+ARCHS = $(ARCHS_STANDARD_64_BIT)
+ENABLE_OPENMP_SUPPORT = YES
+MACOSX_DEPLOYMENT_TARGET = 10.5
+GCC_AUTO_VECTORIZATION = YES
+GCC_OPTIMIZATION_LEVEL = 3

@@ -15,8 +15,10 @@
 #include <QDomNodeList>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
+// Constructor
 VarDriver::VarDriver()
 {
+	// Constant for all drivers
 	Pi = acos(-1);
 	
 	// Set up the datatype hash
@@ -37,12 +39,18 @@ VarDriver::VarDriver()
 	
 }
 
+// Destructor
 VarDriver::~VarDriver()
 {
 
 }
 
-bool VarDriver::readTCcenters()
+/* This routine reads a text file containing a list of 1 second centers for the inertial reference frame
+ File must be named yyyyMMdd.cen and has the format:
+ HHmmss lat lon Vm Um
+ where Vm and Um are the frame motion in m/s */
+
+bool VarDriver::readFrameCenters()
 {
 	// Check the data directory for a centerfile
 	QDir dataPath("./vardata");
@@ -63,15 +71,19 @@ bool VarDriver::readTCcenters()
 			break;
 		}
 	}
+	
+	// Open the file
 	QFile centerFile(dataPath.filePath(centerFilename));
 	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		std::cout << "Unable to open centerfile " << centerFilename.toAscii().data() << std::endl;
 		return false;
 	}
 	
+	// Get the date from the filename
 	QString datestr = centerFilename.left(8);	
 	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	
+	// Read the centers
 	QTextStream in(&centerFile);
 	while (!in.atEnd()) {
 		QDate date;
@@ -99,12 +111,14 @@ bool VarDriver::readTCcenters()
 		float lon = lineparts[2].toFloat();
 		float Vm = lineparts[3].toFloat();
 		float Um = lineparts[4].toFloat();
-		TCcenter center(datetime, lat, lon, Um, Vm);
-		tcVector.push_back(center);
+		FrameCenter center(datetime, lat, lon, Um, Vm);
+		frameVector.push_back(center);
 	}
 	
 	return true;
 }
+
+/* This routine reads the FRD dropsonde format from NOAA/HRD */
 
 bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -157,6 +171,8 @@ bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
 	metFile.close();
 	return true;
 }
+
+/* This routine reads the old CLASS dropsonde format from NCAR */
 
 bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -241,6 +257,8 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 	return true;
 }
 
+/* This routine reads the modified CLASS dropsonde format from NCAR for the TPARC/TCS08 Dataset (and maybe TREX?) */
+
 bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -324,6 +342,8 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 	return true;
 }
 
+/* This routine reads the modified CLASS dropsonde format from NCAR for the PREDICT field project */
+
 bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -402,11 +422,13 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 	return true;
 }
 
+/* This routine reads a 1 sec flight level data file similar to the format provided by NOAA/HRD
+ Columns are:
+  TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     
+ SurfP    VtWnd     Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
-	/* TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     
-	 SurfP    VtWnd     Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 	
@@ -446,7 +468,8 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		ob.setLat(lineparts[1].toFloat());
-		//ob.setLon(-lineparts[2].toFloat());
+		
+		// Note that the longitude can sometimes be given in degrees West, which jacks up the typically negative decimal representation for US locations;
 		ob.setLon(lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
 		ob.setPressure(lineparts[8].toFloat());
@@ -474,6 +497,8 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+/* This routine reads a 10 sec flight level data file from the data provided by the USAF Hurricane Hunters */
+
 bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -481,17 +506,33 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 	
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
-	aircraft = metFile.fileName().indexOf(QRegExp("HINU"));
-	//datestr = metFile.fileName().left(8);	
-	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
-	// Hard code date for now
-	QDate date(2003, 9, 12);
+	QFileInfo info(metFile);
+	QString fileName = info.fileName();
+	aircraft = fileName.indexOf(QRegExp("HINUE"));
+	datestr = fileName.left(8);	
+	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
+	QDate date;
 	MetObs ob;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
 		QDateTime datetime;
 		ob.setStationName(aircraft);
 		timestr = line.left(8);
+		int hour = timestr.left(2).toInt();
+		if (hour > 23) {
+			date = startDate.addDays(1);
+			hour -= 24;
+			QString newhr;
+			newhr.setNum(hour);
+			if (hour < 10) {
+				timestr.replace(0,1,"0");
+				timestr.replace(1,1,newhr);
+			} else {
+				timestr.replace(0,2,newhr);
+			}
+		} else {
+			date = startDate;
+		}		
 		QTime time = QTime::fromString(timestr, "HH:mm:ss");
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);
@@ -506,6 +547,7 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 		double lon = -(lineparts[3].toFloat() + lonmin/60);
 		ob.setLon(lon);
 		ob.setAltitude(lineparts[11].toFloat());
+		
 		// Calculate pressure from palt using HRD formula
 		double palt = lineparts[10].toFloat();
 		double press =  1013.25*pow((1-palt/44331.),(1/.190263));
@@ -523,10 +565,16 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 	return true;	
 }
 
+/* This routine reads a Dorade Sweepfile
+	This does not correctly read 'pure' Dorade files due to big-endian representation in that format, 
+	so it needs a byte swap which has not been implemented yet*/
+
 bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 {
 
 	Dorade swpfile(metFile.fileName());
+	
+	// Use a Transverse Mercator projection to map the radar gates to the grid
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 
 	QString radardbz = configHash.value("radardbz");
@@ -580,7 +628,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				double relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
 				double relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
 				double rEarth = 6371000.0;
-				// Take into account curvature of the earth
+				
+				// Take into account curvature of the earth for the height of the radar beam
 				double relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 				double radarX, radarY, gateLat, gateLon;
 				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
@@ -609,6 +658,9 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+
+/* This routine reads an old SFMR data format from CBLAST, not sure how current this is */
+
 bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 {
 
@@ -620,10 +672,6 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 	QDateTime datetime;
 	QTime time;
 	QDate date;
-	//datestr = metFile.fileName().left(8);	
-	//QDate date = QDate::fromString(datestr, "yyyyMMdd");
-	// Hard code date for now
-	//QDate date(2003, 9, 12);
 	MetObs ob;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
@@ -653,6 +701,8 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 	return true;		
 
 }
+
+/* This routine reads an ASCII dump of the Level II Quikscat data, see code for columns*/
 
 bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -699,6 +749,7 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+/* This routine reads an ASCII dump of the ASCAT data, see code for columns*/
 
 bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -730,6 +781,8 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 	return true;		
 	
 }
+
+/* This routine reads an ASCII dump of the Quikscat data for NOPP, see code for columns*/
 
 bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -770,6 +823,10 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+/* This routine reads the CIMSS atmospheric motion vector files.
+	Pressure levels are converted to Heights via Newton's method and the background
+       reference state */
+
 bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 {
 	
@@ -794,9 +851,8 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setTime(datetime);
 		ob.setLat(lineparts[4].toFloat());
 		ob.setLon(-lineparts[5].toFloat());
-		// Convert pressure to altitude
+		// Convert pressure to altitude using Newton's method
 		real presslevel = 100*lineparts[6].toFloat();
-		// Newton's method 
 		double height = 9000;
 		double pmin = 1e34;
 		int iter = 0;
@@ -820,6 +876,8 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 	return true;		
 	
 }
+
+/* This routine reads the LOS Doppler Wind Lidar data from TPARC, see code for columns*/
 
 bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -853,10 +911,9 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			float achdg = lineparts[4].toFloat();
 			float az = lineparts[6].toFloat() + achdg;
 			float el = lineparts[7].toFloat();
-			//int rayskip = configHash.value("radarskip").toInt();
-			//int minstride = configHash.value("radarstride").toInt();
 
-			// Lidar data is sufficiently sparse to include it all for now
+			// Lidar data is sufficiently sparse compared to radar data to include it all for now
+			// Could implement some data thinning here
 			int stride = 1;
 		
 			for (int n=0; n < lineparts[10].toInt(); n+=stride) {
@@ -915,6 +972,8 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+/* This routine parses the supplied XML configuration and validates that all required parameters are present
+	It does not check the validity of a particular parameter, just that it exists */
 
 bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
@@ -939,7 +998,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"uerror" << "verror" << "werror" << "terror" << 
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
-	"horizontalbc" << "verticalbc" <<
+	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
 	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
@@ -951,6 +1010,9 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	
 }
 
+/* Biased Hyperbolic transform for positive definite quanitity
+	See Ooyama (2001) Journal of Atmospheric Sciences */
+
 real VarDriver::bhypTransform(real qv)
 {
 	
@@ -958,6 +1020,8 @@ real VarDriver::bhypTransform(real qv)
 	return qvbhyp;
 	
 }
+
+/* Quasi-Inverse of Biased Hyperbolic transform for positive definite quanitity */
 
 real VarDriver::bhypInvTransform(real qvbhyp)
 {
@@ -967,6 +1031,10 @@ real VarDriver::bhypInvTransform(real qvbhyp)
 	}
 	return qv;
 }
+
+/* Fourth order polynomial coefficients define the background reference state
+	which is in hydrostatic balance. Dunion (2010) moist tropical sounding is only
+	current implementation */
 
 real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm, const int& dz)
 {
@@ -1045,6 +1113,7 @@ real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm
 		}
 		return rho;
 	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
+		
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
 		if (dz) return 0; // Need to go ahead and code this
 		real press = 0.;

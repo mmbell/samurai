@@ -1,0 +1,8 @@
+//
+//  mac_debug.xcconfig
+//  samurai
+//
+//  Copyright Michael Bell 2011.
+//
+
+ARCHS = $(ARCHS_STANDARD_64_BIT)

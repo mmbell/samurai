@@ -1,23 +1,23 @@
 /*
- *  TCcenter.h
+ *  FrameCenter.h
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#ifndef TCCENTER
-#define TCCENTER
+#ifndef FRAMECENTER
+#define FRAMECENTER
 
 #include <QDateTime>
 
-class TCcenter
+class FrameCenter
 {
 		
 public:
-	TCcenter();
-	TCcenter(QDateTime& time, float& lat, float& lon, float& u, float& v);
-	~TCcenter();
+	FrameCenter();
+	FrameCenter(QDateTime& time, float& lat, float& lon, float& u, float& v);
+	~FrameCenter();
 	
 	void printString();
 	

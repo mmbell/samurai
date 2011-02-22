@@ -18,6 +18,7 @@
 #include "RecursiveFilter.h"
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
+// Constructor
 VarDriverXYZ::VarDriverXYZ()
 	: VarDriver()
 {
@@ -25,10 +26,13 @@ VarDriverXYZ::VarDriverXYZ()
 	maxIter = 1.;
 }
 
+// Destructor
 VarDriverXYZ::~VarDriverXYZ()
 {
 }
 
+/* Pre-process the observations into a single vector
+ On the wishlist is some integrated QC here other than just spatial thresholding */
 
 void VarDriverXYZ::preProcessMetObs()
 {
@@ -39,7 +43,7 @@ void VarDriverXYZ::preProcessMetObs()
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("reflon").toFloat();
 
-	// Cressman for the reflectivity
+	// Exponential for the reflectivity
 	double ROI = 1.25*(configHash.value("xincr").toFloat());
 	double RSquare = ROI*ROI;
 	double ROIsquare2 = ROI*sqrt(2.);
@@ -134,8 +138,8 @@ void VarDriverXYZ::preProcessMetObs()
 		processedFiles++;
 		
 		// Process the metObs into Observations
-		QDateTime startTime = tcVector.front().getTime();
-		QDateTime endTime = tcVector.back().getTime();
+		QDateTime startTime = frameVector.front().getTime();
+		QDateTime endTime = frameVector.back().getTime();
 		for (int i = 0; i < metData->size(); ++i) {
 			
 			// Make sure the ob is within the time limits
@@ -145,45 +149,36 @@ void VarDriverXYZ::preProcessMetObs()
 			QString tcstart = startTime.toString(Qt::ISODate);
 			QString tcend = endTime.toString(Qt::ISODate);		
 			if ((obTime < startTime) or (obTime > endTime)) continue;
-			int tci = startTime.secsTo(obTime);
-			if ((tci < 0) or (tci > (int)tcVector.size())) {
-				cout << "Time problem with observation " << tci << endl;
+			int fi = startTime.secsTo(obTime);
+			if ((fi < 0) or (fi > (int)frameVector.size())) {
+				cout << "Time problem with observation " << fi << endl;
 				continue;
 			}
-			
-			// Our generic observation
-			Observation varOb;
-			
+			real Um = frameVector[fi].getUmean();
+			real Vm = frameVector[fi].getVmean();
+						
 			// Get the X, Y & Z
 			double tcX, tcY, metX, metY;
-			tm.Forward(referenceLon, tcVector[tci].getLat() , tcVector[tci].getLon() , tcX, tcY);
+			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
 			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
 			double obX = (metX - tcX)/1000.;
 			double obY = (metY - tcY)/1000.;
 			double heightm = metOb.getAltitude();
 			double obZ = heightm/1000.;
 			
-			/* double latrad = tcVector[tci].getLat() * Pi/180.0;
-			double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-			+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-			double fac_lon = 111.41513 * cos(latrad)
-			- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-			double obY = (metOb.getLat() - tcVector[tci].getLat())*fac_lat;
-			double obX = (metOb.getLon() - tcVector[tci].getLon())*fac_lon; */
 			// Make sure the ob is in the domain
 			if ((obX < imin) or (obX > imax) or
 				(obY < jmin) or (obY > jmax) or
 				(obZ < kmin) or (obZ > kmax))
 				continue;
 			
+			// Create an observation and set its basic info
+			Observation varOb;
 			varOb.setCartesianX(obX);
 			varOb.setCartesianY(obY);
 			varOb.setAltitude(obZ);
 			varOb.setTime(obTime.toTime_t());
 			
-			real Um = tcVector[tci].getUmean();
-			real Vm = tcVector[tci].getVmean();
-
 			// Reference states			
 			real rhoBar = getReferenceVariable(rhoaref, heightm);
 			real qBar = getReferenceVariable(qvbhypref, heightm);
@@ -426,26 +421,16 @@ void VarDriverXYZ::preProcessMetObs()
 					double vWgt = cos(az)*cos(el);
 					double wWgt = sin(el);
 					
-					// Fall speed is assumed zero for now since we are dealing with aerosols, perhaps this could be done better
-					// Reflectivity observations only used for QC -- need to move this into a pre-processing step
+					// Fall speed is assumed zero since we are dealing with aerosols
 					double db = metOb.getReflectivity();
 					double vr = metOb.getRadialVelocity();
-					
-					// Simple threshold, but this is not a good general solution!
-					if (fabs(vr) > 10.0) continue;
 					double w_term = 0.0;  
 					double Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 					
 					varOb.setWeight(uWgt, 0);
 					varOb.setWeight(vWgt, 1);
 					varOb.setWeight(wWgt, 2);
-					
-					// Theoretically, rhoPrime could be included as a prognostic variable here...
-					// However, adding another unknown without an extra equation makes the problem even more underdetermined
-					// so assume it is small and ignore it
-					// double rhopWgt = -Vdopp;
-					//varOb.setWeight(rhopWgt, 5);
-					
+										
 					// Set the error according to the spectrum width and power
 					double DopplerError = metOb.getSpectrumWidth() + log(50/db);
 					if (DopplerError < 1.0) DopplerError = 1.0;
@@ -476,11 +461,8 @@ void VarDriverXYZ::preProcessMetObs()
 					double hlow= zeroC; 
 					double hhi= hlow + 1000;
 					
-					/* density correction term (rhoo/rho)*0.45 [rho(Z)=rho_o exp-(z/H), where 
-					 H is the scale height = 9.58125 from Gray's inner 2 deg composite] 
-					 0.45 density correction from Beard (1985, JOAT pp 468-471) 
-					 Adjusted to use Jordan hydrostatic scale height -MB */
-					//double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
+					/* density correction term (rhoo/rho)*0.45 
+					 0.45 density correction from Beard (1985, JOAT pp 468-471) */
 					real rho = getReferenceVariable(rhoref, H);
 					real rhosfc = getReferenceVariable(rhoref, 0.);
 					real DCOR = pow((rhosfc/rho),(double)0.45);
@@ -490,6 +472,7 @@ void VarDriverXYZ::preProcessMetObs()
 					
 					// The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
 					double VTR=-DCOR * (2.6*pow(ZZ,(double).107));
+					
 					/* Test if height is in the transition region between SNOW and RAIN
 					   defined as hlow in km < H < hhi in km
 					   if in the transition region do a linear weight of VTR and VTS */
@@ -509,11 +492,11 @@ void VarDriverXYZ::preProcessMetObs()
 					varOb.setWeight(vWgt, 1);
 					varOb.setWeight(wWgt, 2);
 					
-					// Theoretically, rhoPrime could be included as a prognostic variable here...
-					// However, adding another unknown without an extra equation makes the problem even more underdetermined
-					// so assume it is small and ignore it
-					// double rhopWgt = -Vdopp;
-					//varOb.setWeight(rhopWgt, 5);
+					/* Theoretically, rhoPrime could be included as a prognostic variable here...
+					   However, adding another unknown without an extra equation makes the problem even more underdetermined
+					   so assume it is small and ignore it
+					   double rhopWgt = -Vdopp;
+					  varOb.setWeight(rhopWgt, 5); */
 					
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
 					double DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
@@ -563,7 +546,7 @@ void VarDriverXYZ::preProcessMetObs()
 						
 					}
 
-					// Do a Cressman interpolation of the maximum reflectivity/qr in a grid box
+					// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
 					for (int zi = 0; zi < (kdim-1); zi++) {	
 						for (int zmu = -1; zmu <= 1; zmu += 2) {
 							real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
@@ -583,7 +566,7 @@ void VarDriverXYZ::preProcessMetObs()
 											int bgK = zi*2 + (zmu+1)/2;
 											int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
 											if (rSquare < RSquare) {
-												real weight = (RSquare - rSquare)/(RSquare + rSquare);
+												real weight = ZZ*exp(-rSquare/RSquare);
 												//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
 												bgU[bIndex +6] += weight*qr;
 												bgWeights[bIndex] += weight;
@@ -606,7 +589,7 @@ void VarDriverXYZ::preProcessMetObs()
 	
 	delete metData;
 	
-	// Finish Cressman for reflectivity
+	// Finish reflectivity interpolation
 	Observation varOb;
 	varOb.setTime(configHash.value("reftime").toFloat());	
 	varOb.setWeight(0., 0);
@@ -642,7 +625,9 @@ void VarDriverXYZ::preProcessMetObs()
 							}
 						}
 					}
-					if (maxrefHeight > 0) {
+					
+					if ((maxrefHeight > 0) and (maxrefHeight < kmax)
+						and (configHash.value("use_dbz_pseudow").toInt())) {
 						varOb.setCartesianX(xPos);
 						varOb.setCartesianY(yPos);
 						varOb.setAltitude(maxrefHeight);					
@@ -715,15 +700,17 @@ void VarDriverXYZ::preProcessMetObs()
 	
 }
 
+/* Load the meteorological observations from a file into a vector */
 
 bool VarDriverXYZ::loadMetObs()
 {
 	
-	// Our generic observation
 	Observation varOb;
 	double wgt[numVars];
 	double xPos, yPos, zPos, ob, error;
 	int type, time;
+	
+	// Open and read the file
 	ifstream obstream("./samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
 		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
@@ -740,7 +727,7 @@ bool VarDriverXYZ::loadMetObs()
 		obVector.push_back(varOb);
 	}
 	
-	// Load the observations into a vector
+	// Load the observations into the vector
 	obs = new real[obVector.size()*14];
 	for (unsigned int m=0; m < obVector.size(); m++) {
 		int n = m*14;
@@ -760,6 +747,8 @@ bool VarDriverXYZ::loadMetObs()
 	
 	return true;
 }
+
+/* Load the background estimates from a file */
 
 int VarDriverXYZ::loadBackgroundObs()
 {
@@ -791,8 +780,8 @@ int VarDriverXYZ::loadBackgroundObs()
 	{
 	
 		// Process the metObs into Observations
-		QDateTime startTime = tcVector.front().getTime();
-		QDateTime endTime = tcVector.back().getTime();
+		QDateTime startTime = frameVector.front().getTime();
+		QDateTime endTime = frameVector.back().getTime();
 		
 		// Make sure the bg is within the time limits
 		QDateTime bgTime;
@@ -803,37 +792,29 @@ int VarDriverXYZ::loadBackgroundObs()
 		QString tcend = endTime.toString(Qt::ISODate);		
 		if ((bgTime < startTime) or (bgTime > endTime)) continue;
 		int tci = startTime.secsTo(bgTime);
-		if ((tci < 0) or (tci > (int)tcVector.size())) {
+		if ((tci < 0) or (tci > (int)frameVector.size())) {
 			cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
 			continue;
 		}
 		
+		real Um = frameVector[tci].getUmean();
+		real Vm = frameVector[tci].getVmean();
+
 		// Get the X, Y & Z
 		double tcX, tcY, metX, metY;
-		tm.Forward(referenceLon, tcVector[tci].getLat() , tcVector[tci].getLon() , tcX, tcY);
+		tm.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
 		tm.Forward(referenceLon, lat, lon , metX, metY);
 		bgX = (metX - tcX)/1000.;
 		bgY = (metY - tcY)/1000.;
 		double heightm = alt;
 		bgZ = heightm/1000.;
-		
-		/* double latrad = tcVector[tci].getLat() * Pi/180.0;
-		double fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-		+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-		double fac_lon = 111.41513 * cos(latrad)
-		- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad);
-		bgY = (lat - tcVector[tci].getLat())*fac_lat;
-		bgX = (lon - tcVector[tci].getLon())*fac_lon; */
-		
-		// Make sure the ob is in the Cressman domain
+				
+		// Make sure the ob is in the Interpolation domain
 		if ((bgX < (imin-ROIsquare2)) or (bgX > (imax+ROIsquare2)) or
 			(bgY < (jmin-ROIsquare2)) or (bgY > (jmax+ROIsquare2))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
-				
-		real Um = tcVector[tci].getUmean();
-		real Vm = tcVector[tci].getVmean();
-		
+
 		// Reference states			
 		real rhoBar = getReferenceVariable(rhoaref, heightm);
 		real qBar = getReferenceVariable(qvbhypref, heightm);
@@ -884,7 +865,7 @@ int VarDriverXYZ::loadBackgroundObs()
 				real u = uBG.at(zi);
 				cout << setprecision(4) << z << "\t" << logzPos << "\t" << s << "\t" << u << endl;
 			} */
-			// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
+			// Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 			for (int zi = 0; zi < (kdim-1); zi++) {	
 				for (int zmu = -1; zmu <= 1; zmu += 2) {
 					real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
@@ -906,7 +887,7 @@ int VarDriverXYZ::loadBackgroundObs()
 									int bgK = zi*2 + (zmu+1)/2;
 									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
 									if (rSquare < RSquare) {
-										real weight = (RSquare - rSquare)/(RSquare + rSquare);
+										real weight = exp(-rSquare/RSquare);
 										if (logzPos > logheights.front()) {
 											bgSpline->solve(uBG.data());
 											bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -988,7 +969,7 @@ int VarDriverXYZ::loadBackgroundObs()
 							int bgK = zi*2 + (zmu+1)/2;
 							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
 							if (rSquare < RSquare) {
-								real weight = (RSquare - rSquare)/(RSquare + rSquare);
+								real weight = exp(-rSquare/RSquare);
 								if (logzPos > logheights.front()) {
 									bgSpline->solve(uBG.data());
 									bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1102,6 +1083,9 @@ int VarDriverXYZ::loadBackgroundObs()
 	return numbgObs;
 }
 
+
+/* This routine is the main initializer of the analysis */
+
 bool VarDriverXYZ::initialize(const QDomElement& configuration)
 {
 	// Run a XYZ vortex background field
@@ -1178,42 +1162,45 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	}
 	cout << setprecision(9);
 	
-	// Read in the TC centers
+	// Read in the Frame centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
-	readTCcenters();
+	readFrameCenters();
 	
 	// Get the reference center
 	QTime reftime = QTime::fromString(configHash.value("reftime"), "hh:mm:ss");
 	QString refstring = reftime.toString();
 	bool foundref = false;
-	for (unsigned int tci = 0; tci < tcVector.size(); tci++) {
-		QDateTime tctime = tcVector[tci].getTime();
-		if (reftime == tctime.time()) {
+	for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
+		QDateTime frametime = frameVector[fi].getTime();
+		if (reftime == frametime.time()) {
 			QString tempstring;
-			QDate refdate = tctime.date();
+			QDate refdate = frametime.date();
 			QDateTime unixtime(refdate, reftime, Qt::UTC);
-			configHash.insert("reflat", tempstring.setNum(tcVector[tci].getLat()));
-			configHash.insert("reflon", tempstring.setNum(tcVector[tci].getLon()));
+			configHash.insert("reflat", tempstring.setNum(frameVector[fi].getLat()));
+			configHash.insert("reflon", tempstring.setNum(frameVector[fi].getLon()));
 			configHash.insert("reftime", tempstring.setNum(unixtime.toTime_t()));
 			cout << "Found matching reference time " << refstring.toStdString()
-			<< " at " << tcVector[tci].getLat() << ", " << tcVector[tci].getLon() << "\n";
+			<< " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
 			foundref = true;
 			break;
 		}
 	}
 	if (!foundref) {
 		cout << "Error finding reference time, please check date and time in XML file\n";
-		exit(-1);
+		return false;
 	}
 	
+	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	bool loadBG = configHash.value("load_background").toInt();
 	int numbgObs = 0;
 	if (loadBG) {
-		// Set up the Gaussian Grid by a previous samurai analysis
 		numbgObs = loadBackgroundObs();
 	}
 	
+	/* Optionally adjust the interpolated background to satisfy mass continuity
+	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
+	 the background estimates as "observations" */
 	bool adjustBG = configHash.value("adjust_background").toInt();
 	if (adjustBG) {
 		/* Set the minimum filter length to the background resolution, not the analysis resolution
@@ -1230,17 +1217,17 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 			
 		// Adjust the background field to the spline mish
 		bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
-		
 		bgCostXYZ->initialize(configHash, bgU, bgObs);
 		bgCostXYZ->initState();
 		bgCostXYZ->minimize();
+		
 		// Increment the variables
 		bgCostXYZ->updateBG();
 		bgCostXYZ->finalize();
 		
 		delete bgCostXYZ;
 		
-		// Reset the horizontal filter
+		// Reset the horizontal filter to the analysis resolution
 		if (ares < bgres) {
 			QString afilter;
 			afilter.setNum(hfilter);
@@ -1250,7 +1237,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	}
 	
 	// Read in the observations, process them into weights and positions
-	// Either preprocess from raw observations or load an already processed Observations.out file
+	// Either preprocess from raw observations or load an already processed Observations.in file
 	bool preprocess = true;
 	if (preprocess) {
 		preProcessMetObs();
@@ -1262,29 +1249,33 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
 	obCostXYZ->initialize(configHash, bgU, obs);
 	
+	// If we got here, then everything probably went OK!
 	return true;
 }
 
+/* This routine drives the CostFunction minimization
+	There is support for an outer loop to change the background
+	error covariance or update non-linear observation operators */
 
 bool VarDriverXYZ::run()
 {
-	// CQRMS not used currently
-	// double CQRMS = 999;
 	int iter=0;
 	while (iter < maxIter) {
 		iter++;
 		cout << "Outer Loop Iteration: " << iter << endl;
 		obCostXYZ->initState();
 		obCostXYZ->minimize();
-		// Increment the variables
 		obCostXYZ->updateBG();
+		
+		// Optionally update the analysis parameters for an additional iteration
+		updateAnalysisParams();
 	}	
-/*	cout << "Increment RMS Tolerance of " << CQTOL << " reached in "
-		<< iter << " iterations. Writing analysis results..." << endl; */
 
 	return true;
 
 }
+
+/* Clean up all that allocated memory */
 
 bool VarDriverXYZ::finalize()
 {
@@ -1295,4 +1286,10 @@ bool VarDriverXYZ::finalize()
 	delete[] bgWeights;
 	delete obCostXYZ;	
 	return true;
+}
+
+/* Any updates needed for additional analysis iterations would go here */
+ 
+void VarDriverXYZ::updateAnalysisParams()
+{
 }

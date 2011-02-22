@@ -13,7 +13,7 @@
 #include "BSpline.h"
 #include "Observation.h"
 #include "MetObs.h"
-#include "TCcenter.h"
+#include "FrameCenter.h"
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -46,7 +46,7 @@ protected:
 	unsigned int maxHeights;
 	unsigned int maxJdim;
 	unsigned int maxKdim;
-	vector<TCcenter> tcVector;
+	vector<FrameCenter> frameVector;
 	QDomDocument domDoc;
 	QHash<QString, QString> configHash;
 	int referenceState;
@@ -97,7 +97,7 @@ protected:
 	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
-	bool readTCcenters();
+	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
