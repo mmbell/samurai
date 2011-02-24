@@ -31,6 +31,181 @@ VarDriverXYZ::~VarDriverXYZ()
 {
 }
 
+/* This routine is the main initializer of the analysis */
+
+bool VarDriverXYZ::initialize(const QDomElement& configuration)
+{
+	// Run a XYZ vortex background field
+	cout << "Initializing SAMURAI XYZ" << endl;
+	
+	// Parse the XML configuration file
+	if (!parseXMLconfig(configuration)) return false;
+	
+	// Define the grid dimensions
+	imin = configHash.value("xmin").toFloat();
+	imax = configHash.value("xmax").toFloat();
+	iincr = configHash.value("xincr").toFloat();
+	idim = (int)((imax - imin)/iincr) + 1;
+	
+	jmin = configHash.value("ymin").toFloat();
+	jmax = configHash.value("ymax").toFloat();
+	jincr = configHash.value("yincr").toFloat();
+	jdim = (int)((jmax - jmin)/jincr) + 1;
+	
+	kmin = configHash.value("zmin").toFloat();
+	kmax = configHash.value("zmax").toFloat();
+	kincr = configHash.value("zincr").toFloat();
+	kdim = (int)((kmax - kmin)/kincr) + 1;
+	
+	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
+	if (idim < 4) {
+		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}
+	if (jdim < 4) {
+		cout << "Y dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}	
+	if (kdim < 4) {
+		cout << "Z dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		return false;
+	}
+	
+	// Define the sizes of the arrays we are passing to the cost function
+	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	int bStateSize = idim*jdim*kdim*numVars;
+	cout << "Physical (mish) State size = " << uStateSize << "\n";
+	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
+	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
+	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
+	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
+	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
+	
+	// Load the BG into a empty vector
+	bgU = new real[uStateSize];
+	bgWeights = new real[uStateSize];
+	for (int i=0; i < uStateSize; i++) {
+		bgU[i] = 0.;
+		bgWeights[i] = 0.;
+	}		
+	
+	// Define the Reference state
+	if (configHash.value("refstate") == "jordan") {
+		referenceState = jordan;
+	} else {
+		cout << "Reference state not defined!\n";
+		exit(-1);
+	}
+	
+	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
+	for (real k = kmin; k < kmax+kincr; k+= kincr) {
+		cout << "                   " << k << "\t";
+		for (int i = 0; i < 6; i++) {
+			real var = getReferenceVariable(i, k*1000);
+			if (i == 0) var = bhypInvTransform(var);
+			cout << setw(9) << setprecision(4)  << var << "\t";
+		}
+		cout << "\n";
+	}
+	cout << setprecision(9);
+	
+	// Read in the Frame centers
+	// Ideally, create a time-based spline from limited center fixes here
+	// but just load 1 second centers into vector for now
+	readFrameCenters();
+	
+	// Get the reference center
+	QTime reftime = QTime::fromString(configHash.value("reftime"), "hh:mm:ss");
+	QString refstring = reftime.toString();
+	bool foundref = false;
+	for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
+		QDateTime frametime = frameVector[fi].getTime();
+		if (reftime == frametime.time()) {
+			QString tempstring;
+			QDate refdate = frametime.date();
+			QDateTime unixtime(refdate, reftime, Qt::UTC);
+			configHash.insert("reflat", tempstring.setNum(frameVector[fi].getLat()));
+			configHash.insert("reflon", tempstring.setNum(frameVector[fi].getLon()));
+			configHash.insert("reftime", tempstring.setNum(unixtime.toTime_t()));
+			cout << "Found matching reference time " << refstring.toStdString()
+			<< " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
+			foundref = true;
+			break;
+		}
+	}
+	if (!foundref) {
+		cout << "Error finding reference time, please check date and time in XML file\n";
+		return false;
+	}
+	
+	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
+	bool loadBG = configHash.value("load_background").toInt();
+	int numbgObs = 0;
+	if (loadBG) {
+		numbgObs = loadBackgroundObs();
+	}
+	
+	/* Optionally adjust the interpolated background to satisfy mass continuity
+	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
+	 the background estimates as "observations" */
+	bool adjustBG = configHash.value("adjust_background").toInt();
+	if (adjustBG and numbgObs) {
+		adjustBackground(bStateSize);
+	}
+	
+	// Read in the observations, process them into weights and positions
+	// Either preprocess from raw observations or load an already processed Observations.in file
+	bool preprocess = true;
+	if (preprocess) {
+		preProcessMetObs();
+	} else {
+		loadMetObs();
+	}
+	cout << "Number of New Observations: " << obVector.size() << endl;		
+	
+	// We are done with the bgWeights, so free up that memory
+	delete[] bgWeights;	
+	
+	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
+	obCostXYZ->initialize(configHash, bgU, obs);
+	
+	// If we got here, then everything probably went OK!
+	return true;
+}
+
+/* This routine drives the CostFunction minimization
+ There is support for an outer loop to change the background
+ error covariance or update non-linear observation operators */
+
+bool VarDriverXYZ::run()
+{
+	int iter=0;
+	while (iter < maxIter) {
+		iter++;
+		cout << "Outer Loop Iteration: " << iter << endl;
+		obCostXYZ->initState();
+		obCostXYZ->minimize();
+		obCostXYZ->updateBG();
+		
+		// Optionally update the analysis parameters for an additional iteration
+		updateAnalysisParams();
+	}	
+	
+	return true;
+	
+}
+
+/* Clean up all that allocated memory */
+
+bool VarDriverXYZ::finalize()
+{
+	obCostXYZ->finalize();
+	delete[] obs;
+	delete[] bgU;
+	delete obCostXYZ;	
+	return true;
+}
+
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
 
@@ -658,7 +833,7 @@ void VarDriverXYZ::preProcessMetObs()
 	obstream << endl; */
 
 	ostream_iterator<real> od(obstream, "\t ");
-	for (unsigned int i=0; i < obVector.size(); i++) {
+	for (int i=0; i < obVector.size(); i++) {
 		Observation ob = obVector.at(i);
 		*od++ = ob.getOb();
 		*od++ = ob.getInverseError();
@@ -675,7 +850,7 @@ void VarDriverXYZ::preProcessMetObs()
 	
 	// Load the observations into a vector
 	obs = new real[obVector.size()*14];
-	for (unsigned int m=0; m < obVector.size(); m++) {
+	for (int m=0; m < obVector.size(); m++) {
 		int n = m*14;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
@@ -729,7 +904,7 @@ bool VarDriverXYZ::loadMetObs()
 	
 	// Load the observations into the vector
 	obs = new real[obVector.size()*14];
-	for (unsigned int m=0; m < obVector.size(); m++) {
+	for (int m=0; m < obVector.size(); m++) {
 		int n = m*14;
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
@@ -760,7 +935,6 @@ int VarDriverXYZ::loadBackgroundObs()
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("reflon").toFloat();
 	
-	QList<real> bgIn;
 	QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
 	SplineD* bgSpline;
 	int time;
@@ -858,13 +1032,7 @@ int VarDriverXYZ::loadBackgroundObs()
 				cerr << "bgSpline setup failed." << endl;
 				return -1;
 			}
-			/* for (int zi = 0; zi < logheights.size(); zi++) {	
-				real logzPos = logheights.at(zi);
-				real z = exp(logzPos);
-				real s = bgSpline->evaluate(logzPos);
-				real u = uBG.at(zi);
-				cout << setprecision(4) << z << "\t" << logzPos << "\t" << s << "\t" << u << endl;
-			} */
+			
 			// Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 			for (int zi = 0; zi < (kdim-1); zi++) {	
 				for (int zmu = -1; zmu <= 1; zmu += 2) {
@@ -947,7 +1115,7 @@ int VarDriverXYZ::loadBackgroundObs()
 		return -1;
 	}
 	
-	// Cressman interpolation in horizontal, b-Spline interpolation on log height in vertical
+	// Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 	for (int zi = 0; zi < (kdim-1); zi++) {	
 		for (int zmu = -1; zmu <= 1; zmu += 2) {
 			real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
@@ -1046,12 +1214,32 @@ int VarDriverXYZ::loadBackgroundObs()
 		}	
 	} else {
 		cout << "No background observations loaded" << endl;
+		return 0;
 	}
 	
+	cout << numbgObs << " background observations loaded" << endl;	
+	return numbgObs;
+}
+
+void VarDriverXYZ::adjustBackground(const int& bStateSize)
+{
+	/* Set the minimum filter length to the background resolution, not the analysis resolution
+	 to avoid artifacts when running interpolating to small mesoscale grids */
+	real hfilter = configHash.value("xfilter").toFloat();
+	real ares = hfilter*iincr;
+	real bgres = configHash.value("backgroundroi").toFloat();
+	if (ares < bgres) {
+		QString bgfilter;
+		bgfilter.setNum(bgres/iincr);
+		configHash.insert("xfilter", bgfilter);
+		configHash.insert("yfilter", bgfilter);
+	}
 	
 	// Load the observations into a vector
+	int numbgObs = bgIn.size()*7/11;
 	bgObs = new real[numbgObs*14];
 	for (int m=0; m < numbgObs*14; m++) bgObs[m] = 0.;
+	
 	int p = 0;
 	for (int m=0; m < bgIn.size(); m+=11) {
 		real bgX = bgIn[m];
@@ -1078,215 +1266,29 @@ int VarDriverXYZ::loadBackgroundObs()
 			p += 14;
 		}
 	}	
-
-	cout << numbgObs << " background observations loaded" << endl;	
-	return numbgObs;
-}
-
-
-/* This routine is the main initializer of the analysis */
-
-bool VarDriverXYZ::initialize(const QDomElement& configuration)
-{
-	// Run a XYZ vortex background field
-	cout << "Initializing SAMURAI XYZ" << endl;
-
-	// Parse the XML configuration file
-	if (!parseXMLconfig(configuration)) return false;
 	
-	// Define the grid dimensions
-	imin = configHash.value("xmin").toFloat();
-	imax = configHash.value("xmax").toFloat();
-	iincr = configHash.value("xincr").toFloat();
-	idim = (int)((imax - imin)/iincr) + 1;
+	// Adjust the background field to the spline mish
+	bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
+	bgCostXYZ->initialize(configHash, bgU, bgObs);
+	bgCostXYZ->initState();
+	bgCostXYZ->minimize();
 	
-	jmin = configHash.value("ymin").toFloat();
-	jmax = configHash.value("ymax").toFloat();
-	jincr = configHash.value("yincr").toFloat();
-	jdim = (int)((jmax - jmin)/jincr) + 1;
+	// Increment the variables
+	bgCostXYZ->updateBG();
+	bgCostXYZ->finalize();
 	
-	kmin = configHash.value("zmin").toFloat();
-	kmax = configHash.value("zmax").toFloat();
-	kincr = configHash.value("zincr").toFloat();
-	kdim = (int)((kmax - kmin)/kincr) + 1;
-
-	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
-	if (idim < 4) {
-		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}
-	if (jdim < 4) {
-		cout << "Y dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}	
-	if (kdim < 4) {
-		cout << "Z dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}
-	
-	// Define the sizes of the arrays we are passing to the cost function
-	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	int bStateSize = idim*jdim*kdim*numVars;
-	cout << "Physical (mish) State size = " << uStateSize << "\n";
-	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
-	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
-	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
-	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
-	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
-	
-	// Load the BG into a empty vector
-	bgU = new real[uStateSize];
-	bgWeights = new real[uStateSize];
-	for (int i=0; i < uStateSize; i++) {
-		bgU[i] = 0.;
-		bgWeights[i] = 0.;
-	}		
-	
-	// Define the Reference state
-	if (configHash.value("refstate") == "jordan") {
-		referenceState = jordan;
-	} else {
-		cout << "Reference state not defined!\n";
-		exit(-1);
-	}
-	
-	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
-	for (real k = kmin; k < kmax+kincr; k+= kincr) {
-		cout << "                   " << k << "\t";
-		for (int i = 0; i < 6; i++) {
-			real var = getReferenceVariable(i, k*1000);
-			if (i == 0) var = bhypInvTransform(var);
-			cout << setw(9) << setprecision(4)  << var << "\t";
-		}
-		cout << "\n";
-	}
-	cout << setprecision(9);
-	
-	// Read in the Frame centers
-	// Ideally, create a time-based spline from limited center fixes here
-	// but just load 1 second centers into vector for now
-	readFrameCenters();
-	
-	// Get the reference center
-	QTime reftime = QTime::fromString(configHash.value("reftime"), "hh:mm:ss");
-	QString refstring = reftime.toString();
-	bool foundref = false;
-	for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
-		QDateTime frametime = frameVector[fi].getTime();
-		if (reftime == frametime.time()) {
-			QString tempstring;
-			QDate refdate = frametime.date();
-			QDateTime unixtime(refdate, reftime, Qt::UTC);
-			configHash.insert("reflat", tempstring.setNum(frameVector[fi].getLat()));
-			configHash.insert("reflon", tempstring.setNum(frameVector[fi].getLon()));
-			configHash.insert("reftime", tempstring.setNum(unixtime.toTime_t()));
-			cout << "Found matching reference time " << refstring.toStdString()
-			<< " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
-			foundref = true;
-			break;
-		}
-	}
-	if (!foundref) {
-		cout << "Error finding reference time, please check date and time in XML file\n";
-		return false;
-	}
-	
-	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
-	bool loadBG = configHash.value("load_background").toInt();
-	int numbgObs = 0;
-	if (loadBG) {
-		numbgObs = loadBackgroundObs();
-	}
-	
-	/* Optionally adjust the interpolated background to satisfy mass continuity
-	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
-	 the background estimates as "observations" */
-	bool adjustBG = configHash.value("adjust_background").toInt();
-	if (adjustBG) {
-		/* Set the minimum filter length to the background resolution, not the analysis resolution
-		 to avoid artifacts when running interpolating to small mesoscale grids */
-		real hfilter = configHash.value("xfilter").toFloat();
-		real ares = hfilter*iincr;
-		real bgres = configHash.value("backgroundroi").toFloat();
-		if (ares < bgres) {
-			QString bgfilter;
-			bgfilter.setNum(bgres/iincr);
-			configHash.insert("xfilter", bgfilter);
-			configHash.insert("yfilter", bgfilter);
-		}
-			
-		// Adjust the background field to the spline mish
-		bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
-		bgCostXYZ->initialize(configHash, bgU, bgObs);
-		bgCostXYZ->initState();
-		bgCostXYZ->minimize();
-		
-		// Increment the variables
-		bgCostXYZ->updateBG();
-		bgCostXYZ->finalize();
-		
-		delete bgCostXYZ;
-		
-		// Reset the horizontal filter to the analysis resolution
-		if (ares < bgres) {
-			QString afilter;
-			afilter.setNum(hfilter);
-			configHash.insert("xfilter", afilter);
-			configHash.insert("yfilter", afilter);
-		}
-	}
-	
-	// Read in the observations, process them into weights and positions
-	// Either preprocess from raw observations or load an already processed Observations.in file
-	bool preprocess = true;
-	if (preprocess) {
-		preProcessMetObs();
-	} else {
-		loadMetObs();
-	}
-	cout << "Number of New Observations: " << obVector.size() << endl;		
-	
-	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
-	obCostXYZ->initialize(configHash, bgU, obs);
-	
-	// If we got here, then everything probably went OK!
-	return true;
-}
-
-/* This routine drives the CostFunction minimization
-	There is support for an outer loop to change the background
-	error covariance or update non-linear observation operators */
-
-bool VarDriverXYZ::run()
-{
-	int iter=0;
-	while (iter < maxIter) {
-		iter++;
-		cout << "Outer Loop Iteration: " << iter << endl;
-		obCostXYZ->initState();
-		obCostXYZ->minimize();
-		obCostXYZ->updateBG();
-		
-		// Optionally update the analysis parameters for an additional iteration
-		updateAnalysisParams();
-	}	
-
-	return true;
-
-}
-
-/* Clean up all that allocated memory */
-
-bool VarDriverXYZ::finalize()
-{
-	obCostXYZ->finalize();
-	delete[] obs;
+	delete bgCostXYZ;
 	delete[] bgObs;
-	delete[] bgU;
-	delete[] bgWeights;
-	delete obCostXYZ;	
-	return true;
+	
+	// Reset the horizontal filter to the analysis resolution
+	if (ares < bgres) {
+		QString afilter;
+		afilter.setNum(hfilter);
+		configHash.insert("xfilter", afilter);
+		configHash.insert("yfilter", afilter);
+	}
 }
+
 
 /* Any updates needed for additional analysis iterations would go here */
  

@@ -46,9 +46,11 @@ private:
 	bool loadMetObs();
 	bool loadBGfromFile();
 	int loadBackgroundObs();
+	void adjustBackground(const int& bStateSize);
 	void updateAnalysisParams();
 
-	vector<Observation> obVector;
+	QList<real> bgIn;
+	QList<Observation> obVector;
 	int maxIter;
 
 	// Cost Functions
