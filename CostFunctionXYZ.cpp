@@ -21,6 +21,7 @@ CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
 	: CostFunction(numObs, stateSize)
 {
 	// Set up the boundary condition hash
+	bcHash["R0"] = R0;
 	bcHash["R1T0"] = R1T0;
 	bcHash["R1T1"] = R1T1;
 	bcHash["R1T2"] = R1T2;
@@ -2668,6 +2669,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		case 0:
 			// Left BC
 			switch (BL) {
+				case -1:
+					// No boundary condition
+					return b;
 				case 0:
 					node = -1;
 					coeffmod = -4.;
@@ -2702,6 +2706,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		case 1:
 			// Left BC
 			switch (BL) {
+				case -1:
+					// No boundary condition
+					return b;					
 				case 0:
 					node = -1;
 					coeffmod = -1.;
@@ -2739,6 +2746,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 			if (m == M) {
 				// Right BC
 				switch (BR) {
+					case -1:
+						// No boundary condition
+						return b;						
 					case 0:
 						node = M+1;
 						coeffmod = -4.;
@@ -2772,6 +2782,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 			if (m == (M-1)) {
 				// Right BC
 				switch (BR) {
+					case -1:
+						// No boundary condition
+						return b;						
 					case 0:
 						node = M+1;
 						coeffmod = -1.;
@@ -2975,7 +2988,6 @@ real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& h
 		return rho;
 	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
-		if (dz) return 0; // Need to go ahead and code this
 		real press = 0.;
 		real temp = 0.;
 		real rho = 0.;
@@ -2990,6 +3002,31 @@ real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& h
 		}
 		if (qvbhyp < 0.) qvbhyp = 0.;
 		real qv = bhypInvTransform(qvbhyp);
+		if (dz) {
+			real rhoadz = 0.;
+			real qvdz = 0.;
+			real dpdz = 0.;
+			for (int i = dz; i < 5; i++) {
+				real power = pow(heightm, i-dz); 
+				rhoadz += rhoacoeff[i] * power * i;
+				qvdz += qvbhypcoeff[i] * power * i;
+				dpdz += dpdzcoeff[i] * power;
+			}
+			real alphadz = 1/(rhoadz * (286.9 + 461.5*qv/1000.) + 461.5 * rhoa * (qvdz/500.));
+			real dtdz = press*alphadz + dpdz/(286.9*rhoa + 461.5*rhoa*qv/1000.);
+			real dhdz = 1005.7*dtdz + 9.81 + 2.5e3*qvdz;
+			switch (refVariable) {
+				case href:
+					return dhdz;
+				case tempref:
+					return dtdz;
+				case pressref:
+					return dpdz;
+				default:
+					break;
+			}
+			
+		}
 		rho = rhoa*qv/1000. + rhoa;
 		press += 101510.0;
 		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);

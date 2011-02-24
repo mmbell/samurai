@@ -99,6 +99,7 @@ private:
 	QHash<QString, QString> configHash;
 	QHash<QString, int> bcHash;
 	enum BoundaryConditionTypes {
+		R0 = -1,
 		R1T0 = 0,
 		R1T1 = 1,
 		R1T2 = 2,
