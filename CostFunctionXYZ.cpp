@@ -338,20 +338,20 @@ void CostFunctionXYZ::updateHCq(real* state)
 		
 		for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 			if ((iNode < 0) or (iNode >= iDim)) continue; 
-			ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+			ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
 			
 			for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 				if ((jNode < 0) or (jNode >= jDim)) continue;
-				jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+				jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
 				
 				for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 					if	((kNode < 0) or (kNode >= kDim)) continue;
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					
 					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
-						if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+						if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 						}
 						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7 + var];
@@ -582,15 +582,15 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 					if ((kIndex < 0) or (kIndex >= kDim)) continue;
 					int aIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex;			
 
-					real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-					real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
-					real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+					real ibasis = Basis(iIndex, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
+					real jbasis = Basis(jIndex, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
+					real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					real invError = obsVector[mi+1];
 					real qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
 					
 					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
-						if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+						if ((kBCL[var] != iBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 							qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
 						}
@@ -778,7 +778,7 @@ void CostFunctionXYZ::SBtransform(const real* Ustate, real* Bstate)
 			int ii = (int)((i - iMin)*DIrecip);
 			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
 				int uI = iIndex*2 + (imu+1)/2;
 				
 				for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
@@ -787,7 +787,7 @@ void CostFunctionXYZ::SBtransform(const real* Ustate, real* Bstate)
 						int jj = (int)((j - jMin)*DJrecip);
 						for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 							if ((jNode < 0) or (jNode >= jDim)) continue;
-							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
 							int uJ = jIndex*2 + (jmu+1)/2;
 							real ijbasis = ibasis * jbasis;
 							for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
@@ -796,7 +796,7 @@ void CostFunctionXYZ::SBtransform(const real* Ustate, real* Bstate)
 									int kk = (int)((k - kMin)*DKrecip);
 									for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 										if ((kNode < 0) or (kNode >= kDim)) continue;
-										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 										real ijkbasis = 0.125 * ijbasis * kbasis;
 										int uK = kIndex*2 + (kmu+1)/2;
 										int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
@@ -807,7 +807,7 @@ void CostFunctionXYZ::SBtransform(const real* Ustate, real* Bstate)
 											if (Ustate[ui] == 0) continue;
 											
 											int bi = bIndex + var;
-											if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+											if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCL[0])) {
 												kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 												ijkbasis = 0.125 * ibasis * jbasis * kbasis;
 											}
@@ -842,7 +842,7 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 			int ii = (int)((i - iMin)*DIrecip);
 			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
 				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
+				real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
 				int uI = iIndex*2 + (imu+1)/2;
 				
 				for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
@@ -851,7 +851,7 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 						int jj = (int)((j - jMin)*DJrecip);
 						for (int jNode = jj-1; jNode <= jj+2; ++jNode) {
 							if ((jNode < 0) or (jNode >= jDim)) continue;
-							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, R1T2, R1T2);
+							real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
 							int uJ = jIndex*2 + (jmu+1)/2;
 							real ijbasis = ibasis * jbasis;
 							for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
@@ -860,7 +860,7 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 									int kk = (int)((k - kMin)*DKrecip);
 									for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
 										if ((kNode < 0) or (kNode >= kDim)) continue;
-										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, R1T2, R1T2);
+										real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 										real ijkbasis = 0.125 * ijbasis * kbasis;
 										int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 										int uK = kIndex*2 + (kmu+1)/2;
@@ -871,7 +871,7 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 											if (Bstate[bi] == 0) continue;
 											
 											int ui = uIndex + var;
-											if ((kBCL[var] != R1T2) or (kBCR[var] != R1T2)) {
+											if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCL[0])) {
 												kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 												ijkbasis = 0.125 * ibasis * jbasis * kbasis;
 											}
@@ -1317,75 +1317,7 @@ bool CostFunctionXYZ::setupSplines()
 	}
 	delete[] P;
 	delete[] p;
-	
-	
-	/*
-	//Analytic Test set		
-	p = new real[iDim];
-	for (int i = 0; i < iDim; i++) {
-		p[i] = 0.;
-	}
-	int var = 0;
-	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-		for (int imu = -1; imu <= 1; imu += 2) {
-			real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-			int ii = (int)((i - iMin)*DIrecip);
-			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-				if (fabs(i) < 45) {
-					p[iNode] += 0.5*pm*0.005;
-				} else {
-					p[iNode] = 0;
-				}
-			}
-		}
-	}
-	real* y = new real[iDim];
-	// Solve for A's
-	real sum = 0;
-	int k;
-		 
-	//Solve for A's using compact storage
-	sum = 0;
-	for (int i = 0; i < iDim; i++) {
-		for (sum=p[i], k=-1;k>=-3;k--) {
-			if ((i+k >= 0) and ((i*4-k) >= 0))
-				sum -= iL[iDim*4*var + i*4-k]*y[i+k];
-		}
-		y[i] = sum/iL[iDim*4*var + i*4];
-	}	
-	for (int i=iDim-1;i>=0;i--) {
-		for (sum=y[i], k=1;k<=3;k++) {
-			if ((i+k < iDim) and (((i+k)*4+k) < iDim*4))
-				sum -= iL[iDim*4*var + (i+k)*4+k]*y[i+k];
-		}
-		y[i] = sum/iL[iDim*4*var + i*4];
-	}
-	//for (int i = 0; i < iDim; i++) {
-	//	cout << i << "\t" << x[i] << "\t" << y[i] << endl;
-	//} cout << endl;
-	
-	real si;
-	for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-		for (real imu = 0; imu <= 1; imu+=2) {
-//real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-			real i = iMin + DI * (imu + iIndex);
-			int ii = (int)((i - iMin)*DIrecip);
-			si = 0;
-			for (int iNode = ii-1; iNode <= ii+2; ++iNode) {
-				if ((iNode < 0) or (iNode >= iDim)) continue;
-				real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, R1T2, R1T2);
-				if (iNode >= 0)
-					si += y[iNode]*pm; // + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim);
-			}
-			si = (si-y[0])/1e6;
-			//real analytic = sin(i*2*Pi/iDim) + sin(2*i*2*Pi/iDim) + sin(4*i*2*Pi/iDim) + sin(8*i*2*Pi/iDim) + sin(16*i*2*Pi/iDim); 
-			real analytic = i*i;
-			cout << i << "\t" << p[iIndex] << "\t" << y[iIndex] << "\t" << si << "\t" << analytic << "\t" << si - analytic << endl;
-		}
-	} */
-	
+
 	return true;
 	
 }
