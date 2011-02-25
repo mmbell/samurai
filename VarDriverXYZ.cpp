@@ -797,6 +797,7 @@ void VarDriverXYZ::preProcessMetObs()
 	// Finish reflectivity interpolation
 	Observation varOb;
 	varOb.setTime(configHash.value("reftime").toFloat());	
+	real pseudow_weight = configHash.value("use_dbz_pseudow").toFloat();
 	varOb.setWeight(0., 0);
 	varOb.setWeight(0., 1);
 	varOb.setWeight(1., 2);
@@ -804,7 +805,7 @@ void VarDriverXYZ::preProcessMetObs()
 	varOb.setWeight(0., 4);
 	varOb.setWeight(0., 5);
 	varOb.setWeight(0., 6);	
-	varOb.setError(1.);
+	varOb.setError(pseudow_weight);
 	varOb.setOb(0.);
 	for (int xi = 0; xi < (idim-1); xi++) {
 		for (int xmu = -1; xmu <= 1; xmu += 2) {
@@ -831,13 +832,25 @@ void VarDriverXYZ::preProcessMetObs()
 						}
 					}
 					
+					// Set an upper boundary condition for W
 					if ((maxrefHeight > 0) and (maxrefHeight < kmax)
-						and (configHash.value("use_dbz_pseudow").toInt())) {
+						and (pseudow_weight > 0.0)) {
 						varOb.setCartesianX(xPos);
 						varOb.setCartesianY(yPos);
 						varOb.setAltitude(maxrefHeight);					
 						obVector.push_back(varOb);
 					}
+					
+					// Set a lower boundary condition for W
+					// Ideally use a terrain map here, but just use Z=0 for now
+					if (pseudow_weight > 0.0) {
+						varOb.setCartesianX(xPos);
+						varOb.setCartesianY(yPos);
+						varOb.setAltitude(0.0);					
+						obVector.push_back(varOb);
+					}
+					
+					
 				}
 			}
 		}
