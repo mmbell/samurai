@@ -40,7 +40,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	
 	// Parse the XML configuration file
 	if (!parseXMLconfig(configuration)) return false;
-	
+		
 	// Define the grid dimensions
 	imin = configHash.value("xmin").toFloat();
 	imax = configHash.value("xmax").toFloat();
@@ -56,7 +56,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	kmax = configHash.value("zmax").toFloat();
 	kincr = configHash.value("zincr").toFloat();
 	kdim = (int)((kmax - kmin)/kincr) + 1;
-	
+
 	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
 	if (idim < 4) {
 		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
@@ -80,6 +80,18 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
+
+	// Increase the "internal" size of the grid for the zero BC condition
+	if (configHash.value("horizontalbc") == "R0") {
+		imin -= iincr;
+		imax += iincr;
+		idim	+= 2;
+		jmin -= jincr;
+		jmax += jincr;
+		jdim += 2;
+		uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+		bStateSize = idim*jdim*kdim*numVars;
+	}
 	
 	// Load the BG into a empty vector
 	bgU = new real[uStateSize];
@@ -346,6 +358,13 @@ void VarDriverXYZ::preProcessMetObs()
 				(obY < jmin) or (obY > jmax) or
 				(obZ < kmin) or (obZ > kmax))
 				continue;
+			
+			// Restrict the horizontal domain if we are using the R0 BC
+			if (configHash.value("horizontalbc") == "R0") {
+				if ((obX < (imin+iincr)) or (obX > (imax-iincr)) or
+					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+					continue;
+			}
 			
 			// Create an observation and set its basic info
 			Observation varOb;

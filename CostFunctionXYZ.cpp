@@ -1333,7 +1333,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
 	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
 	samuraistream.precision(10);
-	//real CoriolisF = 6e-5;
+	//real CoriolisF = 6e-5;		
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <=1; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -1454,8 +1454,23 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											bgFields[bIndex + 6] = qrprime;
 										}
 										
+										// On the nodes
 										if (!ihalf and !jhalf and !khalf){
-											// On the node
+											
+											int fIndex = iDim*jDim*kDim; 
+											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
+																						
+											// Skip the border nodes if the boundary conditions are zero
+											if (configHash.value("horizontalbc") == "R0") {
+												if ((iIndex == 0) or (iIndex == iDim-1) or
+													(jIndex == 0) or (jIndex == jDim-1)) {
+													for (int n = 0; n < 33; ++n) {
+														fieldNodes[fIndex * n + posIndex] = -999.0;
+													}
+													continue;
+												}
+											}
+											
 											real rhoa = rhoBar + rhoprime / 100;
 											real qv = bhypInvTransform(qBar + qvprime);
 											real qr = bhypInvTransform(qrprime);
@@ -1535,8 +1550,6 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											// Sum up the TPW in the vertical, top level is tpw
 											tpw += qv * rhoa * DK;
 											
-											int fIndex = iDim*jDim*kDim; 
-											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
 											fieldNodes[fIndex * 0 + posIndex] = u;
 											fieldNodes[fIndex * 1 + posIndex] = v;
 											fieldNodes[fIndex * 2 + posIndex] = w;
@@ -1589,11 +1602,16 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	else {
 		outFileName = QDir::current().filePath(fileName);
 	}
-		
+	// Write out to a netCDF file	
 	QString cdfFileName = outFileName + ".nc";
 	if (!writeNetCDF(cdfFileName))
 		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl; 	
 	
+	// Write out to an asi file
+	QString asiFileName = outFileName + ".asi";
+	if (!writeAsi(asiFileName))
+		cout << "Error writing asi file " << asiFileName.toStdString() << endl; 	
+		
 	// Write the Obs to a summary text file
 	QString qcout = "samurai_QC_" + suffix + ".out";
 	ofstream qcstream(qcout.toAscii().data());
@@ -1669,143 +1687,17 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 		
 	}
 	
-	// Write out the CAPPI to an asi file
-	// Initialize header
-	int id[511];
-	for (int n = 1; n <= 510; n++) {
-		id[n]=-999;
-	}
-	
-	// Calculate headers
-	QStringList fieldNames;
-	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
-		<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ";
-	id[175] = fieldNames.size();
-    for(int n = 0; n < id[175]; n++) {
-		QString name_1 = fieldNames.at(n).left(1);
-        QString name_2 = fieldNames.at(n).mid(1,1);
-		int int_1 = *name_1.toAscii().data();
-		int int_2 = *name_2.toAscii().data();
-		id[176 + (5 * n)] = (int_1 * 256) + int_2;
-		id[177 + (5 * n)] = 8224;
-		id[178 + (5 * n)] = 8224;
-		id[179 + (5 * n)] = 8224;
-		id[180 + (5 * n)] = 1;
-	}
-	
-	// Cartesian file
-	id[16] = 17217;
-	id[17] = 21076;
-	
-	/* Lat and Lon
-	 id[33] = (int)latReference;
-	 id[34] = (int)((latReference - (float)id[33]) * 60.);
-	 id[35] = (int)((((latReference - (float)id[33]) * 60.) - (float)id[34]) * 60.) * 100;
-	 if (lonReference < 0) {
-	 lonReference += 360.;
-	 }
-	 id[36] = (int)lonReference;
-	 id[37] = (int)((lonReference - (float)id[36]) * 60.);
-	 id[38] = (int)((((lonReference - (float)id[36]) * 60.) - (float)id[37]) * 60.) * 100; */
-	
-	id[33] = 0;
-	id[34] = 0;
-	id[35] = 0;
-	id[36] = 0;
-	id[37] = 0;
-	id[38] = 0;
-	id[40] = 90;
-	
-	// Scale factors
-	id[68] = 100;
-	id[69] = 64;
-	
-	// X Header
-	id[160] = (int)iMin*100;
-	id[161] = (int)iMax*100;
-	id[162] = (int)iDim;
-	id[163] = (int)(DI * 1000);
-	id[164] = 1;
-	
-	// Y Header
-	id[165] = (int)jMin*100;
-	id[166] = (int)jMax*100;
-	id[167] = (int)jDim;
-	id[168] = (int)(DJ * 1000);
-	id[169] = 2;
-	
-	// Z Header
-	id[170] = (int)kMin*1000;
-	id[171] = (int)kMax*1000;
-	id[172] = (int)kDim;
-	id[173] = int(DK * 1000);
-	id[174] = 3;
-	
-	// Number of radars
-	id[303] = 1;
-	
-	// Index of center
-	id[309] = (int)(1);
-	id[310] = (int)(1);
-	id[311] = 0;
-	
-	// Write ascii file for grid2ps
-	//Message::toScreen("Trying to write cappi to "+outFileName);
-	QString asiFileName = outFileName + ".asi";
-	QFile asiFile(asiFileName);
-	if(!asiFile.open(QIODevice::WriteOnly)) {
-		cout << "Can't open CAPPI file for writing" << endl;
-		return false;
-	}
-	
-	QTextStream out(&asiFile);
-	
-	// Write header
-    int line = 0;
-	for (int n = 1; n <= 510; n++) {
-		line++;
-		out << qSetFieldWidth(8) << id[n];
-		if (line == 10) {
-			out << endl;
-            line = 0;
-		}
-	}
-	
-	// Write data
-	for(int k = 0; k < kDim; k++) {
-		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;
-		for(int j = 0; j < jDim; j++) {
-			out << reset << "azimuth" << qSetFieldWidth(3) << j+1 << endl;
-			for(int n = 0; n < fieldNames.size(); n++) {
-				out << reset << left << fieldNames.at(n) << endl;
-				int line = 0;
-				for (int i = 0; i < iDim;  i++){
-					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << 
-					fieldNodes[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
-					line++;
-					if (line == 8) {
-						out << endl;
-						line = 0;
-					}
-				}
-				if (line != 0) {
-					out << endl;
-				}
-			}
-		}
-	}
-	
 	return true;
 	
 }     
 
-bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
+bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 {
 	NcError err(NcError::verbose_nonfatal);
 	int NC_ERR = 0;
 	
 	// Create the file.
-	NcFile dataFile(netcdfFile.toAscii(), NcFile::Replace);
+	NcFile dataFile(netcdfFileName.toAscii(), NcFile::Replace);
 	
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -2002,10 +1894,6 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 		return NC_ERR;
 	if (!qr->add_att("units", "g kg-1")) 
 		return NC_ERR;
-
-	if (!qr->add_att("missing_value", -999.0)) 
-		return NC_ERR;
-
 	if (!dudx->add_att("units", "kg m-3s-1")) 
 		return NC_ERR;
 	if (!dvdx->add_att("units", "kg m-3s-1")) 
@@ -2093,6 +1981,74 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	if (!dwdz->add_att("long_name", "wind gradient")) 
 		return NC_ERR;
 	
+	// Define missing data
+	if (!u->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!v->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!w->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!wspd->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!relhum->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!hprime->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!qvprime->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!rhoprime->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!tprime->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!pprime->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!vorticity->add_att("missing_value", -999.0)) 
+		return NC_ERR;
+	if (!divergence->add_att("missing_value", -999.0)) 
+		return NC_ERR;
+	if (!okuboweiss->add_att("missing_value", -999.0)) 
+		return NC_ERR;
+	if (!strain->add_att("missing_value", -999.0))
+		return NC_ERR;       
+	if (!tpw->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!rhou->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!rhov->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!rhow->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!rho->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!press->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!temp->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!qv->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!h->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!qr->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!dudx->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dvdx->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dwdx->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!dudy->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dvdy->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dwdy->add_att("missing_value", -999.0))
+		return NC_ERR;
+	if (!dudz->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dvdz->add_att("missing_value", -999.0))
+		return NC_ERR;	
+	if (!dwdz->add_att("missing_value", -999.0))
+		return NC_ERR;
+	
 	// Write the coordinate variable data to the file.
 	real *lons = new real[iDim];
 	real *lats = new real[jDim];
@@ -2107,11 +2063,6 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
-	/* real latrad =latReference * 1.745329251994e-02;
-	real fac_lat = 111.13209 - 0.56605 * cos(2.0 * latrad)
-	+ 0.00012 * cos(4.0 * latrad) - 0.000002 * cos(6.0 * latrad);
-	real fac_lon = 111.41513 * cos(latrad)
-	- 0.09455 * cos(3.0 * latrad) + 0.00012 * cos(5.0 * latrad); */
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		real i = (iMin + DI * iIndex)*1000;
 		real j = (jMin + DJ * (jDim/2))*1000;
@@ -2221,9 +2172,138 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFile)
 	delete[] lons;
 	delete[] levs;
 	
-	return 1;
+	return true;
 	
 }
+
+bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
+{
+	// Initialize header
+	int id[511];
+	for (int n = 1; n <= 510; n++) {
+		id[n]=-999;
+	}
+	
+	// Calculate headers
+	QStringList fieldNames;
+	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
+	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ";
+	id[175] = fieldNames.size();
+	for(int n = 0; n < id[175]; n++) {
+		QString name_1 = fieldNames.at(n).left(1);
+		QString name_2 = fieldNames.at(n).mid(1,1);
+		int int_1 = *name_1.toAscii().data();
+		int int_2 = *name_2.toAscii().data();
+		id[176 + (5 * n)] = (int_1 * 256) + int_2;
+		id[177 + (5 * n)] = 8224;
+		id[178 + (5 * n)] = 8224;
+		id[179 + (5 * n)] = 8224;
+		id[180 + (5 * n)] = 1;
+	}
+	
+	// Cartesian file
+	id[16] = 17217;
+	id[17] = 21076;
+	
+	/* Lat and Lon
+	 id[33] = (int)latReference;
+	 id[34] = (int)((latReference - (float)id[33]) * 60.);
+	 id[35] = (int)((((latReference - (float)id[33]) * 60.) - (float)id[34]) * 60.) * 100;
+	 if (lonReference < 0) {
+	 lonReference += 360.;
+	 }
+	 id[36] = (int)lonReference;
+	 id[37] = (int)((lonReference - (float)id[36]) * 60.);
+	 id[38] = (int)((((lonReference - (float)id[36]) * 60.) - (float)id[37]) * 60.) * 100; */
+	
+	id[33] = 0;
+	id[34] = 0;
+	id[35] = 0;
+	id[36] = 0;
+	id[37] = 0;
+	id[38] = 0;
+	id[40] = 90;
+	
+	// Scale factors
+	id[68] = 100;
+	id[69] = 64;
+	
+	// X Header
+	id[160] = (int)iMin*100;
+	id[161] = (int)iMax*100;
+	id[162] = (int)iDim;
+	id[163] = (int)(DI * 1000);
+	id[164] = 1;
+	
+	// Y Header
+	id[165] = (int)jMin*100;
+	id[166] = (int)jMax*100;
+	id[167] = (int)jDim;
+	id[168] = (int)(DJ * 1000);
+	id[169] = 2;
+	
+	// Z Header
+	id[170] = (int)kMin*1000;
+	id[171] = (int)kMax*1000;
+	id[172] = (int)kDim;
+	id[173] = int(DK * 1000);
+	id[174] = 3;
+	
+	// Number of radars
+	id[303] = 1;
+	
+	// Index of center
+	id[309] = (int)(1);
+	id[310] = (int)(1);
+	id[311] = 0;
+	
+	// Write ascii file for grid2ps
+	//Message::toScreen("Trying to write cappi to "+outFileName);
+	QFile asiFile(asiFileName);
+	if(!asiFile.open(QIODevice::WriteOnly)) {
+		cout << "Can't open CAPPI file for writing" << endl;
+		return false;
+	}
+	
+	QTextStream out(&asiFile);
+	
+	// Write header
+    int line = 0;
+	for (int n = 1; n <= 510; n++) {
+		line++;
+		out << qSetFieldWidth(8) << id[n];
+		if (line == 10) {
+			out << endl;
+            line = 0;
+		}
+	}
+	
+	// Write data
+	for(int k = 0; k < kDim; k++) {
+		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;
+		for(int j = 0; j < jDim; j++) {
+			out << reset << "azimuth" << qSetFieldWidth(3) << j+1 << endl;
+			for(int n = 0; n < fieldNames.size(); n++) {
+				out << reset << left << fieldNames.at(n) << endl;
+				int line = 0;
+				for (int i = 0; i < iDim;  i++){
+					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << 
+					fieldNodes[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
+					line++;
+					if (line == 8) {
+						out << endl;
+						line = 0;
+					}
+				}
+				if (line != 0) {
+					out << endl;
+				}
+			}
+		}
+	}
+	
+	return true;
+}	
 
 void CostFunctionXYZ::obAdjustments() {
 	

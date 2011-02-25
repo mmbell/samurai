@@ -63,8 +63,8 @@ private:
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
 	real bhypInvTransform(real qvbhyp);
-	void writeAsi();
-	bool writeNetCDF(const QString& netcdfFile);
+	bool writeAsi(const QString& asiFileName);
+	bool writeNetCDF(const QString& netcdfFileName);
 	
 	int iDim, jDim, kDim;
 	real iMin, iMax, DI, DIrecip;
