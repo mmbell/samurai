@@ -52,8 +52,8 @@ QT += xml
 
 # External libraries
 macx {
-  LOCALINCLUDE = /Users/mmbell/Development/include /opt/local/include
-  LOCALLIB = -L/opt/local/lib -L/Users/mmbell/Development/lib
+  LOCALINCLUDE = /Users/mmbell/Development/include /opt/local/include /usr/local/include
+  LOCALLIB = -L/opt/local/lib -L/Users/mmbell/Development/lib -L/usr/local/lib
 }
 INCLUDEPATH = $$LOCALINCLUDE
 LIBS += $$LOCALLIB -lcurl -lGeographic -lhdf5 -lnetcdf -lnetcdf_c++
