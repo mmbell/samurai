@@ -55,6 +55,7 @@ void CostFunctionXYZ::finalize()
 	delete[] innovation;
 	delete[] fieldNodes;
 	delete[] bgState;
+	delete[] bgStdDev;
 	delete[] stateA;
 	delete[] stateB;
 	delete[] stateC;
@@ -128,6 +129,16 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	DJrecip = 1./DJ;
 	DKrecip = 1./DK;
 
+	// Increase the "internal" size of the grid for the zero BC condition
+	if (configHash.value("horizontalbc") == "R0") {
+		iMin -= DI;
+		iMax += DI;
+		iDim += 2;
+		jMin -= DJ;
+		jMax += DJ;
+		jDim += 2;
+	}
+		
 	//	Mass continuity weight
 	mcWeight = configHash.value("mcweight").toFloat();
 	
@@ -164,6 +175,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	fieldNodes = new real[nodes*33];	
 	//bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[nState];
+	bgStdDev = new real[nState];
 	stateA = new real[nState];
 	stateB = new real[nState];
 	stateC = new real[nState];
@@ -191,6 +203,7 @@ void CostFunctionXYZ::initState()
 		xt[n] = 0.0;
 		df[n] = 0.0;
 		bgState[n] = 0.0;
+		bgStdDev[n] = 0.0;
 		stateA[n] = 0.0;
 		stateB[n] = 0.0;
 		stateC[n] = 0.0;
@@ -215,6 +228,7 @@ void CostFunctionXYZ::initState()
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
 					varScale += bgState[bIndex] * bgState[bIndex];
+					bgStdDev[bIndex] = bgError[var];
 				}
 			}
 		}
@@ -263,19 +277,19 @@ real CostFunctionXYZ::funcValue(real* state)
 	updateHCq(state);
 
 	// Compute inner product of state vector
-	#pragma omp parallel for reduction(+:qIP)
+	//#pragma omp parallel for reduction(+:qIP)
 	for (int n = 0; n < nState; n++) {
 		qIP += state[n]*state[n];
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
-	#pragma omp parallel for reduction(+:obIP)
+	//#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m*14+1])*(HCq[m]-innovation[m]);
 	}
 	
 	// Mass continuity on the nodes
-	#pragma omp parallel for reduction(+:mcIP)
+	//#pragma omp parallel for reduction(+:mcIP)
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -364,9 +378,9 @@ void CostFunctionXYZ::updateHCq(real* state)
 	}
 	
 	#pragma omp parallel for
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				real i = iIndex*DI + iMin;
 				real j = jIndex*DJ + jMin;
 				real k = kIndex*DK + kMin;
@@ -659,7 +673,7 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 bool CostFunctionXYZ::SAtransform(const real* Bstate, real* Astate)
 {
 
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int var = 0; var < varDim; var++) {
 		int l;
 		real* kB = new real[kDim];
@@ -892,12 +906,16 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 
 void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 {
-	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
-				
-		//FK
-		if (kFilter != NULL) {
+	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet
+	if (kFilter == NULL) {
+		for (int n = 0; n < nState; n++) {
+			Cstate[n]= Astate[n] * bgStdDev[n];
+		}
+	} else {
+              #pragma omp parallel for
+		for (int var = 0; var < varDim; var++) {
+			
+			//FK
 			// These are local for parallelization
 			real* iTemp = new real[iDim];
 			real* jTemp = new real[jDim];
@@ -943,26 +961,20 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-		} else {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						int ai = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var ;
-						Cstate[ai]= Astate[ai] * bgError[var];
-					}
-				}
-			}
-		}
+		} 
 	}
 }
 
 void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 {
-	
-	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-	#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
-		if (kFilter != NULL) {
+	if (kFilter == NULL) {
+		for (int n = 0; n < nState; n++) {
+			Astate[n]= Cstate[n] * bgStdDev[n];
+		}
+	} else {
+		// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
+              #pragma omp parallel for
+		for (int var = 0; var < varDim; var++) {
 			
 			// These are local for parallelization
 			real* iTemp = new real[iDim];
@@ -1008,19 +1020,9 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-		} else {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						int ai = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var ;
-						Astate[ai]= Cstate[ai] * bgError[var];
-					}
-				}
-			}
 		}		
-	}		
+	}
 }
-
 
 bool CostFunctionXYZ::setupSplines()
 {
@@ -2730,7 +2732,8 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 				break;
 		}
 	}
-	if ((m > 1) and (m < M-1)) return b;
+	//if ((m > 1) and (m < M-1)) return b;
+	if (((m > 1) or (BL < 0)) and ((m < M-1) or (BR < 0))) return b;
 	
 	// Otherwise add on the boundary conditions
 	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
@@ -2741,166 +2744,158 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 							  const real& DX, const real& DXrecip, const int& derivative,
 							  const int& BL, const int& BR, const real& lambda)
 {
-
+	
 	real bmod = 0;
 	int node = -2;
 	real coeffmod = 0.;
-	switch (m) {
-		case 0:
-			// Left BC
-			switch (BL) {
-				case -1:
-					// No boundary condition
-					return b;
-				case 0:
-					node = -1;
-					coeffmod = -4.;
-					break;
-				case 1:
-					node = -1;
-					coeffmod = 0.;
-					break;
-				case 2:
-					node = -1;
-					coeffmod = 2.;
-					break;
-				case 3:
-					node = -1;
-					coeffmod = -4./(3.*lambda + 1.);
-					break;
-				case 4:
-					// There is no contribution from this node 
-					return 0;
-				case 5:
-					// There is no contribution from this node 
-					return 0;
-				case 6:
-					// There is no contribution from this node 
-					return 0;	
-				case 7:
-					node = M;
-					coeffmod = 1.;
-					break;
-			}
-			break;
-		case 1:
-			// Left BC
-			switch (BL) {
-				case -1:
-					// No boundary condition
-					return b;					
-				case 0:
-					node = -1;
-					coeffmod = -1.;
-					break;
-				case 1:
-					node = -1;
-					coeffmod = 1.;
-					break;
-				case 2:
-					node = -1;
-					coeffmod = -1.;
-					break;
-				case 3:
-					node = -1;
-					coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-					break;
-				case 4:
-					node = -1;
-					coeffmod = 1.;
-					break;
-				case 5:
-					node = -1;
-					coeffmod = -1.;
-					break;				
-				case 6:
-					// There is no contribution from this node 
-					return 0;	
-				case 7:
-					node = M+1;
-					coeffmod = 1.;
-					break;
-			}
-			break;
-		default:
-			if (m == M) {
-				// Right BC
-				switch (BR) {
-					case -1:
-						// No boundary condition
-						return b;						
-					case 0:
-						node = M+1;
-						coeffmod = -4.;
-						break;
-					case 1:
-						node = M+1;
-						coeffmod = 0.;
-						break;
-					case 2:
-						node = M+1;
-						coeffmod = 2.;
-						break;
-					case 3:
-						node = M+1;
-						coeffmod = -4./(3.*lambda + 1.);
-						break;
-					case 4:
-						// There is no contribution from this node 
-						return 0.;
-					case 5:
-						// There is no contribution from this node 
-						return 0.;
-					case 6:
-						// There is no contribution from this node 
-						return 0.;
-					case 7:
-						// No modification to this node
-						return b;
-				} 
-			}
-			if (m == (M-1)) {
-				// Right BC
-				switch (BR) {
-					case -1:
-						// No boundary condition
-						return b;						
-					case 0:
-						node = M+1;
-						coeffmod = -1.;
-						break;
-					case 1:
-						node = M+1;
-						coeffmod = 1.;
-						break;
-					case 2:
-						node = M+1;
-						coeffmod = -1.;
-						break;
-					case 3:
-						node = M+1;
-						coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-						break;
-					case 4:
-						node = M+1;
-						coeffmod = 1.;
-						break;
-					case 5:
-						node = M+1;
-						coeffmod = -1.;
-						break;				
-					case 6:
-						// There is no contribution from this node 
-						return 0.;
-					case 7:
-						node = -1;
-						coeffmod = 1.;
-						break;
-				}
-			}
-			break;
-	}
-	
+	if (m == 0) {
+		// Left BC
+		switch (BL) {
+			case -1:
+				// No boundary condition
+				return b;
+			case 0:
+				node = -1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return 0;
+			case 5:
+				// There is no contribution from this node 
+				return 0;
+			case 6:
+				// There is no contribution from this node 
+				return 0;	
+			case 7:
+				node = M;
+				coeffmod = 1.;
+				break;
+		}
+	} else if (m == 1) {
+		// Left BC
+		switch (BL) {
+			case -1:
+				// No boundary condition
+				return b;					
+			case 0:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = -1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = -1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return 0;	
+			case 7:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+		}
+	} else if (m == M) {
+		// Right BC
+		switch (BR) {
+			case -1:
+				// No boundary condition
+				return b;						
+			case 0:
+				node = M+1;
+				coeffmod = -4.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 0.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = 2.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case 4:
+				// There is no contribution from this node 
+				return 0.;
+			case 5:
+				// There is no contribution from this node 
+				return 0.;
+			case 6:
+				// There is no contribution from this node 
+				return 0.;
+			case 7:
+				// No modification to this node
+				return b;
+		} 
+	} else if (m == (M-1)) {
+		// Right BC
+		switch (BR) {
+			case -1:
+				// No boundary condition
+				return b;						
+			case 0:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 1:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 2:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case 3:
+				node = M+1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case 4:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case 5:
+				node = M+1;
+				coeffmod = -1.;
+				break;				
+			case 6:
+				// There is no contribution from this node 
+				return 0.;
+			case 7:
+				node = -1;
+				coeffmod = 1.;
+				break;
+		}
+	}	
 	
 	real xm = xmin + (node * DX);
 	real delta = (x - xm) * DXrecip;

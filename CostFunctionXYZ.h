@@ -72,6 +72,7 @@ private:
 	real kMin, kMax, DK, DKrecip;
 	real* bgFields;
 	real* bgState;
+	real* bgStdDev;
 	real* obsVector;
 	real* rawObs;
 	real* stateA;
