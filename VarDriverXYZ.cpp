@@ -72,10 +72,6 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	}
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	int bStateSize = idim*jdim*kdim*numVars;
-	cout << "Physical (mish) State size = " << uStateSize << "\n";
-	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
@@ -89,9 +85,18 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 		jmin -= jincr;
 		jmax += jincr;
 		jdim += 2;
-		uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-		bStateSize = idim*jdim*kdim*numVars;
 	}
+	
+	if (configHash.value("verticalbc") == "R0") {
+		kmin -= kincr;
+		kmax += kincr;
+		kdim += 2;
+	}
+
+	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	int bStateSize = idim*jdim*kdim*numVars;
+	cout << "Physical (mish) State size = " << uStateSize << "\n";
+	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	
 	// Load the BG into a empty vector
 	bgU = new real[uStateSize];
@@ -365,6 +370,12 @@ void VarDriverXYZ::preProcessMetObs()
 					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
 					continue;
 			}
+
+			if (configHash.value("verticalbc") == "R0") {
+				if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
+					continue;
+			}
+			
 			
 			// Create an observation and set its basic info
 			Observation varOb;

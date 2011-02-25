@@ -82,10 +82,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	bgError[4] = configHash.value("qverror").toFloat();	
 	bgError[5] = configHash.value("rhoerror").toFloat();
 	bgError[6] = configHash.value("qrerror").toFloat();
-	
-	// Vertical boundary conditions on W fixed for now
-	kBCL[2] = R1T0; kBCR[2] = R1T0;
-	
+		
 	// Horizontal boundary conditions
 	int hbc = bcHash.value(configHash.value("horizontalbc"));	
 	iBCL[0] = hbc; iBCR[0] = hbc; jBCL[0] = hbc; jBCR[0] = hbc; 
@@ -104,6 +101,9 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	kBCL[5] = vbc; kBCR[5] = vbc;
 	kBCL[6] = vbc; kBCR[6] = vbc;
 	
+	// Vertical boundary conditions on W fixed for now
+	kBCL[2] = R1T0; kBCR[2] = R1T0;
+
 	// Define the Reference state
 	if (configHash.value("refstate") == "jordan") {
 		referenceState = jordan;
@@ -138,8 +138,15 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 		jMax += DJ;
 		jDim += 2;
 	}
-		
-	//	Mass continuity weight
+	if (configHash.value("verticalbc") == "R0") {
+		kMin -= DK;
+		kMax += DK;
+		kDim += 2;
+		// Vertical boundary conditions on W fixed for now
+		kBCL[2] = R0; kBCR[2] = R0;
+	}
+	
+	// Mass continuity weight
 	mcWeight = configHash.value("mcweight").toFloat();
 	
 	// Set up the initial recursive filter
@@ -1466,6 +1473,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											if (configHash.value("horizontalbc") == "R0") {
 												if ((iIndex == 0) or (iIndex == iDim-1) or
 													(jIndex == 0) or (jIndex == jDim-1)) {
+													for (int n = 0; n < 33; ++n) {
+														fieldNodes[fIndex * n + posIndex] = -999.0;
+													}
+													continue;
+												}
+											}
+											
+											if (configHash.value("verticalbc") == "R0") {
+												if ((kIndex == 0) or (kIndex == kDim-1)) {
 													for (int n = 0; n < 33; ++n) {
 														fieldNodes[fIndex * n + posIndex] = -999.0;
 													}
