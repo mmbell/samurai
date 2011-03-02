@@ -988,7 +988,7 @@ int VarDriverXYZ::loadBackgroundObs()
 	real ROIsquare2 = ROI*sqrt(2.);
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
-		cout << "Error opening Background.in for reading.\n";
+		cout << "Error opening samurai_Background.in for reading.\n";
 		exit(1);
 	}
 	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
@@ -1097,7 +1097,7 @@ int VarDriverXYZ::loadBackgroundObs()
 									int bgJ = yi*2 + (ymu+1)/2;
 									int bgK = zi*2 + (zmu+1)/2;
 									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-									if (rSquare < RSquare) {
+									if (rSquare < (ROIsquare2*ROIsquare2)) {
 										real weight = exp(-rSquare/RSquare);
 										if (logzPos > logheights.front()) {
 											bgSpline->solve(uBG.data());
@@ -1179,7 +1179,7 @@ int VarDriverXYZ::loadBackgroundObs()
 							int bgJ = yi*2 + (ymu+1)/2;
 							int bgK = zi*2 + (zmu+1)/2;
 							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-							if (rSquare < RSquare) {
+							if (rSquare < (ROIsquare2*ROIsquare2)) {
 								real weight = exp(-rSquare/RSquare);
 								if (logzPos > logheights.front()) {
 									bgSpline->solve(uBG.data());
@@ -1295,6 +1295,18 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 			numbgObs -= 7;
 			continue;
 		}
+		// Restrict the horizontal domain if we are using the R0 BC
+		if (configHash.value("horizontalbc") == "R0") {
+			if ((bgX < (imin+iincr)) or (bgX > (imax-iincr)) or
+				(bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
+				continue;
+		}
+		
+		if (configHash.value("verticalbc") == "R0") {
+			if ((bgZ < (kmin+kincr)) or (bgZ > (kmax-kincr)))
+				continue;
+		}
+		
 		for (unsigned int n = 0; n < numVars; n++) {
 			bgObs[p] = bgIn[m+4+n];
 			// Error of background = 1
