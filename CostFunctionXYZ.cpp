@@ -101,7 +101,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	kBCL[5] = vbc; kBCR[5] = vbc;
 	kBCL[6] = vbc; kBCR[6] = vbc;
 	
-	// Vertical boundary conditions on W fixed for now
+	// Vertical boundary conditions on W fixed -- use R0 to relax the w=0 constraint at the boundaries by 
+	// buffering the domain
 	kBCL[2] = R1T0; kBCR[2] = R1T0;
 
 	// Define the Reference state
@@ -142,8 +143,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 		kMin -= DK;
 		kMax += DK;
 		kDim += 2;
-		// Vertical boundary conditions on W fixed for now
-		kBCL[2] = R0; kBCR[2] = R0;
+		// Keep the vertical ones the same, since they are outside the domain anyway?
+		//kBCL[2] = R0; kBCR[2] = R0;
 	}
 	
 	// Mass continuity weight
@@ -371,7 +372,7 @@ void CostFunctionXYZ::updateHCq(real* state)
 						if (!obsVector[mi+7 + var]) continue;
 						if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						}
+						} 
 						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7 + var];
 					}
 				}
@@ -2720,8 +2721,8 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 				break;
 		}
 	}
-	//if ((m > 1) and (m < M-1)) return b;
-	if (((m > 1) or (BL < 0)) and ((m < M-1) or (BR < 0))) return b;
+	if ((m > 1) and (m < M-1)) return b;
+	//if (((m > 1) or (BL < 0)) and ((m < M-1) or (BR < 0))) return b;
 	
 	// Otherwise add on the boundary conditions
 	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
@@ -2740,8 +2741,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Left BC
 		switch (BL) {
 			case -1:
-				// No boundary condition
-				return b;
+				// No boundary condition, but buffered so use R1T2
+				node = -1;
+				coeffmod = 2.;
+				break;
 			case 0:
 				node = -1;
 				coeffmod = -4.;
@@ -2776,8 +2779,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Left BC
 		switch (BL) {
 			case -1:
-				// No boundary condition
-				return b;					
+				// No boundary condition, but buffered so use R1T2
+				node = -1;
+				coeffmod = -1.;
+				break;			
 			case 0:
 				node = -1;
 				coeffmod = -1.;
@@ -2814,8 +2819,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Right BC
 		switch (BR) {
 			case -1:
-				// No boundary condition
-				return b;						
+				// No boundary condition, but buffered so use R1T2
+				node = M+1;
+				coeffmod = 2.;
+				break;					
 			case 0:
 				node = M+1;
 				coeffmod = -4.;
@@ -2849,8 +2856,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Right BC
 		switch (BR) {
 			case -1:
-				// No boundary condition
-				return b;						
+				// No boundary condition, but buffered so use R1T2
+				node = M+1;
+				coeffmod = -1.;
+				break;
 			case 0:
 				node = M+1;
 				coeffmod = -1.;
@@ -2922,10 +2931,10 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 	b += coeffmod * bmod;
 	
 	// R2 needs one more addition
-	if ((m == 1) and (BL == 4)) {
+	if ((BL == 4) and (m == 1)) {
 		node = 0;
 		coeffmod = -0.5;
-	} else if ((m == M-1) and (BR == 4)) {
+	} else if ((BR == 4) and (m == M-1)) {
 		node = M;
 		coeffmod = -0.5;
 	} else {

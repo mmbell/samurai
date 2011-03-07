@@ -234,11 +234,6 @@ void VarDriverXYZ::preProcessMetObs()
 	// Geographic functions
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("reflon").toFloat();
-
-	// Exponential for the reflectivity
-	real ROI = 1.25*(configHash.value("xincr").toFloat());
-	real RSquare = ROI*ROI;
-	real ROIsquare2 = ROI*sqrt(2.);
 	
 	// Check the data directory for files
 	QDir dataPath("./vardata");
@@ -752,26 +747,28 @@ void VarDriverXYZ::preProcessMetObs()
 					}
 
 					// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+					real ROI = 0.5;
+					real ROIsquare = ROI*ROI;
 					for (int zi = 0; zi < (kdim-1); zi++) {	
 						for (int zmu = -1; zmu <= 1; zmu += 2) {
 							real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-							if (fabs(zPos-obZ) > ROIsquare2) continue;
+							if (fabs(zPos-obZ) > kincr*ROI) continue;
 							for (int xi = 0; xi < (idim-1); xi++) {
 								for (int xmu = -1; xmu <= 1; xmu += 2) {
 									real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-									if (fabs(xPos-obX) > ROIsquare2) continue;
+									if (fabs(xPos-obX) > iincr*ROI) continue;
 									
 									for (int yi = 0; yi < (jdim-1); yi++) {
 										for (int ymu = -1; ymu <= 1; ymu += 2) {
 											real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-											if (fabs(yPos-obY) > ROIsquare2) continue;
-											real rSquare = (obX-xPos)*(obX-xPos) + (obY-yPos)*(obY-yPos) + (obZ-zPos)*(obZ-zPos); 
+											if (fabs(yPos-obY) > jincr*ROI) continue;
+											real rSquare = (obX-xPos)*(obX-xPos)/(iincr*iincr) + (obY-yPos)*(obY-yPos)/(jincr*jincr) + (obZ-zPos)*(obZ-zPos)/(kincr*kincr); 
 											int bgI = xi*2 + (xmu+1)/2;
 											int bgJ = yi*2 + (ymu+1)/2;
 											int bgK = zi*2 + (zmu+1)/2;
 											int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-											if (rSquare < RSquare) {
-												real weight = ZZ*exp(-rSquare/RSquare);
+											if (rSquare < ROIsquare) {
+												real weight = ZZ*exp(-rSquare/(ROIsquare*0.5));
 												//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
 												bgU[bIndex +6] += weight*qr;
 												bgWeights[bIndex] += weight;
@@ -984,8 +981,7 @@ int VarDriverXYZ::loadBackgroundObs()
 	real lat, lon, alt, u, v, w, t, qv, rhoa;
 	real bgX, bgY, bgZ;
 	real ROI = configHash.value("backgroundroi").toFloat();
-	real RSquare = ROI*ROI;
-	real ROIsquare2 = ROI*sqrt(2.);
+	real ROIsquare = ROI*ROI;
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening samurai_Background.in for reading.\n";
@@ -1027,8 +1023,8 @@ int VarDriverXYZ::loadBackgroundObs()
 		bgZ = heightm/1000.;
 				
 		// Make sure the ob is in the Interpolation domain
-		if ((bgX < (imin-ROIsquare2)) or (bgX > (imax+ROIsquare2)) or
-			(bgY < (jmin-ROIsquare2)) or (bgY > (jmax+ROIsquare2))
+		if ((bgX < (imin-ROI*iincr)) or (bgX > (imax+ROI*iincr)) or
+			(bgY < (jmin-ROI*jincr)) or (bgY > (jmax+ROI*jincr))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 
@@ -1085,20 +1081,20 @@ int VarDriverXYZ::loadBackgroundObs()
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
 							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > ROIsquare2) continue;
+							if (fabs(xPos-bgX) > iincr*ROI) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
 									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > ROIsquare2) continue;
+									if (fabs(yPos-bgY) > jincr*ROI) continue;
 									
-									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
+									real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr) + (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
 									int bgI = xi*2 + (xmu+1)/2;
 									int bgJ = yi*2 + (ymu+1)/2;
 									int bgK = zi*2 + (zmu+1)/2;
 									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-									if (rSquare < (ROIsquare2*ROIsquare2)) {
-										real weight = exp(-rSquare/RSquare);
+									if (rSquare < ROIsquare) {
+										real weight = exp(-rSquare/(ROIsquare*0.5));
 										if (logzPos > logheights.front()) {
 											bgSpline->solve(uBG.data());
 											bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1167,20 +1163,20 @@ int VarDriverXYZ::loadBackgroundObs()
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
 					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > ROIsquare2) continue;
+					if (fabs(xPos-bgX) > ROI*iincr) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
 							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > ROIsquare2) continue;
+							if (fabs(yPos-bgY) > ROI*jincr) continue;
 							
-							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
+							real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr)+ (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
 							int bgI = xi*2 + (xmu+1)/2;
 							int bgJ = yi*2 + (ymu+1)/2;
 							int bgK = zi*2 + (zmu+1)/2;
 							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-							if (rSquare < (ROIsquare2*ROIsquare2)) {
-								real weight = exp(-rSquare/RSquare);
+							if (rSquare < (ROIsquare)) {
+								real weight = exp(-rSquare/(ROIsquare*0.5));
 								if (logzPos > logheights.front()) {
 									bgSpline->solve(uBG.data());
 									bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
