@@ -36,9 +36,6 @@ private:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
-	real FullBasis(int m, real x, int M, real xmin, 
-				real DX, real DXrecip, int derivative,
-				int BL, int BR, real lambda = 0);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
 			   const real& DX, const real& DXrecip, const int& derivative,
 			   const int& BL, const int& BR, const real& lambda = 0);	

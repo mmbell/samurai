@@ -2413,10 +2413,13 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
+				// Cheapest approximation
 				b = basis0[z1];
 				
+				// Slightly more expensive
 				//b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
 
+				// Unapproximated
 				/* z = 2.0 - z;
 				b = (z*z*z) * ONESIXTH;
 				z -= 1.0;
@@ -2470,13 +2473,14 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 	real bmod = 0;
 	int node = -2;
 	real coeffmod = 0.;
+	// real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
 	if (m == 0) {
 		// Left BC
 		switch (BL) {
 			case -1:
-				// No boundary condition, but buffered so use R1T2
+				// No boundary condition, but buffered so use R1T0
 				node = -1;
-				coeffmod = 2.;
+				coeffmod = -4.;
 				break;
 			case 0:
 				node = -1;
@@ -2512,7 +2516,7 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Left BC
 		switch (BL) {
 			case -1:
-				// No boundary condition, but buffered so use R1T2
+				// No boundary condition, but buffered so use R1T0
 				node = -1;
 				coeffmod = -1.;
 				break;			
@@ -2552,9 +2556,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Right BC
 		switch (BR) {
 			case -1:
-				// No boundary condition, but buffered so use R1T2
+				// No boundary condition, but buffered so use R1T0
 				node = M+1;
-				coeffmod = 2.;
+				coeffmod = -4.;
 				break;					
 			case 0:
 				node = M+1;
@@ -2589,7 +2593,7 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Right BC
 		switch (BR) {
 			case -1:
-				// No boundary condition, but buffered so use R1T2
+				// No boundary condition, but buffered so use R1T0
 				node = M+1;
 				coeffmod = -1.;
 				break;
@@ -2635,12 +2639,31 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
+				// Cheapest approximation
 				bmod = basis0[z1];
-				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);	
+				
+				// Slightly more expensive
+				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				
+				// Unapproximated
+				/* z = 2.0 - z;
+				 bmod = (z*z*z) * ONESIXTH;
+				 z -= 1.0;
+				 if (z > 0)
+				 bmod -= (z*z*z) * FOURSIXTH; */
+				
 				break;
 			case 1:
 				bmod = basis1[z1];
+				
 				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				
+				/* z = 2.0 - z;
+				 bmod = (z*z) * ONESIXTH;
+				 z -= 1.0;
+				 if (z > 0)
+				 bmod -= (z*z) * FOURSIXTH; */
+				
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
 			case 2:
