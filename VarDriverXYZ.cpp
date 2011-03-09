@@ -23,7 +23,6 @@ VarDriverXYZ::VarDriverXYZ()
 	: VarDriver()
 {
 	numVars = 7;
-	maxIter = 1.;
 }
 
 // Destructor
@@ -155,6 +154,10 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 		return false;
 	}
 	
+	/* Set the maximum number of iterations to the multipass reduction factor
+	Multiple outer loops will reduce the cutoff wavelengths and background error variance */
+	maxIter = configHash.value("num_iterations").toFloat();
+
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	bool loadBG = configHash.value("load_background").toInt();
 	int numbgObs = 0;
@@ -184,7 +187,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	delete[] bgWeights;	
 	
 	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
-	obCostXYZ->initialize(configHash, bgU, obs);
+	obCostXYZ->initialize(&configHash, bgU, obs);
 	
 	// If we got here, then everything probably went OK!
 	return true;
@@ -196,16 +199,16 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 
 bool VarDriverXYZ::run()
 {
-	int iter=0;
-	while (iter < maxIter) {
-		iter++;
+	int iter=1;
+	while (iter <= maxIter) {
 		cout << "Outer Loop Iteration: " << iter << endl;
-		obCostXYZ->initState();
+		obCostXYZ->initState(iter);
 		obCostXYZ->minimize();
 		obCostXYZ->updateBG();
+		iter++;
 		
 		// Optionally update the analysis parameters for an additional iteration
-		updateAnalysisParams();
+		updateAnalysisParams(iter);
 	}	
 	
 	return true;
@@ -1320,8 +1323,11 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 	
 	// Adjust the background field to the spline mish
 	bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
-	bgCostXYZ->initialize(configHash, bgU, bgObs);
-	bgCostXYZ->initState();
+	bgCostXYZ->initialize(&configHash, bgU, bgObs);
+	/* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
+	    which is presumably what you want most of the time. Otherwise, you would not be here */
+	int bgIter = 0;
+	bgCostXYZ->initState(bgIter);
 	bgCostXYZ->minimize();
 	
 	// Increment the variables
@@ -1343,6 +1349,65 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 
 /* Any updates needed for additional analysis iterations would go here */
  
-void VarDriverXYZ::updateAnalysisParams()
+void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 {
+	QString iter;
+	iter.setNum(iteration);
+	
+	QString key = "uerror_" + iter;
+	QString val = configHash.value(key);
+	configHash.insert("uerror", val);
+	
+	key = "verror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("verror", val);
+	
+	key = "werror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("werror", val);
+	
+	key = "terror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("terror", val);
+	
+	key = "qverror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("qverror", val);
+	
+	key = "rhoerror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("rhoerror", val);
+	
+	key = "qrerror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("qrerror", val);	
+	
+	key = "mcweight_" + iter;
+	val = configHash.value(key);
+	configHash.insert("mcweight", val);
+	
+	key = "xfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("xfilter", val);
+	
+	key = "yfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("yfilter", val);
+	
+	key = "zfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("zfilter", val);
+	
+	key = "x_spline_cutoff" + iter;
+	val = configHash.value(key);
+	configHash.insert("x_spline_cutoff", val);
+	
+	key = "y_spline_cutoff" + iter;
+	val = configHash.value(key);
+	configHash.insert("y_spline_cutoff", val);
+	
+	key = "z_spline_cutoff" + iter;
+	val = configHash.value(key);
+	configHash.insert("z_spline_cutoff", val);
+	
 }

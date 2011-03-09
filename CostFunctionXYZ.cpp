@@ -67,24 +67,15 @@ void CostFunctionXYZ::finalize()
 	
 }
 
-void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bgU, real* obs)
+void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bgU, const real* obs)
 {
 
 	// Initialize number of variables
 	varDim = 7;
 	configHash = config;
-		
-	// Initialize background errors and filter scales
-	bgError[0] = configHash.value("uerror").toFloat();
-	bgError[1] = configHash.value("verror").toFloat();
-	bgError[2] = configHash.value("werror").toFloat();
-	bgError[3] = configHash.value("terror").toFloat();
-	bgError[4] = configHash.value("qverror").toFloat();	
-	bgError[5] = configHash.value("rhoerror").toFloat();
-	bgError[6] = configHash.value("qrerror").toFloat();
-		
+
 	// Horizontal boundary conditions
-	int hbc = bcHash.value(configHash.value("horizontalbc"));	
+	int hbc = bcHash.value(configHash->value("horizontalbc"));	
 	iBCL[0] = hbc; iBCR[0] = hbc; jBCL[0] = hbc; jBCR[0] = hbc; 
 	iBCL[1] = hbc; iBCR[1] = hbc; jBCL[1] = hbc; jBCR[1] = hbc; 
 	iBCL[2] = hbc; iBCR[2] = hbc; jBCL[2] = hbc; jBCR[2] = hbc; 
@@ -93,7 +84,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	iBCL[5] = hbc; iBCR[5] = hbc; jBCL[5] = hbc; jBCR[5] = hbc; 
 	iBCL[6] = hbc; iBCR[6] = hbc; jBCL[6] = hbc; jBCR[6] = hbc;
 	
-	int vbc = bcHash.value(configHash.value("verticalbc"));
+	int vbc = bcHash.value(configHash->value("verticalbc"));
 	kBCL[0] = vbc; kBCR[0] = vbc;
 	kBCL[1] = vbc; kBCR[1] = vbc;
 	kBCL[3] = vbc; kBCR[3] = vbc;
@@ -106,24 +97,24 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	kBCL[2] = R1T0; kBCR[2] = R1T0;
 
 	// Define the Reference state
-	if (configHash.value("refstate") == "jordan") {
+	if (configHash->value("refstate") == "jordan") {
 		referenceState = jordan;
 	}
 	
 	// Assign local object pointers
 	bgFields = bgU;
 	rawObs = obs;
-	iMin = configHash.value("xmin").toFloat();
-	iMax = configHash.value("xmax").toFloat();
-	DI = configHash.value("xincr").toFloat();
+	iMin = configHash->value("xmin").toFloat();
+	iMax = configHash->value("xmax").toFloat();
+	DI = configHash->value("xincr").toFloat();
 	iDim = (int)((iMax - iMin)/DI) + 1;
-	jMin = configHash.value("ymin").toFloat();
-	jMax = configHash.value("ymax").toFloat();
-	DJ = configHash.value("yincr").toFloat();
+	jMin = configHash->value("ymin").toFloat();
+	jMax = configHash->value("ymax").toFloat();
+	DJ = configHash->value("yincr").toFloat();
 	jDim = (int)((jMax - jMin)/DJ) + 1;
-	kMin = configHash.value("zmin").toFloat();
-	kMax = configHash.value("zmax").toFloat();
-	DK = configHash.value("zincr").toFloat();
+	kMin = configHash->value("zmin").toFloat();
+	kMax = configHash->value("zmax").toFloat();
+	DK = configHash->value("zincr").toFloat();
 	kDim = (int)((kMax - kMin)/DK) + 1;
 
 	DIrecip = 1./DI;
@@ -131,7 +122,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	DKrecip = 1./DK;
 
 	// Increase the "internal" size of the grid for the zero BC condition
-	if (configHash.value("horizontalbc") == "R0") {
+	if (configHash->value("horizontalbc") == "R0") {
 		iMin -= DI;
 		iMax += DI;
 		iDim += 2;
@@ -139,30 +130,24 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 		jMax += DJ;
 		jDim += 2;
 	}
-	if (configHash.value("verticalbc") == "R0") {
+	if (configHash->value("verticalbc") == "R0") {
 		kMin -= DK;
 		kMax += DK;
 		kDim += 2;
 		// Keep the vertical ones the same, since they are outside the domain anyway?
-		//kBCL[2] = R0; kBCR[2] = R0;
+		kBCL[2] = R0; kBCR[2] = R0;
 	}
 	
 	// Mass continuity weight
-	mcWeight = configHash.value("mcweight").toFloat();
+	mcWeight = configHash->value("mcweight").toFloat();
 	
 	// Set up the initial recursive filter
-	real iFilterScale = configHash.value("xfilter").toFloat();
-	real jFilterScale = configHash.value("yfilter").toFloat();
-	real kFilterScale = configHash.value("zfilter").toFloat();	
-	bgErrorScale = 1.;
-	iFilter = new RecursiveFilter(4,iFilterScale);
-	jFilter = new RecursiveFilter(4,jFilterScale);
-	kFilter = new RecursiveFilter(4,kFilterScale);
-	// Disable vertical filter if less than 1
-	if (kFilterScale < 0) {
-		kFilter = NULL;
-		cout << "Disabling recursive filter...\n";
-	}
+	iFilterScale = configHash->value("xfilter").toFloat();
+	jFilterScale = configHash->value("yfilter").toFloat();
+	kFilterScale = configHash->value("zfilter").toFloat();	
+	iFilter = new RecursiveFilter(4);
+	jFilter = new RecursiveFilter(4);
+	kFilter = new RecursiveFilter(4);
 	
 	// Allocate memory for the needed arrays
 	// These are common to all CostFunctions
@@ -187,18 +172,18 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>& config, real* bg
 	stateA = new real[nState];
 	stateB = new real[nState];
 	stateC = new real[nState];
-	
+	iL = new real[varDim*iDim*4];
+	jL = new real[varDim*jDim*4];
+	kL = new real[varDim*kDim*4];
+
 	// Precalculate the basis functions for lookup table option
 	basis0 = new real[2000000];
 	basis1 = new real[2000000];
 	fillBasisLookup();
 	
-	// Set up the spline matrices
-	setupSplines();
-
 }	
 
-void CostFunctionXYZ::initState()
+void CostFunctionXYZ::initState(const int iteration)
 {
 
 	// Clear the state vector
@@ -210,25 +195,63 @@ void CostFunctionXYZ::initState()
 		tempGradient[n] = 0.0;
 		xt[n] = 0.0;
 		df[n] = 0.0;
-		bgState[n] = 0.0;
-		bgStdDev[n] = 0.0;
 		stateA[n] = 0.0;
 		stateB[n] = 0.0;
 		stateC[n] = 0.0;
 	}
 	
-	/* Change the filter scale
+	// Initialize background errors and filter scales
+	bgError[0] = configHash->value("uerror").toFloat();
+	bgError[1] = configHash->value("verror").toFloat();
+	bgError[2] = configHash->value("werror").toFloat();
+	bgError[3] = configHash->value("terror").toFloat();
+	bgError[4] = configHash->value("qverror").toFloat();	
+	bgError[5] = configHash->value("rhoerror").toFloat();
+	bgError[6] = configHash->value("qrerror").toFloat();	
+	
+	// Set up the recursive filter
+	real iFilterScale = configHash->value("xfilter").toFloat();
+	real jFilterScale = configHash->value("yfilter").toFloat();
+	real kFilterScale = configHash->value("zfilter").toFloat();		
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
-	kFilter->setFilterLengthScale(kFilterScale); */
+	kFilter->setFilterLengthScale(kFilterScale);
 	
-	// SB Transform on the original bg fields
-	SBtransform(bgFields, stateB);
+	// Set up the spline matrices
+	setupSplines();
+	
+	if (iteration == 1) {
 		
-	// SA transform = bg B's -> bg A's
-	SAtransform(stateB, bgState);
+		// Set up the background state
+		for (int n = 0; n < nState; n++) {
+			bgState[n] = 0.0;
+			bgStdDev[n] = 0.0;
+		}
+		
+		// SB Transform on the original bg fields
+		SBtransform(bgFields, stateB);
+		
+		// SA transform = bg B's -> bg A's
+		SAtransform(stateB, bgState);
+
+		// Using a constant bg error variance for now, but this could be variable across the nodes
+		for (int var = 0; var < varDim; var++) {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+					for (int kIndex = 0; kIndex < kDim; kIndex++) {
+						int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+						bgStdDev[bIndex] = bgError[var];
+					}
+				}
+			}
+		}
+		
+		// Output the original background field
+		outputAnalysis("background", bgState , true);
+
+	}
 	
-	// Compute and display the variable RMS and BG errors for reference
+	// Compute and display the variable BG errors and RMS of values
 	for (int var = 0; var < varDim; var++) {
 		real varScale = 0;
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -236,7 +259,6 @@ void CostFunctionXYZ::initState()
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
 					varScale += bgState[bIndex] * bgState[bIndex];
-					bgStdDev[bIndex] = bgError[var];
 				}
 			}
 		}
@@ -249,18 +271,15 @@ void CostFunctionXYZ::initState()
 			cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var] 
 			<< " ( Infinite! %)" << endl;
 		}
-	}	
+	}
+	
+	cout << "Beginning analysis...\n";
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	obAdjustments();
 	
 	// d = y - HXb
 	calcInnovation();
-
-	// Output the original background field
-	outputAnalysis("background", bgState , true);
-
-	cout << "Beginning analysis...\n";
 	
 	// HTd
 	calcHTranspose(innovation, stateC);
@@ -285,19 +304,19 @@ real CostFunctionXYZ::funcValue(real* state)
 	updateHCq(state);
 
 	// Compute inner product of state vector
-	//#pragma omp parallel for reduction(+:qIP)
+	#pragma omp parallel for reduction(+:qIP)
 	for (int n = 0; n < nState; n++) {
 		qIP += state[n]*state[n];
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
-	//#pragma omp parallel for reduction(+:obIP)
+	#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
 		obIP += (HCq[m]-innovation[m])*(obsVector[m*14+1])*(HCq[m]-innovation[m]);
 	}
 	
 	// Mass continuity on the nodes
-	//#pragma omp parallel for reduction(+:mcIP)
+	#pragma omp parallel for reduction(+:mcIP)
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -367,17 +386,25 @@ void CostFunctionXYZ::updateHCq(real* state)
 				for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
 					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-					
-					for (int var = 0; var < varDim; var++) {
+					real basis = ibasis * jbasis * kbasis;
+					/* for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
 						if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 						} 
-						tempsum += stateC[cIndex + var] * ibasis * jbasis * kbasis * obsVector[mi+7 + var];
-					}
+						tempsum += stateC[cIndex + var] * basis * obsVector[mi+7 + var];
+					} */
+					tempsum += stateC[cIndex] * basis * obsVector[mi+7];
+					tempsum += stateC[cIndex + 1] * basis * obsVector[mi+8];
+					tempsum += stateC[cIndex + 2] * basis * obsVector[mi+9];
+					tempsum += stateC[cIndex + 3] * basis * obsVector[mi+10];
+					tempsum += stateC[cIndex + 4] * basis * obsVector[mi+11];
+					tempsum += stateC[cIndex + 5] * basis * obsVector[mi+12];
+					tempsum += stateC[cIndex + 6] * basis * obsVector[mi+13]; 
 				}
 			}
 		}
+		
 		HCq[m] = tempsum;
 	}
 	
@@ -590,17 +617,22 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 					real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					real invError = obsVector[mi+1];
 					real qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
-					
-					for (int var = 0; var < varDim; var++) {
+					/*for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
 						if ((kBCL[var] != iBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 							qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
 						}
-
 						//#pragma omp atomic
 						Astate[aIndex + var] += qbasise * obsVector[mi+7+var];
-					}
+					 } */
+					Astate[aIndex] += qbasise * obsVector[mi+7];
+					Astate[aIndex + 1] += qbasise * obsVector[mi+8];
+					Astate[aIndex + 2] += qbasise * obsVector[mi+9];
+					Astate[aIndex + 3] += qbasise * obsVector[mi+10];
+					Astate[aIndex + 4] += qbasise * obsVector[mi+11];
+					Astate[aIndex + 5] += qbasise * obsVector[mi+12];
+					Astate[aIndex + 6] += qbasise * obsVector[mi+13];
 				}
 			}
 		}
@@ -891,13 +923,15 @@ void CostFunctionXYZ::SBtranspose(const real* Bstate, real* Ustate)
 
 void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 {
-	// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet
-	if (kFilter == NULL) {
+	// Disable recursive filter if less than 1
+	if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
+		#pragma omp parallel for
 		for (int n = 0; n < nState; n++) {
 			Cstate[n]= Astate[n] * bgStdDev[n];
 		}
 	} else {
-              #pragma omp parallel for
+		// Isotropic Recursive filter, no anisotropic "triad" working yet
+              //#pragma omp parallel for
 		for (int var = 0; var < varDim; var++) {
 			
 			//FK
@@ -911,7 +945,7 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					kFilter->filterArray(kTemp, kDim);
+					if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
@@ -924,7 +958,7 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					jFilter->filterArray(jTemp, jDim);
+					if (jFilterScale > 0) jFilter->filterArray(jTemp, jDim);
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 					}
@@ -936,10 +970,11 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					iFilter->filterArray(iTemp, iDim);
+					if (iFilterScale > 0) iFilter->filterArray(iTemp, iDim);
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						// D
-						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex] * bgError[var]; 
+						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+						Cstate[cIndex] = iTemp[iIndex] * bgStdDev[cIndex]; 
 					}
 				}
 			}
@@ -952,13 +987,14 @@ void CostFunctionXYZ::SCtransform(const real* Astate, real* Cstate)
 
 void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 {
-	if (kFilter == NULL) {
+	if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
+		#pragma omp parallel for
 		for (int n = 0; n < nState; n++) {
 			Astate[n]= Cstate[n] * bgStdDev[n];
 		}
 	} else {
-		// Isoptropic Recursive filter for speed, no anisotropic "triad" working yet 
-              #pragma omp parallel for
+		// Isotropic Recursive filter, no anisotropic "triad" working yet 
+              //_#pragma omp parallel for
 		for (int var = 0; var < varDim; var++) {
 			
 			// These are local for parallelization
@@ -970,9 +1006,10 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
-						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] * bgError[var];
+						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+						iTemp[iIndex] = Cstate[cIndex] * bgStdDev[cIndex];
 					}
-					iFilter->filterArray(iTemp, iDim);
+					if (iFilterScale > 0) iFilter->filterArray(iTemp, iDim);
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
 					}
@@ -984,7 +1021,7 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					jFilter->filterArray(jTemp, jDim);
+					if (jFilterScale > 0) jFilter->filterArray(jTemp, jDim);
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 					}
@@ -996,7 +1033,7 @@ void CostFunctionXYZ::SCtranspose(const real* Cstate, real* Astate)
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					kFilter->filterArray(kTemp, kDim);
+					if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
@@ -1014,10 +1051,9 @@ bool CostFunctionXYZ::setupSplines()
 	
 	// Do the spline via a Cholesky decomposition
 	// and manipulate the DC Filter
-	real Pi = 3.141592653589793;
+	real Pi = acos(-1.);
 	real** P = new real*[iDim];
 	real* p = new real[iDim];
-	iL = new real[varDim*iDim*4];
 	for (int i = 0; i < iDim; i++) {
 		P[i] = new real[iDim];
 		p[i] = 0.;
@@ -1027,7 +1063,7 @@ bool CostFunctionXYZ::setupSplines()
 		iL[i] = 0;
 	}
 	
-	real cutoff_wl = configHash.value("x_spline_cutoff").toFloat();
+	real cutoff_wl = configHash->value("x_spline_cutoff").toFloat();
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {				
 		for (int i = 0; i < iDim; i++) {
@@ -1118,7 +1154,6 @@ bool CostFunctionXYZ::setupSplines()
 	
 	P = new real*[jDim];
 	p = new real[jDim];
-	jL = new real[varDim*jDim*4];
 	for (int j = 0; j < jDim; j++) {
 		P[j] = new real[jDim];
 		p[j] = 0.;
@@ -1128,7 +1163,7 @@ bool CostFunctionXYZ::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = configHash.value("y_spline_cutoff").toFloat();;
+	cutoff_wl = configHash->value("y_spline_cutoff").toFloat();;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 
@@ -1213,7 +1248,6 @@ bool CostFunctionXYZ::setupSplines()
 	
 	P = new real*[kDim];
 	p = new real[kDim];
-	kL = new real[varDim*kDim*4];
 	for (int k = 0; k < kDim; k++) {
 		P[k] = new real[kDim];
 		p[k] = 0.;
@@ -1223,7 +1257,7 @@ bool CostFunctionXYZ::setupSplines()
 		kL[k] = 0;
 	}
 	
-	cutoff_wl = configHash.value("z_spline_cutoff").toFloat();;
+	cutoff_wl = configHash->value("z_spline_cutoff").toFloat();;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		
@@ -1445,7 +1479,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
 																						
 											// Skip the border nodes if the boundary conditions are zero
-											if (configHash.value("horizontalbc") == "R0") {
+											if (configHash->value("horizontalbc") == "R0") {
 												if ((iIndex == 0) or (iIndex == iDim-1) or
 													(jIndex == 0) or (jIndex == jDim-1)) {
 													for (int n = 0; n < 33; ++n) {
@@ -1455,7 +1489,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 												}
 											}
 											
-											if (configHash.value("verticalbc") == "R0") {
+											if (configHash->value("verticalbc") == "R0") {
 												if ((kIndex == 0) or (kIndex == kDim-1)) {
 													for (int n = 0; n < 33; ++n) {
 														fieldNodes[fIndex * n + posIndex] = -999.0;
@@ -1467,7 +1501,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 											real rhoa = rhoBar + rhoprime / 100;
 											real qv = bhypInvTransform(qBar + qvprime);
 											real qr = bhypInvTransform(qrprime);
-											QString gridref = configHash.value("gridreflectivity");
+											QString gridref = configHash->value("gridreflectivity");
 											if (gridref == "dbz") {
 												/* if (qr > 0) {
 													qr = 10*log10(qr);
@@ -2046,9 +2080,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	int time[2];
 	
 	// Reference time and position from center file 
-	time[0] = configHash.value("reftime").toInt();
-	real latReference = configHash.value("reflat").toFloat();	
-	real lonReference = configHash.value("reflon").toFloat();
+	time[0] = configHash->value("reftime").toInt();
+	real latReference = configHash->value("reflat").toFloat();	
+	real lonReference = configHash->value("reflon").toFloat();
 	real refX, refY;
 	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
@@ -2381,327 +2415,43 @@ void CostFunctionXYZ::fillBasisLookup()
 	
 }
 
-real CostFunctionXYZ::FullBasis(int m, real x, int M, real xmin, 
-								real DX, real DXrecip, int derivative, 
-								int BL, int BR, real lambda)
-{
-	
-	real b = 0;
-	real xm = xmin + (m * DX);
-	real delta = (x - xm) * DXrecip;
-	real z = fabsf(delta);
-	real ONESIXTH = 0.16666666666666666666666666667;
-	real FOURSIXTH = 0.66666666666666666666666666667;
-	switch (derivative) {
-		case 0:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				b = (z*z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					b -= (z*z*z) * FOURSIXTH;
-			}			
-			break;
-		case 1:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				b = (z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					b -= (z*z) * FOURSIXTH;
-				//b = basis1[int(z*100000.)];
-				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-			}			
-			break;
-		case 2:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				b = z;
-				z -= 1.0;
-				if (z > 0)
-					b -= z * 4;
-				b *= DXrecip * DXrecip;
-			}
-			break;
-		case 3:
-			if ((z > 1.0) and (z < 2.0)) {
-				b = 1;
-			} else if (z < 1.0) {
-				b = -3.;
-			}
-			b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-			break;
-	}
-	
-	if ((m > 1) and (m < M-1)) return b;
-	// Otherwise add on the boundary conditions
-	real bmod = 0;
-	int node = -2;
-	real coeffmod = 0.;
-	if (m == 0) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = -1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				// There is no contribution from this node 
-				return b;
-			case 5:
-				// There is no contribution from this node 
-				return b;
-			case 6:
-				// There is no contribution from this node 
-				return b;				
-		}
-	} else if (m == 1) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				node = -1;
-				coeffmod = 1.;
-				break;
-			case 5:
-				node = -1;
-				coeffmod = -1.;
-				break;				
-			case 6:
-				// There is no contribution from this node 
-				return b;				
-		}
-				
-	} else if (m == M) {
-		// Right BC
-		switch (BR) {
-			case 0:
-				node = M+1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				// There is no contribution from this node 
-				return 0.;
-			case 5:
-				// There is no contribution from this node 
-				return 0.;
-			case 6:
-				// There is no contribution from this node 
-				return 0.;				
-		}
-	} else if (m == M-1) {
-		// Left BC
-		switch (BL) {
-			case 0:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-			case 5:
-				node = M+1;
-				coeffmod = -1.;
-				break;				
-			case 6:
-				// There is no contribution from this node 
-				return 0.;				
-		}
-	}
-	
-	xm = xmin + (node * DX);
-	delta = (x - xm) * DXrecip;
-	z = fabsf(delta);
-	switch (derivative) {
-		case 0:
-			if (z < 2.0)
-			{
-				z = 2 - z;
-				bmod = (z*z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= (z*z*z) * FOURSIXTH;
-				//bmod = basis0[int(z*100000.)];
-			}			
-			break;
-		case 1:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				bmod = (z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= (z*z) * FOURSIXTH;
-				//bmod = basis1[int(z*100000.)];
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-			}			
-			break;
-		case 2:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-			}
-			break;
-		case 3:
-			if ((z > 1.0) and (z < 2.0)) {
-				bmod = 1;
-			} else if (z < 1.0) {
-				bmod = -3.;
-			}
-			bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-			break;
-	}
-	
-	b += coeffmod * bmod;
-	
-	// R2 needs one more addition
-	if ((m == 1) and (BL == 4)) {
-		node = 0;
-		coeffmod = -0.5;
-	} else if ((m == M-1) and (BR == 4)) {
-		node = M;
-		coeffmod = -0.5;
-	} else {
-		return b;
-	}
-	
-	xm = xmin + (node * DX);
-	delta = (x - xm) * DXrecip;
-	z = fabsf(delta);
-	switch (derivative) {
-		case 0:
-			if (z < 2.0)
-			{
-				z = 2 - z;
-				bmod = (z*z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= (z*z*z) * FOURSIXTH;
-				//bmod = basis0[int(z*100000.)];
-			}			
-			break;
-		case 1:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				bmod = (z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= (z*z) * FOURSIXTH;
-				//bmod = basis1[int(z*100000.)];
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-			}			
-			break;
-		case 2:
-			if (z < 2.0)
-			{
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-			}
-			break;
-		case 3:
-			if ((z > 1.0) and (z < 2.0)) {
-				bmod = 1;
-			} else if (z < 1.0) {
-				bmod = -3.;
-			}
-			bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-			break;
-	}
-	
-	b += coeffmod * bmod;
-	
-	return b;
-	
-}
-
 real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real& xmin, 
 							const real& DX, const real& DXrecip, const int& derivative,
 							const int& BL, const int& BR, const real& lambda)
-/* (int m, real x, int M, real xmin, 
-							real DX, real DXrecip, int derivative, 
-							int BL, int BR, real lambda) */
 {
 	real b = 0;
 	real xm = xmin + (m * DX);
 	real delta = (x - xm) * DXrecip;
 	real z = fabs(delta);
+	// real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
 	if (z < 2.0) {
 		real zi = z*1000000.;
 		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
 				b = basis0[z1];
+				
 				//b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+
+				/* z = 2.0 - z;
+				b = (z*z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					b -= (z*z*z) * FOURSIXTH; */
+				
 				break;
 			case 1:
 				b = basis1[z1];
-				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				
 				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				
+				/* z = 2.0 - z;
+				b = (z*z) * ONESIXTH;
+				z -= 1.0;
+				if (z > 0)
+					b -= (z*z) * FOURSIXTH; */
+
+				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
 			case 2:
 				z = 2.0 - z;
@@ -2722,9 +2472,8 @@ real CostFunctionXYZ::Basis(const int& m, const real& x, const int& M,const real
 		}
 	}
 	if ((m > 1) and (m < M-1)) return b;
-	//if (((m > 1) or (BL < 0)) and ((m < M-1) or (BR < 0))) return b;
 	
-	// Otherwise add on the boundary conditions
+	// Add the boundary conditions if we get this far
 	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
 	return bc;
 }

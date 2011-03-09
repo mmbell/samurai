@@ -15,6 +15,7 @@ class RecursiveFilter
 {
 	
 public:
+	RecursiveFilter(const int& fOrder);
 	RecursiveFilter(const int& fOrder, const double& fLengthScale);
 	RecursiveFilter(const double& fLengthScale, const double* tau, const int& arrLength );
 	~RecursiveFilter();

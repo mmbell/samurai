@@ -977,16 +977,35 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
-			
+
+	cout << "Validating configuration file...\n";
+	
 	// Parse the nodes to a hash
 	QDomNodeList nodeList = config.childNodes();
 	for (int i = 0; i < nodeList.count(); i++) {
 		QDomNode currNode = nodeList.item(i);
-		QDomElement group = currNode.toElement();
-		configHash.insert(group.tagName(), group.text());
+		// Check to see if this is a set of pass parameters
+		QString iter = 0;
+		if (currNode.hasAttributes() and currNode.attributes().contains("iter")) {
+			iter = currNode.toElement().attribute("iter");
+		}
+		QDomNodeList configList = currNode.childNodes();
+		for (int j = 0; j < configList.count(); j++) {
+			QDomNode configItem = configList.item(j);
+			QDomElement group = configItem.toElement();
+			QString tag = group.tagName();
+			if (iter.toInt() > 1) {
+				// Append the pass number to the tagName
+				tag += "_" + iter;
+			}
+			if (!group.text().isEmpty()) {
+				configHash.insert(tag, group.text());
+				cout << tag.toStdString() << " => " << configHash.value(tag).toStdString() << endl;
+			}
+		}
 	}
 	
-	// Validate the hash
+	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
 	configKeys << "xmin" << "xmax" << "xincr" <<
 	"ymin" << "ymax" << "yincr" <<
@@ -999,12 +1018,15 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
 	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
-	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
+	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff" <<
+	"num_iterations";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
 			return false;
-		}			
+		} else {
+			//cout << configKeys.at(i).toStdString() << " => " << configHash.value(configKeys.at(i)).toStdString() << endl;
+		}
 	}
 	return true;
 	

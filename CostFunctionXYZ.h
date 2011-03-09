@@ -27,10 +27,10 @@ class CostFunctionXYZ: public CostFunction
 public:
 	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYZ();
-       void initialize(const QHash<QString, QString>& config, real* bgU, real* obs); 
+       void initialize(const QHash<QString, QString>* config, real* bgU,const  real* obs); 
 	void finalize();
 	void updateBG();
-	void initState();
+	void initState(const int iteration);
 	
 private:
 	double funcValue(double* state);
@@ -74,7 +74,7 @@ private:
 	real* bgState;
 	real* bgStdDev;
 	real* obsVector;
-	real* rawObs;
+	const real* rawObs;
 	real* stateA;
 	real* stateB;
 	real* stateC;
@@ -90,14 +90,13 @@ private:
 	int varDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
-	real bgErrorScale;
 	real constHeight;
 	real mcWeight;
 	int referenceState;
 
 	real* basis0;
 	real* basis1;
-	QHash<QString, QString> configHash;
+	const QHash<QString, QString>* configHash;
 	QHash<QString, int> bcHash;
 	enum BoundaryConditionTypes {
 		R0 = -1,
@@ -110,11 +109,12 @@ private:
 		R3 = 6,
 		PERIODIC = 7
 	};
-	
+
+	real iFilterScale,jFilterScale, kFilterScale;
 	RecursiveFilter* iFilter;
 	RecursiveFilter* jFilter;
 	RecursiveFilter* kFilter;
-
+	
 	real rhoBase;
 	real rhoInvScaleHeight;
 	real qBase;

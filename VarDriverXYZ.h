@@ -47,7 +47,7 @@ private:
 	bool loadBGfromFile();
 	int loadBackgroundObs();
 	void adjustBackground(const int& bStateSize);
-	void updateAnalysisParams();
+	void updateAnalysisParams(const int& iteration);
 
 	QList<real> bgIn;
 	QList<Observation> obVector;

@@ -10,6 +10,14 @@
 #include <iostream>
 #include <cmath>
 
+RecursiveFilter::RecursiveFilter(const int& fOrder)
+{
+	
+	// Create a filter based on the specified order
+	order = fOrder;
+	
+}
+
 RecursiveFilter::RecursiveFilter(const int& fOrder, const double& fLengthScale)
 {
 	
