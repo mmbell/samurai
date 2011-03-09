@@ -39,7 +39,10 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	
 	// Parse the XML configuration file
 	if (!parseXMLconfig(configuration)) return false;
-		
+	
+	// Validate the XYZ specific parameters
+	if (!validateXMLconfig()) return false;
+	
 	// Define the grid dimensions
 	imin = configHash.value("xmin").toFloat();
 	imax = configHash.value("xmax").toFloat();
@@ -1411,3 +1414,33 @@ void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 	configHash.insert("z_spline_cutoff", val);
 	
 }
+
+/* This routine validates that all required parameters are present
+It currently does not check the validity of a particular parameter, just that it exists */
+
+bool VarDriverXYZ::validateXMLconfig()
+{
+	
+	// Validate the hash -- multiple passes are not validated currently
+	QStringList configKeys;
+	configKeys << "xmin" << "xmax" << "xincr" <<
+	"ymin" << "ymax" << "yincr" <<
+	"zmin" << "zmax" << "zincr" <<
+	"xfilter" << "yfilter" << "zfilter" <<
+	"uerror" << "verror" << "werror" << "terror" << 
+	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
+	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
+	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
+	
+	for (int i = 0; i < configKeys.count(); i++) {
+		if (!configHash.contains(configKeys.at(i))) {
+			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
+			return false;
+		}
+	}
+	return true;
+}	
+	
+	
+	

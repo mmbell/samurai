@@ -48,7 +48,8 @@ private:
 	int loadBackgroundObs();
 	void adjustBackground(const int& bStateSize);
 	void updateAnalysisParams(const int& iteration);
-
+	bool validateXMLconfig();
+	
 	QList<real> bgIn;
 	QList<Observation> obVector;
 	int maxIter;

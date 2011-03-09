@@ -972,13 +972,14 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
-/* This routine parses the supplied XML configuration and validates that all required parameters are present
-	It does not check the validity of a particular parameter, just that it exists */
+/* This routine parses the supplied XML configuration 
+ and validates parameters that are common to all drivers
+ Mode specific configs are validated in those drivers */
 
 bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
 
-	cout << "Validating configuration file...\n";
+	cout << "Parsing configuration file...\n";
 	
 	// Parse the nodes to a hash
 	QDomNodeList nodeList = config.childNodes();
@@ -1007,26 +1008,17 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	
 	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
-	configKeys << "xmin" << "xmax" << "xincr" <<
-	"ymin" << "ymax" << "yincr" <<
-	"zmin" << "zmax" << "zincr" <<
-	"xfilter" << "yfilter" << "zfilter" <<
-	"refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
+	configKeys << "refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
 	"gridreflectivity" << "backgroundroi" <<
 	"load_background" << "adjust_background" <<
-	"uerror" << "verror" << "werror" << "terror" << 
-	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
 	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
-	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff" <<
-	"num_iterations";
+	"num_iterations" << "output_mish";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
 			return false;
-		} else {
-			//cout << configKeys.at(i).toStdString() << " => " << configHash.value(configKeys.at(i)).toStdString() << endl;
-		}
+		} 
 	}
 	return true;
 	

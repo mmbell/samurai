@@ -54,7 +54,7 @@ private:
 	bool SAtransform_ori(real* Bstate, real* Astate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
-	bool outputAnalysis(const QString& suffix, real* Astate, bool updateMish);
+	bool outputAnalysis(const QString& suffix, real* Astate);
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);
@@ -66,6 +66,7 @@ private:
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	
+	bool outputMish;
 	int iDim, jDim, kDim;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;

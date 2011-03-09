@@ -138,13 +138,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bg
 		kBCL[2] = R0; kBCR[2] = R0;
 	}
 	
-	// Mass continuity weight
-	mcWeight = configHash->value("mcweight").toFloat();
-	
 	// Set up the initial recursive filter
-	iFilterScale = configHash->value("xfilter").toFloat();
-	jFilterScale = configHash->value("yfilter").toFloat();
-	kFilterScale = configHash->value("zfilter").toFloat();	
 	iFilter = new RecursiveFilter(4);
 	jFilter = new RecursiveFilter(4);
 	kFilter = new RecursiveFilter(4);
@@ -219,7 +213,13 @@ void CostFunctionXYZ::initState(const int iteration)
 	
 	// Set up the spline matrices
 	setupSplines();
+
+	// Flag whether or not to print the subgrid information
+	outputMish = configHash->value("output_mish").toInt();
 	
+	// Mass continuity weight
+	mcWeight = configHash->value("mcweight").toFloat();
+		
 	if (iteration == 1) {
 		
 		// Set up the background state
@@ -247,7 +247,7 @@ void CostFunctionXYZ::initState(const int iteration)
 		}
 		
 		// Output the original background field
-		outputAnalysis("background", bgState , true);
+		outputAnalysis("background", bgState);
 
 	}
 	
@@ -469,7 +469,7 @@ void CostFunctionXYZ::updateBG()
 	
 	SCtransform(stateA, stateC);
 	
-	outputAnalysis("increment", stateC, false);	
+	outputAnalysis("increment", stateC);	
 	
 	// In BG update we are directly summing C + A
 	ofstream cstream("samurai_Coefficients.out");
@@ -489,7 +489,7 @@ void CostFunctionXYZ::updateBG()
 		}
 	}
 		
-	outputAnalysis("analysis", bgState, true);
+	outputAnalysis("analysis", bgState);
 	
 }
 
@@ -1344,7 +1344,7 @@ bool CostFunctionXYZ::setupSplines()
 	
 }
 
-bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool updateMish)
+bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 {
 	
 	cout << "Outputting " << suffix.toStdString() << "...\n";
@@ -1354,15 +1354,14 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
 	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
 	samuraistream.precision(10);
-	//real CoriolisF = 6e-5;		
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int ihalf = 0; ihalf <=1; ihalf++) {
+		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
 				if (i > ((iDim-1)*DI + iMin)) continue;
 				
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int jhalf =0; jhalf <=1; jhalf++) {
+					for (int jhalf =0; jhalf <=outputMish; jhalf++) {
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							if (j > ((jDim-1)*DJ + jMin)) continue;	
@@ -1370,7 +1369,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 							real tpw = 0;
 							
 							for (int kIndex = 0; kIndex < kDim; kIndex++) {
-								for (int khalf =0; khalf <=1; khalf++) {
+								for (int khalf =0; khalf <=outputMish; khalf++) {
 									for (int kmu = -khalf; kmu <= khalf; kmu++) {
 										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5*khalf));
 										if (k > ((kDim-1)*DK + kMin)) continue;	
@@ -1455,128 +1454,113 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate, bool u
 												}
 											}
 										}
-										
 																				
 										// Output it
-										if (updateMish and imu and jmu and kmu and ihalf and jhalf and khalf) {
-											int bgI = iIndex*2 + (imu+1)/2;
-											int bgJ = jIndex*2 + (jmu+1)/2;
-											int bgK = kIndex*2 + (kmu+1)/2;
-											int bIndex = varDim*(iDim-1)*2*(jDim-1)*2*bgK + varDim*(iDim-1)*2*bgJ +varDim*bgI;
-											bgFields[bIndex + 0] = rhou;
-											bgFields[bIndex + 1] = rhov;
-											bgFields[bIndex + 2] = rhow;
-											bgFields[bIndex + 3] = tprime;
-											bgFields[bIndex + 4] = qvprime;
-											bgFields[bIndex + 5] = rhoprime;
-											bgFields[bIndex + 6] = qrprime;
+										
+										// Skip the border nodes if the boundary conditions are zero
+										int fIndex = iDim*jDim*kDim; 
+										int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
+										if (configHash->value("horizontalbc") == "R0") {
+											if ((iIndex == 0) or (iIndex == iDim-1) or
+												(jIndex == 0) or (jIndex == jDim-1)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = -999.0;
+												}
+												continue;
+											}
 										}
 										
-										// On the nodes
+										if (configHash->value("verticalbc") == "R0") {
+											if ((kIndex == 0) or (kIndex == kDim-1)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = -999.0;
+												}
+												continue;
+											}
+										}
+										
+										real rhoa = rhoBar + rhoprime / 100;
+										real qv = bhypInvTransform(qBar + qvprime);
+										real qr = bhypInvTransform(qrprime);
+										QString gridref = configHash->value("gridreflectivity");
+										if (gridref == "dbz") {
+											/* if (qr > 0) {
+											 qr = 10*log10(qr);
+											 } else {
+											 qr = -999.;
+											 } */
+											if (qr <= 0) {
+												qr = -999.;
+											} else {
+												qr -= 35;
+											}
+										}
+										real rhoq = qv * rhoa / 1000.;
+										real rho = rhoa + rhoq;
+										real v = rhov / rho;
+										real u = rhou / rho;
+										real w = rhow / rho;
+										real wspd = sqrt(u*u + v*v);
+										real KE = 0.5*rho*(v*v + u*u + w*w);
+										real temp = tBar + tprime;
+										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
+										real rhoE = rho*h + KE;
+										real airpress = temp*rhoa*287./100.;
+										real tempc = temp - 273.15;
+										real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
+										real vp = temp*rhoq*461./100.;
+										real relhum = -999.;
+										if (satvp != 0)
+											relhum = 100*vp/satvp;
+										real press = airpress + vp;
+										
+										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
+										real hprime = h - getReferenceVariable(href, heightm);
+										
+										// Calculate the kinematic derivatives
+										// rhoa derivatives divided by 100
+										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
+										real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
+										real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
+										real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
+										real rhobardz = 1000 * getReferenceVariable(rhoref, heightm, 1);
+										rhodz += rhobardz;
+										// Units 10-5
+										real udx = 100. * (rhoudx - u*rhodx) / rho;
+										real udy = 100. * (rhoudy - u*rhody) / rho;
+										real udz = 100. * (rhoudz - u*rhodz) / rho;
+										
+										real vdx = 100. * (rhovdx - v*rhodx) / rho;
+										real vdy = 100. * (rhovdy - v*rhody) / rho;
+										real vdz = 100. * (rhovdz - v*rhodz) / rho;
+										
+										real wdx = 100. * (rhowdx - w*rhodx) / rho;
+										real wdy = 100. * (rhowdy - w*rhody) / rho;
+										real wdz = 100. * (rhowdz - w*rhodz) / rho;
+										
+										// Vorticity units are 10-5
+										real vorticity = (vdx - udy);
+										real divergence = (udx + vdy);
+										real s1 = (udx - vdy);
+										real s2 = (vdx + udy);
+										real strain = sqrt(s1*s1 + s2*s2);
+										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+										real mcresidual = rhoudx + rhovdy + rhowdz;
+										
+										samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
+										<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
+										<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
+										<< udx << "\t" << udy << "\t" << udz << "\t"
+										<< vdx << "\t" << vdy << "\t" << vdz << "\t"
+										<< wdx << "\t" << wdy << "\t" << wdz << "\t" 
+										<< rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
+										
+										// Sum up the TPW in the vertical, top level is tpw
+										tpw += qv * rhoa * DK;
+										
+										// On the nodes	
 										if (!ihalf and !jhalf and !khalf){
-											
-											int fIndex = iDim*jDim*kDim; 
-											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
 																						
-											// Skip the border nodes if the boundary conditions are zero
-											if (configHash->value("horizontalbc") == "R0") {
-												if ((iIndex == 0) or (iIndex == iDim-1) or
-													(jIndex == 0) or (jIndex == jDim-1)) {
-													for (int n = 0; n < 33; ++n) {
-														fieldNodes[fIndex * n + posIndex] = -999.0;
-													}
-													continue;
-												}
-											}
-											
-											if (configHash->value("verticalbc") == "R0") {
-												if ((kIndex == 0) or (kIndex == kDim-1)) {
-													for (int n = 0; n < 33; ++n) {
-														fieldNodes[fIndex * n + posIndex] = -999.0;
-													}
-													continue;
-												}
-											}
-											
-											real rhoa = rhoBar + rhoprime / 100;
-											real qv = bhypInvTransform(qBar + qvprime);
-											real qr = bhypInvTransform(qrprime);
-											QString gridref = configHash->value("gridreflectivity");
-											if (gridref == "dbz") {
-												/* if (qr > 0) {
-													qr = 10*log10(qr);
-												} else {
-													qr = -999.;
-												} */
-												if (qr <= 0) {
-													qr = -999.;
-												} else {
-													qr -= 35;
-												}
-											}
-											real rhoq = qv * rhoa / 1000.;
-											real rho = rhoa + rhoq;
-											real v = rhov / rho;
-											real u = rhou / rho;
-											real w = rhow / rho;
-											real wspd = sqrt(u*u + v*v);
-											real KE = 0.5*rho*(v*v + u*u + w*w);
-											real temp = tBar + tprime;
-											real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-											real rhoE = rho*h + KE;
-											real airpress = temp*rhoa*287./100.;
-											real tempc = temp - 273.15;
-											real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
-											real vp = temp*rhoq*461./100.;
-											real relhum = -999.;
-											if (satvp != 0)
-												relhum = 100*vp/satvp;
-											real press = airpress + vp;
-											
-											real pprime = press - getReferenceVariable(pressref, heightm)/100.;
-											real hprime = h - getReferenceVariable(href, heightm);
-
-											// Calculate the kinematic derivatives
-											// rhoa derivatives divided by 100
-											// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
-											real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
-											real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
-											real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
-											real rhobardz = 1000 * getReferenceVariable(rhoref, heightm, 1);
-											rhodz += rhobardz;
-											// Units 10-5
-											real udx = 100. * (rhoudx - u*rhodx) / rho;
-											real udy = 100. * (rhoudy - u*rhody) / rho;
-											real udz = 100. * (rhoudz - u*rhodz) / rho;
-											
-											real vdx = 100. * (rhovdx - v*rhodx) / rho;
-											real vdy = 100. * (rhovdy - v*rhody) / rho;
-											real vdz = 100. * (rhovdz - v*rhodz) / rho;
-											
-											real wdx = 100. * (rhowdx - w*rhodx) / rho;
-											real wdy = 100. * (rhowdy - w*rhody) / rho;
-											real wdz = 100. * (rhowdz - w*rhodz) / rho;
-											
-											// Vorticity units are 10-5
-											real vorticity = (vdx - udy);
-											real divergence = (udx + vdy);
-											real s1 = (udx - vdy);
-											real s2 = (vdx + udy);
-											real strain = sqrt(s1*s1 + s2*s2);
-											real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-											real mcresidual = rhoudx + rhovdy + rhowdz;
-											
-											samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
-											<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-											<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
-											<< udx << "\t" << udy << "\t" << udz << "\t"
-											<< vdx << "\t" << vdy << "\t" << vdz << "\t"
-											<< wdx << "\t" << wdy << "\t" << wdz << "\t" 
-											<< rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
-
-											// Sum up the TPW in the vertical, top level is tpw
-											tpw += qv * rhoa * DK;
-											
 											fieldNodes[fIndex * 0 + posIndex] = u;
 											fieldNodes[fIndex * 1 + posIndex] = v;
 											fieldNodes[fIndex * 2 + posIndex] = w;
