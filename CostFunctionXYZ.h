@@ -27,7 +27,7 @@ class CostFunctionXYZ: public CostFunction
 public:
 	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYZ();
-       void initialize(const QHash<QString, QString>* config, real* bgU,const  real* obs); 
+       void initialize(const QHash<QString, QString>* config, real* bgU, real* obs); 
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
@@ -72,7 +72,7 @@ private:
 	real* bgState;
 	real* bgStdDev;
 	real* obsVector;
-	const real* rawObs;
+	real* rawObs;
 	real* stateA;
 	real* stateB;
 	real* stateC;

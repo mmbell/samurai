@@ -67,7 +67,7 @@ void CostFunctionXYZ::finalize()
 	
 }
 
-void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bgU, const real* obs)
+void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bgU, real* obs)
 {
 
 	// Initialize number of variables
@@ -204,9 +204,9 @@ void CostFunctionXYZ::initState(const int iteration)
 	bgError[6] = configHash->value("qrerror").toFloat();	
 	
 	// Set up the recursive filter
-	real iFilterScale = configHash->value("xfilter").toFloat();
-	real jFilterScale = configHash->value("yfilter").toFloat();
-	real kFilterScale = configHash->value("zfilter").toFloat();		
+	iFilterScale = configHash->value("xfilter").toFloat();
+	jFilterScale = configHash->value("yfilter").toFloat();
+	kFilterScale = configHash->value("zfilter").toFloat();		
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
 	kFilter->setFilterLengthScale(kFilterScale);
@@ -219,7 +219,8 @@ void CostFunctionXYZ::initState(const int iteration)
 	
 	// Mass continuity weight
 	mcWeight = configHash->value("mcweight").toFloat();
-		
+	cout << "Mass continuity weight set to " << mcWeight << endl;
+	
 	if (iteration == 1) {
 		
 		// Set up the background state
@@ -233,22 +234,18 @@ void CostFunctionXYZ::initState(const int iteration)
 		
 		// SA transform = bg B's -> bg A's
 		SAtransform(stateB, bgState);
-
-		// Using a constant bg error variance for now, but this could be variable across the nodes
-		for (int var = 0; var < varDim; var++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-						bgStdDev[bIndex] = bgError[var];
-					}
+	}
+	
+	// Using a constant bg error variance for now, but this could be variable across the nodes
+	for (int var = 0; var < varDim; var++) {
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+					int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+					bgStdDev[bIndex] = bgError[var];
 				}
 			}
 		}
-		
-		// Output the original background field
-		outputAnalysis("background", bgState);
-
 	}
 	
 	// Compute and display the variable BG errors and RMS of values
@@ -273,14 +270,17 @@ void CostFunctionXYZ::initState(const int iteration)
 		}
 	}
 	
-	cout << "Beginning analysis...\n";
-	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	obAdjustments();
-	
+
 	// d = y - HXb
 	calcInnovation();
 	
+	// Output the original background field
+	outputAnalysis("background", bgState);
+
+	cout << "Beginning analysis...\n";
+		
 	// HTd
 	calcHTranspose(innovation, stateC);
 	
@@ -1064,6 +1064,7 @@ bool CostFunctionXYZ::setupSplines()
 	}
 	
 	real cutoff_wl = configHash->value("x_spline_cutoff").toFloat();
+	cout << "X Spline cutoff set to " << cutoff_wl << endl;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {				
 		for (int i = 0; i < iDim; i++) {
@@ -1163,7 +1164,8 @@ bool CostFunctionXYZ::setupSplines()
 		jL[j] = 0;
 	}
 	
-	cutoff_wl = configHash->value("y_spline_cutoff").toFloat();;
+	cutoff_wl = configHash->value("y_spline_cutoff").toFloat();
+	cout << "Y Spline cutoff set to " << cutoff_wl << endl;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 
@@ -1257,7 +1259,8 @@ bool CostFunctionXYZ::setupSplines()
 		kL[k] = 0;
 	}
 	
-	cutoff_wl = configHash->value("z_spline_cutoff").toFloat();;
+	cutoff_wl = configHash->value("z_spline_cutoff").toFloat();
+	cout << "Z Spline cutoff set to " << cutoff_wl << endl;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
 	for (int var = 0; var < varDim; var++) {
 		
@@ -2478,9 +2481,9 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 		// Left BC
 		switch (BL) {
 			case -1:
-				// No boundary condition, but buffered so use R1T0
+				// No boundary condition, but buffered so use R1T2
 				node = -1;
-				coeffmod = -4.;
+				coeffmod = 2.;
 				break;
 			case 0:
 				node = -1;
@@ -2558,7 +2561,7 @@ real CostFunctionXYZ::BasisBC(real b, const int& m, const real& x, const int& M,
 			case -1:
 				// No boundary condition, but buffered so use R1T0
 				node = M+1;
-				coeffmod = -4.;
+				coeffmod = 2.;
 				break;					
 			case 0:
 				node = M+1;
