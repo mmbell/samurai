@@ -135,7 +135,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bg
 		kMax += DK;
 		kDim += 2;
 		// Keep the vertical ones the same, since they are outside the domain anyway?
-		kBCL[2] = R0; kBCR[2] = R0;
+		//kBCL[2] = R0; kBCR[2] = R0;
 	}
 	
 	// Set up the initial recursive filter
@@ -387,20 +387,20 @@ void CostFunctionXYZ::updateHCq(real* state)
 					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 					real basis = ibasis * jbasis * kbasis;
-					/* for (int var = 0; var < varDim; var++) {
+					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
 						if ((kBCL[var] != kBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 						} 
 						tempsum += stateC[cIndex + var] * basis * obsVector[mi+7 + var];
-					} */
-					tempsum += stateC[cIndex] * basis * obsVector[mi+7];
+					}
+					/* tempsum += stateC[cIndex] * basis * obsVector[mi+7];
 					tempsum += stateC[cIndex + 1] * basis * obsVector[mi+8];
 					tempsum += stateC[cIndex + 2] * basis * obsVector[mi+9];
 					tempsum += stateC[cIndex + 3] * basis * obsVector[mi+10];
 					tempsum += stateC[cIndex + 4] * basis * obsVector[mi+11];
 					tempsum += stateC[cIndex + 5] * basis * obsVector[mi+12];
-					tempsum += stateC[cIndex + 6] * basis * obsVector[mi+13]; 
+					tempsum += stateC[cIndex + 6] * basis * obsVector[mi+13]; */
 				}
 			}
 		}
@@ -617,7 +617,7 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 					real kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[0], kBCR[0]);
 					real invError = obsVector[mi+1];
 					real qbasise = yhat[m] * ibasis * jbasis * kbasis *invError;
-					/*for (int var = 0; var < varDim; var++) {
+					for (int var = 0; var < varDim; var++) {
 						if (!obsVector[mi+7 + var]) continue;
 						if ((kBCL[var] != iBCL[0]) or (kBCR[var] != kBCR[0])) {
 							kbasis = Basis(kIndex, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -625,14 +625,14 @@ void CostFunctionXYZ::calcHTranspose(const real* yhat, real* Astate)
 						}
 						//#pragma omp atomic
 						Astate[aIndex + var] += qbasise * obsVector[mi+7+var];
-					 } */
-					Astate[aIndex] += qbasise * obsVector[mi+7];
+					 }
+					/* Astate[aIndex] += qbasise * obsVector[mi+7];
 					Astate[aIndex + 1] += qbasise * obsVector[mi+8];
 					Astate[aIndex + 2] += qbasise * obsVector[mi+9];
 					Astate[aIndex + 3] += qbasise * obsVector[mi+10];
 					Astate[aIndex + 4] += qbasise * obsVector[mi+11];
 					Astate[aIndex + 5] += qbasise * obsVector[mi+12];
-					Astate[aIndex + 6] += qbasise * obsVector[mi+13];
+					Astate[aIndex + 6] += qbasise * obsVector[mi+13]; */
 				}
 			}
 		}

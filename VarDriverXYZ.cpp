@@ -178,7 +178,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.in file
-	bool preprocess = true;
+	bool preprocess = configHash.value("preprocess_obs").toInt();
 	if (preprocess) {
 		preProcessMetObs();
 	} else {
@@ -879,6 +879,7 @@ void VarDriverXYZ::preProcessMetObs()
 	obstream << endl; */
 
 	ostream_iterator<real> od(obstream, "\t ");
+	ostream_iterator<int> oi(obstream, "\t ");
 	for (int i=0; i < obVector.size(); i++) {
 		Observation ob = obVector.at(i);
 		*od++ = ob.getOb();
@@ -886,8 +887,8 @@ void VarDriverXYZ::preProcessMetObs()
 		*od++ = ob.getCartesianX();
 		*od++ = ob.getCartesianY();
 		*od++ = ob.getAltitude();		
-		*od++ = ob.getType();
-		*od++ = ob.getTime();
+		*oi++ = ob.getType();
+		*oi++ = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++)
 			*od++ = ob.getWeight(var);
 
@@ -929,10 +930,11 @@ bool VarDriverXYZ::loadMetObs()
 	Observation varOb;
 	real wgt[numVars];
 	real xPos, yPos, zPos, ob, error;
-	int type, time;
+	int type;
+	int time;
 	
 	// Open and read the file
-	ifstream obstream("./samurai_Observations.in");
+	ifstream obstream("samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
 		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
 	{
@@ -1401,15 +1403,15 @@ void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 	val = configHash.value(key);
 	configHash.insert("zfilter", val);
 	
-	key = "x_spline_cutoff" + iter;
+	key = "x_spline_cutoff_" + iter;
 	val = configHash.value(key);
 	configHash.insert("x_spline_cutoff", val);
 	
-	key = "y_spline_cutoff" + iter;
+	key = "y_spline_cutoff_" + iter;
 	val = configHash.value(key);
 	configHash.insert("y_spline_cutoff", val);
 	
-	key = "z_spline_cutoff" + iter;
+	key = "z_spline_cutoff_" + iter;
 	val = configHash.value(key);
 	configHash.insert("z_spline_cutoff", val);
 	
