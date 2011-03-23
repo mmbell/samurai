@@ -1484,19 +1484,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = bhypInvTransform(qBar + qvprime);
-										real qr = bhypInvTransform(qrprime);
-										QString gridref = configHash->value("gridreflectivity");
+										real qr; 
+										QString gridref = configHash->value("qrvariable");
 										if (gridref == "dbz") {
-											/* if (qr > 0) {
-											 qr = 10*log10(qr);
-											 } else {
-											 qr = -999.;
-											 } */
-											if (qr <= 0) {
+											qr = qrprime*10. - 35.;
+											if (qr < -35.) {
 												qr = -999.;
-											} else {
-												qr -= 35;
 											}
+										} else {
+											qr = bhypInvTransform(qrprime);
 										}
 										real rhoq = qv * rhoa / 1000.;
 										real rho = rhoa + rhoq;

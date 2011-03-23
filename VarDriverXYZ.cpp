@@ -166,6 +166,10 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	int numbgObs = 0;
 	if (loadBG) {
 		numbgObs = loadBackgroundObs();
+		if (numbgObs < 0) {
+			cout << "Error loading background file\n";
+			return false;
+		}
 	}
 	
 	/* Optionally adjust the interpolated background to satisfy mass continuity
@@ -173,16 +177,25 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	 the background estimates as "observations" */
 	bool adjustBG = configHash.value("adjust_background").toInt();
 	if (adjustBG and numbgObs) {
-		adjustBackground(bStateSize);
+		if (!adjustBackground(bStateSize)) {
+			cout << "Error adjusting background\n";
+			return false;
+		}
 	}
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.in file
 	bool preprocess = configHash.value("preprocess_obs").toInt();
 	if (preprocess) {
-		preProcessMetObs();
+		if (!preProcessMetObs()) {
+			cout << "Error pre-processing observations\n";
+			return false;
+		}
 	} else {
-		loadMetObs();
+		if (!loadMetObs()) {
+			cout << "Error loading observations\n";
+			return false;
+		}
 	}
 	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
@@ -232,7 +245,7 @@ bool VarDriverXYZ::finalize()
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
 
-void VarDriverXYZ::preProcessMetObs()
+bool VarDriverXYZ::preProcessMetObs()
 {
 	
 	vector<real> rhoP;
@@ -715,7 +728,7 @@ void VarDriverXYZ::preProcessMetObs()
 					varOb.setWeight(0., 2);
 					
 					// Reflectivity observations
-					QString gridref = configHash.value("gridreflectivity");
+					QString gridref = configHash.value("qrvariable");
 					real qr = 0.;
 					if (gridref == "qr") {
 						// Do the gridding as part of the variational synthesis using Z-M relationships
@@ -742,8 +755,7 @@ void VarDriverXYZ::preProcessMetObs()
 						obVector.push_back(varOb); */
 						
 					} else if (gridref == "dbz") {
-						//qr =  bhypTransform(ZZ);
-						qr = bhypTransform(Z + 35.);
+						qr = (Z+35.)*0.1;
 						/* Include an observation of this quantity in the variational synthesis
 						 varOb.setOb(qr);
 						 varOb.setWeight(1., 6);
@@ -753,28 +765,29 @@ void VarDriverXYZ::preProcessMetObs()
 					}
 
 					// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
-					real ROI = 0.5;
-					real ROIsquare = ROI*ROI;
+					real ROI = configHash.value("reflectivityroi").toFloat();
+					real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
 					for (int zi = 0; zi < (kdim-1); zi++) {	
 						for (int zmu = -1; zmu <= 1; zmu += 2) {
 							real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-							if (fabs(zPos-obZ) > kincr*ROI) continue;
+							if (fabs(zPos-obZ) > kincr*ROI*2.) continue;
 							for (int xi = 0; xi < (idim-1); xi++) {
 								for (int xmu = -1; xmu <= 1; xmu += 2) {
 									real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-									if (fabs(xPos-obX) > iincr*ROI) continue;
+									if (fabs(xPos-obX) > iincr*ROI*2.) continue;
 									
 									for (int yi = 0; yi < (jdim-1); yi++) {
 										for (int ymu = -1; ymu <= 1; ymu += 2) {
 											real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-											if (fabs(yPos-obY) > jincr*ROI) continue;
-											real rSquare = (obX-xPos)*(obX-xPos)/(iincr*iincr) + (obY-yPos)*(obY-yPos)/(jincr*jincr) + (obZ-zPos)*(obZ-zPos)/(kincr*kincr); 
+											if (fabs(yPos-obY) > jincr*ROI*2.) continue;
+											real rSquare = (obX-xPos)*(obX-xPos) + (obY-yPos)*(obY-yPos) + (obZ-zPos)*(obZ-zPos); 
 											int bgI = xi*2 + (xmu+1)/2;
 											int bgJ = yi*2 + (ymu+1)/2;
 											int bgK = zi*2 + (zmu+1)/2;
 											int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-											if (rSquare < ROIsquare) {
-												real weight = ZZ*exp(-rSquare/(ROIsquare*0.5));
+											if (rSquare < Rsquare) {
+												real weight = exp(-2.302585092994045*rSquare/Rsquare);
+												//real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
 												//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
 												bgU[bIndex +6] += weight*qr;
 												bgWeights[bIndex] += weight;
@@ -834,7 +847,7 @@ void VarDriverXYZ::preProcessMetObs()
 							}
 						}
 					}
-					
+
 					// Set an upper boundary condition for W
 					if ((maxrefHeight > 0) and (maxrefHeight < kmax)
 						and (pseudow_weight > 0.0)) {
@@ -920,6 +933,7 @@ void VarDriverXYZ::preProcessMetObs()
 		cout << "Finished preprocessing " << processedFiles << " files." << endl;
 	}
 	
+	return true;
 }
 
 /* Load the meteorological observations from a file into a vector */
@@ -989,13 +1003,13 @@ int VarDriverXYZ::loadBackgroundObs()
 	real lat, lon, alt, u, v, w, t, qv, rhoa;
 	real bgX, bgY, bgZ;
 	real ROI = configHash.value("backgroundroi").toFloat();
-	real ROIsquare = ROI*ROI;
+	real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening samurai_Background.in for reading.\n";
 		exit(1);
 	}
-	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
+	cout << "Loading background onto Gaussian mish with " << ROI << " grid length radius of influence" << endl;
 	
 	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa)
 	{
@@ -1073,9 +1087,12 @@ int VarDriverXYZ::loadBackgroundObs()
 			rBG.push_back(rhoprime);
 		} else {
 			// Solve for the spline
+			if (logheights.size() == 1) {
+				cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+				return -1;
+			}
 			bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
-			if (!bgSpline->ok())
-			{
+			if (!bgSpline->ok()) {
 				cerr << "bgSpline setup failed." << endl;
 				return -1;
 			}
@@ -1089,20 +1106,20 @@ int VarDriverXYZ::loadBackgroundObs()
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
 							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > iincr*ROI) continue;
+							if (fabs(xPos-bgX) > iincr*ROI*2.) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
 									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > jincr*ROI) continue;
+									if (fabs(yPos-bgY) > jincr*ROI*2.) continue;
 									
-									real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr) + (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
+									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 									int bgI = xi*2 + (xmu+1)/2;
 									int bgJ = yi*2 + (ymu+1)/2;
 									int bgK = zi*2 + (zmu+1)/2;
 									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-									if (rSquare < ROIsquare) {
-										real weight = exp(-rSquare/(ROIsquare*0.5));
+									if (rSquare < Rsquare) {
+										real weight = exp(-2.302585092994045*rSquare/Rsquare);
 										if (logzPos > logheights.front()) {
 											bgSpline->solve(uBG.data());
 											bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1171,20 +1188,20 @@ int VarDriverXYZ::loadBackgroundObs()
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
 					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > ROI*iincr) continue;
+					if (fabs(xPos-bgX) > ROI*iincr*2.) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
 							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > ROI*jincr) continue;
+							if (fabs(yPos-bgY) > ROI*jincr*2.) continue;
 							
 							real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr)+ (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
 							int bgI = xi*2 + (xmu+1)/2;
 							int bgJ = yi*2 + (ymu+1)/2;
 							int bgK = zi*2 + (zmu+1)/2;
 							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-							if (rSquare < (ROIsquare)) {
-								real weight = exp(-rSquare/(ROIsquare*0.5));
+							if (rSquare < Rsquare) {
+								real weight = exp(-2.302585092994045*rSquare/Rsquare);
 								if (logzPos > logheights.front()) {
 									bgSpline->solve(uBG.data());
 									bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1268,19 +1285,10 @@ int VarDriverXYZ::loadBackgroundObs()
 	return numbgObs;
 }
 
-void VarDriverXYZ::adjustBackground(const int& bStateSize)
+bool VarDriverXYZ::adjustBackground(const int& bStateSize)
 {
 	/* Set the minimum filter length to the background resolution, not the analysis resolution
 	 to avoid artifacts when running interpolating to small mesoscale grids */
-	real hfilter = configHash.value("xfilter").toFloat();
-	real ares = hfilter*iincr;
-	real bgres = configHash.value("backgroundroi").toFloat();
-	if (ares < bgres) {
-		QString bgfilter;
-		bgfilter.setNum(bgres/iincr);
-		configHash.insert("xfilter", bgfilter);
-		configHash.insert("yfilter", bgfilter);
-	}
 	
 	// Load the observations into a vector
 	int numbgObs = bgIn.size()*7/11;
@@ -1331,7 +1339,7 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 	bgCostXYZ->initialize(&configHash, bgU, bgObs);
 	/* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
 	    which is presumably what you want most of the time. Otherwise, you would not be here */
-	int bgIter = 0;
+	int bgIter = 1;
 	bgCostXYZ->initState(bgIter);
 	bgCostXYZ->minimize();
 	
@@ -1341,18 +1349,12 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 	
 	delete bgCostXYZ;
 	delete[] bgObs;
-	
-	// Reset the horizontal filter to the analysis resolution
-	if (ares < bgres) {
-		QString afilter;
-		afilter.setNum(hfilter);
-		configHash.insert("xfilter", afilter);
-		configHash.insert("yfilter", afilter);
-	}
+		
+	return true;
 }
 
 
-/* Any updates needed for additional analysis iterations would go here */
+/* Any updates needed for additional analysis iterations go here */
  
 void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 {

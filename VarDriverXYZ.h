@@ -42,11 +42,11 @@ private:
 	typedef BSpline<real> SplineD;
 	
 	// Common methods
-	void preProcessMetObs();
+	bool preProcessMetObs();
 	bool loadMetObs();
 	bool loadBGfromFile();
 	int loadBackgroundObs();
-	void adjustBackground(const int& bStateSize);
+	bool adjustBackground(const int& bStateSize);
 	void updateAnalysisParams(const int& iteration);
 	bool validateXMLconfig();
 	
