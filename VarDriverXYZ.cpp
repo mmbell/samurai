@@ -946,6 +946,7 @@ bool VarDriverXYZ::loadMetObs()
 	real xPos, yPos, zPos, ob, error;
 	int type;
 	int time;
+	cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
 	
 	// Open and read the file
 	ifstream obstream("samurai_Observations.in");

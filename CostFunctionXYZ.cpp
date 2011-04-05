@@ -222,7 +222,7 @@ void CostFunctionXYZ::initState(const int iteration)
 	cout << "Mass continuity weight set to " << mcWeight << endl;
 	
 	if (iteration == 1) {
-		
+		cout << "Initializing background..." << endl;
 		// Set up the background state
 		for (int n = 0; n < nState; n++) {
 			bgState[n] = 0.0;

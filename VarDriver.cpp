@@ -614,6 +614,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			real count = 0;
 			for (int g=n; g<(n+stride); g++) {
 				if (veldata[g] == -32768) continue;
+				if (refdata[g] == -32768) continue;
+				if (swdata[g] == -32768) continue;
 				if (gatesp[g] <= 0) continue;
 				dz += pow(10.0,(refdata[g]*0.1));
 				vr += veldata[g];
