@@ -1001,6 +1001,7 @@ int VarDriverXYZ::loadBackgroundObs()
 	QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
 	SplineD* bgSpline;
 	int time;
+	QString bgTimestring, tcstart, tcend;
 	real lat, lon, alt, u, v, w, t, qv, rhoa;
 	real bgX, bgY, bgZ;
 	real ROI = configHash.value("backgroundroi").toFloat();
@@ -1023,9 +1024,9 @@ int VarDriverXYZ::loadBackgroundObs()
 		QDateTime bgTime;
 		bgTime.setTimeSpec(Qt::UTC);
 		bgTime.setTime_t(time);
-		QString obstring = bgTime.toString(Qt::ISODate);
-		QString tcstart = startTime.toString(Qt::ISODate);
-		QString tcend = endTime.toString(Qt::ISODate);		
+		bgTimestring = bgTime.toString(Qt::ISODate);
+		tcstart = startTime.toString(Qt::ISODate);
+		tcend = endTime.toString(Qt::ISODate);		
 		if ((bgTime < startTime) or (bgTime > endTime)) continue;
 		int tci = startTime.secsTo(bgTime);
 		if ((tci < 0) or (tci > (int)frameVector.size())) {
@@ -1172,6 +1173,14 @@ int VarDriverXYZ::loadBackgroundObs()
 		}
 	}				
 
+	if (!logheights.size()) {
+		// Error reading in the background field
+		cout << "No background estimates read in. Please check the time and location of your background field.\n";
+		cout << "Observation window: " << tcstart.toStdString() << " to " << tcend.toStdString() << "\n";
+		cout << "Background time: " << bgTimestring.toStdString() << "\n";
+		return -1;
+	}
+	
 	// Solve for the last spline
 	bgSpline = new SplineD(&logheights.front(), logheights.size(), &uBG[0], 2, SplineBase::BC_ZERO_SECOND);
 	if (!bgSpline->ok())

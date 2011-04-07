@@ -1015,7 +1015,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"load_background" << "adjust_background" <<
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
 	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
-	"num_iterations" << "output_mish" << "preprocess_obs";
+	"num_iterations" << "output_mish" << "preprocess_obs" << "mask_reflectivity";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;

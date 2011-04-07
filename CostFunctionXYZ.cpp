@@ -1545,7 +1545,48 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real strain = sqrt(s1*s1 + s2*s2);
 										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
 										real mcresidual = rhoudx + rhovdy + rhowdz;
-										
+
+										QString refmask = configHash->value("mask_reflectivity");
+										if (refmask != "None") {
+											real refthreshold = refmask.toFloat();
+											if (qr < refthreshold) {
+												u = -999.;
+												v = -999.;
+												w = -999.;
+												wspd = -999.;
+												relhum = -999.;
+												hprime = -999.;
+												qvprime = -999.;
+												rhoprime = -999.;
+												tprime = -999.;
+												pprime = -999.;
+												vorticity = -999.;
+												divergence = -999.;
+												okuboweiss = -999.;
+												strain = -999.;
+												tpw = -999.;
+												rhou = -999.;
+												rhov = -999.;
+												rhow = -999.;
+												rho = -999.;
+												press = -999.;
+												temp = -999.;
+												qv = -999.;
+												h = -999.;
+												qr = -999.;
+												udx = -999.;
+												vdx = -999.;
+												wdx = -999.;
+												udy = -999.;
+												vdy = -999.;
+												wdy = -999.;
+												udz = -999.;
+												vdz = -999.;
+												wdz = -999.;
+												rhoE = -999.;
+											}
+										}
+
 										samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
 										<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 										<< "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
@@ -1559,7 +1600,6 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										
 										// On the nodes	
 										if (!ihalf and !jhalf and !khalf){
-																						
 											fieldNodes[fIndex * 0 + posIndex] = u;
 											fieldNodes[fIndex * 1 + posIndex] = v;
 											fieldNodes[fIndex * 2 + posIndex] = w;
