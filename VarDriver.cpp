@@ -614,6 +614,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			real count = 0;
 			for (int g=n; g<(n+stride); g++) {
 				if (veldata[g] == -32768) continue;
+				if (refdata[g] == -32768) continue;
+				if (swdata[g] == -32768) continue;
 				if (gatesp[g] <= 0) continue;
 				dz += pow(10.0,(refdata[g]*0.1));
 				vr += veldata[g];
@@ -972,39 +974,53 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
-/* This routine parses the supplied XML configuration and validates that all required parameters are present
-	It does not check the validity of a particular parameter, just that it exists */
+/* This routine parses the supplied XML configuration 
+ and validates parameters that are common to all drivers
+ Mode specific configs are validated in those drivers */
 
 bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
-			
+
+	cout << "Parsing configuration file...\n";
+	
 	// Parse the nodes to a hash
 	QDomNodeList nodeList = config.childNodes();
 	for (int i = 0; i < nodeList.count(); i++) {
 		QDomNode currNode = nodeList.item(i);
-		QDomElement group = currNode.toElement();
-		configHash.insert(group.tagName(), group.text());
+		// Check to see if this is a set of pass parameters
+		QString iter = 0;
+		if (currNode.hasAttributes() and currNode.attributes().contains("iter")) {
+			iter = currNode.toElement().attribute("iter");
+		}
+		QDomNodeList configList = currNode.childNodes();
+		for (int j = 0; j < configList.count(); j++) {
+			QDomNode configItem = configList.item(j);
+			QDomElement group = configItem.toElement();
+			QString tag = group.tagName();
+			if (iter.toInt() > 1) {
+				// Append the pass number to the tagName
+				tag += "_" + iter;
+			}
+			if (!group.text().isEmpty()) {
+				configHash.insert(tag, group.text());
+				cout << tag.toStdString() << " => " << configHash.value(tag).toStdString() << endl;
+			}
+		}
 	}
 	
-	// Validate the hash
+	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
-	configKeys << "xmin" << "xmax" << "xincr" <<
-	"ymin" << "ymax" << "yincr" <<
-	"zmin" << "zmax" << "zincr" <<
-	"xfilter" << "yfilter" << "zfilter" <<
-	"refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
-	"gridreflectivity" << "backgroundroi" <<
+	configKeys << "refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
+	"qrvariable" << "backgroundroi" << "reflectivityroi" <<
 	"load_background" << "adjust_background" <<
-	"uerror" << "verror" << "werror" << "terror" << 
-	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
 	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
-	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
+	"num_iterations" << "output_mish" << "preprocess_obs" << "mask_reflectivity";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
 			return false;
-		}			
+		} 
 	}
 	return true;
 	

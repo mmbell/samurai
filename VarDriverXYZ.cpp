@@ -23,7 +23,6 @@ VarDriverXYZ::VarDriverXYZ()
 	: VarDriver()
 {
 	numVars = 7;
-	maxIter = 1.;
 }
 
 // Destructor
@@ -41,6 +40,9 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	// Parse the XML configuration file
 	if (!parseXMLconfig(configuration)) return false;
 	
+	// Validate the XYZ specific parameters
+	if (!validateXMLconfig()) return false;
+	
 	// Define the grid dimensions
 	imin = configHash.value("xmin").toFloat();
 	imax = configHash.value("xmax").toFloat();
@@ -56,7 +58,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	kmax = configHash.value("zmax").toFloat();
 	kincr = configHash.value("zincr").toFloat();
 	kdim = (int)((kmax - kmin)/kincr) + 1;
-	
+
 	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
 	if (idim < 4) {
 		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
@@ -72,14 +74,31 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	}
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	int bStateSize = idim*jdim*kdim*numVars;
-	cout << "Physical (mish) State size = " << uStateSize << "\n";
-	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
+
+	// Increase the "internal" size of the grid for the zero BC condition
+	if (configHash.value("horizontalbc") == "R0") {
+		imin -= iincr;
+		imax += iincr;
+		idim	+= 2;
+		jmin -= jincr;
+		jmax += jincr;
+		jdim += 2;
+	}
+	
+	if (configHash.value("verticalbc") == "R0") {
+		kmin -= kincr;
+		kmax += kincr;
+		kdim += 2;
+	}
+
+	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	int bStateSize = idim*jdim*kdim*numVars;
+	cout << "Physical (mish) State size = " << uStateSize << "\n";
+	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	
 	// Load the BG into a empty vector
 	bgU = new real[uStateSize];
@@ -138,11 +157,19 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 		return false;
 	}
 	
+	/* Set the maximum number of iterations to the multipass reduction factor
+	Multiple outer loops will reduce the cutoff wavelengths and background error variance */
+	maxIter = configHash.value("num_iterations").toFloat();
+
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	bool loadBG = configHash.value("load_background").toInt();
 	int numbgObs = 0;
 	if (loadBG) {
 		numbgObs = loadBackgroundObs();
+		if (numbgObs < 0) {
+			cout << "Error loading background file\n";
+			return false;
+		}
 	}
 	
 	/* Optionally adjust the interpolated background to satisfy mass continuity
@@ -150,16 +177,25 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	 the background estimates as "observations" */
 	bool adjustBG = configHash.value("adjust_background").toInt();
 	if (adjustBG and numbgObs) {
-		adjustBackground(bStateSize);
+		if (!adjustBackground(bStateSize)) {
+			cout << "Error adjusting background\n";
+			return false;
+		}
 	}
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.in file
-	bool preprocess = true;
+	bool preprocess = configHash.value("preprocess_obs").toInt();
 	if (preprocess) {
-		preProcessMetObs();
+		if (!preProcessMetObs()) {
+			cout << "Error pre-processing observations\n";
+			return false;
+		}
 	} else {
-		loadMetObs();
+		if (!loadMetObs()) {
+			cout << "Error loading observations\n";
+			return false;
+		}
 	}
 	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
@@ -167,7 +203,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	delete[] bgWeights;	
 	
 	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
-	obCostXYZ->initialize(configHash, bgU, obs);
+	obCostXYZ->initialize(&configHash, bgU, obs);
 	
 	// If we got here, then everything probably went OK!
 	return true;
@@ -179,16 +215,16 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 
 bool VarDriverXYZ::run()
 {
-	int iter=0;
-	while (iter < maxIter) {
-		iter++;
+	int iter=1;
+	while (iter <= maxIter) {
 		cout << "Outer Loop Iteration: " << iter << endl;
-		obCostXYZ->initState();
+		obCostXYZ->initState(iter);
 		obCostXYZ->minimize();
 		obCostXYZ->updateBG();
+		iter++;
 		
 		// Optionally update the analysis parameters for an additional iteration
-		updateAnalysisParams();
+		updateAnalysisParams(iter);
 	}	
 	
 	return true;
@@ -209,7 +245,7 @@ bool VarDriverXYZ::finalize()
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
 
-void VarDriverXYZ::preProcessMetObs()
+bool VarDriverXYZ::preProcessMetObs()
 {
 	
 	vector<real> rhoP;
@@ -217,11 +253,6 @@ void VarDriverXYZ::preProcessMetObs()
 	// Geographic functions
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("reflon").toFloat();
-
-	// Exponential for the reflectivity
-	real ROI = 1.25*(configHash.value("xincr").toFloat());
-	real RSquare = ROI*ROI;
-	real ROIsquare2 = ROI*sqrt(2.);
 	
 	// Check the data directory for files
 	QDir dataPath("./vardata");
@@ -346,6 +377,19 @@ void VarDriverXYZ::preProcessMetObs()
 				(obY < jmin) or (obY > jmax) or
 				(obZ < kmin) or (obZ > kmax))
 				continue;
+			
+			// Restrict the horizontal domain if we are using the R0 BC
+			if (configHash.value("horizontalbc") == "R0") {
+				if ((obX < (imin+iincr)) or (obX > (imax-iincr)) or
+					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+					continue;
+			}
+
+			if (configHash.value("verticalbc") == "R0") {
+				if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
+					continue;
+			}
+			
 			
 			// Create an observation and set its basic info
 			Observation varOb;
@@ -684,7 +728,7 @@ void VarDriverXYZ::preProcessMetObs()
 					varOb.setWeight(0., 2);
 					
 					// Reflectivity observations
-					QString gridref = configHash.value("gridreflectivity");
+					QString gridref = configHash.value("qrvariable");
 					real qr = 0.;
 					if (gridref == "qr") {
 						// Do the gridding as part of the variational synthesis using Z-M relationships
@@ -711,8 +755,7 @@ void VarDriverXYZ::preProcessMetObs()
 						obVector.push_back(varOb); */
 						
 					} else if (gridref == "dbz") {
-						//qr =  bhypTransform(ZZ);
-						qr = bhypTransform(Z + 35.);
+						qr = (Z+35.)*0.1;
 						/* Include an observation of this quantity in the variational synthesis
 						 varOb.setOb(qr);
 						 varOb.setWeight(1., 6);
@@ -722,26 +765,29 @@ void VarDriverXYZ::preProcessMetObs()
 					}
 
 					// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+					real ROI = configHash.value("reflectivityroi").toFloat();
+					real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
 					for (int zi = 0; zi < (kdim-1); zi++) {	
 						for (int zmu = -1; zmu <= 1; zmu += 2) {
 							real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-							if (fabs(zPos-obZ) > ROIsquare2) continue;
+							if (fabs(zPos-obZ) > kincr*ROI*2.) continue;
 							for (int xi = 0; xi < (idim-1); xi++) {
 								for (int xmu = -1; xmu <= 1; xmu += 2) {
 									real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-									if (fabs(xPos-obX) > ROIsquare2) continue;
+									if (fabs(xPos-obX) > iincr*ROI*2.) continue;
 									
 									for (int yi = 0; yi < (jdim-1); yi++) {
 										for (int ymu = -1; ymu <= 1; ymu += 2) {
 											real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-											if (fabs(yPos-obY) > ROIsquare2) continue;
+											if (fabs(yPos-obY) > jincr*ROI*2.) continue;
 											real rSquare = (obX-xPos)*(obX-xPos) + (obY-yPos)*(obY-yPos) + (obZ-zPos)*(obZ-zPos); 
 											int bgI = xi*2 + (xmu+1)/2;
 											int bgJ = yi*2 + (ymu+1)/2;
 											int bgK = zi*2 + (zmu+1)/2;
 											int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-											if (rSquare < RSquare) {
-												real weight = ZZ*exp(-rSquare/RSquare);
+											if (rSquare < Rsquare) {
+												real weight = exp(-2.302585092994045*rSquare/Rsquare);
+												//real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
 												//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
 												bgU[bIndex +6] += weight*qr;
 												bgWeights[bIndex] += weight;
@@ -767,6 +813,7 @@ void VarDriverXYZ::preProcessMetObs()
 	// Finish reflectivity interpolation
 	Observation varOb;
 	varOb.setTime(configHash.value("reftime").toFloat());	
+	real pseudow_weight = configHash.value("use_dbz_pseudow").toFloat();
 	varOb.setWeight(0., 0);
 	varOb.setWeight(0., 1);
 	varOb.setWeight(1., 2);
@@ -774,7 +821,7 @@ void VarDriverXYZ::preProcessMetObs()
 	varOb.setWeight(0., 4);
 	varOb.setWeight(0., 5);
 	varOb.setWeight(0., 6);	
-	varOb.setError(1.);
+	varOb.setError(pseudow_weight);
 	varOb.setOb(0.);
 	for (int xi = 0; xi < (idim-1); xi++) {
 		for (int xmu = -1; xmu <= 1; xmu += 2) {
@@ -800,14 +847,26 @@ void VarDriverXYZ::preProcessMetObs()
 							}
 						}
 					}
-					
+
+					// Set an upper boundary condition for W
 					if ((maxrefHeight > 0) and (maxrefHeight < kmax)
-						and (configHash.value("use_dbz_pseudow").toInt())) {
+						and (pseudow_weight > 0.0)) {
 						varOb.setCartesianX(xPos);
 						varOb.setCartesianY(yPos);
 						varOb.setAltitude(maxrefHeight);					
 						obVector.push_back(varOb);
 					}
+					
+					// Set a lower boundary condition for W
+					// Ideally use a terrain map here, but just use Z=0 for now
+					if (pseudow_weight > 0.0) {
+						varOb.setCartesianX(xPos);
+						varOb.setCartesianY(yPos);
+						varOb.setAltitude(0.0);					
+						obVector.push_back(varOb);
+					}
+					
+					
 				}
 			}
 		}
@@ -833,6 +892,7 @@ void VarDriverXYZ::preProcessMetObs()
 	obstream << endl; */
 
 	ostream_iterator<real> od(obstream, "\t ");
+	ostream_iterator<int> oi(obstream, "\t ");
 	for (int i=0; i < obVector.size(); i++) {
 		Observation ob = obVector.at(i);
 		*od++ = ob.getOb();
@@ -840,8 +900,8 @@ void VarDriverXYZ::preProcessMetObs()
 		*od++ = ob.getCartesianX();
 		*od++ = ob.getCartesianY();
 		*od++ = ob.getAltitude();		
-		*od++ = ob.getType();
-		*od++ = ob.getTime();
+		*oi++ = ob.getType();
+		*oi++ = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++)
 			*od++ = ob.getWeight(var);
 
@@ -873,6 +933,7 @@ void VarDriverXYZ::preProcessMetObs()
 		cout << "Finished preprocessing " << processedFiles << " files." << endl;
 	}
 	
+	return true;
 }
 
 /* Load the meteorological observations from a file into a vector */
@@ -883,10 +944,12 @@ bool VarDriverXYZ::loadMetObs()
 	Observation varOb;
 	real wgt[numVars];
 	real xPos, yPos, zPos, ob, error;
-	int type, time;
+	int type;
+	int time;
+	cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
 	
 	// Open and read the file
-	ifstream obstream("./samurai_Observations.in");
+	ifstream obstream("samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
 		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
 	{
@@ -938,17 +1001,17 @@ int VarDriverXYZ::loadBackgroundObs()
 	QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
 	SplineD* bgSpline;
 	int time;
+	QString bgTimestring, tcstart, tcend;
 	real lat, lon, alt, u, v, w, t, qv, rhoa;
 	real bgX, bgY, bgZ;
 	real ROI = configHash.value("backgroundroi").toFloat();
-	real RSquare = ROI*ROI;
-	real ROIsquare2 = ROI*sqrt(2.);
+	real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
-		cout << "Error opening Background.in for reading.\n";
+		cout << "Error opening samurai_Background.in for reading.\n";
 		exit(1);
 	}
-	cout << "Loading background onto Gaussian mish with " << ROI << " km radius of influence" << endl;
+	cout << "Loading background onto Gaussian mish with " << ROI << " grid length radius of influence" << endl;
 	
 	while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa)
 	{
@@ -961,9 +1024,9 @@ int VarDriverXYZ::loadBackgroundObs()
 		QDateTime bgTime;
 		bgTime.setTimeSpec(Qt::UTC);
 		bgTime.setTime_t(time);
-		QString obstring = bgTime.toString(Qt::ISODate);
-		QString tcstart = startTime.toString(Qt::ISODate);
-		QString tcend = endTime.toString(Qt::ISODate);		
+		bgTimestring = bgTime.toString(Qt::ISODate);
+		tcstart = startTime.toString(Qt::ISODate);
+		tcend = endTime.toString(Qt::ISODate);		
 		if ((bgTime < startTime) or (bgTime > endTime)) continue;
 		int tci = startTime.secsTo(bgTime);
 		if ((tci < 0) or (tci > (int)frameVector.size())) {
@@ -984,8 +1047,8 @@ int VarDriverXYZ::loadBackgroundObs()
 		bgZ = heightm/1000.;
 				
 		// Make sure the ob is in the Interpolation domain
-		if ((bgX < (imin-ROIsquare2)) or (bgX > (imax+ROIsquare2)) or
-			(bgY < (jmin-ROIsquare2)) or (bgY > (jmax+ROIsquare2))
+		if ((bgX < (imin-ROI*iincr)) or (bgX > (imax+ROI*iincr)) or
+			(bgY < (jmin-ROI*jincr)) or (bgY > (jmax+ROI*jincr))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 
@@ -1026,9 +1089,12 @@ int VarDriverXYZ::loadBackgroundObs()
 			rBG.push_back(rhoprime);
 		} else {
 			// Solve for the spline
+			if (logheights.size() == 1) {
+				cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+				return -1;
+			}
 			bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
-			if (!bgSpline->ok())
-			{
+			if (!bgSpline->ok()) {
 				cerr << "bgSpline setup failed." << endl;
 				return -1;
 			}
@@ -1042,20 +1108,20 @@ int VarDriverXYZ::loadBackgroundObs()
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {
 							real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-							if (fabs(xPos-bgX) > ROIsquare2) continue;
+							if (fabs(xPos-bgX) > iincr*ROI*2.) continue;
 							
 							for (int yi = 0; yi < (jdim-1); yi++) {
 								for (int ymu = -1; ymu <= 1; ymu += 2) {
 									real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-									if (fabs(yPos-bgY) > ROIsquare2) continue;
+									if (fabs(yPos-bgY) > jincr*ROI*2.) continue;
 									
 									real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
 									int bgI = xi*2 + (xmu+1)/2;
 									int bgJ = yi*2 + (ymu+1)/2;
 									int bgK = zi*2 + (zmu+1)/2;
 									int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-									if (rSquare < RSquare) {
-										real weight = exp(-rSquare/RSquare);
+									if (rSquare < Rsquare) {
+										real weight = exp(-2.302585092994045*rSquare/Rsquare);
 										if (logzPos > logheights.front()) {
 											bgSpline->solve(uBG.data());
 											bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1107,6 +1173,14 @@ int VarDriverXYZ::loadBackgroundObs()
 		}
 	}				
 
+	if (!logheights.size()) {
+		// Error reading in the background field
+		cout << "No background estimates read in. Please check the time and location of your background field.\n";
+		cout << "Observation window: " << tcstart.toStdString() << " to " << tcend.toStdString() << "\n";
+		cout << "Background time: " << bgTimestring.toStdString() << "\n";
+		return -1;
+	}
+	
 	// Solve for the last spline
 	bgSpline = new SplineD(&logheights.front(), logheights.size(), &uBG[0], 2, SplineBase::BC_ZERO_SECOND);
 	if (!bgSpline->ok())
@@ -1124,20 +1198,20 @@ int VarDriverXYZ::loadBackgroundObs()
 			for (int xi = 0; xi < (idim-1); xi++) {
 				for (int xmu = -1; xmu <= 1; xmu += 2) {
 					real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-					if (fabs(xPos-bgX) > ROIsquare2) continue;
+					if (fabs(xPos-bgX) > ROI*iincr*2.) continue;
 					
 					for (int yi = 0; yi < (jdim-1); yi++) {
 						for (int ymu = -1; ymu <= 1; ymu += 2) {
 							real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-							if (fabs(yPos-bgY) > ROIsquare2) continue;
+							if (fabs(yPos-bgY) > ROI*jincr*2.) continue;
 							
-							real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
+							real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr)+ (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
 							int bgI = xi*2 + (xmu+1)/2;
 							int bgJ = yi*2 + (ymu+1)/2;
 							int bgK = zi*2 + (zmu+1)/2;
 							int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
-							if (rSquare < RSquare) {
-								real weight = exp(-rSquare/RSquare);
+							if (rSquare < Rsquare) {
+								real weight = exp(-2.302585092994045*rSquare/Rsquare);
 								if (logzPos > logheights.front()) {
 									bgSpline->solve(uBG.data());
 									bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1221,19 +1295,10 @@ int VarDriverXYZ::loadBackgroundObs()
 	return numbgObs;
 }
 
-void VarDriverXYZ::adjustBackground(const int& bStateSize)
+bool VarDriverXYZ::adjustBackground(const int& bStateSize)
 {
 	/* Set the minimum filter length to the background resolution, not the analysis resolution
 	 to avoid artifacts when running interpolating to small mesoscale grids */
-	real hfilter = configHash.value("xfilter").toFloat();
-	real ares = hfilter*iincr;
-	real bgres = configHash.value("backgroundroi").toFloat();
-	if (ares < bgres) {
-		QString bgfilter;
-		bgfilter.setNum(bgres/iincr);
-		configHash.insert("xfilter", bgfilter);
-		configHash.insert("yfilter", bgfilter);
-	}
 	
 	// Load the observations into a vector
 	int numbgObs = bgIn.size()*7/11;
@@ -1252,6 +1317,18 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 			numbgObs -= 7;
 			continue;
 		}
+		// Restrict the horizontal domain if we are using the R0 BC
+		if (configHash.value("horizontalbc") == "R0") {
+			if ((bgX < (imin+iincr)) or (bgX > (imax-iincr)) or
+				(bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
+				continue;
+		}
+		
+		if (configHash.value("verticalbc") == "R0") {
+			if ((bgZ < (kmin+kincr)) or (bgZ > (kmax-kincr)))
+				continue;
+		}
+		
 		for (unsigned int n = 0; n < numVars; n++) {
 			bgObs[p] = bgIn[m+4+n];
 			// Error of background = 1
@@ -1269,8 +1346,11 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 	
 	// Adjust the background field to the spline mish
 	bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
-	bgCostXYZ->initialize(configHash, bgU, bgObs);
-	bgCostXYZ->initState();
+	bgCostXYZ->initialize(&configHash, bgU, bgObs);
+	/* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
+	    which is presumably what you want most of the time. Otherwise, you would not be here */
+	int bgIter = 1;
+	bgCostXYZ->initState(bgIter);
 	bgCostXYZ->minimize();
 	
 	// Increment the variables
@@ -1279,19 +1359,102 @@ void VarDriverXYZ::adjustBackground(const int& bStateSize)
 	
 	delete bgCostXYZ;
 	delete[] bgObs;
-	
-	// Reset the horizontal filter to the analysis resolution
-	if (ares < bgres) {
-		QString afilter;
-		afilter.setNum(hfilter);
-		configHash.insert("xfilter", afilter);
-		configHash.insert("yfilter", afilter);
-	}
+		
+	return true;
 }
 
 
-/* Any updates needed for additional analysis iterations would go here */
+/* Any updates needed for additional analysis iterations go here */
  
-void VarDriverXYZ::updateAnalysisParams()
+void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 {
+	QString iter;
+	iter.setNum(iteration);
+	
+	QString key = "uerror_" + iter;
+	QString val = configHash.value(key);
+	configHash.insert("uerror", val);
+	
+	key = "verror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("verror", val);
+	
+	key = "werror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("werror", val);
+	
+	key = "terror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("terror", val);
+	
+	key = "qverror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("qverror", val);
+	
+	key = "rhoerror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("rhoerror", val);
+	
+	key = "qrerror_" + iter;
+	val = configHash.value(key);
+	configHash.insert("qrerror", val);	
+	
+	key = "mcweight_" + iter;
+	val = configHash.value(key);
+	configHash.insert("mcweight", val);
+	
+	key = "xfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("xfilter", val);
+	
+	key = "yfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("yfilter", val);
+	
+	key = "zfilter_" + iter;
+	val = configHash.value(key);
+	configHash.insert("zfilter", val);
+	
+	key = "x_spline_cutoff_" + iter;
+	val = configHash.value(key);
+	configHash.insert("x_spline_cutoff", val);
+	
+	key = "y_spline_cutoff_" + iter;
+	val = configHash.value(key);
+	configHash.insert("y_spline_cutoff", val);
+	
+	key = "z_spline_cutoff_" + iter;
+	val = configHash.value(key);
+	configHash.insert("z_spline_cutoff", val);
+	
 }
+
+/* This routine validates that all required parameters are present
+It currently does not check the validity of a particular parameter, just that it exists */
+
+bool VarDriverXYZ::validateXMLconfig()
+{
+	
+	// Validate the hash -- multiple passes are not validated currently
+	QStringList configKeys;
+	configKeys << "xmin" << "xmax" << "xincr" <<
+	"ymin" << "ymax" << "yincr" <<
+	"zmin" << "zmax" << "zincr" <<
+	"xfilter" << "yfilter" << "zfilter" <<
+	"uerror" << "verror" << "werror" << "terror" << 
+	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
+	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
+	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
+	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
+	
+	for (int i = 0; i < configKeys.count(); i++) {
+		if (!configHash.contains(configKeys.at(i))) {
+			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
+			return false;
+		}
+	}
+	return true;
+}	
+	
+	
+	

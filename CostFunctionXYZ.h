@@ -27,18 +27,15 @@ class CostFunctionXYZ: public CostFunction
 public:
 	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYZ();
-       void initialize(const QHash<QString, QString>& config, real* bgU, real* obs); 
+       void initialize(const QHash<QString, QString>* config, real* bgU, real* obs); 
 	void finalize();
 	void updateBG();
-	void initState();
+	void initState(const int iteration);
 	
 private:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
-	real FullBasis(int m, real x, int M, real xmin, 
-				real DX, real DXrecip, int derivative,
-				int BL, int BR, real lambda = 0);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
 			   const real& DX, const real& DXrecip, const int& derivative,
 			   const int& BL, const int& BR, const real& lambda = 0);	
@@ -54,7 +51,7 @@ private:
 	bool SAtransform_ori(real* Bstate, real* Astate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
-	bool outputAnalysis(const QString& suffix, real* Astate, bool updateMish);
+	bool outputAnalysis(const QString& suffix, real* Astate);
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);
@@ -63,15 +60,17 @@ private:
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
 	real bhypTransform(real qv);
 	real bhypInvTransform(real qvbhyp);
-	void writeAsi();
-	bool writeNetCDF(const QString& netcdfFile);
+	bool writeAsi(const QString& asiFileName);
+	bool writeNetCDF(const QString& netcdfFileName);
 	
+	bool outputMish;
 	int iDim, jDim, kDim;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
 	real* bgFields;
 	real* bgState;
+	real* bgStdDev;
 	real* obsVector;
 	real* rawObs;
 	real* stateA;
@@ -89,14 +88,13 @@ private:
 	int varDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
-	real bgErrorScale;
 	real constHeight;
 	real mcWeight;
 	int referenceState;
 
 	real* basis0;
 	real* basis1;
-	QHash<QString, QString> configHash;
+	const QHash<QString, QString>* configHash;
 	QHash<QString, int> bcHash;
 	enum BoundaryConditionTypes {
 		R0 = -1,
@@ -109,11 +107,12 @@ private:
 		R3 = 6,
 		PERIODIC = 7
 	};
-	
+
+	real iFilterScale,jFilterScale, kFilterScale;
 	RecursiveFilter* iFilter;
 	RecursiveFilter* jFilter;
 	RecursiveFilter* kFilter;
-
+	
 	real rhoBase;
 	real rhoInvScaleHeight;
 	real qBase;
