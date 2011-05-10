@@ -109,8 +109,8 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	}		
 	
 	// Define the Reference state
-	if (configHash.value("refstate") == "jordan") {
-		referenceState = jordan;
+	if (configHash.value("refstate") == "dunion_mt") {
+		referenceState = dunion_mt;
 	} else {
 		cout << "Reference state not defined!\n";
 		exit(-1);
@@ -1004,8 +1004,9 @@ int VarDriverXYZ::loadBackgroundObs()
 	QString bgTimestring, tcstart, tcend;
 	real lat, lon, alt, u, v, w, t, qv, rhoa;
 	real bgX, bgY, bgZ;
-	real ROI = configHash.value("backgroundroi").toFloat();
-	real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
+	// backgroundroi is in km, ROI is gridpoints
+	real ROI = configHash.value("backgroundroi").toFloat() / iincr;
+	real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI);
 	ifstream bgstream("./samurai_Background.in");
 	if (!bgstream.good()) {
 		cout << "Error opening samurai_Background.in for reading.\n";
@@ -1047,8 +1048,8 @@ int VarDriverXYZ::loadBackgroundObs()
 		bgZ = heightm/1000.;
 				
 		// Make sure the ob is in the Interpolation domain
-		if ((bgX < (imin-ROI*iincr)) or (bgX > (imax+ROI*iincr)) or
-			(bgY < (jmin-ROI*jincr)) or (bgY > (jmax+ROI*jincr))
+		if ((bgX < (imin-(ROI*iincr*2))) or (bgX > (imax+(ROI*iincr*2))) or
+			(bgY < (jmin-(ROI*jincr*2))) or (bgY > (jmax+(ROI*jincr*2)))
 			or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 			continue;
 

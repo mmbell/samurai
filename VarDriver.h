@@ -72,7 +72,7 @@ protected:
 	};
 	
 	enum referenceStates {
-		jordan
+		dunion_mt
 	};
 	
 	enum referenceVariables {

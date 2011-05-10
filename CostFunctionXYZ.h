@@ -119,7 +119,7 @@ private:
 	real qInvScaleHeight;
 	
 	enum referenceStates {
-		jordan
+		dunion_mt
 	};
 	
 	enum referenceVariables {

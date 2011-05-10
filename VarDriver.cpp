@@ -473,12 +473,12 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setLon(lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
 		ob.setPressure(lineparts[8].toFloat());
-		if (lineparts[11].toFloat() != -999) {
+		if ((lineparts[11].toFloat() != -999) or (lineparts[11].toFloat() != -32767)) {
 			ob.setTemperature(lineparts[11].toFloat() + 273.15);
 		} else {
 			ob.setTemperature(-999.);
 		}
-		if (lineparts[12].toFloat() != -999) {
+		if ((lineparts[12].toFloat() != -999) or (lineparts[12].toFloat() != -32767)) {
 			ob.setDewpoint(lineparts[12].toFloat() + 273.15);
 		} else {
 			ob.setDewpoint(-999.);
@@ -487,7 +487,9 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 			ob.setWindDirection(lineparts[9].toFloat());
 			ob.setWindSpeed(lineparts[10].toFloat());
 		}
-		ob.setVerticalVelocity(lineparts[16].toFloat());
+		if ((lineparts[16].toFloat() != -999) or (lineparts[16].toFloat() != -32767)) {
+			ob.setVerticalVelocity(lineparts[16].toFloat());
+		}
 		ob.setObType(MetObs::flightlevel);
 		metObVector->push_back(ob);
 	}
@@ -1058,7 +1060,7 @@ real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm
 	real rhoacoeff[5];
 	real dpdzcoeff[5];
 	
-	if (referenceState == jordan) {
+	if (referenceState == dunion_mt) {
 		qvbhypcoeff[0] = 9.4826;
 		qvbhypcoeff[1] = -0.0026721;
 		qvbhypcoeff[2] = 2.8312e-07;

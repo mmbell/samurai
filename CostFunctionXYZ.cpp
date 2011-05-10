@@ -97,8 +97,8 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bg
 	kBCL[2] = R1T0; kBCR[2] = R1T0;
 
 	// Define the Reference state
-	if (configHash->value("refstate") == "jordan") {
-		referenceState = jordan;
+	if (configHash->value("refstate") == "dunion_mt") {
+		referenceState = dunion_mt;
 	}
 	
 	// Assign local object pointers
@@ -2029,71 +2029,139 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	
 	// Define missing data
-	if (!u->add_att("missing_value", -999.0))
+	if (!u->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!v->add_att("missing_value", -999.0))
+	if (!v->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!w->add_att("missing_value", -999.0))
+	if (!w->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!wspd->add_att("missing_value", -999.0))
+	if (!wspd->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!relhum->add_att("missing_value", -999.0))
+	if (!relhum->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!hprime->add_att("missing_value", -999.0))
+	if (!hprime->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!qvprime->add_att("missing_value", -999.0))
+	if (!qvprime->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!rhoprime->add_att("missing_value", -999.0))
+	if (!rhoprime->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!tprime->add_att("missing_value", -999.0))
+	if (!tprime->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!pprime->add_att("missing_value", -999.0))
+	if (!pprime->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!vorticity->add_att("missing_value", -999.0)) 
+	if (!vorticity->add_att("missing_value", -999.f)) 
 		return NC_ERR;
-	if (!divergence->add_att("missing_value", -999.0)) 
+	if (!divergence->add_att("missing_value", -999.f)) 
 		return NC_ERR;
-	if (!okuboweiss->add_att("missing_value", -999.0)) 
+	if (!okuboweiss->add_att("missing_value", -999.f)) 
 		return NC_ERR;
-	if (!strain->add_att("missing_value", -999.0))
+	if (!strain->add_att("missing_value", -999.f))
 		return NC_ERR;       
-	if (!tpw->add_att("missing_value", -999.0))
+	if (!tpw->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!rhou->add_att("missing_value", -999.0))
+	if (!rhou->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!rhov->add_att("missing_value", -999.0))
+	if (!rhov->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!rhow->add_att("missing_value", -999.0))
+	if (!rhow->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!rho->add_att("missing_value", -999.0))
+	if (!rho->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!press->add_att("missing_value", -999.0))
+	if (!press->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!temp->add_att("missing_value", -999.0))
+	if (!temp->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!qv->add_att("missing_value", -999.0))
+	if (!qv->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!h->add_att("missing_value", -999.0))
+	if (!h->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!qr->add_att("missing_value", -999.0))
+	if (!qr->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!dudx->add_att("missing_value", -999.0))
+	if (!dudx->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dvdx->add_att("missing_value", -999.0))
+	if (!dvdx->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dwdx->add_att("missing_value", -999.0))
+	if (!dwdx->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!dudy->add_att("missing_value", -999.0))
+	if (!dudy->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dvdy->add_att("missing_value", -999.0))
+	if (!dvdy->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dwdy->add_att("missing_value", -999.0))
+	if (!dwdy->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!dudz->add_att("missing_value", -999.0))
+	if (!dudz->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dvdz->add_att("missing_value", -999.0))
+	if (!dvdz->add_att("missing_value", -999.f))
 		return NC_ERR;	
-	if (!dwdz->add_att("missing_value", -999.0))
+	if (!dwdz->add_att("missing_value", -999.f))
+		return NC_ERR;
+	
+	// Define _Fill_Value for NCL users
+	if (!u->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!v->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!w->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!wspd->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!relhum->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!hprime->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!qvprime->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!rhoprime->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!tprime->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!pprime->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!vorticity->add_att("_FillValue", -999.f)) 
+		return NC_ERR;
+	if (!divergence->add_att("_FillValue", -999.f)) 
+		return NC_ERR;
+	if (!okuboweiss->add_att("_FillValue", -999.f)) 
+		return NC_ERR;
+	if (!strain->add_att("_FillValue", -999.f))
+		return NC_ERR;       
+	if (!tpw->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!rhou->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!rhov->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!rhow->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!rho->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!press->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!temp->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!qv->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!h->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!qr->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!dudx->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dvdx->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dwdx->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!dudy->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dvdy->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dwdy->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!dudz->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dvdz->add_att("_FillValue", -999.f))
+		return NC_ERR;	
+	if (!dwdz->add_att("_FillValue", -999.f))
 		return NC_ERR;
 	
 	// Write the coordinate variable data to the file.
@@ -2783,7 +2851,7 @@ real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& h
 	real rhoacoeff[5];
 	real dpdzcoeff[5];
 
-	if (referenceState == jordan) {
+	if (referenceState == dunion_mt) {
 		qvbhypcoeff[0] = 9.4826;
 		qvbhypcoeff[1] = -0.0026721;
 		qvbhypcoeff[2] = 2.8312e-07;

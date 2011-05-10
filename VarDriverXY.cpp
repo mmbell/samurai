@@ -408,7 +408,7 @@ void VarDriverXY::preProcessMetObs()
 					/* density correction term (rhoo/rho)*0.45 [rho(Z)=rho_o exp-(z/H), where 
 					 H is the scale height = 9.58125 from Gray's inner 2 deg composite] 
 					 0.45 density correction from Beard (1985, JOAT pp 468-471) 
-					 Adjusted to use Jordan hydrostatic scale height -MB */
+					 Adjusted to use dunion_mt hydrostatic scale height -MB */
 					double DCOR=exp(0.45*metOb.getAltitude()*0.0001068);
 					
 					// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
