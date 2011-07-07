@@ -115,7 +115,8 @@ class MetObs
 			qscat,
 			ascat,
 			AMV,
-			lidar
+			lidar,
+			insitu
 		};
 		
 	protected:

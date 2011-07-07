@@ -1716,7 +1716,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 		for (int t=0; t < 6; t++) {
 			*od++ = obsVector[mi+t];
 		}
-		int unixtime = obsVector[mi+6];
+		int unixtime = (int)obsVector[mi+6];
 		QDateTime obtime;
 		obtime.setTime_t(unixtime);
 		obtime.setTimeSpec(Qt::UTC);
@@ -2925,7 +2925,6 @@ real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& h
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
 		real press = 0.;
 		real temp = 0.;
-		real rho = 0.;
 		real qvbhyp = 0.;
 		real rhoa = 0.;
 		for (int i = 0; i < 5; i++) {
@@ -2962,7 +2961,6 @@ real CostFunctionXYZ::getReferenceVariable(const int& refVariable, const real& h
 			}
 			
 		}
-		rho = rhoa*qv/1000. + rhoa;
 		press += 101510.0;
 		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
 		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
