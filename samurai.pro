@@ -49,7 +49,7 @@ macx-xcode {
              mac_release.xcconfig
 }
 QT += xml
-
+#CONFIG += debug
 # External libraries
 macx {
   LOCALINCLUDE = /Users/mmbell/Development/include /opt/local/include /usr/local/include
