@@ -19,15 +19,15 @@ Dorade::Dorade()
 	cfptr = new cfac_info;
 	pptr = new parm_info[20];
 	sptr = new swib_info;
-	ryptr = new ryib_info[500];
-	aptr = new asib_info[500];
+	ryptr = new ryib_info[1000];
+	aptr = new asib_info[1000];
 	dptr = new rdat_info*[20];
 	for (int i=0; i<20; i++) {
-		dptr[i] = new rdat_info[500];
+		dptr[i] = new rdat_info[1000];
 	}
-	rangles = new radar_angles[500];
+	rangles = new radar_angles[1000];
 	rkptr = new rktb_info;
-	rtptr = new rot_table_entry[500];
+	rtptr = new rot_table_entry[1000];
 	refIndex = velIndex = swIndex = 0;
 	ref_fld = "DBZ";
 	vel_fld = "VG";
@@ -45,15 +45,15 @@ Dorade::Dorade(const QString& swpFilename)
 	cfptr = new cfac_info;
 	pptr = new parm_info[20];
 	sptr = new swib_info;
-	ryptr = new ryib_info[500];
-	aptr = new asib_info[500];
+	ryptr = new ryib_info[1000];
+	aptr = new asib_info[1000];
 	dptr = new rdat_info*[20];
 	for (int i=0; i<20; i++) {
-		dptr[i] = new rdat_info[500];
+		dptr[i] = new rdat_info[1000];
 	}
-	rangles = new radar_angles[500];
+	rangles = new radar_angles[1000];
 	rkptr = new rktb_info;
-	rtptr = new rot_table_entry[500];
+	rtptr = new rot_table_entry[1000];
 	refIndex = velIndex = swIndex = 0;
 	ref_fld = "DBZ";
 	vel_fld = "VG";
