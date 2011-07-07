@@ -36,7 +36,7 @@ VarDriver::VarDriver()
 	dataSuffix["nopp"] = nopp;
 	dataSuffix["cimss"] = cimss;
 	dataSuffix["dwl"] = dwl;
-	
+	dataSuffix["insitu"] = insitu;
 }
 
 // Destructor
@@ -424,8 +424,8 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads a 1 sec flight level data file similar to the format provided by NOAA/HRD
  Columns are:
-  TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     
- SurfP    VtWnd     Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
+  TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     SurfP    VtWnd     
+ Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
@@ -607,7 +607,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			MetObs ob;
 			real range = gatesp[n+stride/2];
 			if (dynamicStride) {
-				stride = (range*beamwidth)/gatelength;
+				stride = (int)(range*beamwidth)/gatelength;
 				if (stride < minstride) stride = minstride;
 			}
 			real dz = 0;
@@ -976,6 +976,100 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+/* This routine reads a generic insitu format suitable for many different observation types
+TIME       Lat       Lon    Altitude   Pressure  Temperature  Dewpoint    WindDir   WindSpeed  VerticalVelocity*/
+bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
+{
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr, platform;
+	QDateTime datetime;
+	QFileInfo info(metFile);
+	QString fileName = info.fileName();
+	datestr = fileName.left(8);	
+	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
+	// Get the platform name
+	platform = fileName;
+	platform.remove(0,8);
+	platform.chop(7);
+	MetObs ob;
+	ob.setStationName(platform);
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		QDate date;
+		timestr = line.left(6);
+		int hour = timestr.left(2).toInt();
+		if (hour > 23) {
+			date = startDate.addDays(1);
+			hour -= 24;
+			QString newhr;
+			newhr.setNum(hour);
+			if (hour < 10) {
+				timestr.replace(0,1,"0");
+				timestr.replace(1,1,newhr);
+			} else {
+				timestr.replace(0,2,newhr);
+			}
+		} else {
+			date = startDate;
+		}
+		QTime time = QTime::fromString(timestr, "HHmmss");
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+		if ((lineparts[1].toFloat() != -32768) or (lineparts[1].toFloat() != -32767)) {
+			ob.setLat(lineparts[1].toFloat());
+		} else {
+			ob.setLat(-999.0);
+		}
+		if ((lineparts[2].toFloat() != -32768) or (lineparts[2].toFloat() != -32767)) {
+			ob.setLon(lineparts[2].toFloat());
+		} else {
+			ob.setLon(-999.0);
+		}
+		if ((lineparts[3].toFloat() != -32768) or (lineparts[3].toFloat() != -32767)) {
+			ob.setAltitude(lineparts[3].toFloat());
+		} else {
+			ob.setAltitude(-999.0);
+		}
+		if (lineparts[4].toFloat() > 0) {
+			ob.setPressure(lineparts[4].toFloat());
+		} else {
+			ob.setPressure(-999.0);
+		}
+		if (lineparts[5].toFloat() > -273) {
+			ob.setTemperature(lineparts[5].toFloat() + 273.15);
+		} else {
+			ob.setTemperature(-999.0);
+		}
+		if (lineparts[6].toFloat() > -273) {
+			ob.setDewpoint(lineparts[6].toFloat() + 273.15);
+		} else {
+			ob.setDewpoint(-999.0);
+		}
+		if (lineparts[7].toFloat() >= 0) {	
+			ob.setWindDirection(lineparts[7].toFloat());
+			ob.setWindSpeed(lineparts[8].toFloat());
+		} else {
+			ob.setWindDirection(-999.0);
+			ob.setWindSpeed(-999.0);
+		}
+		if ((lineparts[9].toFloat() != -32768) or (lineparts[9].toFloat() != -32767)) {
+			ob.setVerticalVelocity(lineparts[9].toFloat());
+		}  else {
+			ob.setVerticalVelocity(-999.0);
+		}
+		ob.setObType(MetObs::insitu);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;	
+}
+
 /* This routine parses the supplied XML configuration 
  and validates parameters that are common to all drivers
  Mode specific configs are validated in those drivers */
@@ -1131,12 +1225,9 @@ real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm
 		}
 		return rho;
 	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
-		
 		// Integrate hydrostatic equation to get pressure and/or solve for T or h
-		if (dz) return 0; // Need to go ahead and code this
 		real press = 0.;
 		real temp = 0.;
-		real rho = 0.;
 		real qvbhyp = 0.;
 		real rhoa = 0.;
 		for (int i = 0; i < 5; i++) {
@@ -1148,7 +1239,31 @@ real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm
 		}
 		if (qvbhyp < 0.) qvbhyp = 0.;
 		real qv = bhypInvTransform(qvbhyp);
-		rho = rhoa*qv/1000. + rhoa;
+		if (dz) {
+			real rhoadz = 0.;
+			real qvdz = 0.;
+			real dpdz = 0.;
+			for (int i = dz; i < 5; i++) {
+				real power = pow(heightm, i-dz); 
+				rhoadz += rhoacoeff[i] * power * i;
+				qvdz += qvbhypcoeff[i] * power * i;
+				dpdz += dpdzcoeff[i] * power;
+			}
+			real alphadz = 1/(rhoadz * (286.9 + 461.5*qv/1000.) + 461.5 * rhoa * (qvdz/500.));
+			real dtdz = press*alphadz + dpdz/(286.9*rhoa + 461.5*rhoa*qv/1000.);
+			real dhdz = 1005.7*dtdz + 9.81 + 2.5e3*qvdz;
+			switch (refVariable) {
+				case href:
+					return dhdz;
+				case tempref:
+					return dtdz;
+				case pressref:
+					return dpdz;
+				default:
+					break;
+			}
+			
+		}
 		press += 101510.0;
 		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
 		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
@@ -1163,7 +1278,7 @@ real VarDriver::getReferenceVariable(const int& refVariable, const real& heightm
 				break;
 		}
 	}
-	
+		
 	return 0;
 }
 

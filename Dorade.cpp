@@ -7,6 +7,7 @@
  */
 
 #include "Dorade.h"
+#include <cstdlib>
 
 Dorade::Dorade() 
 {
@@ -834,9 +835,9 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			for (int k=0;k<arrsize;k++) {
 				arr_uncom[k]=0;
 				if (dptr[j][i].data[k] != baddata_flag) {
-					arr_uncom[k] = dptr[j][i].data[k]*scale_fac;
+					arr_uncom[k] = (int)dptr[j][i].data[k]*scale_fac;
 				} else {
-					arr_uncom[k] = dptr[j][i].data[k];
+					arr_uncom[k] = (int)dptr[j][i].data[k];
 				}
 				//printf("%d\n",arr_uncom[k]);
 			}

@@ -159,7 +159,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	
 	/* Set the maximum number of iterations to the multipass reduction factor
 	Multiple outer loops will reduce the cutoff wavelengths and background error variance */
-	maxIter = configHash.value("num_iterations").toFloat();
+	maxIter = configHash.value("num_iterations").toInt();
 
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	bool loadBG = configHash.value("load_background").toInt();
@@ -334,6 +334,10 @@ bool VarDriverXYZ::preProcessMetObs()
 				if (!read_dwl(metFile, metData))
 					cout << "Error reading dwl file" << endl;
 				break;
+			case (insitu):
+				if (!read_insitu(metFile, metData))
+					cout << "Error reading insitu file" << endl;
+				break;				
 			case (cen):
 				continue;				
 			default:
@@ -448,7 +452,7 @@ bool VarDriverXYZ::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(1.5);
+						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -513,7 +517,7 @@ bool VarDriverXYZ::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(0.25);
+						varOb.setError(1.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -544,7 +548,74 @@ bool VarDriverXYZ::preProcessMetObs()
 					}
 					
 					break;
-
+					
+				case (MetObs::insitu):
+					varOb.setType(MetObs::insitu);
+					u = metOb.getCartesianUwind();
+					v = metOb.getCartesianVwind();
+					w = metOb.getVerticalVelocity();
+					rho = metOb.getMoistDensity();
+					rhoa = metOb.getAirDensity();
+					qv = metOb.getQv();
+					tempk = metOb.getTemperature();
+					
+					// Separate obs for each measurement
+					// rho v 1 m/s error
+					if ((u != -999) and (rho != -999)) {
+						// rho u 1 m/s error
+						varOb.setWeight(1., 0);
+						rhou = rho*(u - Um);
+						//cout << "RhoU: " << rhou << endl;
+						varOb.setOb(rhou);
+						varOb.setError(1.0);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 0);
+						
+						varOb.setWeight(1., 1);
+						rhov = rho*(v - Vm);
+						varOb.setOb(rhov);
+						varOb.setError(1.0);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 1);
+						
+					}
+					if ((w != -999) and (rho != -999)) {
+						// rho w 1.5 m/s error
+						varOb.setWeight(1., 2);
+						rhow = rho*w;
+						varOb.setOb(rhow);
+						varOb.setError(2.0);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 2);
+					}
+					if (tempk != -999) {
+						// temperature 1 K error
+						varOb.setWeight(1., 3);
+						varOb.setOb(tempk - tBar);
+						varOb.setError(1.0);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 3);
+					}
+					if (qv != -999) {
+						// Qv 0.5 g/kg error
+						varOb.setWeight(1., 4);
+						qv = bhypTransform(qv);
+						varOb.setOb(qv-qBar);
+						varOb.setError(0.5);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 4);
+					}
+					if (rhoa != -999) {
+						// Rho prime .1 kg/m^3 error
+						varOb.setWeight(1., 5);
+						varOb.setOb((rhoa-rhoBar)*100);
+						varOb.setError(1.0);
+						obVector.push_back(varOb);
+						varOb.setWeight(0., 5);
+					}
+					
+					break;
+					
 				case (MetObs::sfmr):
 					varOb.setType(MetObs::sfmr);
 					wspd = metOb.getWindSpeed();
@@ -812,7 +883,7 @@ bool VarDriverXYZ::preProcessMetObs()
 	
 	// Finish reflectivity interpolation
 	Observation varOb;
-	varOb.setTime(configHash.value("reftime").toFloat());	
+	varOb.setTime(configHash.value("reftime").toInt());	
 	real pseudow_weight = configHash.value("use_dbz_pseudow").toFloat();
 	varOb.setWeight(0., 0);
 	varOb.setWeight(0., 1);
@@ -1104,7 +1175,9 @@ int VarDriverXYZ::loadBackgroundObs()
 			for (int zi = 0; zi < (kdim-1); zi++) {	
 				for (int zmu = -1; zmu <= 1; zmu += 2) {
 					real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
+					if (zPos < 0) zPos = 0.001;
 					real logzPos = log(zPos);
+					if (logzPos < logheights[0]) logzPos = logheights[0];
 					
 					for (int xi = 0; xi < (idim-1); xi++) {
 						for (int xmu = -1; xmu <= 1; xmu += 2) {

@@ -68,7 +68,8 @@ protected:
 		nopp,
 		eol,
 		cimss,
-		dwl
+		dwl,
+		insitu
 	};
 	
 	enum referenceStates {
@@ -97,6 +98,7 @@ protected:
 	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);	
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
 	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
