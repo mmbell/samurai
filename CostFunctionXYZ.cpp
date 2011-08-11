@@ -1929,7 +1929,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!rhow->add_att("units", "kg m-2s-1")) 
 		return NC_ERR;
-	if (!rho->add_att("units", "kg m-2s-1")) 
+	if (!rho->add_att("units", "kg m-3")) 
 		return NC_ERR;
 	if (!press->add_att("units", "hPa")) 
 		return NC_ERR;
@@ -1941,23 +1941,23 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!qr->add_att("units", "g kg-1")) 
 		return NC_ERR;
-	if (!dudx->add_att("units", "kg m-3s-1")) 
+	if (!dudx->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dvdx->add_att("units", "kg m-3s-1")) 
+	if (!dvdx->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dwdx->add_att("units", "kg m-3s-1")) 
+	if (!dwdx->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dudy->add_att("units", "kg m-3s-1")) 
+	if (!dudy->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dvdy->add_att("units", "kg m-3s-1")) 
+	if (!dvdy->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dwdy->add_att("units", "kg m-3s-1")) 
+	if (!dwdy->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dudz->add_att("units", "kg m-3s-1")) 
+	if (!dudz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dvdz->add_att("units", "kg m-3s-1")) 
+	if (!dvdz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dwdz->add_att("units", "kg m-3s-1")) 
+	if (!dwdz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
 	
 	// Define long names for data variables.
