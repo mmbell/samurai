@@ -47,9 +47,11 @@ public:
 	float getRadarLat();
 	float getRadarLon();
 	float getRadarAlt();
+	float getRadarAltMSL();
 	float getRadarLat(const int& ray);
 	float getRadarLon(const int& ray);
 	float getRadarAlt(const int& ray);
+	float getRadarAltMSL(const int& ray);
 	QDateTime getRayTime(int& ray);
 	float getFLwind_u(const int& ray);
 	float getFLwind_v(const int& ray);

@@ -9,18 +9,12 @@ TARGET =
 HEADERS += BandedMatrix.h \
            BSpline.h \
            CostFunction.h \
-           CostFunctionRZ_CPU.h \
-           CostFunctionXY_CPU.h \
            CostFunctionXYZ.h \ 
-           CostFunctionVAR.h \
            MetObs.h \
            Observation.h \
            RecursiveFilter.h \
            VarDriver.h \
-           VarDriverRZ.h \
-           VarDriverXY.h \
            VarDriverXYZ.h \
-	   VarDriverVAR.h \
            Dorade.h \
            read_dorade.h \
            precision.h \
@@ -29,19 +23,12 @@ SOURCES += BSpline.cpp \
            BSplineD.cpp \
            BSplineF.cpp \
            CostFunction.cpp \
-           CostFunctionRZ_CPU.cpp \
-           CostFunctionXY_CPU.cpp \
-           CostFunctionXYZ.cpp \
-	   CostFunctionVAR.cpp \
            main.cpp \
            MetObs.cpp \
            Observation.cpp \
            RecursiveFilter.cpp \
            VarDriver.cpp \
-           VarDriverRZ.cpp \
-           VarDriverXY.cpp \ 
            VarDriverXYZ.cpp \ 
-	   VarDriverVAR.cpp \
            Dorade.cpp \
            FrameCenter.cpp
 macx-xcode {
@@ -49,12 +36,54 @@ macx-xcode {
              mac_release.xcconfig
 }
 QT += xml
+
+# These files require openmp directives on Intel
+OPENMP_SOURCES += CostFunctionXYZ.cpp
+
+# Uncomment the following to compile a debug Makefile
 #CONFIG += debug
-# External libraries
+
+# Local headers and libraries
 macx {
-  LOCALINCLUDE = /Users/mmbell/Development/include /opt/local/include /usr/local/include
-  LOCALLIB = -L/opt/local/lib -L/Users/mmbell/Development/lib -L/usr/local/lib
+  LOCALINCLUDES = /Users/mmbell/Development/include /opt/local/include /usr/local/include
+  LOCALLIBS = -L/opt/local/lib -L/Users/mmbell/Development/lib -L/usr/local/lib
+  SOURCES += OPENMP_SOURCES
 }
-INCLUDEPATH = $$LOCALINCLUDE
-LIBS += $$LOCALLIB -lcurl -lGeographic -lhdf5 -lnetcdf -lnetcdf_c++
+
+linux-icc-64 {
+  LOCALINCLUDES = ./include  
+  LOCALLIBS = -L./lib -openmp
+
+  DESTDIR = build/release
+  OBJECTS_DIR = build/release
+  MOC_DIR = build/release
+  RCC_DIR = build/release
+  UI_DIR = build/release
+
+  CONFIG(debug, debug|release) {
+    DESTDIR = build/debug
+    OBJECTS_DIR = build/debug
+    MOC_DIR = build/debug
+    RCC_DIR = build/debug
+    UI_DIR = build/debug
+  } else {
+    DESTDIR = build/release
+    OBJECTS_DIR = build/release
+    MOC_DIR = build/release
+    RCC_DIR = build/release
+    UI_DIR = build/release
+  }
+
+  OPENMP_CXXFLAGS = -openmp
+  openmp.name = Compiling (OPENMP)
+  openmp.input = OPENMP_SOURCES
+  openmp.output = ${OBJECTS_DIR}${QMAKE_FILE_BASE}.o
+  # Compile OPENMP_SOURCES as usual but also add OPENMP_CXXFLAGS
+  openmp.commands = \$(CXX) -c \$(CXXFLAGS) \$(INCPATH) $$OPENMP_CXXFLAGS -o ${OBJECTS_DIR}${QMAKE_FILE_BASE}.o ${QMAKE_FILE_IN}
+  QMAKE_EXTRA_COMPILERS += openmp
+
+}
+
+INCLUDEPATH = $$LOCALINCLUDES
+LIBS += $$LOCALLIBS -lcurl -lGeographic -lhdf5 -lnetcdf -lnetcdf_c++
 

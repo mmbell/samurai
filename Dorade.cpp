@@ -287,6 +287,11 @@ float Dorade::getRadarAlt()
 	return (aptr->alt_agl + cfptr->c_alt_agl);
 }
 
+float Dorade::getRadarAltMSL()
+{
+        return (aptr->alt_msl + cfptr->c_alt_msl);
+}
+
 float Dorade::getRadarLat()
 {
 	return aptr->lat;
@@ -301,7 +306,14 @@ float Dorade::getRadarAlt(const int& ray)
 {
 	if (ray < 0) return -999.;
 	if (ray > sptr->num_rays) return -999.;
-	return aptr[ray].alt_agl;
+	return (aptr[ray].alt_agl + cfptr->c_alt_agl);
+}
+
+float Dorade::getRadarAltMSL(const int& ray)
+{
+        if (ray < 0) return -999.;
+        if (ray > sptr->num_rays) return -999.;
+        return (aptr[ray].alt_msl + cfptr->c_alt_msl);
 }
 
 float Dorade::getRadarLat(const int& ray)
