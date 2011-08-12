@@ -19,6 +19,8 @@ set ( CMAKE_PREFIX_PATH
 	/opt
 	/opt/local
 	/Users/$ENV{USER}/Development
+	./include
+	./lib
 	)
 find_package ( Qt4 REQUIRED ) 
 find_package ( CURL REQUIRED )
