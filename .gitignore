@@ -5,3 +5,7 @@ libs/*
 .svn
 .DS_Store
 profile
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile
