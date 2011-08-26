@@ -1,4 +1,4 @@
-build/*
+*build/*
 libs/*
 *.xcodeproj/*
 *.app/*
@@ -7,5 +7,6 @@ libs/*
 profile
 CMakeCache.txt
 CMakeFiles
+CMakeScripts
 cmake_install.cmake
 Makefile
