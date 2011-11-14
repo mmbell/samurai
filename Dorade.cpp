@@ -294,12 +294,12 @@ float Dorade::getRadarAltMSL()
 
 float Dorade::getRadarLat()
 {
-	return aptr->lat;
+	return (aptr->lat + cfptr->c_rad_lat);
 }
 
 float Dorade::getRadarLon()
 {
-	return aptr->lon;
+	return (aptr->lon + cfptr->c_rad_lon);
 }
 
 float Dorade::getRadarAlt(const int& ray)
@@ -320,14 +320,14 @@ float Dorade::getRadarLat(const int& ray)
 {
 	if (ray < 0) return -999.;
 	if (ray > sptr->num_rays) return -999.;
-	return aptr[ray].lat;
+	return (aptr[ray].lat + cfptr->c_rad_lat);
 }
 
 float Dorade::getRadarLon(const int& ray)
 {
 	if (ray < 0) return -999.;
 	if (ray > sptr->num_rays) return -999.;
-	return aptr[ray].lon;
+	return (aptr[ray].lon + cfptr->c_rad_lat);
 }
 
 float Dorade::getFLwind_u(const int& ray)
@@ -348,7 +348,7 @@ float Dorade::getHeading(const int& ray)
 {
 	if (ray < 0) return -999.;
 	if (ray > sptr->num_rays) return -999.;
-	return aptr[ray].head;	
+	return (aptr[ray].head + cfptr->c_head);	
 }
 
 float Dorade::getBeamwidthDeg()
