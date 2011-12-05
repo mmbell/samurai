@@ -5,6 +5,7 @@
 SAMURAI is a variational analysis technique developed based primarily on the work of Ooyama (1987), Ooyama (2002) and Gao et al.(2004). The SAMURAI analysis yields a maximum likelihood estimate of the atmospheric state for a given set of observations and error estimates by minimizing a variational cost function. 
 
 The technique has several advantages over traditional objective analysis techniques, including:
+
  + observational error specifications for different instrumentation
  + more complex observation operators for remote sensing data
  + the addition of  balance constraints such as mass continuity
@@ -14,13 +15,13 @@ A distinguishing characteristic of the SAMURAI technique compared to other varia
 
 Another distinguishing characteristic from other variational solvers is the use of a Galerkin approach, which is similar to the Fourier spectral transform but uses the cubic B-spline as a basis Ooyama (2002). The disadvantage of the B-spline basis is that it is not orthogonal and therefore requires an extra matrix  to obtain the spline coefficients, but this is a fair trade-off with its other desirable characteristics. The basis is computationally efficient and continuously differentiable to second order, allowing for efficient, accurate interpolation to observation locations, flexible incorporation of boundary conditions, and high numerical accuracy of kinematic derivatives. 
 
-The analysis is performed in a manner similar to the spectral transform method \citep{Machenhauer1979}, transforming to and from the spline coefficients and physical space at each step of the cost function minimization. 
+The analysis is performed in a manner similar to the spectral transform method Machenhauer (1979), transforming to and from the spline coefficients and physical space at each step of the cost function minimization. 
 
-A more technical description of SAMURAI is given in the documentation.
+A more technical description of SAMURAI is given in the documentation, and in
 
-This code is based on the algorithm described in:
+Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, *accepted with minor revisions*.
 
-Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2011: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, **accepted with minor revisions**.
+Please reference this publication if you use SAMURAI in your research. A description of the 3D version including ananalytic tests is currently in preparation.
 
 ## Compilation and Use
 

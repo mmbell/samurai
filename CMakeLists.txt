@@ -35,40 +35,40 @@ include_directories (
 	${GEOGRAPHIC_INCLUDE_DIR} )
 set ( EXECUTABLE_OUTPUT_PATH build/release )
 set ( samurai_HDRS
-	BandedMatrix.h 
-        BSpline.h 
-        CostFunction.h 
-        CostFunctionXYZ.h  
-        MetObs.h 
-        Observation.h 
-        RecursiveFilter.h 
-        VarDriver.h 
-        VarDriverXYZ.h 
-        Dorade.h 
-        read_dorade.h 
-        precision.h 
-        FrameCenter.h
+	src/BandedMatrix.h 
+        src/BSpline.h 
+        src/CostFunction.h 
+        src/CostFunctionXYZ.h  
+        src/MetObs.h 
+        src/Observation.h 
+        src/RecursiveFilter.h 
+        src/VarDriver.h 
+        src/VarDriverXYZ.h 
+        src/Dorade.h 
+        src/read_dorade.h 
+        src/precision.h 
+        src/FrameCenter.h
 	)
 
 set ( samurai_SRCS
-	BSpline.cpp
-	BSplineD.cpp
-	BSplineF.cpp
-	CostFunction.cpp
-	CostFunctionXYZ.cpp
-	main.cpp
-	MetObs.cpp
-	Observation.cpp
-	RecursiveFilter.cpp
-	VarDriver.cpp
-	VarDriverXYZ.cpp
-	Dorade.cpp
-        FrameCenter.cpp
+	src/BSpline.cpp
+	src/BSplineD.cpp
+	src/BSplineF.cpp
+	src/CostFunction.cpp
+	src/CostFunctionXYZ.cpp
+	src/main.cpp
+	src/MetObs.cpp
+	src/Observation.cpp
+	src/RecursiveFilter.cpp
+	src/VarDriver.cpp
+	src/VarDriverXYZ.cpp
+	src/Dorade.cpp
+        src/FrameCenter.cpp
 	
-	mac_debug.xcconfig
-	mac_release.xcconfig
+	src/mac_debug.xcconfig
+	src/mac_release.xcconfig
 	)
-set_source_files_properties ( CostFunctionXYZ.cpp
+set_source_files_properties ( src/CostFunctionXYZ.cpp
 				PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 				)
 add_executable ( samurai ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS} )
