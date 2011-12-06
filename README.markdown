@@ -21,7 +21,7 @@ A more technical description of SAMURAI is given in the documentation, and in
 
 Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, *accepted with minor revisions*.
 
-Please reference this publication if you use SAMURAI in your research. A description of the 3D version including ananalytic tests is currently in preparation.
+Please reference this publication if you use SAMURAI in your research. A description of the 3D version including analytic tests is currently in preparation.
 
 ## Compilation and Use
 
@@ -51,4 +51,13 @@ Several utility scripts are included in the `util` subdirectory, and more will b
 Copyright (c) 2011 Michael Bell
 
 See LICENSE for details.
+
+### References
+Gao, J., M. Xue, K. Brewster, and K. K. Droegemeier, 2004: A three-dimensional variational data analysis method with recursive filter for Doppler radars. *J. Atmos. Oceanic Technol.*, **21**, 457–469.
+
+Machenhauer, B., 1979: The spectral method. *Numerical methods used in atmospheric models*, A. Kasahara, Ed., GARP Publications Series No 17, WMO and ICSU, Vol. 2, pp. 121–275.
+
+Ooyama, K. V., 1987: Scale controlled objective analysis. *Mon. Wea. Rev.*, **115**, 2479–2506.
+
+Ooyama, K. V., 2002: The cubic-spline transform method: Basic definitions and tests in a 1d single domain. *Mon. Wea. Rev.*, **130**, 2392–2415.
 
