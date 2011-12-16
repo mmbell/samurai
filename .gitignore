@@ -1,5 +1,7 @@
 *build/*
-libs/*
+lib/*
+bin/samurai
+*.tar.bz2
 xcode/*
 *.xcodeproj/*
 *.app/*

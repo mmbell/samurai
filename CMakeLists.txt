@@ -11,6 +11,7 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		find_package ( OpenMP REQUIRED )
 		set ( OPENMP_FLAG "-fopenmp" )
 		set ( OPENMP_LINK "-lgomp" )
+		#set ( APP_TYPE MACOSX_BUNDLE )
 	else()
 		set ( OPENMP_FLAG "-fopenmp" )
 	        set ( OPENMP_LINK "" )
@@ -19,7 +20,6 @@ else()
 	set ( OPENMP_FLAG "" )
 	set ( OPENMP_LINK "" )
 endif()
-#endif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 set ( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set ( CMAKE_PREFIX_PATH 
 	${CMAKE_PREFIX_PATH}
@@ -79,7 +79,7 @@ set ( samurai_SRCS
 set_source_files_properties ( src/CostFunctionXYZ.cpp
 				PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 				)
-add_executable ( samurai ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS} )
+add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 target_link_libraries ( samurai  
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
 	${CURL_LIBRARY} ${HDF5_LIBRARY} ${NETCDF_LIBRARY}
