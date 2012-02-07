@@ -23,7 +23,7 @@ Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and mom
 
 Please reference this publication if you use SAMURAI in your research. A description of the 3D version including analytic tests is currently in preparation.
 
-## Compilation and Use
+## Compilation
 
 To compile, use [CMake] (http://www.cmake.org) from the top-level directory:
 
@@ -31,11 +31,25 @@ To compile, use [CMake] (http://www.cmake.org) from the top-level directory:
 
 to create a Makefile or Xcode project for your machine. Run `make` or build via Xcode to create the `samurai` binary.
 
+A few external libraries are required:
+
+[Geographiclib] (http://geographiclib.sourceforge.net) is used for geolocation of data and map projection.
+
+[Qt] (http://qt.nokia.com/products) is used for helper classes including XML parsing. A graphical user interface based on Qt will be available in a future release.
+
+[NetCDF] (http://www.unidata.ucar.edu/software/netcdf) is used for output of the gridded analysis results.
+
+[cURL] (http://curl.haxx.se/libcurl) and [HDF5] (http://www.hdfgroup.org/HDF5) are prerequisites for NetCDF4.
+
+## Running SAMURAI
+
 The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a `vardata` subdirectory. 
 
 The current interface is only available for the 3D Cartesian analysis. The 2D Cylindrical interface will be added soon. More complete documentation on how to run the software will be also be added shortly.
 
 Several utility scripts are included in the `util` subdirectory, and more will be added as available.
+
+See the Wiki page for the User's Manual with more details
 
 ## Contributing to SAMURAI
 
