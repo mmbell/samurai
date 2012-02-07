@@ -159,7 +159,7 @@ void CostFunctionXYZ::initialize(const QHash<QString, QString>* config, real* bg
 	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
-	fieldNodes = new real[nodes*33];	
+	fieldNodes = new real[nodes*34];	
 	//bState = iDim*jDim*kDim*varDim;	
 	bgState = new real[nState];
 	bgStdDev = new real[nState];
@@ -1466,7 +1466,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										if (configHash->value("horizontalbc") == "R0") {
 											if ((iIndex == 0) or (iIndex == iDim-1) or
 												(jIndex == 0) or (jIndex == jDim-1)) {
-												for (int n = 0; n < 33; ++n) {
+												for (int n = 0; n < 34; ++n) {
 													fieldNodes[fIndex * n + posIndex] = -999.0;
 												}
 												continue;
@@ -1475,7 +1475,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										
 										if (configHash->value("verticalbc") == "R0") {
 											if ((kIndex == 0) or (kIndex == kDim-1)) {
-												for (int n = 0; n < 33; ++n) {
+												for (int n = 0; n < 34; ++n) {
 													fieldNodes[fIndex * n + posIndex] = -999.0;
 												}
 												continue;
@@ -1791,7 +1791,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
 	NcVar *rho, *press, *temp, *qv, *h, *qr;
 	NcVar *dudx, *dvdx, *dwdx, *dudy, *dvdy, *dwdy, *dudz, *dvdz, *dwdz;
-		
+	NcVar *absVorticity;
+
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
 									 lvlDim, latDim, lonDim)))
 		return NC_ERR;
@@ -1824,6 +1825,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!(vorticity = dataFile.add_var("VORT", ncFloat, timeDim, 
 									lvlDim, latDim, lonDim)))
+		return NC_ERR;
+        if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim,
+					                                lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(divergence = dataFile.add_var("DIV", ncFloat, timeDim, 
 									   lvlDim, latDim, lonDim)))
@@ -1915,6 +1919,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!vorticity->add_att("units", "10-5s-1")) 
 		return NC_ERR;
+	if (!absVorticity->add_att("units", "10-5s-1"))
+                return NC_ERR;
 	if (!divergence->add_att("units", "10-5s-1")) 
 		return NC_ERR;
 	if (!okuboweiss->add_att("units", "10-10s-1")) 
@@ -1983,6 +1989,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!vorticity->add_att("long_name", "vertical vorticity")) 
 		return NC_ERR;
+        if (!absVorticity->add_att("long_name", "absolute vertical vorticity"))
+                return NC_ERR;
 	if (!divergence->add_att("long_name", "horizontal divergence")) 
 		return NC_ERR;
 	if (!okuboweiss->add_att("long_name", "Okubo-Weiss parameter")) 
@@ -2051,6 +2059,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!vorticity->add_att("missing_value", -999.f)) 
 		return NC_ERR;
+        if (!absVorticity->add_att("missing_value", -999.f))
+                return NC_ERR;
 	if (!divergence->add_att("missing_value", -999.f)) 
 		return NC_ERR;
 	if (!okuboweiss->add_att("missing_value", -999.f)) 
@@ -2119,6 +2129,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!vorticity->add_att("_FillValue", -999.f)) 
 		return NC_ERR;
+        if (!absVorticity->add_att("_FillValue", -999.f))
+                return NC_ERR;
 	if (!divergence->add_att("_FillValue", -999.f)) 
 		return NC_ERR;
 	if (!okuboweiss->add_att("_FillValue", -999.f)) 
@@ -2175,7 +2187,15 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	real latReference = configHash->value("reflat").toFloat();	
 	real lonReference = configHash->value("reflon").toFloat();
 	real refX, refY;
-	
+
+	// Add Coriolis parameter to vorticity
+	real Pi = acos(-1.);
+	real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
+	for (int posIndex = 0; posIndex < iDim*jDim*kDim; posIndex++) {
+		if (fieldNodes[iDim*jDim*kDim*10 + posIndex] != -999.0)
+			fieldNodes[iDim*jDim*kDim*33 + posIndex] = fieldNodes[iDim*jDim*kDim*10 + posIndex] + Coriolisf;		
+	}
+
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -2277,6 +2297,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!dwdz->put_rec(&fieldNodes[iDim*jDim*kDim*32], rec)) 
 			return NC_ERR;
+                if (!absVorticity->put_rec(&fieldNodes[iDim*jDim*kDim*33], rec))
+                        return NC_ERR;
 
 	}
 	
