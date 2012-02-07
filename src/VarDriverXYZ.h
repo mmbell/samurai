@@ -13,7 +13,7 @@
 #include "VarDriver.h"
 #include "BSpline.h"
 #include "Observation.h"
-#include "CostFunctionXYZ.h"
+#include "CostFunction3D.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include <iostream>
@@ -55,8 +55,8 @@ private:
 	int maxIter;
 
 	// Cost Functions
-	CostFunctionXYZ* obCostXYZ;
-	CostFunctionXYZ* bgCostXYZ;
+	CostFunction3D* obCostXYZ;
+	CostFunction3D* bgCostXYZ;
 	
 	// Variables passed to Cost function
 	real* bgB;

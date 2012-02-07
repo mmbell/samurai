@@ -1110,7 +1110,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"qrvariable" << "backgroundroi" << "reflectivityroi" <<
 	"load_background" << "adjust_background" <<
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
-	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
+	"ibc" << "jbc" << "kbc" << "use_dbz_pseudow" <<
 	"num_iterations" << "output_mish" << "preprocess_obs" << "mask_reflectivity";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {

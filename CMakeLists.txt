@@ -1,6 +1,6 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
-set ( CMAKE_BUILD_TYPE Release )
+set ( CMAKE_BUILD_TYPE Debug )
 add_definitions ( -Wall )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	set ( CMAKE_CXX_COMPILER "icpc" )
@@ -46,7 +46,8 @@ set ( samurai_HDRS
 	src/BandedMatrix.h 
         src/BSpline.h 
         src/CostFunction.h 
-        src/CostFunctionXYZ.h  
+        src/CostFunctionXYZ.h
+        src/CostFunction3D.h	
         src/MetObs.h 
         src/Observation.h 
         src/RecursiveFilter.h 
@@ -64,6 +65,7 @@ set ( samurai_SRCS
 	src/BSplineF.cpp
 	src/CostFunction.cpp
 	src/CostFunctionXYZ.cpp
+	src/CostFunction3D.cpp
 	src/main.cpp
 	src/MetObs.cpp
 	src/Observation.cpp
@@ -76,7 +78,7 @@ set ( samurai_SRCS
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
 	)
-set_source_files_properties ( src/CostFunctionXYZ.cpp
+set_source_files_properties ( src/CostFunction3D.cpp
 				PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 				)
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
