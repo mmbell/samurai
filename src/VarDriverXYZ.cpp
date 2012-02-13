@@ -390,7 +390,7 @@ bool VarDriverXYZ::preProcessMetObs()
 					continue;
 			}
 			if (configHash.value("jbc") == "R0") {
-					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+				if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
 					continue;
 			}
 			if (configHash.value("kbc") == "R0") {
@@ -1404,7 +1404,6 @@ bool VarDriverXYZ::adjustBackground(const int& bStateSize)
             if ((bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
 				continue;
 		}
-		
 		if (configHash.value("kbc") == "R0") {
 			if ((bgZ < (kmin+kincr)) or (bgZ > (kmax-kincr)))
 				continue;
