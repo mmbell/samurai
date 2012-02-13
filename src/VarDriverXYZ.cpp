@@ -385,13 +385,15 @@ bool VarDriverXYZ::preProcessMetObs()
 				continue;
 			
 			// Restrict the horizontal domain if we are using the R0 BC
-			if (configHash.value("horizontalbc") == "R0") {
-				if ((obX < (imin+iincr)) or (obX > (imax-iincr)) or
+			if (configHash.value("ibc") == "R0") {
+				if ((obX < (imin+iincr)) or (obX > (imax-iincr)))
+					continue;
+			}
+			if (configHash.value("jbc") == "R0") {
 					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
 					continue;
 			}
-
-			if (configHash.value("verticalbc") == "R0") {
+			if (configHash.value("kbc") == "R0") {
 				if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
 					continue;
 			}
