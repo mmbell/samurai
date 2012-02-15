@@ -1536,23 +1536,51 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 																				
 										// Output it
 										
-										// Skip the border nodes if the boundary conditions are zero
+										// Remove or adjust the border nodes for the boundary conditions
 										int fIndex = iDim*jDim*kDim; 
 										int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
 										if (configHash->value("ibc") == "R0") {
-											if ((iIndex == 0) or (iIndex == iDim-1) or
-												(jIndex == 0) or (jIndex == jDim-1)) {
+											if ((iIndex == 0) or (iIndex == iDim-1)) {
 												for (int n = 0; n < 33; ++n) {
 													fieldNodes[fIndex * n + posIndex] = -999.0;
 												}
 												continue;
 											}
+										} else if (configHash->value("ibc") == "R3") {
+											if ((iIndex <= 1) or (iIndex >= iDim-2)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = 0.0;
+												}
+												continue;
+											}
+										}
+										if (configHash->value("jbc") == "R0") {
+											if ((jIndex == 0) or (jIndex == jDim-1)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = -999.0;
+												}
+												continue;
+											}
+										} else if (configHash->value("jbc") == "R3") {
+											if ((jIndex <= 1) or (jIndex >= jDim-2)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = 0.0;
+												}
+												continue;
+											}
 										}
 										
-										if (configHash->value("ibc") == "R0") {
+										if (configHash->value("kbc") == "R0") {
 											if ((kIndex == 0) or (kIndex == kDim-1)) {
 												for (int n = 0; n < 33; ++n) {
 													fieldNodes[fIndex * n + posIndex] = -999.0;
+												}
+												continue;
+											}
+										} else if (configHash->value("kbc") == "R3") {
+											if ((kIndex <= 1) or (kIndex >= kDim-2)) {
+												for (int n = 0; n < 33; ++n) {
+													fieldNodes[fIndex * n + posIndex] = 0.0;
 												}
 												continue;
 											}
@@ -2700,14 +2728,16 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = -4./(3.*lambda + 1.);
 				break;
 			case 4:
-				// There is no contribution from this node 
-				return 0;
+				// For R2 BCs, the 0 node is recast as 1, with BCs applied to -1 and -2 
+				node = -2;
+				coeffmod = 1.;
+				break;
 			case 5:
-				// There is no contribution from this node 
-				return 0;
+				node = -2;
+				coeffmod = -1.;
+				break;
 			case 6:
-				// There is no contribution from this node 
-				return 0;	
+				return b;	
 			case 7:
 				node = M+1;
 				coeffmod = 1.;
@@ -2738,16 +2768,11 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
 				break;
 			case 4:
-				node = -1;
-				coeffmod = 1.;
-				break;
+				return b;
 			case 5:
-				node = -1;
-				coeffmod = -1.;
-				break;				
+				return b;
 			case 6:
-				// There is no contribution from this node 
-				return 0;	
+				return b;
 			case 7:
 				node = M+2;
 				coeffmod = 1.;
@@ -2778,14 +2803,15 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = -4./(3.*lambda + 1.);
 				break;
 			case 4:
-				// There is no contribution from this node 
-				return 0.;
+				node = M+2;
+				coeffmod = 1.;
+				break;					
 			case 5:
-				// There is no contribution from this node 
-				return 0.;
+				node = M+2;
+				coeffmod = -1.;
+				break;					
 			case 6:
-				// There is no contribution from this node 
-				return 0.;
+				return b;
 			case 7:
                 node = -1;
                 coeffmod = 1.;
@@ -2816,16 +2842,11 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
 				break;
 			case 4:
-				node = M+1;
-				coeffmod = 1.;
-				break;
+				return b;
 			case 5:
-				node = M+1;
-				coeffmod = -1.;
-				break;				
+				return b;
 			case 6:
-				// There is no contribution from this node 
-				return 0.;
+				return b;
 			case 7:
                 return b;
 		}
@@ -2887,11 +2908,11 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	b += coeffmod * bmod;
 	
 	// R2 needs one more addition
-	if ((BL == 4) and (m == 1)) {
-		node = 0;
+	if ((BL == 4) and (m == 0)) {
+		node = -1;
 		coeffmod = -0.5;
-	} else if ((BR == 4) and (m == M-1)) {
-		node = M;
+	} else if ((BR == 4) and (m == M)) {
+		node = M+1;
 		coeffmod = -0.5;
 	} else {
 		return b;
