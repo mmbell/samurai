@@ -2,17 +2,18 @@
 <samurai xmlns = 'http://www.nps.edu/ns/samurai'>
   <mode>XYZ</mode>
   <grid>
-    <xmin>-50.</xmin>
-    <xmax>50.</xmax>
-    <xincr>1.0</xincr>
-    <ymin>0.</ymin>
-    <ymax>50.</ymax>
-    <yincr>1.0</yincr>
-    <zmin>0.</zmin>
-    <zmax>16.0</zmax>
-    <zincr>1.0</zincr>
-    <horizontalbc>R0</horizontalbc>
-    <verticalbc>R0</verticalbc>
+    <imin>-50.</imin>
+    <imax>50.</imax>
+    <iincr>1.0</iincr>
+    <jmin>0.</jmin>
+    <jmax>50.</jmax>
+    <jincr>1.0</jincr>
+    <kmin>0.</kmin>
+    <kmax>16.0</kmax>
+    <kincr>1.0</kincr>
+    <ibc>R0</ibc>
+    <jbc>R0</jbc>
+    <kbc>R0</kbc>
   </grid>
   <operation>
     <load_background>0</load_background>
@@ -32,7 +33,7 @@
     <dynamicstride>0</dynamicstride>
     <qrvariable>dbz</qrvariable>
     <reflectivityroi>1.0</reflectivityroi>
-    <use_dbz_pseudow>1</use_dbz_pseudow>
+    <use_dbz_pseudow>0</use_dbz_pseudow>
     <radardbz>DBZ</radardbz>
     <radarvel>VG</radarvel>
     <radarsw>SW</radarsw>
@@ -43,16 +44,16 @@
     <verror>50.0</verror>
     <werror>50.0</werror>
     <terror>3.0</terror>
-    <qverror>3.0</qverror>
+    <qverror>10.0</qverror>
     <rhoerror>3.0</rhoerror>
     <qrerror>3.0</qrerror>
     <mcweight>1.</mcweight>
-    <xfilter>2.</xfilter>
-    <yfilter>2.</yfilter>
-    <zfilter>2.</zfilter>
-    <x_spline_cutoff>2.</x_spline_cutoff>
-    <y_spline_cutoff>2.</y_spline_cutoff>
-    <z_spline_cutoff>2.</z_spline_cutoff>
+    <ifilter>2</ifilter>
+    <jfilter>2</jfilter>
+    <kfilter>2.</kfilter>
+    <i_spline_cutoff>2.</i_spline_cutoff>
+    <j_spline_cutoff>2.</j_spline_cutoff>
+    <k_spline_cutoff>2.</k_spline_cutoff>
   </parameters>
   <parameters iter="2">
     <uerror>5.0</uerror>
@@ -63,11 +64,11 @@
     <rhoerror>1.0</rhoerror>
     <qrerror>1.0</qrerror>
     <mcweight>1.</mcweight>
-    <xfilter>2.</xfilter>
-    <yfilter>2.</yfilter>
-    <zfilter>2.</zfilter>
-    <x_spline_cutoff>2.</x_spline_cutoff>
-    <y_spline_cutoff>2.</y_spline_cutoff>
-    <z_spline_cutoff>2.</z_spline_cutoff>
+    <ifilter>2.</ifilter>
+    <jfilter>2.</jfilter>
+    <kfilter>2.</kfilter>
+    <i_spline_cutoff>2.</i_spline_cutoff>
+    <j_spline_cutoff>2.</j_spline_cutoff>
+    <k_spline_cutoff>2.</k_spline_cutoff>
   </parameters>
 </samurai>
