@@ -44,19 +44,19 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	if (!validateXMLconfig()) return false;
 	
 	// Define the grid dimensions
-	imin = configHash.value("xmin").toFloat();
-	imax = configHash.value("xmax").toFloat();
-	iincr = configHash.value("xincr").toFloat();
+	imin = configHash.value("imin").toFloat();
+	imax = configHash.value("imax").toFloat();
+	iincr = configHash.value("iincr").toFloat();
 	idim = (int)((imax - imin)/iincr) + 1;
 	
-	jmin = configHash.value("ymin").toFloat();
-	jmax = configHash.value("ymax").toFloat();
-	jincr = configHash.value("yincr").toFloat();
+	jmin = configHash.value("jmin").toFloat();
+	jmax = configHash.value("jmax").toFloat();
+	jincr = configHash.value("jincr").toFloat();
 	jdim = (int)((jmax - jmin)/jincr) + 1;
 	
-	kmin = configHash.value("zmin").toFloat();
-	kmax = configHash.value("zmax").toFloat();
-	kincr = configHash.value("zincr").toFloat();
+	kmin = configHash.value("kmin").toFloat();
+	kmax = configHash.value("kmax").toFloat();
+	kincr = configHash.value("kincr").toFloat();
 	kdim = (int)((kmax - kmin)/kincr) + 1;
 
 	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
@@ -80,16 +80,18 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 
 	// Increase the "internal" size of the grid for the zero BC condition
-	if (configHash.value("horizontalbc") == "R0") {
+	if (configHash.value("ibc") == "R0") {
 		imin -= iincr;
 		imax += iincr;
 		idim	+= 2;
+    }
+    if (configHash.value("jbc") == "R0") {
 		jmin -= jincr;
 		jmax += jincr;
 		jdim += 2;
 	}
 	
-	if (configHash.value("verticalbc") == "R0") {
+	if (configHash.value("kbc") == "R0") {
 		kmin -= kincr;
 		kmax += kincr;
 		kdim += 2;
@@ -202,7 +204,7 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;	
 	
-	obCostXYZ = new CostFunctionXYZ(obVector.size(), bStateSize);
+	obCostXYZ = new CostFunction3D(obVector.size(), bStateSize);
 	obCostXYZ->initialize(&configHash, bgU, obs);
 	
 	// If we got here, then everything probably went OK!
@@ -383,13 +385,15 @@ bool VarDriverXYZ::preProcessMetObs()
 				continue;
 			
 			// Restrict the horizontal domain if we are using the R0 BC
-			if (configHash.value("horizontalbc") == "R0") {
-				if ((obX < (imin+iincr)) or (obX > (imax-iincr)) or
-					(obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+			if (configHash.value("ibc") == "R0") {
+				if ((obX < (imin+iincr)) or (obX > (imax-iincr)))
 					continue;
 			}
-
-			if (configHash.value("verticalbc") == "R0") {
+			if (configHash.value("jbc") == "R0") {
+				if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+					continue;
+			}
+			if (configHash.value("kbc") == "R0") {
 				if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
 					continue;
 			}
@@ -1392,13 +1396,15 @@ bool VarDriverXYZ::adjustBackground(const int& bStateSize)
 			continue;
 		}
 		// Restrict the horizontal domain if we are using the R0 BC
-		if (configHash.value("horizontalbc") == "R0") {
-			if ((bgX < (imin+iincr)) or (bgX > (imax-iincr)) or
-				(bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
+		if (configHash.value("ibc") == "R0") {
+			if ((bgX < (imin+iincr)) or (bgX > (imax-iincr)))
+                continue;
+        }
+        if (configHash.value("jbc") == "R0") {
+            if ((bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
 				continue;
 		}
-		
-		if (configHash.value("verticalbc") == "R0") {
+		if (configHash.value("kbc") == "R0") {
 			if ((bgZ < (kmin+kincr)) or (bgZ > (kmax-kincr)))
 				continue;
 		}
@@ -1419,7 +1425,7 @@ bool VarDriverXYZ::adjustBackground(const int& bStateSize)
 	}	
 	
 	// Adjust the background field to the spline mish
-	bgCostXYZ = new CostFunctionXYZ(numbgObs, bStateSize);
+	bgCostXYZ = new CostFunction3D(numbgObs, bStateSize);
 	bgCostXYZ->initialize(&configHash, bgU, bgObs);
 	/* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
 	    which is presumably what you want most of the time. Otherwise, you would not be here */
@@ -1477,29 +1483,29 @@ void VarDriverXYZ::updateAnalysisParams(const int& iteration)
 	val = configHash.value(key);
 	configHash.insert("mcweight", val);
 	
-	key = "xfilter_" + iter;
+	key = "ifilter_" + iter;
 	val = configHash.value(key);
-	configHash.insert("xfilter", val);
+	configHash.insert("ifilter", val);
 	
-	key = "yfilter_" + iter;
+	key = "jfilter_" + iter;
 	val = configHash.value(key);
-	configHash.insert("yfilter", val);
+	configHash.insert("jfilter", val);
 	
-	key = "zfilter_" + iter;
+	key = "kfilter_" + iter;
 	val = configHash.value(key);
-	configHash.insert("zfilter", val);
+	configHash.insert("kfilter", val);
 	
-	key = "x_spline_cutoff_" + iter;
+	key = "i_spline_cutoff_" + iter;
 	val = configHash.value(key);
-	configHash.insert("x_spline_cutoff", val);
+	configHash.insert("i_spline_cutoff", val);
 	
-	key = "y_spline_cutoff_" + iter;
+	key = "j_spline_cutoff_" + iter;
 	val = configHash.value(key);
-	configHash.insert("y_spline_cutoff", val);
+	configHash.insert("j_spline_cutoff", val);
 	
-	key = "z_spline_cutoff_" + iter;
+	key = "k_spline_cutoff_" + iter;
 	val = configHash.value(key);
-	configHash.insert("z_spline_cutoff", val);
+	configHash.insert("k_spline_cutoff", val);
 	
 }
 
@@ -1511,15 +1517,15 @@ bool VarDriverXYZ::validateXMLconfig()
 	
 	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
-	configKeys << "xmin" << "xmax" << "xincr" <<
-	"ymin" << "ymax" << "yincr" <<
-	"zmin" << "zmax" << "zincr" <<
-	"xfilter" << "yfilter" << "zfilter" <<
+	configKeys << "imin" << "imax" << "iincr" <<
+	"jmin" << "jmax" << "jincr" <<
+	"kmin" << "kmax" << "kincr" <<
+	"ifilter" << "jfilter" << "kfilter" <<
 	"uerror" << "verror" << "werror" << "terror" << 
 	"qverror" << "rhoerror" << "qrerror" << "mcweight" << 
 	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
-	"horizontalbc" << "verticalbc" << "use_dbz_pseudow" <<
-	"x_spline_cutoff" << "y_spline_cutoff" << "z_spline_cutoff";
+	"ibc" << "jbc" << "kbc" << "use_dbz_pseudow" <<
+	"i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff";
 	
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
