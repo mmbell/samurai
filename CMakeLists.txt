@@ -52,7 +52,8 @@ set ( samurai_HDRS
         src/Observation.h 
         src/RecursiveFilter.h 
         src/VarDriver.h 
-        src/VarDriverXYZ.h 
+        src/VarDriverXYZ.h
+        src/VarDriver3D.h	
         src/Dorade.h 
         src/read_dorade.h 
         src/precision.h 
@@ -72,6 +73,7 @@ set ( samurai_SRCS
 	src/RecursiveFilter.cpp
 	src/VarDriver.cpp
 	src/VarDriverXYZ.cpp
+	src/VarDriver3D.cpp
 	src/Dorade.cpp
         src/FrameCenter.cpp
 	

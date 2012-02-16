@@ -3,7 +3,7 @@
 //#include "VarDriverRZ.h"
 //#include "VarDriverXY.h"
 //#include "VarDriverVAR.h"
-#include "VarDriverXYZ.h"
+#include "VarDriver3D.h"
 #include <iostream>
 #include <QtCore>
 #include <QtXml>
@@ -67,7 +67,7 @@ int main (int argc, char *argv[]) {
 			if (element.tagName() == "mode") {
 				QString mode = element.text();
 				if (mode == "XYZ") {
-					driver = new VarDriverXYZ();
+					driver = new VarDriver3D();
 				} else {
 					std:: cout << "Unsupported run mode " << mode.toStdString() << std::endl;
 					return EXIT_FAILURE;
