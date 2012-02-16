@@ -67,7 +67,7 @@ void CostFunction3D::finalize()
 	
 }
 
-void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs)
+void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
 {
 
 	// Initialize number of variables
@@ -105,9 +105,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	kBCL[2] = R1T0; kBCR[2] = R1T0;
 
 	// Define the Reference state
-	if (configHash->value("ref_state") == "dunion_mt") {
-		referenceState = dunion_mt;
-	}
+    refstate = ref;
 	
 	// Assign local object pointers
 	bgFields = bgU;
@@ -1440,9 +1438,9 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 										if (k > ((kDim-1)*DK + kMin)) continue;	
 										
 										real heightm = 1000*k;
-										real rhoBar = getReferenceVariable(rhoaref, heightm);
-										real qBar = getReferenceVariable(qvbhypref, heightm);
-										real tBar = getReferenceVariable(tempref, heightm);
+										real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+										real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+										real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
 										int ii = (int)((i - iMin)*DIrecip);
 										int jj = (int)((j - jMin)*DJrecip);
@@ -1531,7 +1529,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 																				
 										// Output it										
 										real rhoa = rhoBar + rhoprime / 100;
-										real qv = bhypInvTransform(qBar + qvprime);
+										real qv = refstate->bhypInvTransform(qBar + qvprime);
 										real qr; 
 										QString gridref = configHash->value("qr_variable");
 										if (gridref == "dbz") {
@@ -1540,7 +1538,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 												qr = -999.;
 											}
 										} else {
-											qr = bhypInvTransform(qrprime);
+											qr = refstate->bhypInvTransform(qrprime);
 										}
 										real rhoq = qv * rhoa / 1000.;
 										real rho = rhoa + rhoq;
@@ -1561,8 +1559,8 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 											relhum = 100*vp/satvp;
 										real press = airpress + vp;
 										
-										real pprime = press - getReferenceVariable(pressref, heightm)/100.;
-										real hprime = h - getReferenceVariable(href, heightm);
+										real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
+										real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
 										
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
@@ -1570,7 +1568,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 										real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
 										real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
 										real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
-										real rhobardz = 1000 * getReferenceVariable(rhoref, heightm, 1);
+										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 										rhodz += rhobardz;
 										// Units 10-5
 										real udx = 100. * (rhoudx - u*rhodx) / rho;
@@ -2594,9 +2592,9 @@ void CostFunction3D::obAdjustments() {
 			}
 		}
 		real heightm = 1000*k;
-		real rhoBar = getReferenceVariable(rhoaref, heightm);
-		real qBar = getReferenceVariable(qvbhypref, heightm);
-		real qv = bhypInvTransform(qBar + qvprime);
+		real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+		real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+		real qv = refstate->bhypInvTransform(qBar + qvprime);
 		real rhoa = rhoBar + rhoprime / 100;
 		real rhoBG = rhoa + rhoa*qv/1000.;
 		
@@ -2966,158 +2964,6 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	
 	return b;
 	
-}
-
-
-real CostFunction3D::getReferenceVariable(const int& refVariable, const real& heightm, const int& dz)
-{
-	real qvbhypcoeff[5];
-	real rhoacoeff[5];
-	real dpdzcoeff[5];
-
-	if (referenceState == dunion_mt) {
-		qvbhypcoeff[0] = 9.4826;
-		qvbhypcoeff[1] = -0.0026721;
-		qvbhypcoeff[2] = 2.8312e-07;
-		qvbhypcoeff[3] = -1.3217e-11;
-		qvbhypcoeff[4] = 2.2749e-16;
-		
-		rhoacoeff[0] = 1.1439;
-		rhoacoeff[1] = -0.00010117;
-		rhoacoeff[2] = 3.2486e-09;
-		rhoacoeff[3] = -3.4898e-14;
-		rhoacoeff[4] = -2.6925e-19;
-		
-		dpdzcoeff[0] = -11.432;
-		dpdzcoeff[1] = 0.0010633;
-		dpdzcoeff[2] = -4.0545e-08;
-		dpdzcoeff[3] =  7.9634e-13;
-		dpdzcoeff[4] = -5.8778e-18;
-		
-	}
-	
-	if (refVariable == qvbhypref) {
-		real qvbhyp = 0.;
-		for (int i = dz; i < 5; i++) {
-			real power = pow(heightm, i-dz);
-			if (dz) {
-				qvbhyp += qvbhypcoeff[i] * power * i;
-			} else {
-				qvbhyp += qvbhypcoeff[i] * power;
-			}
-		}
-		if (!dz) {
-			if (qvbhyp < 0.) qvbhyp = 0.;
-		}
-		return qvbhyp;
-	} else if (refVariable == rhoaref) {
-		real rhoa = 0.;
-		for (int i = dz; i < 5; i++) {
-			real power = pow(heightm, i-dz); 
-			if (dz) {
-				rhoa += rhoacoeff[i] * power * i;
-			} else {
-				rhoa += rhoacoeff[i] * power;
-			}
-		}
-		return rhoa;
-	} else if (refVariable == rhoref) {
-		real rho = 0.;
-		real qvbhyp = 0.;
-		real rhoa = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i); 
-			rhoa += rhoacoeff[i] * power;
-			qvbhyp += qvbhypcoeff[i] * power;
-		}
-		if (qvbhyp < 0.) qvbhyp = 0.;
-		real qv = bhypInvTransform(qvbhyp);
-		rho = rhoa*qv/1000. + rhoa;
-		if (dz) {
-			real rhoadz = 0.;
-			real qvdz = 0.;
-			for (int i = dz; i < 5; i++) {
-				real power = pow(heightm, i-dz); 
-				rhoadz += rhoacoeff[i] * power * i;
-				qvdz += qvbhypcoeff[i] * power * i;
-			}
-			rho = rhoadz * (1 + qv/1000.) + rhoa * (qvdz/500.);
-			return rho;
-		}
-		return rho;
-	} else if ((refVariable == href) or (refVariable == tempref) or (refVariable == pressref)) {
-		// Integrate hydrostatic equation to get pressure and/or solve for T or h
-		real press = 0.;
-		real temp = 0.;
-		real qvbhyp = 0.;
-		real rhoa = 0.;
-		for (int i = 0; i < 5; i++) {
-			real power = pow(heightm, i);
-			real power1 = pow(heightm, i+1);
-			press += dpdzcoeff[i] * power1 / (i+1);
-			rhoa += rhoacoeff[i] * power;
-			qvbhyp += qvbhypcoeff[i] * power;
-		}
-		if (qvbhyp < 0.) qvbhyp = 0.;
-		real qv = bhypInvTransform(qvbhyp);
-		if (dz) {
-			real rhoadz = 0.;
-			real qvdz = 0.;
-			real dpdz = 0.;
-			for (int i = dz; i < 5; i++) {
-				real power = pow(heightm, i-dz); 
-				rhoadz += rhoacoeff[i] * power * i;
-				qvdz += qvbhypcoeff[i] * power * i;
-				dpdz += dpdzcoeff[i] * power;
-			}
-			real alphadz = 1/(rhoadz * (286.9 + 461.5*qv/1000.) + 461.5 * rhoa * (qvdz/500.));
-			real dtdz = press*alphadz + dpdz/(286.9*rhoa + 461.5*rhoa*qv/1000.);
-			real dhdz = 1005.7*dtdz + 9.81 + 2.5e3*qvdz;
-			switch (refVariable) {
-				case href:
-					return dhdz;
-				case tempref:
-					return dtdz;
-				case pressref:
-					return dpdz;
-				default:
-					break;
-			}
-			
-		}
-		press += 101510.0;
-		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
-		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
-		switch (refVariable) {
-			case href:
-				return h;
-			case tempref:
-				return temp;
-			case pressref:
-				return press;
-			default:
-				break;
-		}
-	}
-	
-	return 0;
-}
-
-real CostFunction3D::bhypTransform(real qv)
-{
-	
-	real qvbhyp = 0.5*((qv + 1.e-7) - 1.e-14/(qv + 1.e-7));
-	return qvbhyp;
-	
-}
-
-real CostFunction3D::bhypInvTransform(real qvbhyp)
-{
-	real qv = 0.;
-	if (qvbhyp > 0) {
-		qv = sqrt(qvbhyp*qvbhyp + 1.e-14) + qvbhyp - 1.e-7;
-	}
-	return qv;
 }
 
 void CostFunction3D::adjustInternalDomain(int increment)

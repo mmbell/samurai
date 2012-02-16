@@ -13,6 +13,7 @@
 #include "BSpline.h"
 #include "RecursiveFilter.h"
 #include "Observation.h"
+#include "ReferenceState.h"
 #include <iostream>
 #include <fstream>
 #include <iterator>
@@ -27,7 +28,7 @@ class CostFunction3D: public CostFunction
 public:
 	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
 	~CostFunction3D();
-       void initialize(const QHash<QString, QString>* config, real* bgU, real* obs); 
+    void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref); 
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
@@ -57,9 +58,6 @@ private:
 	void SCtransform(const real* Astate, real* Cstate);
 	void SCtranspose(const real* Cstate, real* Astate);
 	
-	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
-	real bhypTransform(real qv);
-	real bhypInvTransform(real qvbhyp);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	void adjustInternalDomain(int increment);
@@ -92,7 +90,6 @@ private:
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
 	real constHeight;
 	real mcWeight;
-	int referenceState;
 
 	real* basis0;
 	real* basis1;
@@ -115,23 +112,8 @@ private:
 	RecursiveFilter* jFilter;
 	RecursiveFilter* kFilter;
 	
-	real rhoBase;
-	real rhoInvScaleHeight;
-	real qBase;
-	real qInvScaleHeight;
-	
-	enum referenceStates {
-		dunion_mt
-	};
-	
-	enum referenceVariables {
-		qvbhypref,
-		rhoaref,
-		rhoref,
-		href,
-		tempref,
-		pressref
-	};	
+    ReferenceState* refstate;
+    
 	
 };
 

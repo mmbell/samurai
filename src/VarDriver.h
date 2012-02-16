@@ -14,6 +14,7 @@
 #include "Observation.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
+#include "ReferenceState.h"
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -39,8 +40,6 @@ protected:
 	
 	real CoriolisF;
 	real Pi;
-	real rhoBase;
-	real rhoInvScaleHeight;
 	unsigned int numVars;
 	unsigned int numHeights;
 	unsigned int maxHeights;
@@ -49,8 +48,7 @@ protected:
 	vector<FrameCenter> frameVector;
 	QDomDocument domDoc;
 	QHash<QString, QString> configHash;
-	int referenceState;
-	
+	ReferenceState* refstate;    
 	// Data Processing
 	QHash<QString, int> dataSuffix;
 	enum dataFormats {
@@ -71,20 +69,7 @@ protected:
 		dwl,
 		insitu
 	};
-	
-	enum referenceStates {
-		dunion_mt
-	};
-	
-	enum referenceVariables {
-		qvbhypref,
-		rhoaref,
-		rhoref,
-		href,
-		tempref,
-		pressref,
-	};
-	
+
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_wwind(QFile& metFile, QList<MetObs>* metObVector);
@@ -101,10 +86,7 @@ protected:
 	bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);	
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
-	real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
-	real bhypTransform(const real& qv);
-	real bhypInvTransform(const real& qvbhyp);
-	
+
 };
 
 #endif

@@ -61,20 +61,20 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 
 	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
 	if (idim < 4) {
-		cout << "X dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
 		return false;
 	}
 	if (jdim < 4) {
-		cout << "Y dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
 		return false;
 	}	
 	if (kdim < 4) {
-		cout << "Z dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+		cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
 		return false;
 	}
 	
 	// Define the sizes of the arrays we are passing to the cost function
-	cout << "xMin\txMax\txIncr\tyMin\tyMax\tyIncr\tzMin\tzMax\tzIncr\n";
+	cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
@@ -141,19 +141,13 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	}		
 	
 	// Define the Reference state
-	if (configHash.value("ref_state") == "dunion_mt") {
-		referenceState = dunion_mt;
-	} else {
-		cout << "Reference state not defined!\n";
-		exit(-1);
-	}
-	
+    refstate = new ReferenceState(configHash.value("ref_state"));	
 	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
 	for (real k = kmin; k < kmax+kincr; k+= kincr) {
 		cout << "                   " << k << "\t";
 		for (int i = 0; i < 6; i++) {
-			real var = getReferenceVariable(i, k*1000);
-			if (i == 0) var = bhypInvTransform(var);
+			real var = refstate->getReferenceVariable(i, k*1000);
+			if (i == 0) var = refstate->bhypInvTransform(var);
 			cout << setw(9) << setprecision(4)  << var << "\t";
 		}
 		cout << "\n";
@@ -235,7 +229,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	delete[] bgWeights;	
 	
 	obCost3D = new CostFunction3D(obVector.size(), bStateSize);
-	obCost3D->initialize(&configHash, bgU, obs);
+	obCost3D->initialize(&configHash, bgU, obs, refstate);
 	
 	// If we got here, then everything probably went OK!
 	return true;
@@ -270,7 +264,8 @@ bool VarDriver3D::finalize()
 	obCost3D->finalize();
 	delete[] obs;
 	delete[] bgU;
-	delete obCost3D;	
+	delete obCost3D;
+	delete refstate;
 	return true;
 }
 
@@ -437,9 +432,9 @@ bool VarDriver3D::preProcessMetObs()
 			varOb.setTime(obTime.toTime_t());
 			
 			// Reference states			
-			real rhoBar = getReferenceVariable(rhoaref, heightm);
-			real qBar = getReferenceVariable(qvbhypref, heightm);
-			real tBar = getReferenceVariable(tempref, heightm);
+			real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+			real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+			real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 			
 			// Initialize the weights
 			varOb.setWeight(0., 0);
@@ -501,7 +496,7 @@ bool VarDriver3D::preProcessMetObs()
 					if (qv != -999) {
 						// Qv 0.5 g/kg error
 						varOb.setWeight(1., 4);
-						qv = bhypTransform(qv);
+						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
 						varOb.setError(0.5);
 						obVector.push_back(varOb);
@@ -566,7 +561,7 @@ bool VarDriver3D::preProcessMetObs()
 					if (qv != -999) {
 						// Qv 0.5 g/kg error
 						varOb.setWeight(1., 4);
-						qv = bhypTransform(qv);
+						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
 						varOb.setError(0.5);
 						obVector.push_back(varOb);
@@ -633,7 +628,7 @@ bool VarDriver3D::preProcessMetObs()
 					if (qv != -999) {
 						// Qv 0.5 g/kg error
 						varOb.setWeight(1., 4);
-						qv = bhypTransform(qv);
+						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
 						varOb.setError(0.5);
 						obVector.push_back(varOb);
@@ -787,8 +782,8 @@ bool VarDriver3D::preProcessMetObs()
 					
 					/* density correction term (rhoo/rho)*0.45 
 					 0.45 density correction from Beard (1985, JOAT pp 468-471) */
-					real rho = getReferenceVariable(rhoref, H);
-					real rhosfc = getReferenceVariable(rhoref, 0.);
+					real rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, H);
+					real rhosfc = refstate->getReferenceVariable(ReferenceVariable::rhoref, 0.);
 					real DCOR = pow((rhosfc/rho),(real)0.45);
 					
 					// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
@@ -851,7 +846,7 @@ bool VarDriver3D::preProcessMetObs()
 						real precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
 						if (H < hlow) precipmass = rainmass;
 						if (H > hhi) precipmass = icemass;
-						qr = bhypTransform(precipmass/rhoBar);
+						qr = refstate->bhypTransform(precipmass/rhoBar);
 						
 						/* Include an observation of this quantity in the variational synthesis
 						varOb.setOb(qr);
@@ -1159,16 +1154,16 @@ int VarDriver3D::loadBackgroundObs()
 			continue;
 
 		// Reference states			
-		real rhoBar = getReferenceVariable(rhoaref, heightm);
-		real qBar = getReferenceVariable(qvbhypref, heightm);
-		real tBar = getReferenceVariable(tempref, heightm);
+		real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+		real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+		real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
 		real rho = rhoa + rhoa*qv/1000.;
 		real rhou = rho*(u - Um);
 		real rhov = rho*(v - Vm);
 		real rhow = rho*w;
 		real tprime = t - tBar;
-		qv = bhypTransform(qv);
+		qv = refstate->bhypTransform(qv);
 		real qvprime = qv-qBar;
 		real rhoprime = (rhoa-rhoBar)*100;
 		real logZ = log(bgZ);
@@ -1456,7 +1451,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	
 	// Adjust the background field to the spline mish
 	bgCost3D = new CostFunction3D(numbgObs, bStateSize);
-	bgCost3D->initialize(&configHash, bgU, bgObs);
+	bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
 	/* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
 	    which is presumably what you want most of the time. Otherwise, you would not be here */
 	int bgIter = 1;

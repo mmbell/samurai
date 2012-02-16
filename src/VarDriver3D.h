@@ -53,7 +53,7 @@ private:
 	QList<real> bgIn;
 	QList<Observation> obVector;
 	int maxIter;
-
+    
 	// Cost Functions
 	CostFunction3D* obCost3D;
 	CostFunction3D* bgCost3D;
