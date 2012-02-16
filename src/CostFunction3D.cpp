@@ -75,7 +75,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	configHash = config;
 
 	// Horizontal boundary conditions
-	int ibc = bcHash.value(configHash->value("ibc"));	
+	int ibc = bcHash.value(configHash->value("i_bc"));	
 	iBCL[0] = ibc; iBCR[0] = ibc; 
 	iBCL[1] = ibc; iBCR[1] = ibc; 
 	iBCL[2] = ibc; iBCR[2] = ibc; 
@@ -84,7 +84,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	iBCL[5] = ibc; iBCR[5] = ibc; 
 	iBCL[6] = ibc; iBCR[6] = ibc; 
 	
-	int jbc = bcHash.value(configHash->value("jbc"));	
+	int jbc = bcHash.value(configHash->value("j_bc"));	
 	jBCL[0] = jbc; jBCR[0] = jbc; 
 	jBCL[1] = jbc; jBCR[1] = jbc;
 	jBCL[2] = jbc; jBCR[2] = jbc;
@@ -93,7 +93,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	jBCL[5] = jbc; jBCR[5] = jbc;
 	jBCL[6] = jbc; jBCR[6] = jbc;
 	
-	int kbc = bcHash.value(configHash->value("kbc"));
+	int kbc = bcHash.value(configHash->value("k_bc"));
 	kBCL[0] = kbc; kBCR[0] = kbc;
 	kBCL[1] = kbc; kBCR[1] = kbc;
 	kBCL[3] = kbc; kBCR[3] = kbc;
@@ -105,24 +105,24 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	kBCL[2] = R1T0; kBCR[2] = R1T0;
 
 	// Define the Reference state
-	if (configHash->value("refstate") == "dunion_mt") {
+	if (configHash->value("ref_state") == "dunion_mt") {
 		referenceState = dunion_mt;
 	}
 	
 	// Assign local object pointers
 	bgFields = bgU;
 	rawObs = obs;
-	iMin = configHash->value("imin").toFloat();
-	iMax = configHash->value("imax").toFloat();
-	DI = configHash->value("iincr").toFloat();
+	iMin = configHash->value("i_min").toFloat();
+	iMax = configHash->value("i_max").toFloat();
+	DI = configHash->value("i_incr").toFloat();
 	iDim = (int)((iMax - iMin)/DI) + 1;
-	jMin = configHash->value("jmin").toFloat();
-	jMax = configHash->value("jmax").toFloat();
-	DJ = configHash->value("jincr").toFloat();
+	jMin = configHash->value("j_min").toFloat();
+	jMax = configHash->value("j_max").toFloat();
+	DJ = configHash->value("j_incr").toFloat();
 	jDim = (int)((jMax - jMin)/DJ) + 1;
-	kMin = configHash->value("kmin").toFloat();
-	kMax = configHash->value("kmax").toFloat();
-	DK = configHash->value("kincr").toFloat();
+	kMin = configHash->value("k_min").toFloat();
+	kMax = configHash->value("k_max").toFloat();
+	DK = configHash->value("k_incr").toFloat();
 	kDim = (int)((kMax - kMin)/DK) + 1;
 
 	DIrecip = 1./DI;
@@ -194,18 +194,18 @@ void CostFunction3D::initState(const int iteration)
 	}
 	
 	// Initialize background errors and filter scales
-	bgError[0] = configHash->value("uerror").toFloat();
-	bgError[1] = configHash->value("verror").toFloat();
-	bgError[2] = configHash->value("werror").toFloat();
-	bgError[3] = configHash->value("terror").toFloat();
-	bgError[4] = configHash->value("qverror").toFloat();	
-	bgError[5] = configHash->value("rhoerror").toFloat();
-	bgError[6] = configHash->value("qrerror").toFloat();	
+	bgError[0] = configHash->value("u_error").toFloat();
+	bgError[1] = configHash->value("v_error").toFloat();
+	bgError[2] = configHash->value("w_error").toFloat();
+	bgError[3] = configHash->value("t_error").toFloat();
+	bgError[4] = configHash->value("qv_error").toFloat();	
+	bgError[5] = configHash->value("rho_error").toFloat();
+	bgError[6] = configHash->value("qr_error").toFloat();	
 	
 	// Set up the recursive filter
-	iFilterScale = configHash->value("ifilter").toFloat();
-	jFilterScale = configHash->value("jfilter").toFloat();
-	kFilterScale = configHash->value("kfilter").toFloat();		
+	iFilterScale = configHash->value("i_filter").toFloat();
+	jFilterScale = configHash->value("j_filter").toFloat();
+	kFilterScale = configHash->value("k_filter").toFloat();		
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
 	kFilter->setFilterLengthScale(kFilterScale);
@@ -217,7 +217,7 @@ void CostFunction3D::initState(const int iteration)
 	outputMish = configHash->value("output_mish").toInt();
 	
 	// Mass continuity weight
-	mcWeight = configHash->value("mcweight").toFloat();
+	mcWeight = configHash->value("mc_weight").toFloat();
 	cout << "Mass continuity weight set to " << mcWeight << endl;
 	
 	if (iteration == 1) {
@@ -1533,7 +1533,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = bhypInvTransform(qBar + qvprime);
 										real qr; 
-										QString gridref = configHash->value("qrvariable");
+										QString gridref = configHash->value("qr_variable");
 										if (gridref == "dbz") {
 											qr = qrprime*10. - 35.;
 											if (qr < -35.) {
@@ -1805,30 +1805,30 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 				// Copy internal analysis
 				int internalfIndex = internaliDim*internaljDim*internalkDim;
 				int internaliIndex, internaljIndex, internalkIndex;
-				if (configHash->value("ibc") == "R0") {
+				if (configHash->value("i_bc") == "R0") {
 					internaliIndex = iIndex + 1;
-				} else if ((configHash->value("ibc") == "R2T10") or
-						   (configHash->value("ibc") == "R2T20")) {	
+				} else if ((configHash->value("i_bc") == "R2T10") or
+						   (configHash->value("i_bc") == "R2T20")) {	
 					internaliIndex = iIndex - 1;
-				} else if (configHash->value("ibc") == "R3") {
+				} else if (configHash->value("i_bc") == "R3") {
 					internaliIndex = iIndex - 2;
 				}
 				
-				if (configHash->value("jbc") == "R0") {
+				if (configHash->value("j_bc") == "R0") {
 					internaljIndex = jIndex + 1;
-				} else if ((configHash->value("jbc") == "R2T10") or
-						   (configHash->value("jbc") == "R2T20")) {	
+				} else if ((configHash->value("j_bc") == "R2T10") or
+						   (configHash->value("j_bc") == "R2T20")) {	
 					internaljIndex = jIndex - 1;
-				} else if (configHash->value("jbc") == "R3") {
+				} else if (configHash->value("j_bc") == "R3") {
 					internaljIndex = jIndex - 2;
 				}
 
-				if (configHash->value("kbc") == "R0") {
+				if (configHash->value("k_bc") == "R0") {
 					internalkIndex = kIndex + 1;
-				} else if ((configHash->value("kbc") == "R2T10") or
-						   (configHash->value("kbc") == "R2T20")) {	
+				} else if ((configHash->value("k_bc") == "R2T10") or
+						   (configHash->value("k_bc") == "R2T20")) {	
 					internalkIndex = kIndex - 1;
-				} else if (configHash->value("kbc") == "R3") {
+				} else if (configHash->value("k_bc") == "R3") {
 					internalkIndex = kIndex - 2;
 				}
 				if ((internaliIndex < 0) or (internaliIndex > internaliDim - 1)) continue;
@@ -2295,9 +2295,9 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFileName)
 	int time[2];
 	
 	// Reference time and position from center file 
-	time[0] = configHash->value("reftime").toInt();
-	real latReference = configHash->value("reflat").toFloat();	
-	real lonReference = configHash->value("reflon").toFloat();
+	time[0] = configHash->value("ref_time").toInt();
+	real latReference = configHash->value("ref_lat").toFloat();	
+	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
 	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
@@ -3122,49 +3122,49 @@ real CostFunction3D::bhypInvTransform(real qvbhyp)
 
 void CostFunction3D::adjustInternalDomain(int increment)
 {
-	if (configHash->value("ibc") == "R0") {
+	if (configHash->value("i_bc") == "R0") {
 		// Increase the "internal" size of the grid for the R0 condition
 		iMin -= DI*increment;
 		iMax += DI*increment;
 		iDim += 2*increment;
-	} else if ((configHash->value("ibc") == "R2T10") or
-			   (configHash->value("ibc") == "R2T10")) {
+	} else if ((configHash->value("i_bc") == "R2T10") or
+			   (configHash->value("i_bc") == "R2T10")) {
 		// Decrease the "internal" size of the grid for the R2 condition
 		iMin += DI*increment;
 		iMax -= DI*increment;
 		iDim -= 2*increment;
-	} else if (configHash->value("ibc") == "R3") {
+	} else if (configHash->value("i_bc") == "R3") {
 		// Decrease the "internal" size of the grid for the R3 conditions
 		iMin += DI*2*increment;
 		iMax -= DI*2*increment;
 		iDim -= 4*increment;
 	}
 	
-	if (configHash->value("jbc") == "R0") {
+	if (configHash->value("j_bc") == "R0") {
 		jMin -= DJ*increment;
 		jMax += DJ*increment;
 		jDim += 2*increment;
-	} else if ((configHash->value("jbc") == "R2T10") or
-			   (configHash->value("jbc") == "R2T20")) {
+	} else if ((configHash->value("j_bc") == "R2T10") or
+			   (configHash->value("j_bc") == "R2T20")) {
 		jMin += DJ*increment;
 		jMax -= DJ*increment;
 		jDim -= 2*increment;
-	} else if (configHash->value("jbc") == "R3") {
+	} else if (configHash->value("j_bc") == "R3") {
 		jMin += DJ*2*increment;
 		jMax -= DJ*2*increment;
 		jDim -= 4*increment;
 	}
 	
-	if (configHash->value("kbc") == "R0") {
+	if (configHash->value("k_bc") == "R0") {
 		kMin -= DK*increment;
 		kMax += DK*increment;
 		kDim += 2*increment;
-	} else if ((configHash->value("kbc") == "R2T20") or
-			   (configHash->value("kbc") == "R2T20")) {
+	} else if ((configHash->value("k_bc") == "R2T20") or
+			   (configHash->value("k_bc") == "R2T20")) {
 		kMin += DK*increment;
 		kMax -= DK*increment;
 		kDim -= 2*increment;
-	} else if (configHash->value("kbc") == "R3") {
+	} else if (configHash->value("k_bc") == "R3") {
 		kMin += DK*2*increment;
 		kMax -= DK*2*increment;
 		kDim -= 4*increment;

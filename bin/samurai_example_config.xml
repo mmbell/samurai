@@ -2,18 +2,18 @@
 <samurai xmlns = 'http://www.nps.edu/ns/samurai'>
   <mode>XYZ</mode>
   <grid>
-    <imin>-50.</imin>
-    <imax>50.</imax>
-    <iincr>1.0</iincr>
-    <jmin>0.</jmin>
-    <jmax>50.</jmax>
-    <jincr>1.0</jincr>
-    <kmin>0.</kmin>
-    <kmax>16.0</kmax>
-    <kincr>1.0</kincr>
-    <ibc>R0</ibc>
-    <jbc>R0</jbc>
-    <kbc>R0</kbc>
+    <i_min>-50.</i_min>
+    <i_max>50.</i_max>
+    <i_incr>1.0</i_incr>
+    <j_min>0.</j_min>
+    <j_max>50.</j_max>
+    <j_incr>1.0</j_incr>
+    <k_min>0.</k_min>
+    <k_max>16.0</k_max>
+    <k_incr>1.0</k_incr>
+    <i_bc>R0</i_bc>
+    <j_bc>R0</j_bc>
+    <k_bc>R0</k_bc>
   </grid>
   <operation>
     <load_background>0</load_background>
@@ -23,50 +23,50 @@
     <output_mish>0</output_mish>
   </operation>
   <background>
-    <refstate>dunion_mt</refstate>
-    <reftime>00:00:00</reftime>
-    <backgroundroi>25.</backgroundroi>
+    <ref_state>dunion_mt</ref_state>
+    <ref_time>00:00:00</ref_time>
+    <background_roi>25.</background_roi>
   </background>
   <radar>
-    <radarskip>1</radarskip>
-    <radarstride>3</radarstride>
-    <dynamicstride>0</dynamicstride>
-    <qrvariable>dbz</qrvariable>
-    <reflectivityroi>1.0</reflectivityroi>
+    <radar_skip>1</radar_skip>
+    <radar_stride>3</radar_stride>
+    <dynamic_stride>0</dynamic_stride>
+    <qr_variable>dbz</qr_variable>
+    <reflectivity_roi>1.0</reflectivity_roi>
     <use_dbz_pseudow>0</use_dbz_pseudow>
-    <radardbz>DBZ</radardbz>
-    <radarvel>VG</radarvel>
-    <radarsw>SW</radarsw>
+    <radar_dbz>DBZ</radar_dbz>
+    <radar_vel>VG</radar_vel>
+    <radar_sw>SW</radar_sw>
     <mask_reflectivity>None</mask_reflectivity>
   </radar>
   <parameters iter="1">
-    <uerror>50.0</uerror>
-    <verror>50.0</verror>
-    <werror>50.0</werror>
-    <terror>3.0</terror>
-    <qverror>10.0</qverror>
-    <rhoerror>3.0</rhoerror>
-    <qrerror>3.0</qrerror>
-    <mcweight>1.</mcweight>
-    <ifilter>2</ifilter>
-    <jfilter>2</jfilter>
-    <kfilter>2.</kfilter>
+    <u_error>50.0</u_error>
+    <v_error>50.0</v_error>
+    <w_error>50.0</w_error>
+    <t_error>3.0</t_error>
+    <qv_error>10.0</qv_error>
+    <rho_error>3.0</rho_error>
+    <qr_error>3.0</qr_error>
+    <mc_weight>1.</mc_weight>
+    <i_filter>2</i_filter>
+    <j_filter>2</j_filter>
+    <k_filter>2.</k_filter>
     <i_spline_cutoff>2.</i_spline_cutoff>
     <j_spline_cutoff>2.</j_spline_cutoff>
     <k_spline_cutoff>2.</k_spline_cutoff>
   </parameters>
   <parameters iter="2">
-    <uerror>5.0</uerror>
-    <verror>5.0</verror>
-    <werror>5.0</werror>
-    <terror>1.0</terror>
-    <qverror>1.0</qverror>
-    <rhoerror>1.0</rhoerror>
-    <qrerror>1.0</qrerror>
-    <mcweight>1.</mcweight>
-    <ifilter>2.</ifilter>
-    <jfilter>2.</jfilter>
-    <kfilter>2.</kfilter>
+    <u_error>5.0</u_error>
+    <v_error>5.0</v_error>
+    <w_error>5.0</w_error>
+    <t_error>1.0</t_error>
+    <qv_error>1.0</qv_error>
+    <rho_error>1.0</rho_error>
+    <qr_error>1.0</qr_error>
+    <mc_weight>1.</mc_weight>
+    <i_filter>2.</i_filter>
+    <j_filter>2.</j_filter>
+    <k_filter>2.</k_filter>
     <i_spline_cutoff>2.</i_spline_cutoff>
     <j_spline_cutoff>2.</j_spline_cutoff>
     <k_spline_cutoff>2.</k_spline_cutoff>

@@ -1106,11 +1106,11 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	
 	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
-	configKeys << "refstate" << "reftime" << // "reflat" << "reflon" are set by the VarDriver
-	"qrvariable" << "backgroundroi" << "reflectivityroi" <<
+	configKeys << "ref_state" << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
+	"qr_variable" << "background_roi" << "reflectivity_roi" <<
 	"load_background" << "adjust_background" <<
-	"radardbz" << "radarvel" << "radarsw" << "radarskip" << "radarstride" << "dynamicstride" <<
-	"ibc" << "jbc" << "kbc" << "use_dbz_pseudow" <<
+	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
+	"i_bc" << "j_bc" << "k_bc" << "use_dbz_pseudow" <<
 	"num_iterations" << "output_mish" << "preprocess_obs" << "mask_reflectivity";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
