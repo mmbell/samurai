@@ -83,18 +83,48 @@ bool VarDriverXYZ::initialize(const QDomElement& configuration)
 	if (configHash.value("ibc") == "R0") {
 		imin -= iincr;
 		imax += iincr;
-		idim	+= 2;
-    }
-    if (configHash.value("jbc") == "R0") {
+		idim += 2;
+    } else if ((configHash.value("ibc") == "R2T10") or
+			   (configHash.value("ibc") == "R2T10")) {
+		// Decrease the "internal" size of the grid for the R2 condition
+		imin += iincr;
+		imax -= iincr;
+		idim -= 2;
+	} else if (configHash.value("ibc") == "R3") {
+		// Decrease the "internal" size of the grid for the R3 conditions
+		imin += iincr;
+		imax -= iincr;
+		idim -= 4;
+	}
+	
+	if (configHash.value("jbc") == "R0") {
 		jmin -= jincr;
 		jmax += jincr;
 		jdim += 2;
+	} else if ((configHash.value("jbc") == "R2T10") or
+			   (configHash.value("jbc") == "R2T20")) {
+		jmin += jincr;
+		jmax -= jincr;
+		jdim -= 2;
+	} else if (configHash.value("jbc") == "R3") {
+		jmin += jincr;
+		jmax -= jincr;
+		jdim -= 4;
 	}
 	
 	if (configHash.value("kbc") == "R0") {
 		kmin -= kincr;
 		kmax += kincr;
 		kdim += 2;
+	} else if ((configHash.value("kbc") == "R2T20") or
+			   (configHash.value("kbc") == "R2T20")) {
+		kmin += kincr;
+		kmax -= kincr;
+		kdim -= 2;
+	} else if (configHash.value("kbc") == "R3") {
+		kmin += kincr;
+		kmax -= kincr;
+		kdim -= 4;
 	}
 
 	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
