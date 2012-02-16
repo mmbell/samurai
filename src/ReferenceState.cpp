@@ -8,14 +8,17 @@
 
 #include "ReferenceState.h"
 #include <QString>
+#include <QFile>
+#include <QTextStream>
 #include <cmath>
-
+#include <iostream>
 using namespace ReferenceVariable;
 
 ReferenceState::ReferenceState(const QString& config)
 {
-
-	if (config == "dunion_mt") {
+	QFile refFile(config);
+	if(!refFile.open(QIODevice::ReadOnly)) {
+		std::cout << "Can't open Reference State file for reading, using default..." << std::endl;
 		qvbhypcoeff[0] = 9.4826;
 		qvbhypcoeff[1] = -0.0026721;
 		qvbhypcoeff[2] = 2.8312e-07;
@@ -32,9 +35,17 @@ ReferenceState::ReferenceState(const QString& config)
 		dpdzcoeff[1] = 0.0010633;
 		dpdzcoeff[2] = -4.0545e-08;
 		dpdzcoeff[3] =  7.9634e-13;
-		dpdzcoeff[4] = -5.8778e-18;
+		dpdzcoeff[4] = -5.8778e-18;		
+	} else {
+		QTextStream in(&refFile);
+		real qvbhyp, rhoa, dpdz;
+		for (int coeff=0; coeff	< 5; ++coeff) {
+			in >> qvbhyp >> rhoa >> dpdz;
+			qvbhypcoeff[coeff] = qvbhyp;
+			rhoacoeff[coeff] = rhoa;
+			dpdzcoeff[coeff] = dpdz;
+		}
 	}
-
 }
 
 ReferenceState::~ReferenceState()
