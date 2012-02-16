@@ -53,7 +53,7 @@ void CostFunction3D::finalize()
 	delete[] obsVector;
 	delete[] HCq;
 	delete[] innovation;
-	delete[] fieldNodes;
+	delete[] finalAnalysis;
 	delete[] bgState;
 	delete[] bgStdDev;
 	delete[] stateA;
@@ -128,25 +128,17 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	DIrecip = 1./DI;
 	DJrecip = 1./DJ;
 	DKrecip = 1./DK;
-
-	// Increase the "internal" size of the grid for the zero BC condition
-	if (configHash->value("ibc") == "R0") {
-		iMin -= DI;
-		iMax += DI;
-		iDim += 2;
-	}
-	if (configHash->value("jbc") == "R0") {
-		jMin -= DJ;
-		jMax += DJ;
-		jDim += 2;
-	}
-	if (configHash->value("kbc") == "R0") {
-		kMin -= DK;
-		kMax += DK;
-		kDim += 2;
-		// Keep the vertical ones the same, since they are outside the domain anyway?
-		//kBCL[2] = R0; kBCR[2] = R0;
-	}
+	
+	// Allocate memory for the final gridded analysis
+	int nodes = iDim*jDim*kDim;
+	finalAnalysis = new real[nodes*33];
+	//finalGradients = new real[nodes*33];
+	
+	// Adjust the internal, variable domain to exclude boundaries in R0, R2, and R3 cases
+	adjustInternalDomain(1);
+	
+	// Redefine nodes with new domain
+	nodes = iDim*jDim*kDim;
 	
 	// Set up the initial recursive filter
 	iFilter = new RecursiveFilter(4);
@@ -166,10 +158,8 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	CTHTd = new real[nState];
 	stateU = new real[nState];
 	obsVector = new real[mObs*14];
-	int nodes = iDim*jDim*kDim;
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
-	fieldNodes = new real[nodes*33];	
 	bgState = new real[nState];
 	bgStdDev = new real[nState];
 	stateA = new real[nState];
@@ -1424,6 +1414,11 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
 	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
 	samuraistream.precision(10);
+
+	int nodes = iDim*jDim*kDim;
+	real* internalAnalysis = new real[nodes*33];
+	//real* internalGradients = new real[nodes*33];
+	
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -1534,58 +1529,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 											}
 										}
 																				
-										// Output it
-										
-										// Remove or adjust the border nodes for the boundary conditions
-										int fIndex = iDim*jDim*kDim; 
-										int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
-										if (configHash->value("ibc") == "R0") {
-											if ((iIndex == 0) or (iIndex == iDim-1)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = -999.0;
-												}
-												continue;
-											}
-										} else if (configHash->value("ibc") == "R3") {
-											if ((iIndex <= 1) or (iIndex >= iDim-2)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = 0.0;
-												}
-												continue;
-											}
-										}
-										if (configHash->value("jbc") == "R0") {
-											if ((jIndex == 0) or (jIndex == jDim-1)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = -999.0;
-												}
-												continue;
-											}
-										} else if (configHash->value("jbc") == "R3") {
-											if ((jIndex <= 1) or (jIndex >= jDim-2)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = 0.0;
-												}
-												continue;
-											}
-										}
-										
-										if (configHash->value("kbc") == "R0") {
-											if ((kIndex == 0) or (kIndex == kDim-1)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = -999.0;
-												}
-												continue;
-											}
-										} else if (configHash->value("kbc") == "R3") {
-											if ((kIndex <= 1) or (kIndex >= kDim-2)) {
-												for (int n = 0; n < 33; ++n) {
-													fieldNodes[fIndex * n + posIndex] = 0.0;
-												}
-												continue;
-											}
-										}
-										
+										// Output it										
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = bhypInvTransform(qBar + qvprime);
 										real qr; 
@@ -1704,39 +1648,41 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 										
 										// On the nodes	
 										if (!ihalf and !jhalf and !khalf){
-											fieldNodes[fIndex * 0 + posIndex] = u;
-											fieldNodes[fIndex * 1 + posIndex] = v;
-											fieldNodes[fIndex * 2 + posIndex] = w;
-											fieldNodes[fIndex * 3 + posIndex] = wspd;
-											fieldNodes[fIndex * 4 + posIndex] = relhum;
-											fieldNodes[fIndex * 5 + posIndex] = hprime;
-											fieldNodes[fIndex * 6 + posIndex] = qvprime*2;
-											fieldNodes[fIndex * 7 + posIndex] = rhoprime;
-											fieldNodes[fIndex * 8 + posIndex] = tprime;
-											fieldNodes[fIndex * 9 + posIndex] = pprime;
-											fieldNodes[fIndex * 10 + posIndex] = vorticity;
-											fieldNodes[fIndex * 11 + posIndex] = divergence;
-											fieldNodes[fIndex * 12 + posIndex] = okuboweiss;
-											fieldNodes[fIndex * 13 + posIndex] = strain;
-											fieldNodes[fIndex * 14 + posIndex] = tpw;
-											fieldNodes[fIndex * 15 + posIndex] = rhou;
-											fieldNodes[fIndex * 16 + posIndex] = rhov;
-											fieldNodes[fIndex * 17 + posIndex] = rhow;
-											fieldNodes[fIndex * 18 + posIndex] = rho;
-											fieldNodes[fIndex * 19 + posIndex] = press;
-											fieldNodes[fIndex * 20 + posIndex] = temp;
-											fieldNodes[fIndex * 21 + posIndex] = qv;
-											fieldNodes[fIndex * 22 + posIndex] = h;
-											fieldNodes[fIndex * 23 + posIndex] = qr;
-											fieldNodes[fIndex * 24 + posIndex] = udx;
-											fieldNodes[fIndex * 25 + posIndex] = vdx;
-											fieldNodes[fIndex * 26 + posIndex] = wdx;
-											fieldNodes[fIndex * 27 + posIndex] = udy;
-											fieldNodes[fIndex * 28 + posIndex] = vdy;
-											fieldNodes[fIndex * 29 + posIndex] = wdy;
-											fieldNodes[fIndex * 30 + posIndex] = udz;
-											fieldNodes[fIndex * 31 + posIndex] = vdz;
-											fieldNodes[fIndex * 32 + posIndex] = wdz;
+											int fIndex = iDim*jDim*kDim; 
+											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
+											internalAnalysis[fIndex * 0 + posIndex] = u;
+											internalAnalysis[fIndex * 1 + posIndex] = v;
+											internalAnalysis[fIndex * 2 + posIndex] = w;
+											internalAnalysis[fIndex * 3 + posIndex] = wspd;
+											internalAnalysis[fIndex * 4 + posIndex] = relhum;
+											internalAnalysis[fIndex * 5 + posIndex] = hprime;
+											internalAnalysis[fIndex * 6 + posIndex] = qvprime*2;
+											internalAnalysis[fIndex * 7 + posIndex] = rhoprime;
+											internalAnalysis[fIndex * 8 + posIndex] = tprime;
+											internalAnalysis[fIndex * 9 + posIndex] = pprime;
+											internalAnalysis[fIndex * 10 + posIndex] = vorticity;
+											internalAnalysis[fIndex * 11 + posIndex] = divergence;
+											internalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
+											internalAnalysis[fIndex * 13 + posIndex] = strain;
+											internalAnalysis[fIndex * 14 + posIndex] = tpw;
+											internalAnalysis[fIndex * 15 + posIndex] = rhou;
+											internalAnalysis[fIndex * 16 + posIndex] = rhov;
+											internalAnalysis[fIndex * 17 + posIndex] = rhow;
+											internalAnalysis[fIndex * 18 + posIndex] = rho;
+											internalAnalysis[fIndex * 19 + posIndex] = press;
+											internalAnalysis[fIndex * 20 + posIndex] = temp;
+											internalAnalysis[fIndex * 21 + posIndex] = qv;
+											internalAnalysis[fIndex * 22 + posIndex] = h;
+											internalAnalysis[fIndex * 23 + posIndex] = qr;
+											internalAnalysis[fIndex * 24 + posIndex] = udx;
+											internalAnalysis[fIndex * 25 + posIndex] = vdx;
+											internalAnalysis[fIndex * 26 + posIndex] = wdx;
+											internalAnalysis[fIndex * 27 + posIndex] = udy;
+											internalAnalysis[fIndex * 28 + posIndex] = vdy;
+											internalAnalysis[fIndex * 29 + posIndex] = wdy;
+											internalAnalysis[fIndex * 30 + posIndex] = udz;
+											internalAnalysis[fIndex * 31 + posIndex] = vdz;
+											internalAnalysis[fIndex * 32 + posIndex] = wdz;
 										}
 									}
 								}
@@ -1756,16 +1702,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 	else {
 		outFileName = QDir::current().filePath(fileName);
 	}
-	// Write out to a netCDF file	
-	QString cdfFileName = outFileName + ".nc";
-	if (!writeNetCDF(cdfFileName))
-		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl; 	
 	
-	// Write out to an asi file
-	QString asiFileName = outFileName + ".asi";
-	if (!writeAsi(asiFileName))
-		cout << "Error writing asi file " << asiFileName.toStdString() << endl; 	
-		
 	// Write the Obs to a summary text file
 	QString qcout = "samurai_QC_" + suffix + ".out";
 	ofstream qcstream(qcout.toAscii().data());
@@ -1848,6 +1785,79 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
 		
 	}
 	
+	// Copy internalAnalysis except for R0, R2, and R3 BCs
+	int internaliDim = iDim;
+	int internaljDim = jDim;
+	int internalkDim = kDim;
+	
+	adjustInternalDomain(-1);
+	
+	int fIndex = iDim*jDim*kDim; 
+	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int kIndex = 0; kIndex < kDim; kIndex++) {
+				int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
+				// Initialize to zero
+				for (int n = 0; n < 33; ++n) {
+					finalAnalysis[fIndex * n + posIndex] = 0.0;
+				}
+				
+				// Copy internal analysis
+				int internalfIndex = internaliDim*internaljDim*internalkDim;
+				int internaliIndex, internaljIndex, internalkIndex;
+				if (configHash->value("ibc") == "R0") {
+					internaliIndex = iIndex + 1;
+				} else if ((configHash->value("ibc") == "R2T10") or
+						   (configHash->value("ibc") == "R2T20")) {	
+					internaliIndex = iIndex - 1;
+				} else if (configHash->value("ibc") == "R3") {
+					internaliIndex = iIndex - 2;
+				}
+				
+				if (configHash->value("jbc") == "R0") {
+					internaljIndex = jIndex + 1;
+				} else if ((configHash->value("jbc") == "R2T10") or
+						   (configHash->value("jbc") == "R2T20")) {	
+					internaljIndex = jIndex - 1;
+				} else if (configHash->value("jbc") == "R3") {
+					internaljIndex = jIndex - 2;
+				}
+
+				if (configHash->value("kbc") == "R0") {
+					internalkIndex = kIndex + 1;
+				} else if ((configHash->value("kbc") == "R2T10") or
+						   (configHash->value("kbc") == "R2T20")) {	
+					internalkIndex = kIndex - 1;
+				} else if (configHash->value("kbc") == "R3") {
+					internalkIndex = kIndex - 2;
+				}
+				if ((internaliIndex < 0) or (internaliIndex > internaliDim - 1)) continue;
+				if ((internaljIndex < 0) or (internaljIndex > internaljDim - 1)) continue;
+				if ((internalkIndex < 0) or (internalkIndex > internalkDim - 1)) continue;
+				int internalposIndex = internaliDim*internaljDim*internalkIndex + internaliDim*internaljIndex + internaliIndex;
+				for (int n = 0; n < 33; ++n) {
+					finalAnalysis[fIndex * n + posIndex] = internalAnalysis[internalfIndex * n + internalposIndex];
+				}
+			}
+		}
+	}
+	
+	// Write out to a netCDF file	
+	QString cdfFileName = outFileName + ".nc";
+	if (!writeNetCDF(cdfFileName))
+		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl; 	
+	
+	// Write out to an asi file
+	QString asiFileName = outFileName + ".asi";
+	if (!writeAsi(asiFileName))
+		cout << "Error writing asi file " << asiFileName.toStdString() << endl; 	
+	
+	// Set the domain back
+	adjustInternalDomain(1);
+
+    // Free the memory for the modified domain
+    delete[] internalAnalysis;
+    
 	return true;
 	
 }     
@@ -1863,7 +1873,7 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFileName)
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
 		return NC_ERR;
-	
+		
 	// Define the dimensions. NetCDF will hand back an ncDim object for
 	// each.
 	NcDim *lvlDim, *latDim, *lonDim, *timeDim;
@@ -2325,71 +2335,71 @@ bool CostFunction3D::writeNetCDF(const QString& netcdfFileName)
 	// Write the data.
 	for (int rec = 0; rec < 1; rec++) 
 	{
-		if (!u->put_rec(&fieldNodes[0], rec))
+		if (!u->put_rec(&finalAnalysis[0], rec))
 			return NC_ERR;
-		if (!v->put_rec(&fieldNodes[iDim*jDim*kDim*1], rec))
+		if (!v->put_rec(&finalAnalysis[iDim*jDim*kDim*1], rec))
 			return NC_ERR;
-		if (!w->put_rec(&fieldNodes[iDim*jDim*kDim*2], rec))
+		if (!w->put_rec(&finalAnalysis[iDim*jDim*kDim*2], rec))
 			return NC_ERR;
-		if (!wspd->put_rec(&fieldNodes[iDim*jDim*kDim*3], rec))
+		if (!wspd->put_rec(&finalAnalysis[iDim*jDim*kDim*3], rec))
 			return NC_ERR;
-		if (!relhum->put_rec(&fieldNodes[iDim*jDim*kDim*4], rec))
+		if (!relhum->put_rec(&finalAnalysis[iDim*jDim*kDim*4], rec))
 			return NC_ERR;
-		if (!hprime->put_rec(&fieldNodes[iDim*jDim*kDim*5], rec))
+		if (!hprime->put_rec(&finalAnalysis[iDim*jDim*kDim*5], rec))
 			return NC_ERR;
-		if (!qvprime->put_rec(&fieldNodes[iDim*jDim*kDim*6], rec))
+		if (!qvprime->put_rec(&finalAnalysis[iDim*jDim*kDim*6], rec))
 			return NC_ERR;
-		if (!rhoprime->put_rec(&fieldNodes[iDim*jDim*kDim*7], rec)) 
+		if (!rhoprime->put_rec(&finalAnalysis[iDim*jDim*kDim*7], rec)) 
 			return NC_ERR;
-		if (!tprime->put_rec(&fieldNodes[iDim*jDim*kDim*8], rec)) 
+		if (!tprime->put_rec(&finalAnalysis[iDim*jDim*kDim*8], rec)) 
 			return NC_ERR;
-		if (!pprime->put_rec(&fieldNodes[iDim*jDim*kDim*9], rec))
+		if (!pprime->put_rec(&finalAnalysis[iDim*jDim*kDim*9], rec))
 			return NC_ERR;
-		if (!vorticity->put_rec(&fieldNodes[iDim*jDim*kDim*10], rec))
+		if (!vorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*10], rec))
 			return NC_ERR;
-		if (!divergence->put_rec(&fieldNodes[iDim*jDim*kDim*11], rec)) 
+		if (!divergence->put_rec(&finalAnalysis[iDim*jDim*kDim*11], rec)) 
 			return NC_ERR;
-		if (!okuboweiss->put_rec(&fieldNodes[iDim*jDim*kDim*12], rec)) 
+		if (!okuboweiss->put_rec(&finalAnalysis[iDim*jDim*kDim*12], rec)) 
 			return NC_ERR;
-		if (!strain->put_rec(&fieldNodes[iDim*jDim*kDim*13], rec)) 
+		if (!strain->put_rec(&finalAnalysis[iDim*jDim*kDim*13], rec)) 
 			return NC_ERR;       
-		if (!tpw->put_rec(&fieldNodes[iDim*jDim*kDim*14], rec)) 
+		if (!tpw->put_rec(&finalAnalysis[iDim*jDim*kDim*14], rec)) 
 			return NC_ERR;
-		if (!rhou->put_rec(&fieldNodes[iDim*jDim*kDim*15], rec)) 
+		if (!rhou->put_rec(&finalAnalysis[iDim*jDim*kDim*15], rec)) 
 			return NC_ERR;
-		if (!rhov->put_rec(&fieldNodes[iDim*jDim*kDim*16], rec)) 
+		if (!rhov->put_rec(&finalAnalysis[iDim*jDim*kDim*16], rec)) 
 			return NC_ERR;
-		if (!rhow->put_rec(&fieldNodes[iDim*jDim*kDim*17], rec)) 
+		if (!rhow->put_rec(&finalAnalysis[iDim*jDim*kDim*17], rec)) 
 			return NC_ERR;
-		if (!rho->put_rec(&fieldNodes[iDim*jDim*kDim*18], rec)) 
+		if (!rho->put_rec(&finalAnalysis[iDim*jDim*kDim*18], rec)) 
 			return NC_ERR;
-		if (!press->put_rec(&fieldNodes[iDim*jDim*kDim*19], rec)) 
+		if (!press->put_rec(&finalAnalysis[iDim*jDim*kDim*19], rec)) 
 			return NC_ERR;
-		if (!temp->put_rec(&fieldNodes[iDim*jDim*kDim*20], rec))
+		if (!temp->put_rec(&finalAnalysis[iDim*jDim*kDim*20], rec))
 			return NC_ERR;	
-		if (!qv->put_rec(&fieldNodes[iDim*jDim*kDim*21], rec)) 
+		if (!qv->put_rec(&finalAnalysis[iDim*jDim*kDim*21], rec)) 
 			return NC_ERR;
-		if (!h->put_rec(&fieldNodes[iDim*jDim*kDim*22], rec)) 
+		if (!h->put_rec(&finalAnalysis[iDim*jDim*kDim*22], rec)) 
 			return NC_ERR;
-		if (!qr->put_rec(&fieldNodes[iDim*jDim*kDim*23], rec)) 
+		if (!qr->put_rec(&finalAnalysis[iDim*jDim*kDim*23], rec)) 
 			return NC_ERR;
-		if (!dudx->put_rec(&fieldNodes[iDim*jDim*kDim*24], rec)) 
+		if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec)) 
 			return NC_ERR;
-		if (!dvdx->put_rec(&fieldNodes[iDim*jDim*kDim*25], rec)) 
+		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec)) 
 			return NC_ERR;
-		if (!dwdx->put_rec(&fieldNodes[iDim*jDim*kDim*26], rec)) 
+		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec)) 
 			return NC_ERR;
-		if (!dudy->put_rec(&fieldNodes[iDim*jDim*kDim*27], rec)) 
+		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec)) 
 			return NC_ERR;
-		if (!dvdy->put_rec(&fieldNodes[iDim*jDim*kDim*28], rec)) 
+		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec)) 
 			return NC_ERR;
-		if (!dwdy->put_rec(&fieldNodes[iDim*jDim*kDim*29], rec)) 
+		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec)) 
 			return NC_ERR;
-		if (!dudz->put_rec(&fieldNodes[iDim*jDim*kDim*30], rec)) 
+		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec)) 
 			return NC_ERR;
-		if (!dvdz->put_rec(&fieldNodes[iDim*jDim*kDim*31], rec)) 
+		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec)) 
 			return NC_ERR;
-		if (!dwdz->put_rec(&fieldNodes[iDim*jDim*kDim*32], rec)) 
+		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec)) 
 			return NC_ERR;
 
 	}
@@ -2517,7 +2527,7 @@ bool CostFunction3D::writeAsi(const QString& asiFileName)
 				int line = 0;
 				for (int i = 0; i < iDim;  i++){
 					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) << 
-					fieldNodes[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
+					finalAnalysis[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
 					line++;
 					if (line == 8) {
 						out << endl;
@@ -3109,4 +3119,55 @@ real CostFunction3D::bhypInvTransform(real qvbhyp)
 	}
 	return qv;
 }
+
+void CostFunction3D::adjustInternalDomain(int increment)
+{
+	if (configHash->value("ibc") == "R0") {
+		// Increase the "internal" size of the grid for the R0 condition
+		iMin -= DI*increment;
+		iMax += DI*increment;
+		iDim += 2*increment;
+	} else if ((configHash->value("ibc") == "R2T10") or
+			   (configHash->value("ibc") == "R2T10")) {
+		// Decrease the "internal" size of the grid for the R2 condition
+		iMin += DI*increment;
+		iMax -= DI*increment;
+		iDim -= 2*increment;
+	} else if (configHash->value("ibc") == "R3") {
+		// Decrease the "internal" size of the grid for the R3 conditions
+		iMin += DI*2*increment;
+		iMax -= DI*2*increment;
+		iDim -= 4*increment;
+	}
+	
+	if (configHash->value("jbc") == "R0") {
+		jMin -= DJ*increment;
+		jMax += DJ*increment;
+		jDim += 2*increment;
+	} else if ((configHash->value("jbc") == "R2T10") or
+			   (configHash->value("jbc") == "R2T20")) {
+		jMin += DJ*increment;
+		jMax -= DJ*increment;
+		jDim -= 2*increment;
+	} else if (configHash->value("jbc") == "R3") {
+		jMin += DJ*2*increment;
+		jMax -= DJ*2*increment;
+		jDim -= 4*increment;
+	}
+	
+	if (configHash->value("kbc") == "R0") {
+		kMin -= DK*increment;
+		kMax += DK*increment;
+		kDim += 2*increment;
+	} else if ((configHash->value("kbc") == "R2T20") or
+			   (configHash->value("kbc") == "R2T20")) {
+		kMin += DK*increment;
+		kMax -= DK*increment;
+		kDim -= 2*increment;
+	} else if (configHash->value("kbc") == "R3") {
+		kMin += DK*2*increment;
+		kMax -= DK*2*increment;
+		kDim -= 4*increment;
+	}
+}	
 

@@ -62,6 +62,7 @@ private:
 	real bhypInvTransform(real qvbhyp);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
+	void adjustInternalDomain(int increment);
 	
 	bool outputMish;
 	int iDim, jDim, kDim;
@@ -84,7 +85,8 @@ private:
 	real* jL;
 	real* kL;
 	real* kLw;
-	real* fieldNodes;
+	real* finalAnalysis;
+	real* finalGradients;
 	int varDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
