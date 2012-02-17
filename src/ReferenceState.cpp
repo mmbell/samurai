@@ -38,13 +38,10 @@ ReferenceState::ReferenceState(const QString& config)
 		dpdzcoeff[4] = -5.8778e-18;		
 	} else {
 		QTextStream in(&refFile);
-		real qvbhyp, rhoa, dpdz;
-		for (int coeff=0; coeff	< 5; ++coeff) {
-			in >> qvbhyp >> rhoa >> dpdz;
-			qvbhypcoeff[coeff] = qvbhyp;
-			rhoacoeff[coeff] = rhoa;
-			dpdzcoeff[coeff] = dpdz;
-		}
+		QString coeff;
+		in >> coeff >> qvbhypcoeff[0] >> qvbhypcoeff[1] >> qvbhypcoeff[2] >> qvbhypcoeff[3] >> qvbhypcoeff[4];
+		in >> coeff >> rhoacoeff[0] >> rhoacoeff[1] >> rhoacoeff[2] >> rhoacoeff[3] >> rhoacoeff[4];
+		in >> coeff >> dpdzcoeff[0] >> dpdzcoeff[1] >> dpdzcoeff[2] >> dpdzcoeff[3] >> dpdzcoeff[4];
 	}
 }
 
