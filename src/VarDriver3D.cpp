@@ -1551,7 +1551,7 @@ bool VarDriver3D::validateXMLconfig()
 	"k_min" << "k_max" << "k_incr" <<
 	"i_lengthscale" << "j_lengthscale" << "k_lengthscale" <<
 	"bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" << 
-	"bg_qv_error" << "bg_rhoa_error" << "qr_error" << "mc_weight" << 
+	"bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "mc_weight" << 
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
 	"i_bc" << "j_bc" << "k_bc" << "use_dbz_pseudow" <<
 	"i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff";
