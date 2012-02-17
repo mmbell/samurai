@@ -860,15 +860,18 @@ bool VarDriver3D::preProcessMetObs()
 						// Z-M relationships from Gamache et al (1993) JAS
 						real rainmass = pow(ZZ/14630.,(real)0.6905);
 						real icemass = pow(ZZ/670.,(real)0.5587);
-						if ((Z > 20) and (Z <= 30)) {
-							real WEIGHTR=(Z-20)/(10);
+                        real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
+                        real rain_dbz = configHash.value("rain_dbz").toFloat();
+                        if ((Z > mixed_dbz) and 
+                            (Z <= rain_dbz)) {
+                            real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
 							real WEIGHTS=1.-WEIGHTR;
 							icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
 						} else if (Z > 30) {
 							icemass=rainmass;
 						}
 						
-						real precipmass = rainmass*(hhi-H)/1000 + icemass*(H-hlow)/1000;
+						real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
 						if (H < hlow) precipmass = rainmass;
 						if (H > hhi) precipmass = icemass;
 						qr = refstate->bhypTransform(precipmass/rhoBar);
