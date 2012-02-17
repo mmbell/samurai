@@ -38,6 +38,9 @@
     <radar_vel>VG</radar_vel>
     <radar_sw>SW</radar_sw>
     <mask_reflectivity>None</mask_reflectivity>
+    <melting_zone_width>1.0</melting_zone_width>
+    <mixed_phase_dbz>20.0</mixed_phase_dbz>
+    <rain_dbz>30.0</rain_dbz>
   </radar>
   <parameters iter="1">
     <bg_rhou_error>50.0</bg_rhou_error>

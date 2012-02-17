@@ -1120,7 +1120,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
     "flightlevel_tempk_error" << "flightlevel_qv_error" << "flightlevel_rhoa_error" <<
     "insitu_rhou_error" << "insitu_rhov_error" << "insitu_rhow_error" << 
     "insitu_tempk_error" << "insitu_qv_error" << "insitu_rhoa_error" <<
-    "sfmr_windspeed_error" << "qscat_rhou_error" << "qscat_rhov_error"
+    "sfmr_windspeed_error" << "qscat_rhou_error" << "qscat_rhov_error" <<
     "ascat_rhou_error" << "ascat_rhov_error" << "amv_rhou_error" << "amv_rhov_error" <<
     "lidar_sw_error" << "lidar_power_error" << "lidar_min_error" <<
     "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error";

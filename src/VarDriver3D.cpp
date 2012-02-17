@@ -281,6 +281,24 @@ bool VarDriver3D::preProcessMetObs()
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("ref_lon").toFloat();
 	
+    // Find the zero C line using Newton's method
+    real zeroClevel = 273.15;
+    real height = 5000;
+    real tmin = 1e34;
+    int iter = 0;
+    while ((fabs(tmin) > 0.1) and (iter < 5000)) {
+        real t = refstate->getReferenceVariable(ReferenceVariable::tempref, height) - zeroClevel;
+        real tprime = (refstate->getReferenceVariable(ReferenceVariable::tempref, height+500.) 
+                       - refstate->getReferenceVariable(ReferenceVariable::tempref, height-500.))/1000.;
+        if (tprime != 0) {
+            height = height - t/tprime;
+            tmin = t;
+        }
+        iter++;
+    }
+    zeroClevel = height;
+    cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl; 
+    
 	// Check the data directory for files
 	QDir dataPath("./vardata");
 	dataPath.setFilter(QDir::Files);
@@ -480,8 +498,8 @@ bool VarDriver3D::preProcessMetObs()
 						// rho w 1.5 m/s error
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
-						varOb.setOb(configHash.value("dropsonde_rhow_error").toFloat());
-						varOb.setError(2.0);
+						varOb.setOb(rhow);
+						varOb.setError(configHash.value("dropsonde_rhow_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -778,9 +796,9 @@ bool VarDriver3D::preProcessMetObs()
 					real Z = metOb.getReflectivity();
 					real H = metOb.getAltitude();
 					real ZZ=pow(10.0,(Z*0.1));
-					real zeroC = 4800.;
-					real hlow= zeroC; 
-					real hhi= hlow + 1000;
+                    real melting_zone = 1000 * configHash.value("melting_zone_width").toFloat();
+					real hlow= zeroClevel; 
+					real hhi= hlow + melting_zone;
 					
 					/* density correction term (rhoo/rho)*0.45 
 					 0.45 density correction from Beard (1985, JOAT pp 468-471) */
@@ -797,14 +815,17 @@ bool VarDriver3D::preProcessMetObs()
 					/* Test if height is in the transition region between SNOW and RAIN
 					   defined as hlow in km < H < hhi in km
 					   if in the transition region do a linear weight of VTR and VTS */
-					if ((Z > 20) and (Z <= 30)) {
-						real WEIGHTR=(Z-20)/(10);
+                    real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
+                    real rain_dbz = configHash.value("rain_dbz").toFloat();
+					if ((Z > mixed_dbz) and 
+                        (Z <= rain_dbz)) {
+						real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
 						real WEIGHTS=1.-WEIGHTR;
 						VTS=(VTR*WEIGHTR+VTS*WEIGHTS)/(WEIGHTR+WEIGHTS);
-					} else if (Z > 30) {
+					} else if (Z > rain_dbz) {
 						VTS=VTR;
 					}
-					real w_term=VTR*(hhi-H)/1000 + VTS*(H-hlow)/1000;  
+					real w_term=VTR*(hhi-H)/melting_zone + VTS*(H-hlow)/melting_zone;  
 					if (H < hlow) w_term=VTR; 
 					if (H > hhi) w_term=VTS;
 					real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
@@ -1554,7 +1575,8 @@ bool VarDriver3D::validateXMLconfig()
 	"bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "mc_weight" << 
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
 	"i_bc" << "j_bc" << "k_bc" << "use_dbz_pseudow" <<
-	"i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff";
+	"i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff" <<
+    "melting_zone_width" << "mixed_phase_dbz" << "rain_dbz";
 	
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
