@@ -48,12 +48,12 @@
     <bg_rhoa_error>3.0</bg_rhoa_error>
     <bg_qr_error>3.0</bg_qr_error>
     <mc_weight>1.</mc_weight>
-    <i_lengthscale>2</i_lengthscale>
-    <j_lengthscale>2</j_lengthscale>
-    <k_lengthscale>2.</k_lengthscale>
-    <i_spline_cutoff>2.</i_spline_cutoff>
-    <j_spline_cutoff>2.</j_spline_cutoff>
-    <k_spline_cutoff>2.</k_spline_cutoff>
+    <i_filter_length>2.0</i_filter_length>
+    <j_filter_length>2.0</j_filter_length>
+    <k_filter_length>2.0</k_filter_length>
+    <i_spline_cutoff>2.0</i_spline_cutoff>
+    <j_spline_cutoff>2.0</j_spline_cutoff>
+    <k_spline_cutoff>2.0</k_spline_cutoff>
   </parameters>
   <parameters iter="2">
     <bg_rhou_error>5.0</bg_rhou_error>
@@ -64,12 +64,12 @@
     <bg_rhoa_error>1.0</bg_rhoa_error>
     <bg_qr_error>1.0</bg_qr_error>
     <mc_weight>1.</mc_weight>
-    <i_lengthscale>2.</i_lengthscale>
-    <j_lengthscale>2.</j_lengthscale>
-    <k_lengthscale>2.</k_lengthscale>
-    <i_spline_cutoff>2.</i_spline_cutoff>
-    <j_spline_cutoff>2.</j_spline_cutoff>
-    <k_spline_cutoff>2.</k_spline_cutoff>
+    <i_filter_length>2.0</i_filter_length>
+    <j_filter_length>2.0</j_filter_length>
+    <k_filter_length>2.0</k_filter_length>
+    <i_spline_cutoff>2.0</i_spline_cutoff>
+    <j_spline_cutoff>2.0</j_spline_cutoff>
+    <k_spline_cutoff>2.0</k_spline_cutoff>
   </parameters>
   <observation_errors>
     <dropsonde_rhou_error>1.0</dropsonde_rhou_error>

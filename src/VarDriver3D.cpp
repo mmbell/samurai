@@ -1480,49 +1480,49 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
 	QString iter;
 	iter.setNum(iteration);
 	
-	QString key = "u_error_" + iter;
+	QString key = "bg_rhou_error_" + iter;
 	QString val = configHash.value(key);
-	configHash.insert("u_error", val);
+	configHash.insert("bg_rhou_error", val);
 	
-	key = "v_error_" + iter;
+	key = "bg_rhov_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("v_error", val);
+	configHash.insert("bg_rhov_error", val);
 	
-	key = "w_error_" + iter;
+	key = "bg_rhow_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("w_error", val);
+	configHash.insert("bg_rhow_error", val);
 	
-	key = "t_error_" + iter;
+	key = "bg_tempk_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("t_error", val);
+	configHash.insert("bg_tempk_error", val);
 	
-	key = "qv_error_" + iter;
+	key = "bg_qv_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("qv_error", val);
+	configHash.insert("bg_qv_error", val);
 	
-	key = "rho_error_" + iter;
+	key = "bg_rhoa_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("rho_error", val);
+	configHash.insert("bg_rhoa_error", val);
 	
-	key = "qr_error_" + iter;
+	key = "bg_qr_error_" + iter;
 	val = configHash.value(key);
-	configHash.insert("qr_error", val);	
+	configHash.insert("bg_qr_error", val);	
 	
 	key = "mc_weight_" + iter;
 	val = configHash.value(key);
 	configHash.insert("mc_weight", val);
 	
-	key = "i_filter_" + iter;
+	key = "i_filter_length_" + iter;
 	val = configHash.value(key);
-	configHash.insert("i_filter", val);
+	configHash.insert("i_filter_length", val);
 	
-	key = "j_filter_" + iter;
+	key = "j_filter_length_" + iter;
 	val = configHash.value(key);
-	configHash.insert("j_filter", val);
+	configHash.insert("j_filter_length", val);
 	
-	key = "k_filter_" + iter;
+	key = "k_filter_length_" + iter;
 	val = configHash.value(key);
-	configHash.insert("k_filter", val);
+	configHash.insert("k_filter_length", val);
 	
 	key = "i_spline_cutoff_" + iter;
 	val = configHash.value(key);
@@ -1549,7 +1549,7 @@ bool VarDriver3D::validateXMLconfig()
 	configKeys << "i_min" << "i_max" << "i_incr" <<
 	"j_min" << "j_max" << "j_incr" <<
 	"k_min" << "k_max" << "k_incr" <<
-	"i_lengthscale" << "j_lengthscale" << "k_lengthscale" <<
+	"i_filter_length" << "j_filter_length" << "k_filter_length" <<
 	"bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" << 
 	"bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "mc_weight" << 
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<

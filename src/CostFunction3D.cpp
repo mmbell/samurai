@@ -201,9 +201,9 @@ void CostFunction3D::initState(const int iteration)
 	bgError[6] = configHash->value("bg_qr_error").toFloat();	
 	
 	// Set up the recursive filter
-	iFilterScale = configHash->value("i_lengthscale").toFloat();
-	jFilterScale = configHash->value("j_lengthscale").toFloat();
-	kFilterScale = configHash->value("k_lengthscale").toFloat();		
+	iFilterScale = configHash->value("i_filter_length").toFloat();
+	jFilterScale = configHash->value("j_filter_length").toFloat();
+	kFilterScale = configHash->value("k_filter_length").toFloat();		
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
 	kFilter->setFilterLengthScale(kFilterScale);
