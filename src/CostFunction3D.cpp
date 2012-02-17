@@ -192,18 +192,18 @@ void CostFunction3D::initState(const int iteration)
 	}
 	
 	// Initialize background errors and filter scales
-	bgError[0] = configHash->value("u_error").toFloat();
-	bgError[1] = configHash->value("v_error").toFloat();
-	bgError[2] = configHash->value("w_error").toFloat();
-	bgError[3] = configHash->value("t_error").toFloat();
-	bgError[4] = configHash->value("qv_error").toFloat();	
-	bgError[5] = configHash->value("rho_error").toFloat();
-	bgError[6] = configHash->value("qr_error").toFloat();	
+	bgError[0] = configHash->value("bg_rhou_error").toFloat();
+	bgError[1] = configHash->value("bg_rhov_error").toFloat();
+	bgError[2] = configHash->value("bg_rhow_error").toFloat();
+	bgError[3] = configHash->value("bg_tempk_error").toFloat();
+	bgError[4] = configHash->value("bg_qv_error").toFloat();	
+	bgError[5] = configHash->value("bg_rhoa_error").toFloat();
+	bgError[6] = configHash->value("bg_qr_error").toFloat();	
 	
 	// Set up the recursive filter
-	iFilterScale = configHash->value("i_filter").toFloat();
-	jFilterScale = configHash->value("j_filter").toFloat();
-	kFilterScale = configHash->value("k_filter").toFloat();		
+	iFilterScale = configHash->value("i_lengthscale").toFloat();
+	jFilterScale = configHash->value("j_lengthscale").toFloat();
+	kFilterScale = configHash->value("k_lengthscale").toFloat();		
 	iFilter->setFilterLengthScale(iFilterScale);
 	jFilter->setFilterLengthScale(jFilterScale);
 	kFilter->setFilterLengthScale(kFilterScale);

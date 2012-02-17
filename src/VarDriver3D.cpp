@@ -464,14 +464,14 @@ bool VarDriver3D::preProcessMetObs()
 						rhou = rho*(u - Um);
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("dropsonde_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
 						varOb.setWeight(1., 1);
 						rhov = rho*(v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("dropsonde_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);
 						
@@ -480,7 +480,7 @@ bool VarDriver3D::preProcessMetObs()
 						// rho w 1.5 m/s error
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
-						varOb.setOb(rhow);
+						varOb.setOb(configHash.value("dropsonde_rhow_error").toFloat());
 						varOb.setError(2.0);
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
@@ -489,7 +489,7 @@ bool VarDriver3D::preProcessMetObs()
 						// temperature 1 K error
 						varOb.setWeight(1., 3);
 						varOb.setOb(tempk - tBar);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("dropsonde_tempk_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
@@ -498,7 +498,7 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 4);
 						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
-						varOb.setError(0.5);
+						varOb.setError(configHash.value("dropsonde_qv_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
@@ -506,7 +506,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Rho prime .1 kg/m^3 error
 						varOb.setWeight(1., 5);
 						varOb.setOb((rhoa-rhoBar)*100);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("dropsonde_rhoa_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 5);
 					}
@@ -530,14 +530,14 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 0);
 						rhou = rho*(u - Um);
 						varOb.setOb(rhou);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("flightlevel_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
 						varOb.setWeight(1., 1);
 						rhov = rho*(v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("flightlevel_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);
 					}
@@ -546,7 +546,7 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("flightlevel_rhow_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -554,7 +554,7 @@ bool VarDriver3D::preProcessMetObs()
 						// temperature 1 K error
 						varOb.setWeight(1., 3);
 						varOb.setOb(tempk - tBar);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("flightlevel_tempk_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
@@ -563,7 +563,7 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 4);
 						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
-						varOb.setError(0.5);
+						varOb.setError(configHash.value("flightlevel_qv_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
@@ -571,7 +571,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Rho prime .1 kg/m^3 error
 						varOb.setWeight(1., 5);
 						varOb.setOb((rhoa-rhoBar)*100);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("flightlevel_rhoa_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 5);
 					}
@@ -596,14 +596,14 @@ bool VarDriver3D::preProcessMetObs()
 						rhou = rho*(u - Um);
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("insitu_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
 						varOb.setWeight(1., 1);
 						rhov = rho*(v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("insitu_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);
 						
@@ -613,7 +613,7 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 2);
 						rhow = rho*w;
 						varOb.setOb(rhow);
-						varOb.setError(2.0);
+						varOb.setError(configHash.value("insitu_rhow_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 2);
 					}
@@ -621,7 +621,7 @@ bool VarDriver3D::preProcessMetObs()
 						// temperature 1 K error
 						varOb.setWeight(1., 3);
 						varOb.setOb(tempk - tBar);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("insitu_tempk_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 3);
 					}
@@ -630,7 +630,7 @@ bool VarDriver3D::preProcessMetObs()
 						varOb.setWeight(1., 4);
 						qv = refstate->bhypTransform(qv);
 						varOb.setOb(qv-qBar);
-						varOb.setError(0.5);
+						varOb.setError(configHash.value("insitu_qv_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 4);
 					}
@@ -638,7 +638,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Rho prime .1 kg/m^3 error
 						varOb.setWeight(1., 5);
 						varOb.setOb((rhoa-rhoBar)*100);
-						varOb.setError(1.0);
+						varOb.setError(configHash.value("insitu_rhoa_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 5);
 					}
@@ -654,7 +654,7 @@ bool VarDriver3D::preProcessMetObs()
 					varOb.setWeight(1., 0);
 					//varOb.setWeight(1., 1);
 					varOb.setOb(wspd);
-					varOb.setError(10.0);
+					varOb.setError(configHash.value("sfmr_windspeed_error").toFloat());
 					obVector.push_back(varOb);
 					break;
 				
@@ -668,7 +668,7 @@ bool VarDriver3D::preProcessMetObs()
 						rhou = (u - Um);
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(2.5);
+						varOb.setError(configHash.value("qscat_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
@@ -676,7 +676,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Multiply by rho later from grid values
 						rhov = (v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(2.5);
+						varOb.setError(configHash.value("qscat_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);						
 					}
@@ -692,7 +692,7 @@ bool VarDriver3D::preProcessMetObs()
 						rhou = (u - Um);
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(2.5);
+						varOb.setError(configHash.value("ascat_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
@@ -700,7 +700,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Multiply by rho later from grid values
 						rhov = (v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(2.5);
+						varOb.setError(configHash.value("ascat_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);						
 					}
@@ -716,7 +716,7 @@ bool VarDriver3D::preProcessMetObs()
 						rhou = (u - Um);
 						//cout << "RhoU: " << rhou << endl;
 						varOb.setOb(rhou);
-						varOb.setError(10.);
+						varOb.setError(configHash.value("amv_rhou_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 0);
 						
@@ -724,7 +724,7 @@ bool VarDriver3D::preProcessMetObs()
 						// Multiply by rho later from grid values
 						rhov = (v - Vm);
 						varOb.setOb(rhov);
-						varOb.setError(10.);
+						varOb.setError(configHash.value("amv_rhov_error").toFloat());
 						obVector.push_back(varOb);
 						varOb.setWeight(0., 1);						
 					}
@@ -751,8 +751,10 @@ bool VarDriver3D::preProcessMetObs()
 					varOb.setWeight(wWgt, 2);
 										
 					// Set the error according to the spectrum width and power
-					real DopplerError = metOb.getSpectrumWidth() + log(50/db);
-					if (DopplerError < 1.0) DopplerError = 1.0;
+					real DopplerError = metOb.getSpectrumWidth()*configHash.value("lidar_sw_error").toFloat() 
+                        + log(configHash.value("lidar_power_error").toFloat()/db);
+                    if (DopplerError < configHash.value("lidar_min_error").toFloat()) 
+                        DopplerError = configHash.value("lidar_min_error").toFloat();
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);
 					obVector.push_back(varOb);
@@ -818,8 +820,10 @@ bool VarDriver3D::preProcessMetObs()
 					  varOb.setWeight(rhopWgt, 5); */
 					
 					// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
-					real DopplerError = metOb.getSpectrumWidth() + fabs(wWgt)*2.;
-					if (DopplerError < 1.0) DopplerError = 1.0;
+					real DopplerError = metOb.getSpectrumWidth()*configHash.value("radar_sw_error").toFloat()
+                        + fabs(wWgt)*configHash.value("radar_fallspeed_error").toFloat();
+					if (DopplerError < configHash.value("radar_min_error").toFloat()) 
+                        DopplerError = configHash.value("radar_min_error").toFloat();
 					varOb.setError(DopplerError);
 					varOb.setOb(Vdopp);
 					obVector.push_back(varOb);
@@ -1545,9 +1549,9 @@ bool VarDriver3D::validateXMLconfig()
 	configKeys << "i_min" << "i_max" << "i_incr" <<
 	"j_min" << "j_max" << "j_incr" <<
 	"k_min" << "k_max" << "k_incr" <<
-	"i_filter" << "j_filter" << "k_filter" <<
-	"u_error" << "v_error" << "w_error" << "t_error" << 
-	"qv_error" << "rho_error" << "qr_error" << "mc_weight" << 
+	"i_lengthscale" << "j_lengthscale" << "k_lengthscale" <<
+	"bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" << 
+	"bg_qv_error" << "bg_rhoa_error" << "qr_error" << "mc_weight" << 
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
 	"i_bc" << "j_bc" << "k_bc" << "use_dbz_pseudow" <<
 	"i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff";

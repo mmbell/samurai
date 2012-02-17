@@ -23,7 +23,7 @@
     <output_mish>0</output_mish>
   </operation>
   <background>
-    <ref_state>dunion_mt</ref_state>
+    <ref_state>dunion_mt.snd</ref_state>
     <ref_time>00:00:00</ref_time>
     <background_roi>25.</background_roi>
   </background>
@@ -40,35 +40,68 @@
     <mask_reflectivity>None</mask_reflectivity>
   </radar>
   <parameters iter="1">
-    <u_error>50.0</u_error>
-    <v_error>50.0</v_error>
-    <w_error>50.0</w_error>
-    <t_error>3.0</t_error>
-    <qv_error>10.0</qv_error>
-    <rho_error>3.0</rho_error>
-    <qr_error>3.0</qr_error>
+    <bg_rhou_error>50.0</bg_rhou_error>
+    <bg_rhov_error>50.0</bg_rhov_error>
+    <bg_rhow_error>50.0</bg_rhow_error>
+    <bg_tempk_error>3.0</bg_tempk_error>
+    <bg_qv_error>10.0</bg_qv_error>
+    <bg_rhoa_error>3.0</bg_rhoa_error>
+    <bg_qr_error>3.0</bg_qr_error>
     <mc_weight>1.</mc_weight>
-    <i_filter>2</i_filter>
-    <j_filter>2</j_filter>
-    <k_filter>2.</k_filter>
+    <i_lengthscale>2</i_lengthscale>
+    <j_lengthscale>2</j_lengthscale>
+    <k_lengthscale>2.</k_lengthscale>
     <i_spline_cutoff>2.</i_spline_cutoff>
     <j_spline_cutoff>2.</j_spline_cutoff>
     <k_spline_cutoff>2.</k_spline_cutoff>
   </parameters>
   <parameters iter="2">
-    <u_error>5.0</u_error>
-    <v_error>5.0</v_error>
-    <w_error>5.0</w_error>
-    <t_error>1.0</t_error>
-    <qv_error>1.0</qv_error>
-    <rho_error>1.0</rho_error>
-    <qr_error>1.0</qr_error>
+    <bg_rhou_error>5.0</bg_rhou_error>
+    <bg_rhov_error>5.0</bg_rhov_error>
+    <bg_rhow_error>5.0</bg_rhow_error>
+    <bg_tempk_error>1.0</bg_tempk_error>
+    <bg_qv_error>1.0</bg_qv_error>
+    <bg_rhoa_error>1.0</bg_rhoa_error>
+    <bg_qr_error>1.0</bg_qr_error>
     <mc_weight>1.</mc_weight>
-    <i_filter>2.</i_filter>
-    <j_filter>2.</j_filter>
-    <k_filter>2.</k_filter>
+    <i_lengthscale>2.</i_lengthscale>
+    <j_lengthscale>2.</j_lengthscale>
+    <k_lengthscale>2.</k_lengthscale>
     <i_spline_cutoff>2.</i_spline_cutoff>
     <j_spline_cutoff>2.</j_spline_cutoff>
     <k_spline_cutoff>2.</k_spline_cutoff>
   </parameters>
+  <observation_errors>
+    <dropsonde_rhou_error>1.0</dropsonde_rhou_error>
+    <dropsonde_rhov_error>1.0</dropsonde_rhov_error>
+    <dropsonde_rhow_error>2.0</dropsonde_rhow_error>
+    <dropsonde_tempk_error>1.0</dropsonde_tempk_error>
+    <dropsonde_qv_error>0.5</dropsonde_qv_error>
+    <dropsonde_rhoa_error>1.0</dropsonde_rhoa_error>
+    <flightlevel_rhou_error>1.0</flightlevel_rhou_error>
+    <flightlevel_rhov_error>1.0</flightlevel_rhov_error>
+    <flightlevel_rhow_error>1.0</flightlevel_rhow_error>
+    <flightlevel_tempk_error>1.0</flightlevel_tempk_error>
+    <flightlevel_qv_error>0.5</flightlevel_qv_error>
+    <flightlevel_rhoa_error>1.0</flightlevel_rhoa_error>
+    <insitu_rhou_error>1.0</insitu_rhou_error>
+    <insitu_rhov_error>1.0</insitu_rhov_error>
+    <insitu_rhow_error>2.0</insitu_rhow_error>
+    <insitu_tempk_error>1.0</insitu_tempk_error>
+    <insitu_qv_error>0.5</insitu_qv_error>
+    <insitu_rhoa_error>1.0</insitu_rhoa_error>
+    <sfmr_windspeed_error>10.0</sfmr_windspeed_error>
+    <qscat_rhou_error>2.5</qscat_rhou_error>
+    <qscat_rhov_error>2.5</qscat_rhov_error>
+    <ascat_rhou_error>2.5</ascat_rhou_error>
+    <ascat_rhov_error>2.5</ascat_rhov_error>
+    <amv_rhou_error>10.0</amv_rhou_error>
+    <amv_rhov_error>10.0</amv_rhov_error>
+    <lidar_sw_error>1.0</lidar_sw_error>
+    <lidar_power_error>50.0</lidar_power_error>
+    <lidar_min_error>1.0</lidar_min_error>
+    <radar_sw_error>1.0</radar_sw_error>
+    <radar_fallspeed_error>2.0</radar_fallspeed_error>
+    <radar_min_error>1.0</radar_min_error>
+   </observation_errors>
 </samurai>
