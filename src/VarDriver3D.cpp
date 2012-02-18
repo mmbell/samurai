@@ -455,13 +455,11 @@ bool VarDriver3D::preProcessMetObs()
 			real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 			
 			// Initialize the weights
-			varOb.setWeight(0., 0);
-			varOb.setWeight(0., 1);
-			varOb.setWeight(0., 2);
-			varOb.setWeight(0., 3);
-			varOb.setWeight(0., 4);
-			varOb.setWeight(0., 5);
-			varOb.setWeight(0., 6);
+            for (unsigned int var = 0; var < numVars; ++var) {
+                varOb.setWeight(0.0, var);
+                varOb.setDWeight(0.0, var);
+                varOb.setD2Weight(0.0, var);
+            }
 			real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd; 
 			switch (metOb.getObType()) {
 				case (MetObs::dropsonde):
@@ -942,13 +940,12 @@ bool VarDriver3D::preProcessMetObs()
 	Observation varOb;
 	varOb.setTime(configHash.value("ref_time").toInt());	
 	real pseudow_weight = configHash.value("use_dbz_pseudow").toFloat();
-	varOb.setWeight(0., 0);
-	varOb.setWeight(0., 1);
-	varOb.setWeight(1., 2);
-	varOb.setWeight(0., 3);
-	varOb.setWeight(0., 4);
-	varOb.setWeight(0., 5);
-	varOb.setWeight(0., 6);	
+    // Initialize the weights
+    for (unsigned int var = 0; var < numVars; ++var) {
+        varOb.setWeight(0.0, var);
+        varOb.setDWeight(0.0, var);
+        varOb.setD2Weight(0.0, var);
+    }
 	varOb.setError(pseudow_weight);
 	varOb.setOb(0.);
 	for (int xi = 0; xi < (idim-1); xi++) {
@@ -1030,16 +1027,18 @@ bool VarDriver3D::preProcessMetObs()
 		*od++ = ob.getAltitude();		
 		*oi++ = ob.getType();
 		*oi++ = ob.getTime();
-		for (unsigned int var = 0; var < numVars; var++)
+		for (unsigned int var = 0; var < numVars; var++) {
 			*od++ = ob.getWeight(var);
-
+            *od++ = ob.getDWeight(var);
+            *od++ = ob.getD2Weight(var);
+        }
 		obstream << endl;	
 	}
 	
 	// Load the observations into a vector
-	obs = new real[obVector.size()*14];
+	obs = new real[obVector.size()*(7+numVars*3)];
 	for (int m=0; m < obVector.size(); m++) {
-		int n = m*14;
+		int n = m*(7+numVars*3);
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -1050,6 +1049,8 @@ bool VarDriver3D::preProcessMetObs()
 		obs[n+6] = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++) {
 			obs[n+7+var] = ob.getWeight(var);
+            obs[n+14+var] = ob.getDWeight(var);
+            obs[n+21+var] = ob.getD2Weight(var);
 		}
 	}	
 	
@@ -1070,7 +1071,7 @@ bool VarDriver3D::loadMetObs()
 {
 	
 	Observation varOb;
-	real wgt[numVars];
+	real wgt[numVars], dwgt[numVars], d2wgt[numVars];
 	real xPos, yPos, zPos, ob, error;
 	int type;
 	int time;
@@ -1079,7 +1080,9 @@ bool VarDriver3D::loadMetObs()
 	// Open and read the file
 	ifstream obstream("samurai_Observations.in");
 	while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
-		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6])
+		   >> wgt[0] >> wgt[1] >> wgt[2] >> wgt[3] >> wgt[4] >> wgt[5] >> wgt[6]
+		   >> dwgt[0] >> dwgt[1] >> dwgt[2] >> dwgt[3] >> dwgt[4] >> dwgt[5] >> dwgt[6]
+           >> d2wgt[0] >> d2wgt[1] >> d2wgt[2] >> d2wgt[3] >> d2wgt[4] >> d2wgt[5] >> d2wgt[6])
 	{
 		varOb.setOb(ob);
 		varOb.setCartesianX(xPos);
@@ -1088,15 +1091,18 @@ bool VarDriver3D::loadMetObs()
 		varOb.setType(type);
 		varOb.setTime(time);
 		varOb.setError(1./error);
-		for (unsigned int var = 0; var < numVars; var++)
+		for (unsigned int var = 0; var < numVars; var++) {
 			varOb.setWeight(wgt[var],var);
+            varOb.setDWeight(dwgt[var],var);
+            varOb.setD2Weight(d2wgt[var],var);
+        }
 		obVector.push_back(varOb);
 	}
 	
 	// Load the observations into the vector
-	obs = new real[obVector.size()*14];
+	obs = new real[obVector.size()*(7+numVars*3)];
 	for (int m=0; m < obVector.size(); m++) {
-		int n = m*14;
+		int n = m*(7+numVars*3);
 		Observation ob = obVector.at(m);
 		obs[n] = ob.getOb();
 		obs[n+1] = ob.getInverseError();
@@ -1107,6 +1113,8 @@ bool VarDriver3D::loadMetObs()
 		obs[n+6] = ob.getTime();
 		for (unsigned int var = 0; var < numVars; var++) {
 			obs[n+7+var] = ob.getWeight(var);
+            obs[n+14+var] = ob.getDWeight(var);
+            obs[n+21+var] = ob.getD2Weight(var);
 		}
 		
 	}	
@@ -1433,8 +1441,8 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	
 	// Load the observations into a vector
 	int numbgObs = bgIn.size()*7/11;
-	bgObs = new real[numbgObs*14];
-	for (int m=0; m < numbgObs*14; m++) bgObs[m] = 0.;
+	bgObs = new real[numbgObs*(7+numVars*3)];
+	for (unsigned int m=0; m < numbgObs*(7+numVars*3); m++) bgObs[m] = 0.;
 	
 	int p = 0;
 	for (int m=0; m < bgIn.size(); m+=11) {
@@ -1473,6 +1481,8 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 			bgObs[p+5] = -1;
 			bgObs[p+6] = bgTime;
 			bgObs[p+7+n] = 1.;
+            bgObs[p+14+n] = 0.;
+            bgObs[p+21+n] = 0.;
 			p += 14;
 		}
 	}	

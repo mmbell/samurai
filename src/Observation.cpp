@@ -16,7 +16,11 @@ Observation::Observation()
 	altitude = -999;
 	cartesianX = -999;
 	cartesianY = -999;
-	for (unsigned int i = 0; i < numVars; i++) weight[i] = -999;
+	for (unsigned int i = 0; i < numVars; i++) {
+        weight[i] = -999;
+        dweight[i] = -999;
+        d2weight[i] = -999;
+    }
 	error = -999;
 	obNet = -999;
 	type = -999;
@@ -61,6 +65,20 @@ void Observation::setWeight(const double &wgt, const unsigned int& var)
 {
 	if (var < numVars) {
 		weight[var] = wgt;
+	}
+}
+
+void Observation::setDWeight(const double &dwgt, const unsigned int& var)
+{
+	if (var < numVars) {
+		dweight[var] = dwgt;
+	}
+}
+
+void Observation::setD2Weight(const double &d2wgt, const unsigned int& var)
+{
+	if (var < numVars) {
+		d2weight[var] = d2wgt;
 	}
 }
 
