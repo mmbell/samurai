@@ -33,7 +33,7 @@
     <dynamic_stride>0</dynamic_stride>
     <qr_variable>dbz</qr_variable>
     <reflectivity_roi>1.0</reflectivity_roi>
-    <use_dbz_pseudow>0</use_dbz_pseudow>
+    <dbz_pseudow_weight>0</dbz_pseudow_weight>
     <radar_dbz>DBZ</radar_dbz>
     <radar_vel>VG</radar_vel>
     <radar_sw>SW</radar_sw>
