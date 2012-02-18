@@ -1112,7 +1112,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	"qr_variable" << "background_roi" << "reflectivity_roi" <<
 	"load_background" << "adjust_background" <<
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
-	"i_bc" << "j_bc" << "k_bc" << "use_dbz_pseudow" <<
+	"i_bc" << "j_bc" << "k_bc" << "dbz_pseudow_weight" <<
 	"num_iterations" << "output_mish" << "preprocess_obs" << "mask_reflectivity" <<
     "dropsonde_rhou_error" << "dropsonde_rhov_error" << "dropsonde_rhow_error" << 
     "dropsonde_tempk_error" << "dropsonde_qv_error" << "dropsonde_rhoa_error" <<

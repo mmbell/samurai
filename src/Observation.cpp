@@ -17,9 +17,9 @@ Observation::Observation()
 	cartesianX = -999;
 	cartesianY = -999;
 	for (unsigned int i = 0; i < numVars; i++) {
-        weight[i] = -999;
-        dweight[i] = -999;
-        d2weight[i] = -999;
+        for (unsigned int j = 0; j < 4; j++) {
+            weight[i][j] = -999;
+        }
     }
 	error = -999;
 	obNet = -999;
@@ -61,24 +61,19 @@ void Observation::setType(const int &t)
 	type = t;
 }
 
-void Observation::setWeight(const double &wgt, const unsigned int& var)
+double Observation::getWeight(const unsigned int& var, const unsigned int& derivative)
 {
-	if (var < numVars) {
-		weight[var] = wgt;
-	}
+	if ((var < numVars) and (derivative < 4)){
+		return weight[var][derivative];
+	} else {
+        return -999;
+    }
 }
 
-void Observation::setDWeight(const double &dwgt, const unsigned int& var)
+void Observation::setWeight(const double &wgt, const unsigned int& var, const unsigned int& derivative)
 {
-	if (var < numVars) {
-		dweight[var] = dwgt;
-	}
-}
-
-void Observation::setD2Weight(const double &d2wgt, const unsigned int& var)
-{
-	if (var < numVars) {
-		d2weight[var] = d2wgt;
+	if ((var < numVars) and (derivative < 4)){
+		weight[var][derivative] = wgt;
 	}
 }
 

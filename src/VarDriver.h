@@ -43,6 +43,7 @@ protected:
 	unsigned int numVars;
 	unsigned int numHeights;
 	unsigned int maxHeights;
+    unsigned int numDerivatives;
 	unsigned int maxJdim;
 	unsigned int maxKdim;
 	vector<FrameCenter> frameVector;

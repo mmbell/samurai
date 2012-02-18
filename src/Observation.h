@@ -34,14 +34,8 @@ public:
 	void setType(const int &t);
 	int inline getType() const { return type; }
 	
-	double inline getWeight(const unsigned int& var) { return weight[var]; }
-	void setWeight(const double &wgt, const unsigned int& var);
-
-    double inline getDWeight(const unsigned int& var) { return dweight[var]; }
-	void setDWeight(const double &dwgt, const unsigned int& var);
-
-    double inline getD2Weight(const unsigned int& var) { return d2weight[var]; }
-	void setD2Weight(const double &d2wgt, const unsigned int& var);
+	double getWeight(const unsigned int& var, const unsigned int& d);
+	void setWeight(const double &wgt, const unsigned int& var, const unsigned int& derivative = 0);
 
 	// Note that you set this as error, but it returns 1/error or error
 	double inline getInverseError() const { return (1./error); }
@@ -60,9 +54,7 @@ private:
 	double altitude;
 	double cartesianX;
 	double cartesianY;
-	double weight[7];
-    double dweight[7];
-    double d2weight[7];
+	double weight[7][4];
 	double error;
 	double obNet;
 	unsigned int numVars;
