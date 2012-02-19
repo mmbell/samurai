@@ -580,15 +580,15 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	// Use a Transverse Mercator projection to map the radar gates to the grid
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 
-	QString radardbz = configHash.value("radardbz");
-	QString radarvel = configHash.value("radarvel");
-	QString radarsw = configHash.value("radarsw");
+	QString radardbz = configHash.value("radar_dbz");
+	QString radarvel = configHash.value("radar_vel");
+	QString radarsw = configHash.value("radar_sw");
 	if(!swpfile.readSwpfile(radardbz, radarvel, radarsw))
 		return false;
 
-	int rayskip = configHash.value("radarskip").toInt();
-	int minstride = configHash.value("radarstride").toInt();
-	bool dynamicStride = configHash.value("dynamicstride").toInt();
+	int rayskip = configHash.value("radar_skip").toInt();
+	int minstride = configHash.value("radar_stride").toInt();
+	bool dynamicStride = configHash.value("dynamic_stride").toInt();
 	int stride = minstride;
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
 		real radarLat = swpfile.getRadarLat(i);
