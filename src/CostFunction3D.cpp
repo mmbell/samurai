@@ -469,7 +469,7 @@ void CostFunction3D::calcInnovation()
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][0], kBCL[var], kBCR[var]);
+                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
                     for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                         int jNode = jjNode;
                         if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
@@ -484,7 +484,7 @@ void CostFunction3D::calcInnovation()
                             if ((iNode < 0) or (iNode >= iDim)) continue;
                             
                             int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][2], iBCL[var], iBCR[var]);
+                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
                             tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
                         }
                     }
@@ -528,7 +528,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); kNode++) {
-                    real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][0], kBCL[var], kBCR[var]);
+                    real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
                     for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                         int jNode = jjNode;
                         if ((jBCL[0] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
@@ -543,7 +543,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
                             if ((iNode < 0) or (iNode >= iDim)) continue;
                             
                             int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;			                            
-                            real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][2], iBCL[var], iBCR[var]);
+                            real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
                             real invError = obsVector[mi+1];
                             real qbasise = yhat[m] * ibasis * jbasis * kbasis * invError;
                             //#pragma omp atomic
@@ -1574,7 +1574,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][0], kBCL[var], kBCR[var]);
+                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
                     for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                         int iNode = iiNode;
                         if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
@@ -1588,7 +1588,7 @@ bool CostFunction3D::outputAnalysis(const QString& suffix, real* Astate)
                             if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
                             if ((jNode < 0) or (jNode >= jDim)) continue;                            
                             int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
+                            jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
                             tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
                         }
                     }
