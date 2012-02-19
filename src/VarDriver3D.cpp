@@ -988,22 +988,22 @@ bool VarDriver3D::preProcessMetObs()
                                             varOb.setError(mc_weight);
                                             varOb.setOb(0.);
                                             varOb.setWeight(1.0, 0, 1);
-                                            varOb.setWeight(1.0, 1, 1);
-                                            varOb.setWeight(1.0, 2, 1);
+                                            varOb.setWeight(1.0, 1, 2);
+                                            varOb.setWeight(1.0, 2, 3);
                                             obVector.push_back(varOb);
                                         }
                                     }
                                 }
                             }
                             varOb.setWeight(0.0, 0, 1);
-                            varOb.setWeight(0.0, 1, 1);
-                            varOb.setWeight(0.0, 2, 1);
+                            varOb.setWeight(0.0, 1, 2);
+                            varOb.setWeight(0.0, 2, 3);
                             varOb.setWeight(1., 2);
                             varOb.setCartesianX(i);
                             varOb.setCartesianY(j);
                             varOb.setError(pseudow_weight);
                             varOb.setOb(0.);
-                            if (!ihalf and !jhalf){
+                            if (ihalf and jhalf and imu and jmu){
                                 // Set an upper boundary condition for W
                                 if ((maxrefHeight > 0) and (maxrefHeight < kmax)
                                     and (pseudow_weight > 0.0)) {
