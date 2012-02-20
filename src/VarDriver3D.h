@@ -71,6 +71,12 @@ private:
 	int idim;
 	int jdim;
 	int kdim;
+    int runMode;
+    
+    enum RunModes {
+        XYZ,
+        RTZ
+    };
 };
 
 #endif

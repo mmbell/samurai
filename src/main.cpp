@@ -64,15 +64,22 @@ int main (int argc, char *argv[]) {
 		for (int i = 0; i < nodeList.count(); i++) {
 			QDomNode currNode = nodeList.item(i);
 			QDomElement element = currNode.toElement();
-			if (element.tagName() == "mode") {
-				QString mode = element.text();
-				if (mode == "XYZ") {
-					driver = new VarDriver3D();
-				} else {
-					std:: cout << "Unsupported run mode " << mode.toStdString() << std::endl;
-					return EXIT_FAILURE;
-				}
-				break;
+			if (element.tagName() == "operation") {
+                QDomNodeList configList = currNode.childNodes();
+                for (int j = 0; j < configList.count(); j++) {
+                    QDomNode configItem = configList.item(j);
+                    QDomElement tag = configItem.toElement();
+                    if (tag.tagName() == "mode") {
+                        QString mode = tag.text();
+                        if (mode == "XYZ") {
+                            driver = new VarDriver3D();
+                        } else {
+                            std:: cout << "Unsupported run mode " << mode.toStdString() << std::endl;
+                            return EXIT_FAILURE;
+                        }
+                        break;
+                    }
+                }
 			}
 		}
 		
@@ -95,6 +102,7 @@ int main (int argc, char *argv[]) {
 			std::cout << "Analysis successful!\n";
 			return EXIT_SUCCESS;
 		} else {
+            std:: cout << "No run mode found!" << std::endl;
 			return EXIT_FAILURE;
 		}
 	

@@ -43,7 +43,17 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	
 	// Validate the 3D specific parameters
 	if (!validateXMLconfig()) return false;
-	
+    
+    // Validate the run geometry
+    if (configHash.value("mode") == "XYZ") {
+        runMode = XYZ;
+    } else if (configHash.value("mode") == "RTZ") {
+        runMode = RTZ;
+	} else {
+        cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
+        return false;
+    }
+    
 	// Define the grid dimensions
 	imin = configHash.value("i_min").toFloat();
 	imax = configHash.value("i_max").toFloat();
@@ -421,31 +431,55 @@ bool VarDriver3D::preProcessMetObs()
 			real obY = (metY - tcY)/1000.;
 			real heightm = metOb.getAltitude();
 			real obZ = heightm/1000.;
-			
+			real obRadius = sqrt(obX*obX + obY*obY);
+            real obTheta = 180.0 * atan2(obY, obX) / Pi;
+            
 			// Make sure the ob is in the domain
-			if ((obX < imin) or (obX > imax) or
-				(obY < jmin) or (obY > jmax) or
-				(obZ < kmin) or (obZ > kmax))
-				continue;
-			
-			// Restrict the horizontal domain if we are using the R0 BC
-			if (configHash.value("i_bc") == "R0") {
-				if ((obX < (imin+iincr)) or (obX > (imax-iincr)))
-					continue;
-			}
-			if (configHash.value("j_bc") == "R0") {
-				if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
-					continue;
-			}
-			if (configHash.value("k_bc") == "R0") {
-				if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
-					continue;
-			}
-			
+            if (runMode == XYZ) {
+                if ((obX < imin) or (obX > imax) or
+                    (obY < jmin) or (obY > jmax) or
+                    (obZ < kmin) or (obZ > kmax))
+                    continue;
+                
+                // Restrict the horizontal domain if we are using the R0 BC
+                if (configHash.value("i_bc") == "R0") {
+                    if ((obX < (imin+iincr)) or (obX > (imax-iincr)))
+                        continue;
+                }
+                if (configHash.value("j_bc") == "R0") {
+                    if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
+                        continue;
+                }
+                if (configHash.value("k_bc") == "R0") {
+                    if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
+                        continue;
+                }
+            } else if (runMode == RTZ) {
+                if ((obRadius < imin) or (obRadius > imax) or
+                    (obTheta < jmin) or (obTheta > jmax) or
+                    (obZ < kmin) or (obZ > kmax))
+                    continue;
+                
+                // Restrict the horizontal domain if we are using the R0 BC
+                if (configHash.value("i_bc") == "R0") {
+                    if ((obRadius < (imin+iincr)) or (obRadius > (imax-iincr)))
+                        continue;
+                }
+                if (configHash.value("j_bc") == "R0") {
+                    if ((obTheta < (jmin+jincr)) or (obTheta > (jmax-jincr))) 
+                        continue;
+                }
+                if (configHash.value("k_bc") == "R0") {
+                    if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
+                        continue;
+                }
+            }
 			// Create an observation and set its basic info
 			Observation varOb;
 			varOb.setCartesianX(obX);
 			varOb.setCartesianY(obY);
+            varOb.setRadius(obRadius);
+			varOb.setTheta(obTheta);
 			varOb.setAltitude(obZ);
 			varOb.setTime(obTime.toTime_t());
 			
@@ -477,7 +511,11 @@ bool VarDriver3D::preProcessMetObs()
                     if ((u != -999) and (rho != -999)) {
                         // rho u 1 m/s error
                         varOb.setWeight(1., 0);
-                        rhou = rho*(u - Um);
+                        if (runMode == XYZ) {
+                            rhou = rho*(u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("dropsonde_rhou_error").toFloat());
@@ -485,7 +523,11 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setWeight(0., 0);
                         
                         varOb.setWeight(1., 1);
-                        rhov = rho*(v - Vm);
+                        if (runMode == XYZ) {
+                            rhov = rho*(v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }    
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("dropsonde_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -544,14 +586,22 @@ bool VarDriver3D::preProcessMetObs()
                     if ((u != -999) and (rho != -999)) {						
                         // rho u 1 m/s error
                         varOb.setWeight(1., 0);
-                        rhou = rho*(u - Um);
+                        if (runMode == XYZ) {
+                            rhou = rho*(u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("flightlevel_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
                         
                         varOb.setWeight(1., 1);
-                        rhov = rho*(v - Vm);
+                        if (runMode == XYZ) {
+                            rhov = rho*(v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("flightlevel_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -609,7 +659,11 @@ bool VarDriver3D::preProcessMetObs()
                     if ((u != -999) and (rho != -999)) {
                         // rho u 1 m/s error
                         varOb.setWeight(1., 0);
-                        rhou = rho*(u - Um);
+                        if (runMode == XYZ) {
+                            rhou = rho*(u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("insitu_rhou_error").toFloat());
@@ -617,7 +671,11 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setWeight(0., 0);
                         
                         varOb.setWeight(1., 1);
-                        rhov = rho*(v - Vm);
+                        if (runMode == XYZ) {
+                            rhov = rho*(v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("insitu_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -680,8 +738,13 @@ bool VarDriver3D::preProcessMetObs()
                     v = metOb.getCartesianVwind();
                     if (u != -999) {
                         // rho u 1 m/s error
+                        // Multiply by rho later from grid values
                         varOb.setWeight(1., 0);
-                        rhou = (u - Um);
+                        if (runMode == XYZ) {
+                            rhou = (u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("qscat_rhou_error").toFloat());
@@ -690,7 +753,11 @@ bool VarDriver3D::preProcessMetObs()
                         
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
-                        rhov = (v - Vm);
+                        if (runMode == XYZ) {
+                            rhov = (v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("qscat_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -704,8 +771,13 @@ bool VarDriver3D::preProcessMetObs()
                     v = metOb.getCartesianVwind();
                     if (u != -999) {						
                         // rho u 1 m/s error
+                        // Multiply by rho later from grid values
                         varOb.setWeight(1., 0);
-                        rhou = (u - Um);
+                        if (runMode == XYZ) {
+                            rhou = (u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("ascat_rhou_error").toFloat());
@@ -714,7 +786,11 @@ bool VarDriver3D::preProcessMetObs()
                         
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
-                        rhov = (v - Vm);
+                        if (runMode == XYZ) {
+                            rhov = (v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("ascat_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -728,8 +804,13 @@ bool VarDriver3D::preProcessMetObs()
                     v = metOb.getCartesianVwind();
                     if (u != -999) {
                         // rho u 10 m/s error
+                        // Multiply by rho later from grid values
                         varOb.setWeight(1., 0);
-                        rhou = (u - Um);
+                        if (runMode == XYZ) {
+                            rhou = (u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
                         varOb.setError(configHash.value("amv_rhou_error").toFloat());
@@ -738,7 +819,11 @@ bool VarDriver3D::preProcessMetObs()
                         
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
-                        rhov = (v - Vm);
+                        if (runMode == XYZ) {
+                            rhou = (u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("amv_rhov_error").toFloat());
                         obVector.push_back(varOb);
@@ -752,8 +837,14 @@ bool VarDriver3D::preProcessMetObs()
                     // Geometry terms
                     real az = metOb.getAzimuth()*Pi/180.;
                     real el = metOb.getElevation()*Pi/180.;
-                    real uWgt = sin(az)*cos(el);
-                    real vWgt = cos(az)*cos(el);
+                    real uWgt, vWgt;
+                    if (runMode == XYZ) {
+                        uWgt = sin(az)*cos(el);
+                        vWgt = cos(az)*cos(el);
+                    } else if (runMode == RTZ) {
+                        uWgt = (obX*sin(az)*cos(el) + obY*cos(az)*cos(el))/obRadius;
+                        vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
+                    }
                     real wWgt = sin(el);
                     
                     // Fall speed is assumed zero since we are dealing with aerosols
@@ -786,8 +877,14 @@ bool VarDriver3D::preProcessMetObs()
                     // Geometry terms
                     real az = metOb.getAzimuth()*Pi/180.;
                     real el = metOb.getElevation()*Pi/180.;
-                    real uWgt = sin(az)*cos(el);
-                    real vWgt = cos(az)*cos(el);
+                    real uWgt, vWgt;
+                    if (runMode == XYZ) {
+                        uWgt = sin(az)*cos(el);
+                        vWgt = cos(az)*cos(el);
+                    } else if (runMode == RTZ) {
+                        uWgt = (obX*sin(az)*cos(el) + obY*cos(az)*cos(el))/obRadius;
+                        vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
+                    }
                     real wWgt = sin(el);
                     
                     // Fall speed
@@ -893,23 +990,33 @@ bool VarDriver3D::preProcessMetObs()
                     // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
                     real ROI = configHash.value("reflectivity_roi").toFloat();
                     real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
-                    for (int zi = 0; zi < (kdim-1); zi++) {	
-                        for (int zmu = -1; zmu <= 1; zmu += 2) {
-                            real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-                            if (fabs(zPos-obZ) > kincr*ROI*2.) continue;
-                            for (int xi = 0; xi < (idim-1); xi++) {
-                                for (int xmu = -1; xmu <= 1; xmu += 2) {
-                                    real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-                                    if (fabs(xPos-obX) > iincr*ROI*2.) continue;
-                                    
-                                    for (int yi = 0; yi < (jdim-1); yi++) {
-                                        for (int ymu = -1; ymu <= 1; ymu += 2) {
-                                            real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-                                            if (fabs(yPos-obY) > jincr*ROI*2.) continue;
-                                            real rSquare = (obX-xPos)*(obX-xPos) + (obY-yPos)*(obY-yPos) + (obZ-zPos)*(obZ-zPos); 
-                                            int bgI = xi*2 + (xmu+1)/2;
-                                            int bgJ = yi*2 + (ymu+1)/2;
-                                            int bgK = zi*2 + (zmu+1)/2;
+                    for (int ki = 0; ki < (kdim-1); ki++) {	
+                        for (int kmu = -1; kmu <= 1; kmu += 2) {
+                            real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+                            if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
+                            for (int ii = 0; ii < (idim-1); ii++) {
+                                for (int imu = -1; imu <= 1; imu += 2) {
+                                    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+                                    if (runMode == XYZ) {
+                                        if (fabs(iPos-obX) > iincr*ROI*2.) continue;
+                                    } else if (runMode == RTZ) {
+                                        if (fabs(iPos-obRadius) > iincr*ROI*2.) continue;
+                                    }
+                                    for (int ji = 0; ji < (jdim-1); ji++) {
+                                        for (int jmu = -1; jmu <= 1; jmu += 2) {
+                                            real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+                                            real rSquare = 0.0;
+                                            if (runMode == XYZ) {
+                                                if (fabs(jPos-obY) > jincr*ROI*2.) continue;
+                                                rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+                                            } else if (runMode == RTZ) {
+                                                if (fabs(jPos-obTheta) > jincr*ROI*2.) continue;
+                                                rSquare = (obRadius-iPos)*(obRadius-iPos) + (obTheta-jPos)*(obTheta-jPos) + (obZ-kPos)*(obZ-kPos);                                                
+                                            }
+
+                                            int bgI = ii*2 + (imu+1)/2;
+                                            int bgJ = ji*2 + (jmu+1)/2;
+                                            int bgK = ki*2 + (kmu+1)/2;
                                             int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
                                             if (rSquare < Rsquare) {
                                                 real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -982,8 +1089,13 @@ bool VarDriver3D::preProcessMetObs()
                                         }
                                         // On the nodes for mass continuity
                                         if (!ihalf and !jhalf and !khalf and (mc_weight > 0.0)){
-                                            varOb.setCartesianX(i);
-                                            varOb.setCartesianY(j);
+                                            if (runMode == XYZ) {
+                                                varOb.setCartesianX(i);
+                                                varOb.setCartesianY(j);
+                                            } else if (runMode == RTZ) {
+                                                varOb.setRadius(i);
+                                                varOb.setTheta(j);
+                                            }
                                             varOb.setAltitude(k);
                                             varOb.setError(mc_weight);
                                             varOb.setOb(0.);
@@ -999,8 +1111,13 @@ bool VarDriver3D::preProcessMetObs()
                             varOb.setWeight(0.0, 1, 2);
                             varOb.setWeight(0.0, 2, 3);
                             varOb.setWeight(1., 2);
-                            varOb.setCartesianX(i);
-                            varOb.setCartesianY(j);
+                            if (runMode == XYZ) {
+                                varOb.setCartesianX(i);
+                                varOb.setCartesianY(j);
+                            } else if (runMode == RTZ) {
+                                varOb.setRadius(i);
+                                varOb.setTheta(j);
+                            }
                             varOb.setError(pseudow_weight);
                             varOb.setOb(0.);
                             if (ihalf and jhalf and imu and jmu){
@@ -1052,8 +1169,13 @@ bool VarDriver3D::preProcessMetObs()
         Observation ob = obVector.at(i);
         *od++ = ob.getOb();
         *od++ = ob.getInverseError();
-        *od++ = ob.getCartesianX();
-        *od++ = ob.getCartesianY();
+        if (runMode == XYZ) {
+            *od++ = ob.getCartesianX();
+            *od++ = ob.getCartesianY();
+        } else if (runMode == RTZ) {
+            *od++ = ob.getRadius();
+            *od++ = ob.getTheta();
+        }
         *od++ = ob.getAltitude();		
         *oi++ = ob.getType();
         *oi++ = ob.getTime();
@@ -1072,8 +1194,13 @@ bool VarDriver3D::preProcessMetObs()
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
         obs[n+1] = ob.getInverseError();
-        obs[n+2] = ob.getCartesianX();
-        obs[n+3] = ob.getCartesianY();
+        if (runMode == XYZ) {
+            obs[n+2] = ob.getCartesianX();
+            obs[n+3] = ob.getCartesianY();
+        } else if (runMode == RTZ) {
+            obs[n+2] = ob.getRadius();
+            obs[n+3] = ob.getTheta();
+        }
         obs[n+4] = ob.getAltitude();
         obs[n+5] = ob.getType();
         obs[n+6] = ob.getTime();
@@ -1103,23 +1230,28 @@ bool VarDriver3D::loadMetObs()
     
     Observation varOb;
     real wgt[numVars][4];
-    real xPos, yPos, zPos, ob, error;
+    real iPos, jPos, kPos, ob, error;
     int type;
     int time;
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
     
     // Open and read the file
     ifstream obstream("samurai_Observations.in");
-    while (obstream >> ob >> error >> xPos >> yPos >> zPos >> type >> time
+    while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
            >> wgt[0][0] >> wgt[1][0] >> wgt[2][0] >> wgt[3][0] >> wgt[4][0] >> wgt[5][0] >> wgt[6][0]
            >> wgt[0][1] >> wgt[1][1] >> wgt[2][1] >> wgt[3][1] >> wgt[4][1] >> wgt[5][1] >> wgt[6][1]
            >> wgt[0][2] >> wgt[1][2] >> wgt[2][2] >> wgt[3][2] >> wgt[4][2] >> wgt[5][2] >> wgt[6][2]
            >> wgt[0][3] >> wgt[1][3] >> wgt[2][3] >> wgt[3][3] >> wgt[4][3] >> wgt[5][3] >> wgt[6][3])
     {
         varOb.setOb(ob);
-        varOb.setCartesianX(xPos);
-        varOb.setCartesianY(yPos);
-        varOb.setAltitude(zPos);
+        if (runMode == XYZ) {
+            varOb.setCartesianX(iPos);
+            varOb.setCartesianY(jPos);
+        } else if (runMode == RTZ) {
+            varOb.setRadius(iPos);
+            varOb.setTheta(jPos);
+        }
+        varOb.setAltitude(kPos);
         varOb.setType(type);
         varOb.setTime(time);
         varOb.setError(1./error);
@@ -1138,8 +1270,13 @@ bool VarDriver3D::loadMetObs()
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
         obs[n+1] = ob.getInverseError();
-        obs[n+2] = ob.getCartesianX();
-        obs[n+3] = ob.getCartesianY();
+        if (runMode == XYZ) {
+            obs[n+2] = ob.getCartesianX();
+            obs[n+3] = ob.getCartesianY();
+        } else if (runMode == RTZ) {
+            obs[n+2] = ob.getRadius();
+            obs[n+3] = ob.getTheta();
+        }
         obs[n+4] = ob.getAltitude();
         obs[n+5] = ob.getType();
         obs[n+6] = ob.getTime();
@@ -1171,7 +1308,7 @@ int VarDriver3D::loadBackgroundObs()
     int time;
     QString bgTimestring, tcstart, tcend;
     real lat, lon, alt, u, v, w, t, qv, rhoa;
-    real bgX, bgY, bgZ;
+    real bgX, bgY, bgZ, bgRadius, bgTheta;
     // backgroundroi is in km, ROI is gridpoints
     real ROI = configHash.value("background_roi").toFloat() / iincr;
     real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI);
@@ -1214,12 +1351,21 @@ int VarDriver3D::loadBackgroundObs()
         bgY = (metY - tcY)/1000.;
         real heightm = alt;
         bgZ = heightm/1000.;
+        bgRadius = sqrt(bgX*bgX + bgY*bgY);
+        bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
         
         // Make sure the ob is in the Interpolation domain
-        if ((bgX < (imin-(ROI*iincr*2))) or (bgX > (imax+(ROI*iincr*2))) or
-            (bgY < (jmin-(ROI*jincr*2))) or (bgY > (jmax+(ROI*jincr*2)))
-            or (bgZ < kmin)) //Allow for higher values for interpolation purposes
-            continue;
+        if (runMode == XYZ) {
+            if ((bgX < (imin-(ROI*iincr*2))) or (bgX > (imax+(ROI*iincr*2))) or
+                (bgY < (jmin-(ROI*jincr*2))) or (bgY > (jmax+(ROI*jincr*2)))
+                or (bgZ < kmin)) //Allow for higher values for interpolation purposes
+                continue;
+        } else if (runMode == RTZ) {
+            if ((bgRadius < (imin-(ROI*iincr*2))) or (bgRadius > (imax+(ROI*iincr*2))) or
+                (bgTheta < jmin-(ROI*jincr*2)) or (bgTheta > jmax+(ROI*jincr*2)) or
+                (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
+                continue;
+        }
         
         // Reference states			
         real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
@@ -1237,7 +1383,11 @@ int VarDriver3D::loadBackgroundObs()
         real logZ = log(bgZ);
         // We assume here that the background precipitation field is always zero
         real qr = 0.;
-        bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
+        if (runMode == XYZ) {
+            bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
+        } else if (runMode == RTZ) {
+            bgIn << bgRadius << bgTheta << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
+        }
         if (logheights.size() == 0) {
             // First column
             logheights.push_back(logZ);
@@ -1269,27 +1419,36 @@ int VarDriver3D::loadBackgroundObs()
             }
             
             // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-            for (int zi = 0; zi < (kdim-1); zi++) {	
-                for (int zmu = -1; zmu <= 1; zmu += 2) {
-                    real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-                    if (zPos < 0) zPos = 0.001;
-                    real logzPos = log(zPos);
+            for (int ki = 0; ki < (kdim-1); ki++) {	
+                for (int kmu = -1; kmu <= 1; kmu += 2) {
+                    real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+                    if (kPos < 0) kPos = 0.001;
+                    real logzPos = log(kPos);
                     if (logzPos < logheights[0]) logzPos = logheights[0];
-                    
-                    for (int xi = 0; xi < (idim-1); xi++) {
-                        for (int xmu = -1; xmu <= 1; xmu += 2) {
-                            real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-                            if (fabs(xPos-bgX) > iincr*ROI*2.) continue;
-                            
-                            for (int yi = 0; yi < (jdim-1); yi++) {
-                                for (int ymu = -1; ymu <= 1; ymu += 2) {
-                                    real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-                                    if (fabs(yPos-bgY) > jincr*ROI*2.) continue;
-                                    
-                                    real rSquare = (bgX-xPos)*(bgX-xPos) + (bgY-yPos)*(bgY-yPos);
-                                    int bgI = xi*2 + (xmu+1)/2;
-                                    int bgJ = yi*2 + (ymu+1)/2;
-                                    int bgK = zi*2 + (zmu+1)/2;
+                    //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
+                    for (int ii = 0; ii < (idim-1); ii++) {
+                        for (int imu = -1; imu <= 1; imu += 2) {
+                            real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+                            if (runMode == XYZ) {
+                                if (fabs(iPos-bgX) > iincr*ROI*2.) continue;
+                            } else if (runMode == RTZ) {
+                                if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
+                            }
+                            for (int ji = 0; ji < (jdim-1); ji++) {
+                                for (int jmu = -1; jmu <= 1; jmu += 2) {
+                                    real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+                                    real rSquare = 0.0;
+                                    if (runMode == XYZ) {
+                                        if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
+                                        rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
+                                    } else if (runMode == RTZ) {
+                                        if (fabs(jPos-bgTheta) > jincr*ROI*2.) continue;
+                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
+                                    }
+
+                                    int bgI = ii*2 + (imu+1)/2;
+                                    int bgJ = ji*2 + (jmu+1)/2;
+                                    int bgK = ki*2 + (kmu+1)/2;
                                     int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
                                     if (rSquare < Rsquare) {
                                         real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -1361,25 +1520,36 @@ int VarDriver3D::loadBackgroundObs()
     }
     
     // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-    for (int zi = 0; zi < (kdim-1); zi++) {	
-        for (int zmu = -1; zmu <= 1; zmu += 2) {
-            real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-            real logzPos = log(zPos);
-            
-            for (int xi = 0; xi < (idim-1); xi++) {
-                for (int xmu = -1; xmu <= 1; xmu += 2) {
-                    real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-                    if (fabs(xPos-bgX) > ROI*iincr*2.) continue;
-                    
-                    for (int yi = 0; yi < (jdim-1); yi++) {
-                        for (int ymu = -1; ymu <= 1; ymu += 2) {
-                            real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-                            if (fabs(yPos-bgY) > ROI*jincr*2.) continue;
+    for (int ki = 0; ki < (kdim-1); ki++) {	
+        for (int kmu = -1; kmu <= 1; kmu += 2) {
+            real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+            if (kPos < 0) kPos = 0.001;
+            real logzPos = log(kPos);
+            if (logzPos < logheights[0]) logzPos = logheights[0];
+            //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
+            for (int ii = 0; ii < (idim-1); ii++) {
+                for (int imu = -1; imu <= 1; imu += 2) {
+                    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+                    if (runMode == XYZ) {
+                        if (fabs(iPos-bgX) > iincr*ROI*2.) continue;
+                    } else if (runMode == RTZ) {
+                        if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
+                    }
+                    for (int ji = 0; ji < (jdim-1); ji++) {
+                        for (int jmu = -1; jmu <= 1; jmu += 2) {
+                            real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+                            real rSquare = 0.0;
+                            if (runMode == XYZ) {
+                                if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
+                                rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
+                            } else if (runMode == RTZ) {
+                                if (fabs(jPos-bgTheta) > jincr*ROI*2.) continue;
+                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
+                            }
                             
-                            real rSquare = (bgX-xPos)*(bgX-xPos)/(iincr*iincr)+ (bgY-yPos)*(bgY-yPos)/(jincr*jincr);
-                            int bgI = xi*2 + (xmu+1)/2;
-                            int bgJ = yi*2 + (ymu+1)/2;
-                            int bgK = zi*2 + (zmu+1)/2;
+                            int bgI = ii*2 + (imu+1)/2;
+                            int bgJ = ji*2 + (jmu+1)/2;
+                            int bgK = ki*2 + (kmu+1)/2;
                             int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
                             if (rSquare < Rsquare) {
                                 real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -1428,26 +1598,24 @@ int VarDriver3D::loadBackgroundObs()
     int numbgObs = bgIn.size()*7/11;
     if (numbgObs > 0) {
         // Check interpolation
-        for (int zi = 0; zi < (kdim-1); zi++) {	
-            for (int zmu = -1; zmu <= 1; zmu += 2) {
-                real zPos = kmin + kincr * (zi + (0.5*sqrt(1./3.) * zmu + 0.5));
-                
-                for (int xi = 0; xi < (idim-1); xi++) {
-                    for (int xmu = -1; xmu <= 1; xmu += 2) {
-                        real xPos = imin + iincr * (xi + (0.5*sqrt(1./3.) * xmu + 0.5));
-                        
-                        for (int yi = 0; yi < (jdim-1); yi++) {
-                            for (int ymu = -1; ymu <= 1; ymu += 2) {
-                                real yPos = jmin + jincr * (yi + (0.5*sqrt(1./3.) * ymu + 0.5));
-                                int bgI = xi*2 + (xmu+1)/2;
-                                int bgJ = yi*2 + (ymu+1)/2;
-                                int bgK = zi*2 + (zmu+1)/2;
+        for (int ki = 0; ki < (kdim-1); ki++) {	
+            for (int kmu = -1; kmu <= 1; kmu += 2) {
+                real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+                for (int ii = 0; ii < (idim-1); ii++) {
+                    for (int imu = -1; imu <= 1; imu += 2) {
+                        real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+                        for (int ji = 0; ji < (jdim-1); ji++) {
+                            for (int jmu = -1; jmu <= 1; jmu += 2) {
+                                real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+                                int bgI = ii*2 + (imu+1)/2;
+                                int bgJ = ji*2 + (jmu+1)/2;
+                                int bgK = ki*2 + (kmu+1)/2;
                                 int bIndex = numVars*(idim-1)*2*(jdim-1)*2*bgK + numVars*(idim-1)*2*bgJ +numVars*bgI;
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
                                     } else {
-                                        cout << "Empty background mish at " << xPos << ", " << yPos << ", " << zPos << endl;
+                                        cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
                                     }
                                 }				
                                 bgWeights[bIndex] = 0.;
@@ -1477,40 +1645,89 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     for (unsigned int m=0; m < numbgObs*(7+numVars*numDerivatives); m++) bgObs[m] = 0.;
     
     int p = 0;
+    real obX, obY, obRadius, obTheta;
     for (int m=0; m < bgIn.size(); m+=11) {
-        real bgX = bgIn[m];
-        real bgY = bgIn[m+1];
-        real bgZ = exp(bgIn[m+2]);
-        real bgTime = bgIn[m+3];
-        if ((bgX < imin) or (bgX > imax) or
-            (bgY < jmin) or (bgY > jmax) or
-            (bgZ < kmin) or (bgZ > kmax)) {
-            numbgObs -= 7;
-            continue;
+        if (runMode == XYZ) {
+            obX = bgIn[m];
+            obY = bgIn[m+1];            
+        } else if (runMode == RTZ) {
+            obRadius = bgIn[m];
+            obTheta = bgIn[m+1];
         }
-        // Restrict the horizontal domain if we are using the R0 BC
-        if (configHash.value("i_bc") == "R0") {
-            if ((bgX < (imin+iincr)) or (bgX > (imax-iincr)))
+        real obZ = exp(bgIn[m+2]);
+        real obTime = bgIn[m+3];
+        // Make sure the ob is in the domain
+        if (runMode == XYZ) {
+            if ((obX < imin) or (obX > imax) or
+                (obY < jmin) or (obY > jmax) or
+                (obZ < kmin) or (obZ > kmax)) {
+                numbgObs -= 7;
                 continue;
-        }
-        if (configHash.value("j_bc") == "R0") {
-            if ((bgY < (jmin+jincr)) or (bgY > (jmax-jincr))) 
+            }
+            
+            // Restrict the horizontal domain if we are using the R0 BC
+            if (configHash.value("i_bc") == "R0") {
+                if ((obX < (imin+iincr)) or (obX > (imax-iincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
+            if (configHash.value("j_bc") == "R0") {
+                if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
+            if (configHash.value("k_bc") == "R0") {
+                if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
+        } else if (runMode == RTZ) {
+            if ((obRadius < imin) or (obRadius > imax) or
+                (obTheta < jmin) or (obTheta > jmax) or
+                (obZ < kmin) or (obZ > kmax)) {
+                numbgObs -= 7;
                 continue;
+            }
+            
+            // Restrict the horizontal domain if we are using the R0 BC
+            if (configHash.value("i_bc") == "R0") {
+                if ((obRadius < (imin+iincr)) or (obRadius > (imax-iincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
+            if (configHash.value("j_bc") == "R0") {
+                if ((obTheta < (jmin+jincr)) or (obTheta > (jmax-jincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
+            if (configHash.value("k_bc") == "R0") {
+                if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr))) {
+                    numbgObs -= 7;
+                    continue;
+                }
+            }
         }
-        if (configHash.value("k_bc") == "R0") {
-            if ((bgZ < (kmin+kincr)) or (bgZ > (kmax-kincr)))
-                continue;
-        }
+
         for (unsigned int n = 0; n < numVars; n++) {
             bgObs[p] = bgIn[m+4+n];
             // Error of background = 1
             bgObs[p+1] = 1.;
-            bgObs[p+2] = bgX;
-            bgObs[p+3] = bgY;
-            bgObs[p+4] = bgZ;
+            if (runMode == XYZ) {
+                bgObs[p+2] = obX;
+                bgObs[p+3] = obY;
+            } else if (runMode == RTZ) {
+                bgObs[p+2] = obRadius;
+                bgObs[p+3] = obTheta;
+            }
+            bgObs[p+4] = obZ;
             // Null type
             bgObs[p+5] = -1;
-            bgObs[p+6] = bgTime;
+            bgObs[p+6] = obTime;
             bgObs[p+7+n] = 1.;
             p += (7+numVars*numDerivatives);
         }
