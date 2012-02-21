@@ -71,7 +71,7 @@ int main (int argc, char *argv[]) {
                     QDomElement tag = configItem.toElement();
                     if (tag.tagName() == "mode") {
                         QString mode = tag.text();
-                        if (mode == "XYZ") {
+                        if ((mode == "XYZ") or (mode == "RTZ")) {
                             driver = new VarDriver3D();
                         } else {
                             std:: cout << "Unsupported run mode " << mode.toStdString() << std::endl;

@@ -1092,16 +1092,21 @@ bool VarDriver3D::preProcessMetObs()
                                             if (runMode == XYZ) {
                                                 varOb.setCartesianX(i);
                                                 varOb.setCartesianY(j);
+                                                varOb.setWeight(1.0, 0, 1);
+                                                varOb.setWeight(1.0, 1, 2);
+                                                varOb.setWeight(1.0, 2, 3);
                                             } else if (runMode == RTZ) {
                                                 varOb.setRadius(i);
                                                 varOb.setTheta(j);
+                                                real rInverse = 1.0/i;
+                                                varOb.setWeight(rInverse, 0, 0);
+                                                varOb.setWeight(1.0, 0, 1);
+                                                varOb.setWeight(rInverse, 1, 2);
+                                                varOb.setWeight(1.0, 2, 3);
                                             }
                                             varOb.setAltitude(k);
                                             varOb.setError(mc_weight);
                                             varOb.setOb(0.);
-                                            varOb.setWeight(1.0, 0, 1);
-                                            varOb.setWeight(1.0, 1, 2);
-                                            varOb.setWeight(1.0, 2, 3);
                                             obVector.push_back(varOb);
                                         }
                                     }
