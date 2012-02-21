@@ -27,13 +27,13 @@ class CostFunction3D: public CostFunction
 	
 public:
 	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
-	~CostFunction3D();
+	virtual ~CostFunction3D();
     void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref); 
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
 	
-private:
+protected:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
@@ -52,7 +52,7 @@ private:
 	bool SAtransform_ori(real* Bstate, real* Astate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
-	bool outputAnalysis(const QString& suffix, real* Astate);
+	virtual bool outputAnalysis(const QString& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);

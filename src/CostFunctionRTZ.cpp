@@ -1,12 +1,12 @@
 /*
- *  CostFunctionXYZ.cpp
+ *  CostFunctionRTZ.cpp
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
-#include "CostFunctionXYZ.h"
+#include "CostFunctionRTZ.h"
 #include <cmath>
 #include <QTextStream>
 #include <QDir>
@@ -14,20 +14,20 @@
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
-CostFunctionXYZ::CostFunctionXYZ(const int& numObs, const int& stateSize)
+CostFunctionRTZ::CostFunctionRTZ(const int& numObs, const int& stateSize)
 	: CostFunction3D(numObs, stateSize)
 {
 }
 
-CostFunctionXYZ::~CostFunctionXYZ()
+CostFunctionRTZ::~CostFunctionRTZ()
 {
 }
-bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
+bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 {
 	
 	cout << "Outputting " << suffix.toStdString() << "...\n";
 	// H --> to Mish for output
-	QString samuraiout = "samurai_XYZ_" + suffix + ".out";
+	QString samuraiout = "samurai_RTZ_" + suffix + ".out";
 	ofstream samuraistream(samuraiout.toAscii().data());
 	samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
 	samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
@@ -312,7 +312,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 		}
 	}
     
-	QString fileName = "samurai_XYZ_" + suffix;
+	QString fileName = "samurai_RTZ_" + suffix;
 	QString outFileName;
 	if(QDir::isAbsolutePath(fileName)) {
 		outFileName = fileName;
@@ -483,7 +483,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 	
 }     
 
-bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
+bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 {
 	NcError err(NcError::verbose_nonfatal);
 	int NC_ERR = 0;
@@ -1036,7 +1036,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	
 }
 
-bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
+bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 {
 	// Initialize header
 	int id[511];

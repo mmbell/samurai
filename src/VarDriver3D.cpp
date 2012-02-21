@@ -239,7 +239,11 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;	
 	
-	obCost3D = new CostFunction3D(obVector.size(), bStateSize);
+    if (runMode == XYZ) {
+        obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
+    } else if (runMode == RTZ) {
+        obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
+    }
 	obCost3D->initialize(&configHash, bgU, obs, refstate);
 	
 	// If we got here, then everything probably went OK!
@@ -1739,7 +1743,11 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     }	
     
     // Adjust the background field to the spline mish
-    bgCost3D = new CostFunction3D(numbgObs, bStateSize);
+    if (runMode == XYZ) {
+        bgCost3D = new CostFunctionXYZ(numbgObs, bStateSize);
+    } else if (runMode == RTZ) {
+        bgCost3D = new CostFunctionRTZ(numbgObs, bStateSize);
+    }
     bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
     /* Set the iteration to zero -- this will prevent writing the background file until after the adjustment
      which is presumably what you want most of the time. Otherwise, you would not be here */

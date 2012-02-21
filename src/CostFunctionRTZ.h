@@ -1,23 +1,23 @@
 /*
- *  CostFunctionXYZ.h
+ *  CostFunctionRTZ.h
  *  samurai
  *
- *  Copyright 2008 Michael Bell. All rights reserved.
+ *  Copyright 2012 Michael Bell. All rights reserved.
  *
  */
 
-#ifndef COSTFUNCXYZ_H
-#define COSTFUNCXYZ_H
+#ifndef COSTFUNCRTZ_H
+#define COSTFUNCRTZ_H
 
 #include "CostFunction3D.h"
 #include <QString>
 
-class CostFunctionXYZ: public CostFunction3D
+class CostFunctionRTZ: public CostFunction3D
 {
 	
 public:
-	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
-	~CostFunctionXYZ();
+	CostFunctionRTZ(const int& numObs = 0, const int& stateSize = 0);
+	~CostFunctionRTZ();
 	
 private:
 	bool outputAnalysis(const QString& suffix, real* Astate);

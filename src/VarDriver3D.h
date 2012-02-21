@@ -13,7 +13,8 @@
 #include "VarDriver.h"
 #include "BSpline.h"
 #include "Observation.h"
-#include "CostFunction3D.h"
+#include "CostFunctionXYZ.h"
+#include "CostFunctionRTZ.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include <iostream>

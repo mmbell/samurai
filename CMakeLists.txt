@@ -47,7 +47,9 @@ set ( samurai_HDRS
         src/BSpline.h 
         src/CostFunction.h 
         src/CostFunction3D.h	
-        src/MetObs.h 
+	src/CostFunctionXYZ.h
+	src/CostFunctionRTZ.h
+	src/MetObs.h 
         src/Observation.h 
         src/RecursiveFilter.h 
         src/VarDriver.h 
@@ -65,6 +67,8 @@ set ( samurai_SRCS
 	src/BSplineF.cpp
 	src/CostFunction.cpp
 	src/CostFunction3D.cpp
+	src/CostFunctionXYZ.cpp
+	src/CostFunctionRTZ.cpp
 	src/main.cpp
 	src/MetObs.cpp
 	src/Observation.cpp
