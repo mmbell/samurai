@@ -199,9 +199,9 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	maxIter = configHash.value("num_iterations").toInt();
     
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
-	bool loadBG = configHash.value("load_background").toInt();
+	QString loadBG = configHash.value("load_background");
 	int numbgObs = 0;
-	if (loadBG) {
+	if (loadBG == "true") {
 		numbgObs = loadBackgroundObs();
 		if (numbgObs < 0) {
 			cout << "Error loading background file\n";
@@ -212,8 +212,8 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	/* Optionally adjust the interpolated background to satisfy mass continuity
 	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
 	 the background estimates as "observations" */
-	bool adjustBG = configHash.value("adjust_background").toInt();
-	if (adjustBG and numbgObs) {
+	QString adjustBG = configHash.value("adjust_background");
+	if ((adjustBG == "true") and numbgObs) {
 		if (!adjustBackground(bStateSize)) {
 			cout << "Error adjusting background\n";
 			return false;
@@ -222,8 +222,8 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.in file
-	bool preprocess = configHash.value("preprocess_obs").toInt();
-	if (preprocess) {
+	QString preprocess = configHash.value("preprocess_obs");
+	if (preprocess == "true") {
 		if (!preProcessMetObs()) {
 			cout << "Error pre-processing observations\n";
 			return false;

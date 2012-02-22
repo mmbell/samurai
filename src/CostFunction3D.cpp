@@ -148,8 +148,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	
 	// Allocate memory for the final gridded analysis
 	int nodes = iDim*jDim*kDim;
-	finalAnalysis = new real[nodes*33];
-	//finalGradients = new real[nodes*33];
+	finalAnalysis = new real[nodes*45];
 	
 	// Adjust the internal, variable domain to exclude boundaries in R0, R2, and R3 cases
 	adjustInternalDomain(1);

@@ -84,7 +84,6 @@ protected:
 	real* kL;
 	real* kLw;
 	real* finalAnalysis;
-	real* finalGradients;
 	int varDim;
     int derivDim;
 	real bgError[7];
