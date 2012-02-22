@@ -437,6 +437,7 @@ bool VarDriver3D::preProcessMetObs()
 			real obZ = heightm/1000.;
 			real obRadius = sqrt(obX*obX + obY*obY);
             real obTheta = 180.0 * atan2(obY, obX) / Pi;
+            if (obTheta < 0) obTheta += 360.0;
             
 			// Make sure the ob is in the domain
             if (runMode == XYZ) {

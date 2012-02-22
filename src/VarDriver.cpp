@@ -1052,7 +1052,7 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setDewpoint(-999.0);
 		}
-		if (lineparts[7].toFloat() >= 0) {	
+		if (lineparts[8].toFloat() >= 0) {	
 			ob.setWindDirection(lineparts[7].toFloat());
 			ob.setWindSpeed(lineparts[8].toFloat());
 		} else {
