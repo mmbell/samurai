@@ -37,7 +37,8 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
     }
     
 	int nodes = iDim*jDim*kDim;
-	real* internalAnalysis = new real[nodes*45];
+    int analysisDim = 46;
+	real* internalAnalysis = new real[nodes*analysisDim];
 	
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
@@ -219,6 +220,11 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
 										real mcresidual = rhoudx + rhovdy + rhowdz;
                                         
+                                        // Add Coriolis parameter to relative vorticity
+                                        real latReference = configHash->value("ref_lat").toFloat();	
+                                        real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
+                                        real absVorticity = vorticity + Coriolisf;
+                                        
                                         // Thermodynamic derivatives
                                         tdx *= 100.; tdy *= 100.; tdz *= 100.;
                                         pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhodx-rhoadx)*temp)*461./100.;
@@ -240,6 +246,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 												tprime = -999.;
 												pprime = -999.;
 												vorticity = -999.;
+                                                absVorticity = -999.;
 												divergence = -999.;
 												okuboweiss = -999.;
 												strain = -999.;
@@ -305,28 +312,28 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 											internalAnalysis[fIndex * 21 + posIndex] = qv;
 											internalAnalysis[fIndex * 22 + posIndex] = h;
 											internalAnalysis[fIndex * 23 + posIndex] = qr;
-                                            
-											internalAnalysis[fIndex * 24 + posIndex] = udx;
-											internalAnalysis[fIndex * 25 + posIndex] = vdx;
-											internalAnalysis[fIndex * 26 + posIndex] = wdx;
-											internalAnalysis[fIndex * 27 + posIndex] = udy;
-											internalAnalysis[fIndex * 28 + posIndex] = vdy;
-											internalAnalysis[fIndex * 29 + posIndex] = wdy;
-											internalAnalysis[fIndex * 30 + posIndex] = udz;
-											internalAnalysis[fIndex * 31 + posIndex] = vdz;
-											internalAnalysis[fIndex * 32 + posIndex] = wdz;
-                                            internalAnalysis[fIndex * 33 + posIndex] = tdx;
-											internalAnalysis[fIndex * 34 + posIndex] = tdy;
-											internalAnalysis[fIndex * 35 + posIndex] = tdz;
-											internalAnalysis[fIndex * 36 + posIndex] = qvdx;
-											internalAnalysis[fIndex * 37 + posIndex] = qvdy;
-											internalAnalysis[fIndex * 38 + posIndex] = qvdz;
-											internalAnalysis[fIndex * 39 + posIndex] = pdx;
-											internalAnalysis[fIndex * 40 + posIndex] = pdy;
-											internalAnalysis[fIndex * 41 + posIndex] = pdz;
-                                            internalAnalysis[fIndex * 42 + posIndex] = rhodx;
-											internalAnalysis[fIndex * 43 + posIndex] = rhody;
-											internalAnalysis[fIndex * 44 + posIndex] = rhodz - rhobardz;
+                                            internalAnalysis[fIndex * 24 + posIndex] = absVorticity;
+											internalAnalysis[fIndex * 25 + posIndex] = udx;
+											internalAnalysis[fIndex * 26 + posIndex] = vdx;
+											internalAnalysis[fIndex * 27 + posIndex] = wdx;
+											internalAnalysis[fIndex * 28 + posIndex] = udy;
+											internalAnalysis[fIndex * 29 + posIndex] = vdy;
+											internalAnalysis[fIndex * 30 + posIndex] = wdy;
+											internalAnalysis[fIndex * 31 + posIndex] = udz;
+											internalAnalysis[fIndex * 32 + posIndex] = vdz;
+											internalAnalysis[fIndex * 33 + posIndex] = wdz;
+                                            internalAnalysis[fIndex * 34 + posIndex] = tdx;
+											internalAnalysis[fIndex * 35 + posIndex] = tdy;
+											internalAnalysis[fIndex * 36 + posIndex] = tdz;
+											internalAnalysis[fIndex * 37 + posIndex] = qvdx;
+											internalAnalysis[fIndex * 38 + posIndex] = qvdy;
+											internalAnalysis[fIndex * 39 + posIndex] = qvdz;
+											internalAnalysis[fIndex * 40 + posIndex] = pdx;
+											internalAnalysis[fIndex * 41 + posIndex] = pdy;
+											internalAnalysis[fIndex * 42 + posIndex] = pdz;
+                                            internalAnalysis[fIndex * 43 + posIndex] = rhodx;
+											internalAnalysis[fIndex * 44 + posIndex] = rhody;
+											internalAnalysis[fIndex * 45 + posIndex] = rhodz - rhobardz;
 										}
 									}
 								}
@@ -439,14 +446,15 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 	int internalkDim = kDim;
 	
 	adjustInternalDomain(-1);
-	
+    finalAnalysis = new real[iDim*jDim*kDim*analysisDim];
+    
 	int fIndex = iDim*jDim*kDim; 
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
 				// Initialize to zero
-				for (int n = 0; n < 33; ++n) {
+				for (int n = 0; n < analysisDim; ++n) {
 					finalAnalysis[fIndex * n + posIndex] = 0.0;
 				}
 				
@@ -483,7 +491,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 				if ((internaljIndex < 0) or (internaljIndex > internaljDim - 1)) continue;
 				if ((internalkIndex < 0) or (internalkIndex > internalkDim - 1)) continue;
 				int internalposIndex = internaliDim*internaljDim*internalkIndex + internaliDim*internaljIndex + internaliIndex;
-				for (int n = 0; n < 45; ++n) {
+				for (int n = 0; n < analysisDim; ++n) {
 					finalAnalysis[fIndex * n + posIndex] = internalAnalysis[internalfIndex * n + internalposIndex];
                 }
 			}
@@ -505,8 +513,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 	// Set the domain back
 	adjustInternalDomain(1);
     
-    // Free the memory for the modified domain
+    // Free the memory for the analysis variables
     delete[] internalAnalysis;
+    delete[] finalAnalysis;
     
 	return true;
 	
@@ -571,7 +580,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	// Define the netCDF variables 
 	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
-	NcVar *rho, *press, *temp, *qv, *h, *qr;
+	NcVar *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
     NcVar *dudx, *dvdx, *dwdx, *dudy, *dvdy, *dwdy, *dudz, *dvdz, *dwdz;
 	NcVar *dtdx, *dqdx, *dpdx, *dtdy, *dqdy, *dpdy, *dtdz, *dqdz, *dpdz;
     NcVar *drhodx, *drhody, *drhodz;
@@ -654,6 +663,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
                                     lvlDim, latDim, lonDim)))
             return NC_ERR;
     }
+    if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim, 
+                                       lvlDim, latDim, lonDim)))
+		return NC_ERR;
     if (!(dudx = dataFile.add_var("DUDX", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
@@ -772,7 +784,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
         if (!qr->add_att("units", "g kg-1")) 
             return NC_ERR;
     }
-    // Define units attributes for data variables.
+    if (!absVorticity->add_att("units", "10-5s-1")) 
+		return NC_ERR;
 	if (!dudx->add_att("units", "10-5s-1")) 
 		return NC_ERR;
 	if (!dvdx->add_att("units", "10-5s-1")) 
@@ -870,6 +883,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
         if (!qr->add_att("long_name", "precipitation mixing ratio")) 
             return NC_ERR;
     }
+    if (!absVorticity->add_att("long_name", "absolute vertical vorticity")) 
+		return NC_ERR;
     if (!dudx->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
 	if (!dvdx->add_att("long_name", "wind gradient")) 
@@ -962,6 +977,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!qr->add_att("missing_value", -999.f))
 		return NC_ERR;
+	if (!absVorticity->add_att("missing_value", -999.f))
+		return NC_ERR;    
     if (!dudx->add_att("missing_value", -999.f))
 		return NC_ERR;	
 	if (!dvdx->add_att("missing_value", -999.f))
@@ -1054,6 +1071,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!qr->add_att("_FillValue", -999.f))
 		return NC_ERR;
+	if (!absVorticity->add_att("_FillValue", -999.f))
+		return NC_ERR;    
     if (!dudx->add_att("_FillValue", -999.f))
 		return NC_ERR;	
 	if (!dvdx->add_att("_FillValue", -999.f))
@@ -1202,47 +1221,49 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!qr->put_rec(&finalAnalysis[iDim*jDim*kDim*23], rec)) 
 			return NC_ERR;
-        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec)) 
+        if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec)) 
 			return NC_ERR;
-		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec)) 
+        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec)) 
 			return NC_ERR;
-		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec)) 
+		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec)) 
 			return NC_ERR;
-		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec)) 
+		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec)) 
 			return NC_ERR;
-		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec)) 
+		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec)) 
 			return NC_ERR;
-		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec)) 
+		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec)) 
 			return NC_ERR;
-		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec)) 
+		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec)) 
 			return NC_ERR;
-		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec)) 
+		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec)) 
 			return NC_ERR;
-		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec)) 
+		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec)) 
 			return NC_ERR;
-		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*kDim*33], rec)) 
+		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*33], rec)) 
 			return NC_ERR;
-		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*kDim*34], rec)) 
+		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*kDim*34], rec)) 
 			return NC_ERR;
-		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*kDim*35], rec)) 
+		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*kDim*35], rec)) 
 			return NC_ERR;
-		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*kDim*36], rec)) 
+		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*kDim*36], rec)) 
 			return NC_ERR;
-		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*kDim*37], rec)) 
+		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*kDim*37], rec)) 
 			return NC_ERR;
-		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*kDim*38], rec)) 
+		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*kDim*38], rec)) 
 			return NC_ERR;
-		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*kDim*39], rec)) 
+		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*kDim*39], rec)) 
 			return NC_ERR;
-		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*kDim*40], rec)) 
+		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*kDim*40], rec)) 
 			return NC_ERR;
-		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*kDim*41], rec)) 
+		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*kDim*41], rec)) 
 			return NC_ERR;
-		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*kDim*42], rec)) 
+		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*kDim*42], rec)) 
 			return NC_ERR;
-		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*kDim*43], rec)) 
+		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*kDim*43], rec)) 
 			return NC_ERR;
-		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*kDim*44], rec)) 
+		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*kDim*44], rec)) 
+			return NC_ERR;
+		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*kDim*45], rec)) 
 			return NC_ERR;        
 
 	}

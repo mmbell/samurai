@@ -71,7 +71,6 @@ void CostFunction3D::finalize()
 	delete[] obsVector;
 	delete[] HCq;
 	delete[] innovation;
-	delete[] finalAnalysis;
 	delete[] bgState;
 	delete[] bgStdDev;
 	delete[] stateA;
@@ -145,16 +144,12 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	DIrecip = 1./DI;
 	DJrecip = 1./DJ;
 	DKrecip = 1./DK;
-	
-	// Allocate memory for the final gridded analysis
-	int nodes = iDim*jDim*kDim;
-	finalAnalysis = new real[nodes*45];
-	
+		
 	// Adjust the internal, variable domain to exclude boundaries in R0, R2, and R3 cases
 	adjustInternalDomain(1);
 	
 	// Redefine nodes with new domain
-	nodes = iDim*jDim*kDim;
+	int nodes = iDim*jDim*kDim;
 	
 	// Set up the initial recursive filter
 	iFilter = new RecursiveFilter(4);

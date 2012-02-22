@@ -2,7 +2,7 @@
  *  CostFunctionRTZ.h
  *  samurai
  *
- *  Copyright 2012 Michael Bell. All rights reserved.
+ *  Copyright 2008 Michael Bell. All rights reserved.
  *
  */
 
