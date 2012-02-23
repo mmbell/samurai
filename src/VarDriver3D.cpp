@@ -1103,8 +1103,8 @@ bool VarDriver3D::preProcessMetObs()
                                             } else if (runMode == RTZ) {
                                                 varOb.setRadius(i);
                                                 varOb.setTheta(j);
-                                                real rInverse = 1.0/i;
-                                                varOb.setWeight(rInverse, 0, 0);
+                                                real rInverse = 180.0/(i*Pi);
+                                                varOb.setWeight((1.0/i), 0, 0);
                                                 varOb.setWeight(1.0, 0, 1);
                                                 varOb.setWeight(rInverse, 1, 2);
                                                 varOb.setWeight(1.0, 2, 3);
@@ -1130,7 +1130,7 @@ bool VarDriver3D::preProcessMetObs()
                             }
                             varOb.setError(pseudow_weight);
                             varOb.setOb(0.);
-                            if (ihalf and jhalf and imu and jmu){
+                            if (!ihalf and !jhalf){
                                 // Set an upper boundary condition for W
                                 if ((maxrefHeight > 0) and (maxrefHeight < kmax)
                                     and (pseudow_weight > 0.0)) {

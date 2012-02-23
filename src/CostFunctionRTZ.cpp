@@ -40,10 +40,12 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
     int analysisDim = 46;
 	real* internalAnalysis = new real[nodes*analysisDim];
 	
+    real Pi = acos(-1.0);
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
+                real r = i*1000;
 				if (i > ((iDim-1)*DI + iMin)) continue;
 				
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -112,37 +114,37 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 															case 0:
 																rhou +=  Astate[aIndex] * basis3x;
 																rhoudr += Astate[aIndex] * idbasis * jbasis * kbasis;
-																rhoudt += Astate[aIndex] * ibasis * jdbasis * kbasis / i;
+																rhoudt += 180 * Astate[aIndex] * ibasis * jdbasis * kbasis / (r * Pi);
 																rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
 																break;
 															case 1:
 																rhov +=  Astate[aIndex + 1] * basis3x;
 																rhovdr += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
-																rhovdt += Astate[aIndex + 1] * ibasis * jdbasis * kbasis / i;
+																rhovdt += 180 * Astate[aIndex + 1] * ibasis * jdbasis * kbasis / (r * Pi);
 																rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
 																break;
 															case 2:
 																rhow += Astate[aIndex + 2] * basis3x;
 																rhowdr += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
-																rhowdt += Astate[aIndex + 2] * ibasis * jdbasis * kbasis / i;
+																rhowdt += 180 * Astate[aIndex + 2] * ibasis * jdbasis * kbasis / (r * Pi);
 																rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
 																break;
 															case 3:
 																tprime += Astate[aIndex + 3] * basis3x;
                                                                 tdr += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
-																tdt += Astate[aIndex + 3] * ibasis * jdbasis * kbasis / i;
+																tdt += 180 * Astate[aIndex + 3] * ibasis * jdbasis * kbasis / (r * Pi);
 																tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis; 
 																break;
 															case 4:
 																qvprime += Astate[aIndex + 4] * basis3x;
 																qvdr += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
-																qvdt += Astate[aIndex + 4] * ibasis * jdbasis * kbasis / i;
+																qvdt += 180 * Astate[aIndex + 4] * ibasis * jdbasis * kbasis / (r * Pi);
 																qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis; 
 																break;
 															case 5:
 																rhoprime += Astate[aIndex + 5] * basis3x;
 																rhoadr += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
-																rhoadt += Astate[aIndex + 5] * ibasis * jdbasis * kbasis / i;
+																rhoadt += 180 * Astate[aIndex + 5] * ibasis * jdbasis * kbasis / (r * Pi);
 																rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
 																break;
 															case 6:
@@ -212,17 +214,17 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wdz = 100. * (rhowdz - w*rhodz) / rho;
 										
 										// Vorticity units are 10-5
-										real vorticity = (vdr + v/i - udt);
-										real divergence = (udr + u/i + vdt);
-										real s1 = (udr + u/i- vdt);
-										real s2 = (vdr + v/i + udt);
+										real vorticity = 1.0e5 * (vdr * 1.0e-5 + v/r - udt);
+										real divergence = 1.0e5 * (udr * 1.0e-5 + u/r + vdt);
+										real s1 = 1.0e5 * (udr * 1.0e-5 + u/r - vdt);
+										real s2 = 1.0e5 * (vdr * 1.0e-5 + v/r + udt);
 										real strain = sqrt(s1*s1 + s2*s2);
 										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-										real mcresidual = rhoudr + rhou / i + rhovdt + rhowdz;
+										real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt + rhowdz * 1.0e-5);
                                         
                                         // Add Coriolis parameter to relative vorticity
                                         real latReference = configHash->value("ref_lat").toFloat();	
-                                        real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
+                                        real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
                                         real absVorticity = vorticity + Coriolisf;
                                         
                                         // Thermodtnamic derivatives
@@ -547,10 +549,10 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
     
 	// Define the dimensions. NetCDF will hand back an ncDim object for
 	// each.
-	NcDim *lvlDim, *latDim, *lonDim, *timeDim;
-	if (!(lonDim = dataFile.add_dim("longitude", iDim)))
+	NcDim *lvlDim, *radDim, *thetaDim, *timeDim;
+	if (!(radDim = dataFile.add_dim("radius", iDim)))
 		return NC_ERR;
-	if (!(latDim = dataFile.add_dim("latitude", jDim)))
+	if (!(thetaDim = dataFile.add_dim("theta", jDim)))
 		return NC_ERR;
 	if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
 		return NC_ERR;
@@ -559,14 +561,15 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	
 	// Define the coordinate variables.
-	NcVar *latVar, *lonVar, *lvlVar, *timeVar, *xVar, *yVar;
-	if (!(lonVar = dataFile.add_var("longitude", ncFloat, lonDim)))
+    NcVar *lvlVar, *timeVar, *radVar, *thetaVar;
+    /* NcVar *latVar, *lonVar; 
+	if (!(lonVar = dataFile.add_var("longitude", ncFloat, radDim)))
 		return NC_ERR;
-	if (!(latVar = dataFile.add_var("latitude", ncFloat, latDim)))
+	if (!(latVar = dataFile.add_var("latitude", ncFloat, thetaDim)))
+		return NC_ERR; */
+    if (!(radVar = dataFile.add_var("radius", ncFloat, radDim)))
 		return NC_ERR;
-    if (!(xVar = dataFile.add_var("x", ncFloat, lonDim)))
-		return NC_ERR;
-	if (!(yVar = dataFile.add_var("y", ncFloat, latDim)))
+	if (!(thetaVar = dataFile.add_var("theta", ncFloat, thetaDim)))
 		return NC_ERR;
 	if (!(lvlVar = dataFile.add_var("altitude", ncFloat, lvlDim)))
 		return NC_ERR;
@@ -576,13 +579,13 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	// Define units attributes for coordinate vars. This attaches a
 	// text attribute to each of the coordinate variables, containing
 	// the units.
-	if (!latVar->add_att("units", "degrees_north"))
+	/* if (!latVar->add_att("units", "degrees_north"))
 		return NC_ERR;
 	if (!lonVar->add_att("units", "degrees_east"))
+		return NC_ERR; */
+    if (!radVar->add_att("units", "km"))
 		return NC_ERR;
-    if (!xVar->add_att("units", "km"))
-		return NC_ERR;
-	if (!yVar->add_att("units", "km"))
+	if (!thetaVar->add_att("units", "degrees"))
 		return NC_ERR;
 	if (!lvlVar->add_att("units", "km"))
 		return NC_ERR;
@@ -598,148 +601,148 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
     NcVar *drhodr, *drhodt, *drhodz;
 
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
-                               lvlDim, latDim, lonDim)))
+                               lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(v = dataFile.add_var("V", ncFloat, timeDim, 
-							   lvlDim, latDim, lonDim)))
+							   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(w = dataFile.add_var("W", ncFloat, timeDim, 
-							   lvlDim, latDim, lonDim)))
+							   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(wspd = dataFile.add_var("WSPD", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(hprime = dataFile.add_var("HP", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(qvprime = dataFile.add_var("QVP", ncFloat, timeDim, 
-                                     lvlDim, latDim, lonDim)))
+                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(rhoprime = dataFile.add_var("RHOAP", ncFloat, timeDim, 
-                                      lvlDim, latDim, lonDim)))
+                                      lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(tprime = dataFile.add_var("TP", ncFloat, timeDim, 
-									lvlDim, latDim, lonDim)))
+									lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(pprime = dataFile.add_var("PP", ncFloat, timeDim, 
-									lvlDim, latDim, lonDim)))
+									lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(vorticity = dataFile.add_var("VORT", ncFloat, timeDim, 
-                                       lvlDim, latDim, lonDim)))
+                                       lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(divergence = dataFile.add_var("DIV", ncFloat, timeDim, 
-                                        lvlDim, latDim, lonDim)))
+                                        lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(okuboweiss = dataFile.add_var("OW", ncFloat, timeDim, 
-                                        lvlDim, latDim, lonDim)))
+                                        lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(strain = dataFile.add_var("STRAIN", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;       
 	if (!(tpw = dataFile.add_var("TPW", ncFloat, timeDim, 
-                                 lvlDim, latDim, lonDim)))
+                                 lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(rhou = dataFile.add_var("RHOU", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(rhov = dataFile.add_var("RHOV", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(rhow = dataFile.add_var("RHOW", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(rho = dataFile.add_var("RHOA", ncFloat, timeDim, 
-                                 lvlDim, latDim, lonDim)))
+                                 lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(press = dataFile.add_var("P", ncFloat, timeDim, 
-                                   lvlDim, latDim, lonDim)))
+                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(temp = dataFile.add_var("T", ncFloat, timeDim, 
-								  lvlDim, latDim, lonDim)))
+								  lvlDim, thetaDim, radDim)))
 		return NC_ERR;	
 	if (!(qv = dataFile.add_var("QV", ncFloat, timeDim, 
-								lvlDim, latDim, lonDim)))
+								lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(h = dataFile.add_var("H", ncFloat, timeDim, 
-                               lvlDim, latDim, lonDim)))
+                               lvlDim, thetaDim, radDim)))
 		return NC_ERR;
     if (configHash->value("qr_variable") == "dbz") {
         if (!(qr = dataFile.add_var("DBZ", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
             return NC_ERR;
 	} else {
         if (!(qr = dataFile.add_var("QR", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
             return NC_ERR;
     }
     if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim, 
-                                       lvlDim, latDim, lonDim)))
+                                       lvlDim, thetaDim, radDim)))
 		return NC_ERR;
     if (!(dudr = dataFile.add_var("DUDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dvdr = dataFile.add_var("DVDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dwdr = dataFile.add_var("DWDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dudt = dataFile.add_var("DUDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dvdt = dataFile.add_var("DVDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dwdt = dataFile.add_var("DWDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dudz = dataFile.add_var("DUDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dvdz = dataFile.add_var("DVDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dwdz = dataFile.add_var("DWDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dtdr = dataFile.add_var("DTDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dqdr = dataFile.add_var("DQVDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dpdr = dataFile.add_var("DPDR", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dtdt = dataFile.add_var("DTDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dqdt = dataFile.add_var("DQVDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dpdt = dataFile.add_var("DPDT", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dtdz = dataFile.add_var("DTDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dqdz = dataFile.add_var("DQVDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dpdz = dataFile.add_var("DPDZ", ncFloat, timeDim, 
-                                  lvlDim, latDim, lonDim)))
+                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
     if (!(drhodr = dataFile.add_var("DRHODR", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(drhodt = dataFile.add_var("DRHODT", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(drhodz = dataFile.add_var("DRHODZ", ncFloat, timeDim, 
-                                    lvlDim, latDim, lonDim)))
+                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 
 	// Define units attributes for data variables.
@@ -1129,47 +1132,50 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 
 	// Write the coordinate variable data to the file.
-	real *lons = new real[iDim];
-	real *lats = new real[jDim];
+	/* real *lons = new real[iDim];
+	real *lats = new real[jDim]; */
 	real *levs = new real[kDim];
-    real *x = new real[iDim];
-    real *y = new real[jDim];
+    real *radius = new real[iDim];
+    real *theta = new real[jDim];
 	int time[2];
 	
 	// Reference time and position from center file 
 	time[0] = configHash->value("ref_time").toInt();
-	real latReference = configHash->value("ref_lat").toFloat();	
+    
+	/* real latReference = configHash->value("ref_lat").toFloat();	
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
-	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
-	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	tm.Forward(lonReference, latReference, lonReference, refX, refY); */
+    
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		real i = (iMin + DI * iIndex)*1000;
-		real j = (jMin + DJ * (jDim/2))*1000;
+		real i = (iMin + DI * iIndex);
+        radius[iIndex] = i;
+		/* real j = (jMin + DJ * (jDim/2))*1000;
 		real latnull = 0;
 		tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
-        x[iIndex] = i/1000; 
+        x[iIndex] = i/1000; */
 	}
 	
 	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-		real i = (iMin + DI * (iDim/2))*1000;
-		real j = (jMin + DJ * jIndex)*1000;
+		real j = (jMin + DJ * jIndex);
+        theta[jIndex] = j;
+        /* real i = (iMin + DI * (iDim/2))*1000;
 		real lonnull = 0;
 		tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
-        y[jIndex] = j/1000; 
+        y[jIndex] = j/1000; */
 	}
 	
-	if (!lonVar->put(lons, iDim))
+	/* if (!lonVar->put(lons, iDim))
 		return NC_ERR;       
     
 	if (!latVar->put(lats, jDim))
-		return NC_ERR;       
+		return NC_ERR; */       
 	
-    if (!xVar->put(x, iDim))
+    if (!radVar->put(radius, iDim))
 		return NC_ERR;       
     
-	if (!yVar->put(y, jDim))
+	if (!thetaVar->put(theta, jDim))
 		return NC_ERR;   
     
 	for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1283,11 +1289,11 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	// The file is automatically closed by the destructor. This frees
 	// up any internal netCDF resources associated with the file, and
 	// flushes any buffers.
-	delete[] lats;
-	delete[] lons;
+	/* delete[] lats;
+	delete[] lons; */
 	delete[] levs;
-	delete[] x;
-    delete[] y;
+	delete[] radius;
+    delete[] theta;
 	return true;
 	
 }
