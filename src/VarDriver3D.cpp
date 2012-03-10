@@ -147,7 +147,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	bgU = new real[uStateSize];
 	bgWeights = new real[uStateSize];
 	for (int i=0; i < uStateSize; i++) {
-		bgU[i] = 0.;
+		bgU[i] = 1.;
 		bgWeights[i] = 0.;
 	}		
 	

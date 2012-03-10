@@ -64,6 +64,7 @@ protected:
 	
 	bool outputMish;
 	int iDim, jDim, kDim;
+    int iLDim, jLDim, kLDim;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;

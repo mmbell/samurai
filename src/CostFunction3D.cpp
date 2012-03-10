@@ -176,9 +176,22 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	stateA = new real[nState];
 	stateB = new real[nState];
 	stateC = new real[nState];
-	iL = new real[varDim*iDim*4];
-	jL = new real[varDim*jDim*4];
-	kL = new real[varDim*kDim*4];
+    
+    if (iBCL[0] == PERIODIC) {
+        iLDim = iDim;   
+    } else {
+        iLDim = 4;
+    }
+    if (iBCL[0] == PERIODIC) {
+        jLDim = jDim;   
+    } else {
+        jLDim = 4;
+    }
+    kLDim = 4;
+    
+	iL = new real[varDim*iDim*iLDim];
+	jL = new real[varDim*jDim*jLDim];
+	kL = new real[varDim*kDim*kLDim];
 
 	// Precalculate the basis functions for lookup table option
 	basis0 = new real[2000000];
@@ -567,18 +580,18 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int k = 0; k < kDim; k++) {
-					for (sum=kB[k], l=-1;l>=-3;l--) {
-						if ((k+l >= 0) and ((k*4-l) >= 0))
-							sum -= kL[kDim*4*var + k*4-l]*x[k+l];
+					for (sum=kB[k], l=-1;l>=-(kLDim-1);l--) {
+						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
+							sum -= kL[kDim*kLDim*var + k*kLDim-l]*x[k+l];
 					}
-					x[k] = sum/kL[kDim*4*var + k*4];
+					x[k] = sum/kL[kDim*kLDim*var + k*kLDim];
 				}	
 				for (int k=kDim-1;k>=0;k--) {
-					for (sum=x[k], l=1;l<=3;l++) {
-						if ((k+l < kDim) and (((k+l)*4+l) < kDim*4))
-							sum -= kL[kDim*4*var + (k+l)*4+l]*x[k+l];
+					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
+						if ((k+l < kDim) and (((k+l)*kLDim+l) < kDim*kLDim))
+							sum -= kL[kDim*kLDim*var + (k+l)*kLDim+l]*x[k+l];
 					}
-					x[k] = sum/kL[kDim*4*var + k*4];
+					x[k] = sum/kL[kDim*kLDim*var + k*kLDim];
 				}
 				
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -599,18 +612,18 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int j = 0; j < jDim; j++) {
-					for (sum=jB[j], l=-1;l>=-3;l--) {
-						if ((j+l >= 0) and ((j*4-l) >= 0))
-							sum -= jL[jDim*4*var + j*4-l]*x[j+l];
+					for (sum=jB[j], l=-1;l>=-(jLDim-1);l--) {
+						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
+							sum -= jL[jDim*jLDim*var + j*jLDim-l]*x[j+l];
 					}
-					x[j] = sum/jL[jDim*4*var + j*4];
+					x[j] = sum/jL[jDim*jLDim*var + j*jLDim];
 				}	
 				for (int j=jDim-1;j>=0;j--) {
-					for (sum=x[j], l=1;l<=3;l++) {
-						if ((j+l < jDim) and (((j+l)*4+l) < jDim*4))
-							sum -= jL[jDim*4*var + (j+l)*4+l]*x[j+l];
+					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
+						if ((j+l < jDim) and (((j+l)*jLDim+l) < jDim*jLDim))
+							sum -= jL[jDim*jLDim*var + (j+l)*jLDim+l]*x[j+l];
 					}
-					x[j] = sum/jL[jDim*4*var + j*4];
+					x[j] = sum/jL[jDim*jLDim*var + j*jLDim];
 				}
 				
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -631,18 +644,18 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int i = 0; i < iDim; i++) {
-					for (sum=iB[i], l=-1;l>=-3;l--) {
-						if ((i+l >= 0) and ((i*4-l) >= 0))
-							sum -= iL[iDim*4*var + i*4-l]*x[i+l];
+					for (sum=iB[i], l=-1;l>=-(iLDim-1);l--) {
+						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
+							sum -= iL[iDim*iLDim*var + i*iLDim-l]*x[i+l];
 					}
-					x[i] = sum/iL[iDim*4*var + i*4];
+					x[i] = sum/iL[iDim*iLDim*var + i*iLDim];
 				}	
 				for (int i=iDim-1;i>=0;i--) {
-					for (sum=x[i], l=1;l<=3;l++) {
-						if ((i+l < iDim) and (((i+l)*4+l) < iDim*4))
-							sum -= iL[iDim*4*var + (i+l)*4+l]*x[i+l];
+					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
+						if ((i+l < iDim) and (((i+l)*iLDim+l) < iDim*iLDim))
+							sum -= iL[iDim*iLDim*var + (i+l)*iLDim+l]*x[i+l];
 					}
-					x[i] = sum/iL[iDim*4*var + i*4];
+					x[i] = sum/iL[iDim*iLDim*var + i*iLDim];
 				}
 				
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1011,7 +1024,7 @@ bool CostFunction3D::setupSplines()
 		p[i] = 0.;
 	}
 		
-	for (int i = 0; i < varDim*iDim*4; i++) {
+	for (int i = 0; i < varDim*iDim*iLDim; i++) {
 		iL[i] = 0;
 	}
 	
@@ -1091,13 +1104,13 @@ bool CostFunction3D::setupSplines()
 		}
 		
 		for (int i = 0; i < iDim; i++) {
-			iL[iDim*4*var + i*4] = p[i];
-			//cout << iL[iDim*4*var + i*4] << " ";
-			for (int n=1;n<4;n++) {
+			iL[iDim*iLDim*var + i*iLDim] = p[i];
+			//cout << iL[iDim*iLDim*var + i*iLDim] << " ";
+			for (int n=1;n<iLDim;n++) {
 				if ((i-n) >= 0) {
-					iL[iDim*4*var + i*4+n] = P[i][i-n];
+					iL[iDim*iLDim*var + i*iLDim+n] = P[i][i-n];
 				}
-				//cout << iL[iDim*4*var + i*4 + n] << " ";
+				//cout << iL[iDim*iLDim*var + i*iLDim + n] << " ";
 			} //cout << endl;
 		} //cout << endl;
 	}
@@ -1116,7 +1129,7 @@ bool CostFunction3D::setupSplines()
 		p[j] = 0.;
 	}
 	
-	for (int j = 0; j < varDim*jDim*4; j++) {
+	for (int j = 0; j < varDim*jDim*jLDim; j++) {
 		jL[j] = 0;
 	}
 	
@@ -1190,13 +1203,13 @@ bool CostFunction3D::setupSplines()
 		}
 		
 		for (int j = 0; j < jDim; j++) {
-			jL[jDim*4*var + j*4] = p[j];
-			//cout << jL[jDim*4*var + j*4] << " ";
-			for (int n=1;n<4;n++) {
+			jL[jDim*jLDim*var + j*jLDim] = p[j];
+			//cout << jL[jDim*jLDim*var + j*jLDim] << " ";
+			for (int n=1;n<jLDim;n++) {
 				if ((j-n) >= 0) {
-					jL[jDim*4*var + j*4+n] = P[j][j-n];
+					jL[jDim*jLDim*var + j*jLDim+n] = P[j][j-n];
 				}
-				//cout << jL[jDim*4*var + j*4 + n] << " ";
+				//cout << jL[jDim*jLDim*var + j*jLDim + n] << " ";
 			} //cout << endl;
 		} //cout << endl;
 	}
@@ -1215,7 +1228,7 @@ bool CostFunction3D::setupSplines()
 		p[k] = 0.;
 	}
 	
-	for (int k = 0; k < varDim*kDim*4; k++) {
+	for (int k = 0; k < varDim*kDim*kLDim; k++) {
 		kL[k] = 0;
 	}
 	
@@ -1285,13 +1298,13 @@ bool CostFunction3D::setupSplines()
 		}
 		
 		for (int k = 0; k < kDim; k++) {
-			kL[kDim*4*var + k*4] = p[k];
-			//cout << jL[jDim*4*var + j*4] << " ";
-			for (int n=1;n<4;n++) {
+			kL[kDim*kLDim*var + k*kLDim] = p[k];
+			//cout << jL[jDim*kLDim*var + j*kLDim] << " ";
+			for (int n=1;n<kLDim;n++) {
 				if ((k-n) >= 0) {
-					kL[kDim*4*var + k*4+n] = P[k][k-n];
+					kL[kDim*kLDim*var + k*kLDim+n] = P[k][k-n];
 				}
-				//cout << jL[jDim*4*var + j*4 + n] << " ";
+				//cout << jL[jDim*kLDim*var + j*kLDim + n] << " ";
 			} //cout << endl;
 		} //cout << endl;
 	}
