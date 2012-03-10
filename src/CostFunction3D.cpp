@@ -387,18 +387,10 @@ void CostFunction3D::updateHCq(real* state)
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
                     ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
                     
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                        if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
+                    for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
                         jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
                         
                         for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
@@ -468,30 +460,19 @@ void CostFunction3D::calcInnovation()
 		int ii = (int)((i - iMin)*DIrecip);
 		int jj = (int)((j - jMin)*DJrecip);
 		int kk = (int)((k - kMin)*DKrecip);
-		real ibasis = 0.;
-		real jbasis = 0.;
-		real kbasis = 0.;
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
-                for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                        if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
-                        jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
-                        
-                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                            
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
+                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
+
+                    for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
+                        real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
+
+                        for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
+                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);                            
                             int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
                             tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
                         }
                     }
@@ -534,23 +515,16 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
-                for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); kNode++) {
-                    real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jBCL[0] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                        if ((jBCL[0] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
+                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
+                    
+                    for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
                         real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
                         
-                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            if ((iBCL[0] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                            if ((iBCL[0] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
+                        for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
+                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);    
                             
                             int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;			                            
-                            real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
                             real invError = obsVector[mi+1];
                             real qbasise = yhat[m] * ibasis * jbasis * kbasis * invError;
                             //#pragma omp atomic
@@ -686,12 +660,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
             for (int imu = -1; imu <= 1; imu += 2) {
                 real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
                 int ii = (int)((i - iMin)*DIrecip);
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
                     real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
                     int uI = iIndex*2 + (imu+1)/2;
                     
@@ -699,21 +668,16 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
                             int jj = (int)((j - jMin)*DJrecip);
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {                            
-                                int jNode = jjNode;
-                                if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                
+                            for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {                                
                                 real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
                                 int uJ = jIndex*2 + (jmu+1)/2;
                                 real ijbasis = ibasis * jbasis;
+                                
                                 for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
                                     for (int kmu = -1; kmu <= 1; kmu += 2) {
                                         real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
                                         int kk = (int)((k - kMin)*DKrecip);
-                                        for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-                                            if ((kNode < 0) or (kNode >= kDim)) continue;
+                                        for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                                             real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
                                             real ijkbasis = 0.125 * ijbasis * kbasis;
                                             int uK = kIndex*2 + (kmu+1)/2;
@@ -754,12 +718,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
             for (int imu = -1; imu <= 1; imu += 2) {
                 real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
                 int ii = (int)((i - iMin)*DIrecip);
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
                     real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
                     int uI = iIndex*2 + (imu+1)/2;
                     
@@ -767,12 +726,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
                             int jj = (int)((j - jMin)*DJrecip);
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                
+                            for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
                                 real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
                                 int uJ = jIndex*2 + (jmu+1)/2;
                                 real ijbasis = ibasis * jbasis;
@@ -780,8 +734,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
                                     for (int kmu = -1; kmu <= 1; kmu += 2) {
                                         real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
                                         int kk = (int)((k - kMin)*DKrecip);
-                                        for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-                                            if ((kNode < 0) or (kNode >= kDim)) continue;
+                                        for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                                             real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
                                             real ijkbasis = 0.125 * ijbasis * kbasis;
                                             int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
@@ -1042,12 +995,7 @@ bool CostFunction3D::setupSplines()
 			for (int imu = -1; imu <= 1; imu += 2) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
 				int ii = (int)((i - iMin)*DIrecip);
-				for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    
+                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {                    
 					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 					real qm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
 					real pn, qn;
@@ -1147,12 +1095,7 @@ bool CostFunction3D::setupSplines()
 			for (int jmu = -1; jmu <= 1; jmu += 2) {
 				real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
 				int jj = (int)((j - jMin)*DJrecip);
-				for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                    int jNode = jjNode;
-                    if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                    if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                    if ((jNode < 0) or (jNode >= jDim)) continue;
-
+                for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
 					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 					real qm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
 					real pn, qn;
@@ -1246,8 +1189,7 @@ bool CostFunction3D::setupSplines()
 			for (int kmu = -1; kmu <= 1; kmu += 2) {
 				real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
 				int kk = (int)((k - kMin)*DKrecip);
-				for (int kNode = (kk-1); kNode <= (kk+2); ++kNode) {
-					if ((kNode < 0) or (kNode >= kDim)) continue;
+                for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
 					real pm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 					real qm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
 					real pn, qn;
@@ -1344,22 +1286,10 @@ void CostFunction3D::obAdjustments() {
 		real ibasis = 0.;
 		real jbasis = 0.;
 		real kbasis = 0.;
-		
-		for (int iiNode = ii-1; iiNode <= ii+2; ++iiNode) {
-            int iNode = iiNode;
-            if ((iBCL[4] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-            if ((iBCL[4] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-            if ((iNode < 0) or (iNode >= iDim)) continue;
-
-			for (int jjNode = jj-1; jjNode <= jj+2; ++jjNode) {
-                int jNode = jjNode;
-                if ((jBCL[4] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                if ((jBCL[4] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                if ((jNode < 0) or (jNode >= jDim)) continue;
-
-				for (int kNode = kk-1; kNode <= kk+2; ++kNode) {
-                    if ((kNode < 0) or (kNode >= kDim)) continue;
-
+        
+        for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
+            for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
+                for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
 					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
