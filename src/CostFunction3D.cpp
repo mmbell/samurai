@@ -583,6 +583,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		real* kB = new real[kDim];
 		real* x = new real[kDim];
         real* b = new real[kRank[var]];
+        real* a = new real[kDim];
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -594,45 +595,49 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     for (int k = 0; k < kDim; k++) {
                         b[m] += kGamma[var][kDim*m + k]*kB[k];
                     }
+                    //std::cout << m << " " << b[m] << "\n";
                 }
 
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int k = 0; k < kRank[var]; k++) {
-					for (sum=kB[k], l=-1;l>=-(kLDim-1);l--) {
+					for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
 						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
-							sum -= kL[var][k*kLDim-l]*b[k+l];
+							sum -= kL[var][k*kLDim-l]*x[k+l];
 					}
-					b[k] = sum/kL[var][k*kLDim];
+					x[k] = sum/kL[var][k*kLDim];
 				}	
 				for (int k=kRank[var]-1;k>=0;k--) {
-					for (sum=b[k], l=1;l<=(kLDim-1);l++) {
+					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
 						if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
-							sum -= kL[var][(k+l)*kLDim+l]*b[k+l];
+							sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
 					}
-					b[k] = sum/kL[var][k*kLDim];
+					x[k] = sum/kL[var][k*kLDim];
 				}
 				
                 // Multiply by gammaT
                 for (int k = 0; k < kDim; k++) {
-                    x[k] = 0;
+                    a[k] = 0;
                     for (int m = 0; m < kRank[var]; m++) {
-                        x[k] += kGamma[var][kDim*m + k]*b[m];
+                        a[k] += kGamma[var][kDim*m + k]*x[m];
                     }
+                    //std::cout << k << " " << a[k] << "\n";
                 }
 
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[kIndex]; 
+					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex]; 
 				}
 			}
 		}
 		delete[] kB;
 		delete[] b;
 		delete[] x;
+        delete[] a;
         
 		real* jB = new real[jDim];
 		x = new real[jDim];
         b = new real[jRank[var]];
+        a = new real[jDim];
 		for (int kIndex = 0; kIndex < kDim; kIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -648,30 +653,30 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 
 				// Solve for A's using compact storage
 				real sum = 0;
-				for (int j = 0; j < jDim; j++) {
-					for (sum=jB[j], l=-1;l>=-(jLDim-1);l--) {
+				for (int j = 0; j < jRank[var]; j++) {
+					for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
 						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
-							sum -= jL[var][j*jLDim-l]*b[j+l];
+							sum -= jL[var][j*jLDim-l]*x[j+l];
 					}
-					b[j] = sum/jL[var][j*jLDim];
+					x[j] = sum/jL[var][j*jLDim];
 				}	
-				for (int j=jDim-1;j>=0;j--) {
+				for (int j=jRank[var]-1;j>=0;j--) {
 					for (sum=b[j], l=1;l<=(jLDim-1);l++) {
-						if ((j+l < jDim) and (((j+l)*jLDim+l) < jDim*jLDim))
-							sum -= jL[var][(j+l)*jLDim+l]*b[j+l];
+						if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
+							sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
 					}
-					b[j] = sum/jL[var][j*jLDim];
+					x[j] = sum/jL[var][j*jLDim];
 				}
                 
                 // Multiply by gammaT
                 for (int j = 0; j < jDim; j++) {
-                    x[j] = 0;
+                    a[j] = 0;
                     for (int m = 0; m < jRank[var]; m++) {
-                        x[j] += jGamma[var][jDim*m + j]*b[m];
+                        a[j] += jGamma[var][jDim*m + j]*x[m];
                     }
                 }
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[jIndex]; 
+					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex]; 
 				}
 			}
 		}
@@ -682,6 +687,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		real* iB = new real[iDim];
 		x = new real[iDim];
         b = new real[iRank[var]];
+        a = new real[iDim];
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -697,31 +703,31 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 
 				// Solve for A's using compact storage
 				real sum = 0;
-				for (int i = 0; i < iDim; i++) {
-					for (sum=iB[i], l=-1;l>=-(iLDim-1);l--) {
+				for (int i = 0; i < iRank[var]; i++) {
+					for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
 						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
-							sum -= iL[var][i*iLDim-l]*b[i+l];
+							sum -= iL[var][i*iLDim-l]*x[i+l];
 					}
-					b[i] = sum/iL[var][i*iLDim];
+					x[i] = sum/iL[var][i*iLDim];
 				}	
-				for (int i=iDim-1;i>=0;i--) {
+				for (int i=iRank[var]-1;i>=0;i--) {
 					for (sum=b[i], l=1;l<=(iLDim-1);l++) {
-						if ((i+l < iDim) and (((i+l)*iLDim+l) < iDim*iLDim))
-							sum -= iL[var][(i+l)*iLDim+l]*b[i+l];
+						if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
+							sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
 					}
-					b[i] = sum/iL[var][i*iLDim];
+					x[i] = sum/iL[var][i*iLDim];
 				}
 
                 // Multiply by gammaT
                 for (int i = 0; i < iDim; i++) {
-                    x[i] = 0;
+                    a[i] = 0;
                     for (int m = 0; m < iRank[var]; m++) {
-                        x[i] += iGamma[var][iDim*m + i]*b[m];
+                        a[i] += iGamma[var][iDim*m + i]*x[m];
                     }
                 }
 
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[iIndex]; 
+					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex]; 
 				}
 				
 			}
@@ -1225,12 +1231,12 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 				break;
 		}
 	}
-    //return b;
-	if ((m > 1) and (m < M-1)) return b;
+    return b;
+    /* if ((m > 1) and (m < M-1)) return b;
 	
 	// Add the boundary conditions if we get this far
 	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
-	return bc;
+	return bc; */
 }
 
 real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, const real& xmin, 
@@ -1500,14 +1506,14 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 void CostFunction3D::adjustInternalDomain(int increment)
 {
     
-    iMin -= DI*increment;
-    iMax += DI*increment;
+    //iMin -= DI*increment;
+    //iMax += DI*increment;
     iDim += 2*increment;
-    jMin -= DJ*increment;
-    jMax += DJ*increment;
+    //jMin -= DJ*increment;
+    //jMax += DJ*increment;
     jDim += 2*increment;;
-    kMin -= DK*increment;
-    kMax += DK*increment;
+    //kMin -= DK*increment;
+    //kMax += DK*increment;
     kDim += 2*increment;
 
 }	
@@ -1618,10 +1624,10 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			for (int j = 0; j < pDim; j++) {
                 gamma[var][pDim*i + j] = G[i][j];
                 GT[j][i] = G[i][j];
-                //std::cout << G[i][j] << " ";
+                std::cout << G[i][j] << " ";
                 //std::cout << gamma[var][pDim*i + j] << " ";
-            } //std::cout << "\n";
-        } //std::cout << "\n";
+            } std::cout << "\n";
+        } std::cout << "\n";
         
         for (int i = 0; i < pDim; i++) {
 			for (int j = 0; j < mDim; j++) {
@@ -1661,13 +1667,13 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			}
 		}
 		
-        /* for (int i = 0; i < pDim; i++) {
+        for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < pDim; j++) {
                 std::cout << PP[i][j] << " ";
             } std::cout << std::endl;
         }
 		std::cout << std::endl;
-        */
+        
         for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < mDim; j++) {
                 //std::cout << PP[i][j] << " ";
@@ -1724,14 +1730,14 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 
 		for (int i = 0; i < mDim; i++) {
 			L[var][i*LDim] = p[i];
-			//cout << L[mDim*iLDim*var + i*iLDim] << " ";
+			cout << L[var][i*iLDim] << " ";
 			for (int n=1;n<LDim;n++) {
 				if ((i-n) >= 0) {
 					L[var][i*LDim+n] = P[i][i-n];
 				}
-				//cout << iL[mDim*iLDim*var + i*iLDim + n] << " ";
-			} //cout << endl;
-		} //cout << endl;
+				cout << L[var][i*iLDim + n] << " ";
+			} cout << endl;
+		} cout << endl;
         
         for (int i = 0; i < pDim; i++) {
             delete[] PP[i];

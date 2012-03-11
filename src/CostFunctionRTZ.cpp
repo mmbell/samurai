@@ -93,14 +93,14 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                                             for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                                                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                                                     int iNode = iiNode;
-                                                    if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                                                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
+                                                    //if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
+                                                    //if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
                                                     if ((iNode < 0) or (iNode >= iDim)) continue;
                                                     
                                                     for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                                                         int jNode = jjNode;
-                                                        if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                                        if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
+                                                        //if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
+                                                        //if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
                                                         if ((jNode < 0) or (jNode >= jDim)) continue;
 														ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 														jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
@@ -402,15 +402,15 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                         kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
                         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                             int iNode = iiNode;
-                            if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
+                            //if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
+                            //if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
                             if ((iNode < 0) or (iNode >= iDim)) continue;
                             ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
                             
                             for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                                 int jNode = jjNode;
-                                if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
+                                //if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
+                                //if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
                                 if ((jNode < 0) or (jNode >= jDim)) continue;                            
                                 int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                 jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
@@ -448,11 +448,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 	int internalkDim = kDim;
 	
 	adjustInternalDomain(-1);
-    
-    /* Convert to Cartesian for the output
-    int maxRadius = iDim;
-    jDim = iDim = maxRadius*2 + 1; */
-    
+        
     finalAnalysis = new real[iDim*jDim*kDim*analysisDim];
     
 	int fIndex = iDim*jDim*kDim; 
@@ -468,38 +464,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 				// Copy internal analysis
 				int internalfIndex = internaliDim*internaljDim*internalkDim;
 				int internaliIndex, internaljIndex, internalkIndex;
-				if (configHash->value("i_bc") == "R0") {
-					internaliIndex = iIndex + 1;
-				} else if ((configHash->value("i_bc") == "R2T10") or
-						   (configHash->value("i_bc") == "R2T20")) {	
-					internaliIndex = iIndex - 1;
-				} else if (configHash->value("i_bc") == "R3") {
-					internaliIndex = iIndex - 2;
-				} else {
-                    internaliIndex = iIndex;
-                }
-				
-				if (configHash->value("j_bc") == "R0") {
-					internaljIndex = jIndex + 1;
-				} else if ((configHash->value("j_bc") == "R2T10") or
-						   (configHash->value("j_bc") == "R2T20")) {	
-					internaljIndex = jIndex - 1;
-				} else if (configHash->value("j_bc") == "R3") {
-					internaljIndex = jIndex - 2;
-				} else {
-                    internaljIndex = jIndex;
-                }
-                
-				if (configHash->value("k_bc") == "R0") {
-					internalkIndex = kIndex + 1;
-				} else if ((configHash->value("k_bc") == "R2T10") or
-						   (configHash->value("k_bc") == "R2T20")) {	
-					internalkIndex = kIndex - 1;
-				} else if (configHash->value("k_bc") == "R3") {
-					internalkIndex = kIndex - 2;
-				} else {
-                    internalkIndex = kIndex;
-                }
+                internaliIndex = iIndex - 1;
+                internaljIndex = jIndex - 1;
+                internalkIndex = kIndex - 1;
                 
 				if ((internaliIndex < 0) or (internaliIndex > internaliDim - 1)) continue;
 				if ((internaljIndex < 0) or (internaljIndex > internaljDim - 1)) continue;
