@@ -89,57 +89,9 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
-    
-	// Increase the "internal" size of the grid for the zero BC condition
-	if (configHash.value("i_bc") == "R0") {
-		imin -= iincr;
-		imax += iincr;
-		idim += 2;
-    } else if ((configHash.value("i_bc") == "R2T10") or
-			   (configHash.value("i_bc") == "R2T10")) {
-		// Decrease the "internal" size of the grid for the R2 condition
-		imin += iincr;
-		imax -= iincr;
-		idim -= 2;
-	} else if (configHash.value("i_bc") == "R3") {
-		// Decrease the "internal" size of the grid for the R3 conditions
-		imin += iincr;
-		imax -= iincr;
-		idim -= 4;
-	}
-	
-	if (configHash.value("j_bc") == "R0") {
-		jmin -= jincr;
-		jmax += jincr;
-		jdim += 2;
-	} else if ((configHash.value("j_bc") == "R2T10") or
-			   (configHash.value("j_bc") == "R2T20")) {
-		jmin += jincr;
-		jmax -= jincr;
-		jdim -= 2;
-	} else if (configHash.value("j_bc") == "R3") {
-		jmin += jincr;
-		jmax -= jincr;
-		jdim -= 4;
-	}
-	
-	if (configHash.value("k_bc") == "R0") {
-		kmin -= kincr;
-		kmax += kincr;
-		kdim += 2;
-	} else if ((configHash.value("k_bc") == "R2T20") or
-			   (configHash.value("k_bc") == "R2T20")) {
-		kmin += kincr;
-		kmax -= kincr;
-		kdim -= 2;
-	} else if (configHash.value("k_bc") == "R3") {
-		kmin += kincr;
-		kmax -= kincr;
-		kdim -= 4;
-	}
-    
+
 	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
-	int bStateSize = idim*jdim*kdim*numVars;
+	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
 	cout << "Physical (mish) State size = " << uStateSize << "\n";
 	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
 	
@@ -444,40 +396,12 @@ bool VarDriver3D::preProcessMetObs()
                 if ((obX < imin) or (obX > imax) or
                     (obY < jmin) or (obY > jmax) or
                     (obZ < kmin) or (obZ > kmax))
-                    continue;
-                
-                // Restrict the horizontal domain if we are using the R0 BC
-                if (configHash.value("i_bc") == "R0") {
-                    if ((obX < (imin+iincr)) or (obX > (imax-iincr)))
-                        continue;
-                }
-                if (configHash.value("j_bc") == "R0") {
-                    if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) 
-                        continue;
-                }
-                if (configHash.value("k_bc") == "R0") {
-                    if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
-                        continue;
-                }
+                    continue;                
             } else if (runMode == RTZ) {
                 if ((obRadius < imin) or (obRadius > imax) or
                     (obTheta < jmin) or (obTheta > jmax) or
                     (obZ < kmin) or (obZ > kmax))
                     continue;
-                
-                // Restrict the horizontal domain if we are using the R0 BC
-                if (configHash.value("i_bc") == "R0") {
-                    if ((obRadius < (imin+iincr)) or (obRadius > (imax-iincr)))
-                        continue;
-                }
-                if (configHash.value("j_bc") == "R0") {
-                    if ((obTheta < (jmin+jincr)) or (obTheta > (jmax-jincr))) 
-                        continue;
-                }
-                if (configHash.value("k_bc") == "R0") {
-                    if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr)))
-                        continue;
-                }
             }
 			// Create an observation and set its basic info
 			Observation varOb;
@@ -1674,52 +1598,12 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
                 numbgObs -= 7;
                 continue;
             }
-            
-            // Restrict the horizontal domain if we are using the R0 BC
-            if (configHash.value("i_bc") == "R0") {
-                if ((obX < (imin+iincr)) or (obX > (imax-iincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
-            }
-            if (configHash.value("j_bc") == "R0") {
-                if ((obY < (jmin+jincr)) or (obY > (jmax-jincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
-            }
-            if (configHash.value("k_bc") == "R0") {
-                if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
-            }
         } else if (runMode == RTZ) {
             if ((obRadius < imin) or (obRadius > imax) or
                 (obTheta < jmin) or (obTheta > jmax) or
                 (obZ < kmin) or (obZ > kmax)) {
                 numbgObs -= 7;
                 continue;
-            }
-            
-            // Restrict the horizontal domain if we are using the R0 BC
-            if (configHash.value("i_bc") == "R0") {
-                if ((obRadius < (imin+iincr)) or (obRadius > (imax-iincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
-            }
-            if (configHash.value("j_bc") == "R0") {
-                if ((obTheta < (jmin+jincr)) or (obTheta > (jmax-jincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
-            }
-            if (configHash.value("k_bc") == "R0") {
-                if ((obZ < (kmin+kincr)) or (obZ > (kmax-kincr))) {
-                    numbgObs -= 7;
-                    continue;
-                }
             }
         }
 
@@ -1840,17 +1724,19 @@ bool VarDriver3D::validateXMLconfig()
     
     // Validate the hash -- multiple passes are not validated currently
     QStringList configKeys;
-    configKeys << "i_min" << "i_max" << "i_incr" <<
+    configKeys << "mc_weight" << "i_min" << "i_max" << "i_incr" <<
     "j_min" << "j_max" << "j_incr" <<
     "k_min" << "k_max" << "k_incr" <<
-    "i_filter_length" << "j_filter_length" << "k_filter_length" <<
-    "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" << 
-    "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "mc_weight" << 
-    "radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" << "radar_stride" << "dynamic_stride" <<
-    "i_bc" << "j_bc" << "k_bc" << "dbz_pseudow_weight" <<
+    "i_filter_length" << "j_filter_length" << "k_filter_length" << 
     "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff" <<
-    "melting_zone_width" << "mixed_phase_dbz" << "rain_dbz";
-    
+    "i_max_wavenumber" << "j_max_wavenumber" << "k_max_wavenumber" <<    
+    "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL" << "k_rhou_bcR" <<
+    "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR" << "k_rhov_bcL" << "k_rhov_bcR" <<
+    "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL" << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" <<
+    "i_tempk_bcL" << "i_tempk_bcR" << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" <<    
+    "i_qv_bcL" << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" <<
+    "i_rhoa_bcL" << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR" <<
+    "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR";
     for (int i = 0; i < configKeys.count(); i++) {
         if (!configHash.contains(configKeys.at(i))) {
             cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;

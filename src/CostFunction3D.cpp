@@ -31,6 +31,14 @@ CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
 	bcHash["R3"] = R3;
 	bcHash["PERIODIC"] = PERIODIC;	
     
+    rankHash[R0] = 0;
+    rankHash[R1T0] = 1;
+    rankHash[R1T1] = 1;
+    rankHash[R1T2] = 1;
+    rankHash[R2T10] = 2;
+    rankHash[R2T20] = 2;
+    rankHash[R3] = 3;
+    
     // Set the derivative array
     derivative[0][0] = 0;
     derivative[0][1] = 0;
@@ -76,12 +84,16 @@ void CostFunction3D::finalize()
 	delete[] stateA;
 	delete[] stateB;
 	delete[] stateC;
-	delete[] iL;
-	delete[] jL;
-	delete[] kL;
 	delete[] basis0;
 	delete[] basis1;
-	
+    for (int var = 0; var < varDim; ++var) {
+        delete[] iGamma[var];
+        delete[] jGamma[var];
+        delete[] kGamma[var];
+        delete[] iL[var];
+        delete[] jL[var];
+        delete[] kL[var];
+    }
 }
 
 void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
@@ -93,34 +105,50 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	configHash = config;
 
 	// Horizontal boundary conditions
-	int ibc = bcHash.value(configHash->value("i_bc"));	
-	iBCL[0] = ibc; iBCR[0] = ibc; 
-	iBCL[1] = ibc; iBCR[1] = ibc; 
-	iBCL[2] = ibc; iBCR[2] = ibc; 
-	iBCL[3] = ibc; iBCR[3] = ibc; 
-	iBCL[4] = ibc; iBCR[4] = ibc; 
-	iBCL[5] = ibc; iBCR[5] = ibc; 
-	iBCL[6] = ibc; iBCR[6] = ibc; 
-	
-	int jbc = bcHash.value(configHash->value("j_bc"));	
-	jBCL[0] = jbc; jBCR[0] = jbc; 
-	jBCL[1] = jbc; jBCR[1] = jbc;
-	jBCL[2] = jbc; jBCR[2] = jbc;
-	jBCL[3] = jbc; jBCR[3] = jbc;
-	jBCL[4] = jbc; jBCR[4] = jbc;
-	jBCL[5] = jbc; jBCR[5] = jbc;
-	jBCL[6] = jbc; jBCR[6] = jbc;
-	
-	int kbc = bcHash.value(configHash->value("k_bc"));
-	kBCL[0] = kbc; kBCR[0] = kbc;
-	kBCL[1] = kbc; kBCR[1] = kbc;
-	kBCL[3] = kbc; kBCR[3] = kbc;
-	kBCL[4] = kbc; kBCR[4] = kbc;
-	kBCL[5] = kbc; kBCR[5] = kbc;
-	kBCL[6] = kbc; kBCR[6] = kbc;
-	
-	// Hard-code vertical boundary conditions on W 
-	kBCL[2] = R1T0; kBCR[2] = R1T0;
+	iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
+    iBCR[0] = bcHash.value(configHash->value("i_rhou_bcR"));
+	iBCL[1] = bcHash.value(configHash->value("i_rhov_bcL"));
+    iBCR[1] = bcHash.value(configHash->value("i_rhov_bcR"));
+	iBCL[2] = bcHash.value(configHash->value("i_rhow_bcL"));
+    iBCR[2] = bcHash.value(configHash->value("i_rhow_bcR"));
+	iBCL[3] = bcHash.value(configHash->value("i_tempk_bcL"));
+    iBCR[3] = bcHash.value(configHash->value("i_tempk_bcR"));
+	iBCL[4] = bcHash.value(configHash->value("i_qv_bcL"));
+    iBCR[4] = bcHash.value(configHash->value("i_qv_bcR"));
+	iBCL[5] = bcHash.value(configHash->value("i_rhoa_bcL"));
+    iBCR[5] = bcHash.value(configHash->value("i_rhoa_bcR"));
+	iBCL[6] = bcHash.value(configHash->value("i_qr_bcL"));
+    iBCR[6] = bcHash.value(configHash->value("i_qr_bcR"));
+
+    jBCL[0] = bcHash.value(configHash->value("j_rhou_bcL"));
+    jBCR[0] = bcHash.value(configHash->value("j_rhou_bcR"));
+	jBCL[1] = bcHash.value(configHash->value("j_rhov_bcL"));
+    jBCR[1] = bcHash.value(configHash->value("j_rhov_bcR"));
+	jBCL[2] = bcHash.value(configHash->value("j_rhow_bcL"));
+    jBCR[2] = bcHash.value(configHash->value("j_rhow_bcR"));
+	jBCL[3] = bcHash.value(configHash->value("j_tempk_bcL"));
+    jBCR[3] = bcHash.value(configHash->value("j_tempk_bcR"));
+	jBCL[4] = bcHash.value(configHash->value("j_qv_bcL"));
+    jBCR[4] = bcHash.value(configHash->value("j_qv_bcR"));
+	jBCL[5] = bcHash.value(configHash->value("j_rhoa_bcL"));
+    jBCR[5] = bcHash.value(configHash->value("j_rhoa_bcR"));
+	jBCL[6] = bcHash.value(configHash->value("j_qr_bcL"));
+    jBCR[6] = bcHash.value(configHash->value("j_qr_bcR"));
+
+    kBCL[0] = bcHash.value(configHash->value("k_rhou_bcL"));
+    kBCR[0] = bcHash.value(configHash->value("k_rhou_bcR"));
+	kBCL[1] = bcHash.value(configHash->value("k_rhov_bcL"));
+    kBCR[1] = bcHash.value(configHash->value("k_rhov_bcR"));
+	kBCL[2] = bcHash.value(configHash->value("k_rhow_bcL"));
+    kBCR[2] = bcHash.value(configHash->value("k_rhow_bcR"));
+	kBCL[3] = bcHash.value(configHash->value("k_tempk_bcL"));
+    kBCR[3] = bcHash.value(configHash->value("k_tempk_bcR"));
+	kBCL[4] = bcHash.value(configHash->value("k_qv_bcL"));
+    kBCR[4] = bcHash.value(configHash->value("k_qv_bcR"));
+	kBCL[5] = bcHash.value(configHash->value("k_rhoa_bcL"));
+    kBCR[5] = bcHash.value(configHash->value("k_rhoa_bcR"));
+	kBCL[6] = bcHash.value(configHash->value("k_qr_bcL"));
+    kBCR[6] = bcHash.value(configHash->value("k_qr_bcR"));
 
 	// Define the Reference state
     refstate = ref;
@@ -145,12 +173,12 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	DJrecip = 1./DJ;
 	DKrecip = 1./DK;
 		
-	// Adjust the internal, variable domain to exclude boundaries in R0, R2, and R3 cases
+	// Adjust the internal, variable domain to include boundaries
 	adjustInternalDomain(1);
-	
-	// Redefine nodes with new domain
+    
+	// Define nodes with internal domain
 	int nodes = iDim*jDim*kDim;
-	
+    
 	// Set up the initial recursive filter
 	iFilter = new RecursiveFilter(4);
 	jFilter = new RecursiveFilter(4);
@@ -188,11 +216,19 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
         jLDim = 4;
     }
     kLDim = 4;
-    
-	iL = new real[varDim*iDim*iLDim];
-	jL = new real[varDim*jDim*jLDim];
-	kL = new real[varDim*kDim*kLDim];
+    for (int var = 0; var < varDim; ++var) {
+        iRank[var] = iDim - rankHash[iBCL[var]] - rankHash[iBCR[var]];
+        jRank[var] = jDim - rankHash[jBCL[var]] - rankHash[jBCR[var]];
+        kRank[var] = kDim - rankHash[kBCL[var]] - rankHash[kBCR[var]];
+        // Need to verify that Rank is sufficient (>2?)
+        iL[var] = new real[iRank[var]*iLDim];
+        jL[var] = new real[jRank[var]*jLDim];
+        kL[var] = new real[kRank[var]*kLDim];
+        iGamma[var] = new real[iRank[var]*iDim];
+        jGamma[var] = new real[jRank[var]*jDim];
+        kGamma[var] = new real[kRank[var]*kDim];
 
+    }
 	// Precalculate the basis functions for lookup table option
 	basis0 = new real[2000000];
 	basis1 = new real[2000000];
@@ -546,60 +582,94 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		int l;
 		real* kB = new real[kDim];
 		real* x = new real[kDim];
+        real* b = new real[kRank[var]];
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
 				}
+                // Multiply by gamma
+                for (int m = 0; m < kRank[var]; m++) {
+                    b[m] = 0;
+                    for (int k = 0; k < kDim; k++) {
+                        b[m] += kGamma[var][kDim*m + k]*kB[k];
+                    }
+                }
+
 				// Solve for A's using compact storage
 				real sum = 0;
-				for (int k = 0; k < kDim; k++) {
+				for (int k = 0; k < kRank[var]; k++) {
 					for (sum=kB[k], l=-1;l>=-(kLDim-1);l--) {
 						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
-							sum -= kL[kDim*kLDim*var + k*kLDim-l]*x[k+l];
+							sum -= kL[var][k*kLDim-l]*b[k+l];
 					}
-					x[k] = sum/kL[kDim*kLDim*var + k*kLDim];
+					b[k] = sum/kL[var][k*kLDim];
 				}	
-				for (int k=kDim-1;k>=0;k--) {
-					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
-						if ((k+l < kDim) and (((k+l)*kLDim+l) < kDim*kLDim))
-							sum -= kL[kDim*kLDim*var + (k+l)*kLDim+l]*x[k+l];
+				for (int k=kRank[var]-1;k>=0;k--) {
+					for (sum=b[k], l=1;l<=(kLDim-1);l++) {
+						if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
+							sum -= kL[var][(k+l)*kLDim+l]*b[k+l];
 					}
-					x[k] = sum/kL[kDim*kLDim*var + k*kLDim];
+					b[k] = sum/kL[var][k*kLDim];
 				}
 				
+                // Multiply by gammaT
+                for (int k = 0; k < kDim; k++) {
+                    x[k] = 0;
+                    for (int m = 0; m < kRank[var]; m++) {
+                        x[k] += kGamma[var][kDim*m + k]*b[m];
+                    }
+                }
+
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[kIndex]; 
 				}
 			}
 		}
 		delete[] kB;
+		delete[] b;
 		delete[] x;
-		
+        
 		real* jB = new real[jDim];
 		x = new real[jDim];
+        b = new real[jRank[var]];
 		for (int kIndex = 0; kIndex < kDim; kIndex++) {
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					jB[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
 				}
+                // Multiply by gamma
+                for (int m = 0; m < jRank[var]; m++) {
+                    b[m] = 0;
+                    for (int j = 0; j < jDim; j++) {
+                        b[m] += jGamma[var][jDim*m + j]*jB[j];
+                    }
+                }
+
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int j = 0; j < jDim; j++) {
 					for (sum=jB[j], l=-1;l>=-(jLDim-1);l--) {
 						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
-							sum -= jL[jDim*jLDim*var + j*jLDim-l]*x[j+l];
+							sum -= jL[var][j*jLDim-l]*b[j+l];
 					}
-					x[j] = sum/jL[jDim*jLDim*var + j*jLDim];
+					b[j] = sum/jL[var][j*jLDim];
 				}	
 				for (int j=jDim-1;j>=0;j--) {
-					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
+					for (sum=b[j], l=1;l<=(jLDim-1);l++) {
 						if ((j+l < jDim) and (((j+l)*jLDim+l) < jDim*jLDim))
-							sum -= jL[jDim*jLDim*var + (j+l)*jLDim+l]*x[j+l];
+							sum -= jL[var][(j+l)*jLDim+l]*b[j+l];
 					}
-					x[j] = sum/jL[jDim*jLDim*var + j*jLDim];
+					b[j] = sum/jL[var][j*jLDim];
 				}
-				
+                
+                // Multiply by gammaT
+                for (int j = 0; j < jDim; j++) {
+                    x[j] = 0;
+                    for (int m = 0; m < jRank[var]; m++) {
+                        x[j] += jGamma[var][jDim*m + j]*b[m];
+                    }
+                }
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[jIndex]; 
 				}
@@ -607,31 +677,49 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		}
 		delete[] jB;
 		delete[] x;
-		
+		delete[] b;
+        
 		real* iB = new real[iDim];
 		x = new real[iDim];
+        b = new real[iRank[var]];
 		for (int jIndex = 0; jIndex < jDim; jIndex++) {
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
 					iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
 				}
+                // Multiply by gamma
+                for (int m = 0; m < iRank[var]; m++) {
+                    b[m] = 0;
+                    for (int i = 0; i < iDim; i++) {
+                        b[m] += iGamma[var][iDim*m + i]*iB[i];
+                    }
+                }
+
 				// Solve for A's using compact storage
 				real sum = 0;
 				for (int i = 0; i < iDim; i++) {
 					for (sum=iB[i], l=-1;l>=-(iLDim-1);l--) {
 						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
-							sum -= iL[iDim*iLDim*var + i*iLDim-l]*x[i+l];
+							sum -= iL[var][i*iLDim-l]*b[i+l];
 					}
-					x[i] = sum/iL[iDim*iLDim*var + i*iLDim];
+					b[i] = sum/iL[var][i*iLDim];
 				}	
 				for (int i=iDim-1;i>=0;i--) {
-					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
+					for (sum=b[i], l=1;l<=(iLDim-1);l++) {
 						if ((i+l < iDim) and (((i+l)*iLDim+l) < iDim*iLDim))
-							sum -= iL[iDim*iLDim*var + (i+l)*iLDim+l]*x[i+l];
+							sum -= iL[var][(i+l)*iLDim+l]*b[i+l];
 					}
-					x[i] = sum/iL[iDim*iLDim*var + i*iLDim];
+					b[i] = sum/iL[var][i*iLDim];
 				}
-				
+
+                // Multiply by gammaT
+                for (int i = 0; i < iDim; i++) {
+                    x[i] = 0;
+                    for (int m = 0; m < iRank[var]; m++) {
+                        x[i] += iGamma[var][iDim*m + i]*b[m];
+                    }
+                }
+
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
 					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = x[iIndex]; 
 				}
@@ -640,7 +728,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		}
 		delete[] iB;
 		delete[] x;
-		
+		delete[] b;
 	}
 
 	return true;
@@ -656,39 +744,43 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 	
 //#pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
-        for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+        for (int iIndex = 1; iIndex < (iDim-2); iIndex++) {
             for (int imu = -1; imu <= 1; imu += 2) {
                 real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
                 int ii = (int)((i - iMin)*DIrecip);
                 for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
                     real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-                    int uI = iIndex*2 + (imu+1)/2;
+                    int uI = (iIndex-1)*2 + (imu+1)/2;
                     
-                    for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+                    for (int jIndex = 1; jIndex < (jDim-2); jIndex++) {
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
                             int jj = (int)((j - jMin)*DJrecip);
                             for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {                                
                                 real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-                                int uJ = jIndex*2 + (jmu+1)/2;
+                                int uJ = (jIndex-1)*2 + (jmu+1)/2;
                                 real ijbasis = ibasis * jbasis;
                                 
-                                for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+                                for (int kIndex = 1; kIndex < (kDim-2); kIndex++) {
                                     for (int kmu = -1; kmu <= 1; kmu += 2) {
                                         real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
                                         int kk = (int)((k - kMin)*DKrecip);
                                         for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                                             real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
                                             real ijkbasis = 0.125 * ijbasis * kbasis;
-                                            int uK = kIndex*2 + (kmu+1)/2;
-                                            int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+                                            int uK = (kIndex-1)*2 + (kmu+1)/2;
+                                            int uIndex = varDim*(iDim-3)*2*(jDim-3)*2*uK +varDim*(iDim-3)*2*uJ +varDim*uI;
                                             int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                             
 											int ui = uIndex + var;
-											if (Ustate[ui] == 0) continue;
-											
+											//if (Ustate[ui] == 0) continue;
+											if (Ustate[ui] != 1) {
+                                                std::cout << uI << " " << uJ << " " << uK << " " << ui << "\n"; 
+                                            }
 											int bi = bIndex + var;
 											//#pragma omp atomic
+                                            //std::cout << ui << " " << Ustate[ui] << "\n";
+                                            //std::cout << bi << " " << iNode << " " << jNode << " " << kNode << " " << Bstate[bi] << "\n";
 											Bstate[bi] += Ustate[ui] * ijkbasis; 
 										}
 									}	
@@ -714,7 +806,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 	
 	//#pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
-        for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
+        for (int iIndex = 1; iIndex < (iDim-2); iIndex++) {
             for (int imu = -1; imu <= 1; imu += 2) {
                 real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
                 int ii = (int)((i - iMin)*DIrecip);
@@ -722,7 +814,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
                     real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[0], iBCR[0]);
                     int uI = iIndex*2 + (imu+1)/2;
                     
-                    for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
+                    for (int jIndex = 1; jIndex < (jDim-2); jIndex++) {
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
                             int jj = (int)((j - jMin)*DJrecip);
@@ -730,7 +822,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
                                 real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[0], jBCR[0]);
                                 int uJ = jIndex*2 + (jmu+1)/2;
                                 real ijbasis = ibasis * jbasis;
-                                for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
+                                for (int kIndex = 1; kIndex < (kDim-2); kIndex++) {
                                     for (int kmu = -1; kmu <= 1; kmu += 2) {
                                         real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
                                         int kk = (int)((k - kMin)*DKrecip);
@@ -969,295 +1061,23 @@ bool CostFunction3D::setupSplines()
 	
 	// Do the spline via a Cholesky decomposition
 	// and manipulate the DC Filter
-	real Pi = acos(-1.);
-	real** P = new real*[iDim];
-	real* p = new real[iDim];
-	for (int i = 0; i < iDim; i++) {
-		P[i] = new real[iDim];
-		p[i] = 0.;
-	}
-		
-	for (int i = 0; i < varDim*iDim*iLDim; i++) {
-		iL[i] = 0;
-	}
-	
+    real Pi = acos(-1.);
+    
 	real cutoff_wl = configHash->value("i_spline_cutoff").toFloat();
 	cout << "i Spline cutoff set to " << cutoff_wl << endl;
 	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
-	for (int var = 0; var < varDim; var++) {				
-		for (int i = 0; i < iDim; i++) {
-			for (int j = 0; j < iDim; j++) {
-				P[i][j] = 0;
-			}
-		}
-				
-		for (int iIndex = 0; iIndex < (iDim-1); iIndex++) {
-			for (int imu = -1; imu <= 1; imu += 2) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5));
-				int ii = (int)((i - iMin)*DIrecip);
-                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {                    
-					real pm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-					real qm = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
-					real pn, qn;
-					P[iNode][iNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
-					if ((iNode+1) < iDim) {
-						pn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						qn = Basis(iNode+1, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
-						P[iNode][iNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[iNode+1][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((iNode+2) < iDim) {
-						pn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						qn = Basis(iNode+2, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
-						P[iNode][iNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[iNode+2][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((iNode+3) < iDim) {
-						pn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-						qn = Basis(iNode+3, i, iDim-1, iMin, DI, DIrecip, 3, iBCL[var], iBCR[var]);
-						P[iNode][iNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[iNode+3][iNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-				}
-			}
-		}
-		
-		/* for (int i = 0; i < iDim; i++) {
-			for (int j = 0; j < iDim; j++) {
-				cout << P[i][j] << " ";
-			} cout << endl;
-		} */	
-				
-		// Cholesky decomp of P+Q
-		for (int i=0;i<iDim;i++) {
-			for (int j=i;j<iDim;j++) {
-				real sum=P[i][j];
-				for (int k=i-1;k>=0;k--) {
-					sum -= P[i][k]*P[j][k];
-				}
-				if (i == j) {
-					if (sum <= 0.0) { 
-						std::cout << "cholesky failed at i,j sum\n";
-						break;
-					} else {
-						p[i] = sqrt(sum);
-					}
-				} else {
-					P[j][i]=sum/p[i];
-					if (p[i] == 0.) { 
-						std::cout << "Problem! " << i << "\t" << j << "\n";
-					}
-				}
-			}
-		}
-		
-		for (int i = 0; i < iDim; i++) {
-			iL[iDim*iLDim*var + i*iLDim] = p[i];
-			//cout << iL[iDim*iLDim*var + i*iLDim] << " ";
-			for (int n=1;n<iLDim;n++) {
-				if ((i-n) >= 0) {
-					iL[iDim*iLDim*var + i*iLDim+n] = P[i][i-n];
-				}
-				//cout << iL[iDim*iLDim*var + i*iLDim + n] << " ";
-			} //cout << endl;
-		} //cout << endl;
-	}
-	
-	// Clear the temporary memory and reallocate for jDim
-	for (int i = 0; i < iDim; i++) {
-		delete[] P[i];
-	}
-	delete[] P;
-	delete[] p;
-	
-	P = new real*[jDim];
-	p = new real[jDim];
-	for (int j = 0; j < jDim; j++) {
-		P[j] = new real[jDim];
-		p[j] = 0.;
-	}
-	
-	for (int j = 0; j < varDim*jDim*jLDim; j++) {
-		jL[j] = 0;
-	}
-	
+    calcSplineCoefficients(iDim, eq, iBCL, iBCR, iMin, DI, DIrecip, iLDim, iL, iGamma);
+
 	cutoff_wl = configHash->value("j_spline_cutoff").toFloat();
 	cout << "j Spline cutoff set to " << cutoff_wl << endl;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
-	for (int var = 0; var < varDim; var++) {
-
-		for (int i = 0; i < jDim; i++) {
-			for (int j = 0; j < jDim; j++) {
-				P[i][j] = 0;
-			}
-		}		
-		for (int jIndex = 0; jIndex < (jDim-1); jIndex++) {
-			for (int jmu = -1; jmu <= 1; jmu += 2) {
-				real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5));
-				int jj = (int)((j - jMin)*DJrecip);
-                for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
-					real pm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-					real qm = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
-					real pn, qn;
-					P[jNode][jNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
-					if ((jNode+1) < jDim) {
-						pn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						qn = Basis(jNode+1, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
-						P[jNode][jNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[jNode+1][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((jNode+2) < jDim) {
-						pn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						qn = Basis(jNode+2, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
-						P[jNode][jNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[jNode+2][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
-					}
-					if ((jNode+3) < jDim) {
-						pn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-						qn = Basis(jNode+3, j, jDim-1, jMin, DJ, DJrecip, 3, jBCL[var], jBCR[var]);
-						P[jNode][jNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[jNode+3][jNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
-					}
-				}
-			}
-		}
-		
-		// Cholesky decomp
-		for (int i=0;i<jDim;i++) {
-			for (int j=i;j<jDim;j++) {
-				real sum=P[i][j];
-				for (int k=i-1;k>=0;k--) {
-					sum -= P[i][k]*P[j][k];
-				}
-				if (i == j) {
-					if (sum <= 0.0) { 
-						std::cout << "cholesky failed at i,j sum\n";
-						break;
-					} else {
-						p[i] = sqrt(sum);
-					}
-				} else {
-					P[j][i]=sum/p[i];
-					if (p[i] == 0.) { 
-						std::cout << "Problem! " << i << "\t" << j << "\n";
-					}
-				}
-			}
-		}
-		
-		for (int j = 0; j < jDim; j++) {
-			jL[jDim*jLDim*var + j*jLDim] = p[j];
-			//cout << jL[jDim*jLDim*var + j*jLDim] << " ";
-			for (int n=1;n<jLDim;n++) {
-				if ((j-n) >= 0) {
-					jL[jDim*jLDim*var + j*jLDim+n] = P[j][j-n];
-				}
-				//cout << jL[jDim*jLDim*var + j*jLDim + n] << " ";
-			} //cout << endl;
-		} //cout << endl;
-	}
-	
-	// Clear the temporary memory and reallocate for kDim
-	for (int j = 0; j < jDim; j++) {
-		delete[] P[j];
-	}
-	delete[] P;
-	delete[] p;
-	
-	P = new real*[kDim];
-	p = new real[kDim];
-	for (int k = 0; k < kDim; k++) {
-		P[k] = new real[kDim];
-		p[k] = 0.;
-	}
-	
-	for (int k = 0; k < varDim*kDim*kLDim; k++) {
-		kL[k] = 0;
-	}
-	
+	calcSplineCoefficients(jDim, eq, jBCL, jBCR, jMin, DJ, DJrecip, jLDim, jL, jGamma);
+    
 	cutoff_wl = configHash->value("k_spline_cutoff").toFloat();
 	cout << "k Spline cutoff set to " << cutoff_wl << endl;
 	eq = pow( (cutoff_wl/(2*Pi)) , 6);
-	for (int var = 0; var < varDim; var++) {
-		
-		for (int i = 0; i < kDim; i++) {
-			for (int j = 0; j < kDim; j++) {
-				P[i][j] = 0;
-			}
-		}		
-		for (int kIndex = 0; kIndex < (kDim-1); kIndex++) {
-			for (int kmu = -1; kmu <= 1; kmu += 2) {
-				real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5));
-				int kk = (int)((k - kMin)*DKrecip);
-                for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-					real pm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-					real qm = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
-					real pn, qn;
-					P[kNode][kNode] += 0.5 * ((pm * pm) + eq * (qm * qm));
-					if ((kNode+1) < kDim) {
-						pn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						qn = Basis(kNode+1, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
-						P[kNode][kNode+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[kNode+1][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((kNode+2) < kDim) {
-						pn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						qn = Basis(kNode+2, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
-						P[kNode][kNode+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[kNode+2][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
-					}
-					if ((kNode+3) < kDim) {
-						pn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-						qn = Basis(kNode+3, k, kDim-1, kMin, DK, DKrecip, 3, kBCL[var], kBCR[var]);
-						P[kNode][kNode+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						P[kNode+3][kNode] += 0.5 * ((pm * pn) + eq * (qm * qn));						
-					}
-				}
-			}
-		}
-		
-		// Cholesky decomp
-		for (int i=0;i<kDim;i++) {
-			for (int j=i;j<kDim;j++) {
-				real sum=P[i][j];
-				for (int k=i-1;k>=0;k--) {
-					sum -= P[i][k]*P[j][k];
-				}
-				if (i == j) {
-					if (sum <= 0.0) { 
-						std::cout << "cholesky failed at i,j sum\n";
-						break;
-					} else {
-						p[i] = sqrt(sum);
-					}
-				} else {
-					P[j][i]=sum/p[i];
-					if (p[i] == 0.) { 
-						std::cout << "Problem! " << i << "\t" << j << "\n";
-					}
-				}
-			}
-		}
-		
-		for (int k = 0; k < kDim; k++) {
-			kL[kDim*kLDim*var + k*kLDim] = p[k];
-			//cout << jL[jDim*kLDim*var + j*kLDim] << " ";
-			for (int n=1;n<kLDim;n++) {
-				if ((k-n) >= 0) {
-					kL[kDim*kLDim*var + k*kLDim+n] = P[k][k-n];
-				}
-				//cout << jL[jDim*kLDim*var + j*kLDim + n] << " ";
-			} //cout << endl;
-		} //cout << endl;
-	}
-	
-	// Clear the temporary memory
-	for (int k = 0; k < kDim; k++) {
-		delete[] P[k];
-	}
-	delete[] P;
-	delete[] p;
-
+    calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
+    
 	return true;
 	
 }
@@ -1405,6 +1225,7 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 				break;
 		}
 	}
+    //return b;
 	if ((m > 1) and (m < M-1)) return b;
 	
 	// Add the boundary conditions if we get this far
@@ -1678,52 +1499,257 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 
 void CostFunction3D::adjustInternalDomain(int increment)
 {
-	if (configHash->value("i_bc") == "R0") {
-		// Increase the "internal" size of the grid for the R0 condition
-		iMin -= DI*increment;
-		iMax += DI*increment;
-		iDim += 2*increment;
-	} else if ((configHash->value("i_bc") == "R2T10") or
-			   (configHash->value("i_bc") == "R2T10")) {
-		// Decrease the "internal" size of the grid for the R2 condition
-		iMin += DI*increment;
-		iMax -= DI*increment;
-		iDim -= 2*increment;
-	} else if (configHash->value("i_bc") == "R3") {
-		// Decrease the "internal" size of the grid for the R3 conditions
-		iMin += DI*2*increment;
-		iMax -= DI*2*increment;
-		iDim -= 4*increment;
-	}
-	
-	if (configHash->value("j_bc") == "R0") {
-		jMin -= DJ*increment;
-		jMax += DJ*increment;
-		jDim += 2*increment;
-	} else if ((configHash->value("j_bc") == "R2T10") or
-			   (configHash->value("j_bc") == "R2T20")) {
-		jMin += DJ*increment;
-		jMax -= DJ*increment;
-		jDim -= 2*increment;
-	} else if (configHash->value("j_bc") == "R3") {
-		jMin += DJ*2*increment;
-		jMax -= DJ*2*increment;
-		jDim -= 4*increment;
-	}
-	
-	if (configHash->value("k_bc") == "R0") {
-		kMin -= DK*increment;
-		kMax += DK*increment;
-		kDim += 2*increment;
-	} else if ((configHash->value("k_bc") == "R2T20") or
-			   (configHash->value("k_bc") == "R2T20")) {
-		kMin += DK*increment;
-		kMax -= DK*increment;
-		kDim -= 2*increment;
-	} else if (configHash->value("k_bc") == "R3") {
-		kMin += DK*2*increment;
-		kMax -= DK*2*increment;
-		kDim -= 4*increment;
-	}
+    
+    iMin -= DI*increment;
+    iMax += DI*increment;
+    iDim += 2*increment;
+    jMin -= DJ*increment;
+    jMax += DJ*increment;
+    jDim += 2*increment;;
+    kMin -= DK*increment;
+    kMax += DK*increment;
+    kDim += 2*increment;
+
 }	
 
+void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
+                                            const real& xMin, const real& DX, const real& DXrecip, const int& LDim,
+                                            real* L[7], real* gamma[7])
+{
+    int pDim = Dim;
+    
+	for (int var = 0; var < varDim; var++) {
+        int mDim = Dim - rankHash[BCL[var]] - rankHash[BCR[var]];
+        for (int i = 0; i < mDim*LDim; i++) {
+            L[var][i] = 0;
+        }
+        
+        real** P = new real*[mDim];
+        real* p = new real[mDim];
+        for (int i = 0; i < mDim; i++) {
+            P[i] = new real[mDim];
+            p[i] = 0.;
+        }
+
+        real** PP = new real*[pDim];
+        real** tmp = new real*[pDim];
+        real** G = new real*[mDim];
+        real** GT = new real*[pDim];
+        for (int i = 0; i < pDim; i++) {
+            PP[i] = new real[pDim];
+            tmp[i] = new real[mDim];
+            GT[i] = new real[mDim];
+            for (int j = 0; j < mDim; j++) {
+                tmp[i][j] = 0;
+                GT[i][j] = 0;
+            }
+            for (int j = 0; j < pDim; j++) {
+                PP[i][j] = 0;
+            }
+        }
+        
+		for (int i = 0; i < mDim; i++) {
+            G[i] = new real[pDim];
+			for (int j = 0; j < mDim; j++) {
+				P[i][j] = 0;
+			}
+            for (int j = 0; j < pDim; j++) {
+                G[i][j] = 0;
+            }
+		}
+        
+        // Set boundary conditions
+        switch (BCL[var]) {
+            case R1T0:
+                G[0][0] = -4.0;
+                G[1][0] = -1.0;
+                break;
+            case R1T1:
+                G[1][0] =  1.0;
+                break;
+            case R1T2:
+                G[0][0] =  2.0;
+                G[1][0] = -1.0;
+                break;
+            case R2T10:
+                G[0][0] =  1.0;
+                G[0][1] = -0.5;
+                break;
+            case R2T20:
+                G[0][0] = -1.0;
+                break;
+            case PERIODIC:
+                G[mDim-1][0] = 1;
+                break;
+            default:
+                break;
+        }
+        switch (BCR[var]) {
+            case R1T0:
+                G[mDim-1][pDim-1] = -4.0;
+                G[mDim-2][pDim-1] = -1.0;
+                break;
+            case R1T1:
+                G[mDim-2][pDim-1] =  1.0;
+                break;
+            case R1T2:
+                G[mDim-1][pDim-1] =  2.0;
+                G[mDim-2][pDim-1] = -1.0;
+                break;
+            case R2T10:
+                G[mDim-1][pDim-1] =  1.0;
+                G[mDim-1][pDim-2] = -0.5;
+                break;
+            case R2T20:
+                G[mDim-1][pDim-1] = -1.0;
+                break;
+            case PERIODIC:
+                G[0][pDim-2] = 1;
+                G[1][pDim-1] = 1;
+                break;
+            default:
+                break;
+        }
+        
+        for (int i = 0; i < mDim; i++) {
+            G[i][i+rankHash[BCL[var]]] = 1;
+        }
+        for (int i = 0; i < mDim; i++) {
+			for (int j = 0; j < pDim; j++) {
+                gamma[var][pDim*i + j] = G[i][j];
+                GT[j][i] = G[i][j];
+                //std::cout << G[i][j] << " ";
+                //std::cout << gamma[var][pDim*i + j] << " ";
+            } //std::cout << "\n";
+        } //std::cout << "\n";
+        
+        for (int i = 0; i < pDim; i++) {
+			for (int j = 0; j < mDim; j++) {
+                //std::cout << GT[i][j] << " ";
+                //std::cout << gamma[var][pDim*j + i] << " ";
+            } //std::cout << "\n";
+        } //std::cout << "\n";
+        
+		for (int Index = 1; Index < (pDim-2); Index++) {
+			for (int mu = -1; mu <= 1; mu += 2) {
+				real i = xMin + DX * (Index + (0.5*sqrt(1./3.) * mu + 0.5));
+				int ii = (int)((i - xMin)*DXrecip);
+                for (int Node = max(ii-1,0); Node <= min(ii+2,pDim-1); ++Node) {                    
+					real pm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
+					real qm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+					real pn, qn;
+					PP[Node][Node] += 0.5 * ((pm * pm) + eq * (qm * qm));
+					if ((Node+1) < pDim) {
+						pn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
+						qn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						PP[Node][Node+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
+						PP[Node+1][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+					}
+					if ((Node+2) < pDim) {
+						pn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
+						qn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						PP[Node][Node+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
+						PP[Node+2][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+					}
+					if ((Node+3) < pDim) {
+						pn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
+						qn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						PP[Node][Node+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
+						PP[Node+3][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+					}
+				}
+			}
+		}
+		
+        /* for (int i = 0; i < pDim; i++) {
+            for (int j = 0; j < pDim; j++) {
+                std::cout << PP[i][j] << " ";
+            } std::cout << std::endl;
+        }
+		std::cout << std::endl;
+        */
+        for (int i = 0; i < pDim; i++) {
+            for (int j = 0; j < mDim; j++) {
+                //std::cout << PP[i][j] << " ";
+                for (int k = 0; k < pDim; k++) {
+                    tmp[i][j] += PP[i][k]*gamma[var][pDim*j + k];//GT[k][j];
+                }
+            } //std::cout << std::endl;
+        }
+		//std::cout << std::endl;
+        for (int i = 0; i < mDim; i++) {
+            for (int j = 0; j < mDim; j++) {
+                //std::cout << G[i][j] << " ";
+                //P[i][j] = 0;
+                for (int k = 0; k < pDim; k++) {
+                    P[i][j] += gamma[var][pDim*i + k]*tmp[k][j];//G[i][k]
+                }
+                //std::cout << P[i][j] << " ";
+            } //std::cout << std::endl;
+        }
+		//std::cout << std::endl;
+        
+		
+		/* for (int i = 0; i < mDim; i++) {
+            for (int j = 0; j < mDim; j++) {
+                std::cout << P[i][j] << " ";
+            } std::cout << std::endl;
+        }	
+		std::cout << std::endl;
+        */
+		// Cholesky decomp of P+Q
+		for (int i=0;i<mDim;i++) {
+			for (int j=i;j<mDim;j++) {
+				real sum=P[i][j];
+				for (int k=i-1;k>=0;k--) {
+					sum -= P[i][k]*P[j][k];
+				}
+				if (i == j) {
+					if (sum <= 0.0) { 
+						std::cout << "cholesky failed at i,j sum\n";
+                        exit(1);
+						break;
+					} else {
+						p[i] = sqrt(sum);
+					}
+				} else {
+					P[j][i]=sum/p[i];
+					if (p[i] == 0.) { 
+						std::cout << "Problem! " << i << "\t" << j << "\n";
+                        exit(1);
+					}
+				}
+			}
+		}
+
+		for (int i = 0; i < mDim; i++) {
+			L[var][i*LDim] = p[i];
+			//cout << L[mDim*iLDim*var + i*iLDim] << " ";
+			for (int n=1;n<LDim;n++) {
+				if ((i-n) >= 0) {
+					L[var][i*LDim+n] = P[i][i-n];
+				}
+				//cout << iL[mDim*iLDim*var + i*iLDim + n] << " ";
+			} //cout << endl;
+		} //cout << endl;
+        
+        for (int i = 0; i < pDim; i++) {
+            delete[] PP[i];
+            delete[] tmp[i];
+            delete[] GT[i];
+        }    
+        for (int i = 0; i < mDim; i++) {
+            delete[] G[i];
+        }
+        delete[] PP;
+        delete[] tmp;
+        delete[] G;
+        delete[] GT;
+	
+        for (int i = 0; i < mDim; i++) {
+            delete[] P[i];
+        }
+        delete[] P;
+        delete[] p;
+    }
+}

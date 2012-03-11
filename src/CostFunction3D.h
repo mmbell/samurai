@@ -61,10 +61,13 @@ protected:
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	void adjustInternalDomain(int increment);
-	
+	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
+                                const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
+                                real* L[7], real* gamma[7]);
 	bool outputMish;
 	int iDim, jDim, kDim;
     int iLDim, jLDim, kLDim;
+    int iRank[7], jRank[7], kRank[7];
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
@@ -80,10 +83,12 @@ protected:
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
-	real* iL;
-	real* jL;
-	real* kL;
-	real* kLw;
+	real* iL[7];
+	real* jL[7];
+	real* kL[7];
+    real* iGamma[7];
+    real* jGamma[7];
+    real* kGamma[7];
 	real* finalAnalysis;
 	int varDim;
     int derivDim;
@@ -97,6 +102,8 @@ protected:
 	real* basis1;
 	const QHash<QString, QString>* configHash;
 	QHash<QString, int> bcHash;
+    QHash<int, int> rankHash;
+    
 	enum BoundaryConditionTypes {
 		R0 = -1,
 		R1T0 = 0,
