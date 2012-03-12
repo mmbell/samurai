@@ -37,6 +37,7 @@ CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
     rankHash[R1T2] = 1;
     rankHash[R2T10] = 2;
     rankHash[R2T20] = 2;
+    rankHash[PERIODIC] = 1;
     rankHash[R3] = 3;
     
     // Set the derivative array
@@ -206,19 +207,21 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	stateC = new real[nState];
     
     if (iBCL[0] == PERIODIC) {
-        iLDim = iDim;   
+        iLDim = iDim-2;   
     } else {
         iLDim = 4;
     }
-    if (iBCL[0] == PERIODIC) {
-        jLDim = jDim;   
+    if (jBCL[0] == PERIODIC) {
+        jLDim = jDim-2;   
     } else {
         jLDim = 4;
     }
     kLDim = 4;
     for (int var = 0; var < varDim; ++var) {
         iRank[var] = iDim - rankHash[iBCL[var]] - rankHash[iBCR[var]];
+        if (iBCL[var] == PERIODIC) iRank[var]--;
         jRank[var] = jDim - rankHash[jBCL[var]] - rankHash[jBCR[var]];
+        if (jBCL[var] == PERIODIC) jRank[var]--;
         kRank[var] = kDim - rankHash[kBCL[var]] - rankHash[kBCR[var]];
         // Need to verify that Rank is sufficient (>2?)
         iL[var] = new real[iRank[var]*iLDim];
@@ -661,7 +664,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 					x[j] = sum/jL[var][j*jLDim];
 				}	
 				for (int j=jRank[var]-1;j>=0;j--) {
-					for (sum=b[j], l=1;l<=(jLDim-1);l++) {
+					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
 						if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
 							sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
 					}
@@ -711,7 +714,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 					x[i] = sum/iL[var][i*iLDim];
 				}	
 				for (int i=iRank[var]-1;i>=0;i--) {
-					for (sum=b[i], l=1;l<=(iLDim-1);l++) {
+					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
 						if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
 							sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
 					}
@@ -779,10 +782,10 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
                                             int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                             
 											int ui = uIndex + var;
-											//if (Ustate[ui] == 0) continue;
-											if (Ustate[ui] != 1) {
+											if (Ustate[ui] == 0) continue;
+											/* if (Ustate[ui] != 1) {
                                                 std::cout << uI << " " << uJ << " " << uK << " " << ui << "\n"; 
-                                            }
+                                            } */
 											int bi = bIndex + var;
 											//#pragma omp atomic
                                             //std::cout << ui << " " << Ustate[ui] << "\n";
@@ -1180,36 +1183,36 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 	real xm = xmin + (m * DX);
 	real delta = (x - xm) * DXrecip;
 	real z = fabs(delta);
-	// real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
+	real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
 	if (z < 2.0) {
-		real zi = z*1000000.;
-		int z1 = int(zi);
+		//real zi = z*1000000.;
+		//int z1 = int(zi);
 		switch (derivative) {
 			case 0:
 				// Cheapest approximation
-				b = basis0[z1];
+				//b = basis0[z1];
 				
 				// Slightly more expensive
 				//b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
 
 				// Unapproximated
-				/* z = 2.0 - z;
+				z = 2.0 - z;
 				b = (z*z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					b -= (z*z*z) * FOURSIXTH; */
+					b -= (z*z*z) * FOURSIXTH;
 				
 				break;
 			case 1:
-				b = basis1[z1];
+				//b = basis1[z1];
 				
 				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
 				
-				/* z = 2.0 - z;
+				z = 2.0 - z;
 				b = (z*z) * ONESIXTH;
 				z -= 1.0;
 				if (z > 0)
-					b -= (z*z) * FOURSIXTH; */
+					b -= (z*z) * FOURSIXTH;
 
 				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
@@ -1232,288 +1235,19 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 		}
 	}
     return b;
-    /* if ((m > 1) and (m < M-1)) return b;
-	
-	// Add the boundary conditions if we get this far
-	real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
-	return bc; */
-}
-
-real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, const real& xmin, 
-							  const real& DX, const real& DXrecip, const int& derivative,
-							  const int& BL, const int& BR, const real& lambda)
-{
-	
-	real bmod = 0;
-	int node = -2;
-	real coeffmod = 0.;
-	// real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
-	if (m == 0) {
-		// Left BC
-		switch (BL) {
-			case -1:
-				// No boundary condition, but buffered so use R1T2
-				node = -1;
-				coeffmod = 2.;
-				break;
-			case 0:
-				node = -1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				// For R2 BCs, the 0 node is recast as 1, with BCs applied to -1 and -2 
-				node = -2;
-				coeffmod = 1.;
-				break;
-			case 5:
-				node = -2;
-				coeffmod = -1.;
-				break;
-			case 6:
-				return b;	
-			case 7:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-		}
-	} else if (m == 1) {
-		// Left BC
-		switch (BL) {
-			case -1:
-				// No boundary condition, but buffered so use R1T0
-				node = -1;
-				coeffmod = -1.;
-				break;			
-			case 0:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = -1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = -1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				return b;
-			case 5:
-				return b;
-			case 6:
-				return b;
-			case 7:
-				node = M+2;
-				coeffmod = 1.;
-				break;
-		}
-	} else if (m == M) {
-		// Right BC
-		switch (BR) {
-			case -1:
-				// No boundary condition, but buffered so use R1T0
-				node = M+1;
-				coeffmod = 2.;
-				break;					
-			case 0:
-				node = M+1;
-				coeffmod = -4.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 0.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = 2.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case 4:
-				node = M+2;
-				coeffmod = 1.;
-				break;					
-			case 5:
-				node = M+2;
-				coeffmod = -1.;
-				break;					
-			case 6:
-				return b;
-			case 7:
-                node = -1;
-                coeffmod = 1.;
-                break;
-		} 
-	} else if (m == (M-1)) {
-		// Right BC
-		switch (BR) {
-			case -1:
-				// No boundary condition, but buffered so use R1T0
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 0:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 1:
-				node = M+1;
-				coeffmod = 1.;
-				break;
-			case 2:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case 3:
-				node = M+1;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case 4:
-				return b;
-			case 5:
-				return b;
-			case 6:
-				return b;
-			case 7:
-                return b;
-		}
-	}	
-	
-	real xm = xmin + (node * DX);
-	real delta = (x - xm) * DXrecip;
-	real z = fabs(delta);
-	if (z < 2.0) {
-		real zi = z*1000000.;
-		int z1 = int(zi);
-		switch (derivative) {
-			case 0:
-				// Cheapest approximation
-				bmod = basis0[z1];
-				
-				// Slightly more expensive
-				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-				
-				// Unapproximated
-				/* z = 2.0 - z;
-				 bmod = (z*z*z) * ONESIXTH;
-				 z -= 1.0;
-				 if (z > 0)
-				 bmod -= (z*z*z) * FOURSIXTH; */
-				
-				break;
-			case 1:
-				bmod = basis1[z1];
-				
-				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-				
-				/* z = 2.0 - z;
-				 bmod = (z*z) * ONESIXTH;
-				 z -= 1.0;
-				 if (z > 0)
-				 bmod -= (z*z) * FOURSIXTH; */
-				
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-				break;
-			case 2:
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-				break;
-			case 3:
-				if (z > 1.0) {
-					bmod = 1;
-				} else if (z < 1.0) {
-					bmod = -3.;
-				}
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-				break;
-		}
-	}	
-	b += coeffmod * bmod;
-	
-	// R2 needs one more addition
-	if ((BL == 4) and (m == 0)) {
-		node = -1;
-		coeffmod = -0.5;
-	} else if ((BR == 4) and (m == M)) {
-		node = M+1;
-		coeffmod = -0.5;
-	} else {
-		return b;
-	}
-	
-	xm = xmin + (node * DX);
-	delta = (x - xm) * DXrecip;
-	z = fabs(delta);
-	if (z < 2.0) {
-		real zi = z*1000000.;
-		int z1 = int(zi);
-		switch (derivative) {
-			case 0:
-				bmod = basis0[z1];
-				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);	
-				break;
-			case 1:
-				bmod = basis1[z1];
-				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-				break;
-			case 2:
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-				break;
-			case 3:
-				if (z > 1.0) {
-					bmod = 1;
-				} else if (z < 1.0) {
-					bmod = -3.;
-				}
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-				break;
-		}
-	}
-	b += coeffmod * bmod;
-	
-	return b;
-	
 }
 
 void CostFunction3D::adjustInternalDomain(int increment)
 {
-    
-    //iMin -= DI*increment;
-    //iMax += DI*increment;
+
+    iMin -= DI*increment;
+    iMax += DI*increment;
     iDim += 2*increment;
-    //jMin -= DJ*increment;
-    //jMax += DJ*increment;
+    jMin -= DJ*increment;
+    jMax += DJ*increment;
     jDim += 2*increment;;
-    //kMin -= DK*increment;
-    //kMax += DK*increment;
+    kMin -= DK*increment;
+    kMax += DK*increment;
     kDim += 2*increment;
 
 }	
@@ -1526,6 +1260,8 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
     
 	for (int var = 0; var < varDim; var++) {
         int mDim = Dim - rankHash[BCL[var]] - rankHash[BCR[var]];
+        // Subtract one more for the periodic case rank mismatch
+        if (BCL[var] == PERIODIC) mDim--;
         for (int i = 0; i < mDim*LDim; i++) {
             L[var][i] = 0;
         }
@@ -1624,10 +1360,10 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			for (int j = 0; j < pDim; j++) {
                 gamma[var][pDim*i + j] = G[i][j];
                 GT[j][i] = G[i][j];
-                std::cout << G[i][j] << " ";
+                //std::cout << G[i][j] << " ";
                 //std::cout << gamma[var][pDim*i + j] << " ";
-            } std::cout << "\n";
-        } std::cout << "\n";
+            } //std::cout << "\n";
+        } //std::cout << "\n";
         
         for (int i = 0; i < pDim; i++) {
 			for (int j = 0; j < mDim; j++) {
@@ -1667,18 +1403,18 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			}
 		}
 		
-        for (int i = 0; i < pDim; i++) {
+        /* for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < pDim; j++) {
                 std::cout << PP[i][j] << " ";
             } std::cout << std::endl;
         }
-		std::cout << std::endl;
+		std::cout << std::endl; */
         
         for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < mDim; j++) {
                 //std::cout << PP[i][j] << " ";
                 for (int k = 0; k < pDim; k++) {
-                    tmp[i][j] += PP[i][k]*gamma[var][pDim*j + k];//GT[k][j];
+                    tmp[i][j] += PP[i][k]*GT[k][j]; //PP[i][k]*gamma[var][pDim*j + k]
                 }
             } //std::cout << std::endl;
         }
@@ -1688,7 +1424,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                 //std::cout << G[i][j] << " ";
                 //P[i][j] = 0;
                 for (int k = 0; k < pDim; k++) {
-                    P[i][j] += gamma[var][pDim*i + k]*tmp[k][j];//G[i][k]
+                    P[i][j] += G[i][k]*tmp[k][j]; //gamma[var][pDim*i + k]*tmp[k][j]
                 }
                 //std::cout << P[i][j] << " ";
             } //std::cout << std::endl;
@@ -1730,14 +1466,14 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 
 		for (int i = 0; i < mDim; i++) {
 			L[var][i*LDim] = p[i];
-			cout << L[var][i*iLDim] << " ";
+            //std::cout << L[var][i*LDim] << " ";
 			for (int n=1;n<LDim;n++) {
 				if ((i-n) >= 0) {
 					L[var][i*LDim+n] = P[i][i-n];
 				}
-				cout << L[var][i*iLDim + n] << " ";
-			} cout << endl;
-		} cout << endl;
+                //std::cout << L[var][i*LDim + n] << " ";
+			} //std::cout << endl;
+		} //std::cout << endl;
         
         for (int i = 0; i < pDim; i++) {
             delete[] PP[i];

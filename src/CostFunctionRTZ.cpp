@@ -36,19 +36,19 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
         samuraistream.precision(10);
     }
     
-	int nodes = iDim*jDim*kDim;
     int analysisDim = 46;
-	real* internalAnalysis = new real[nodes*analysisDim];
+    int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
+	finalAnalysis = new real[analysisSize*analysisDim];
 	
     real Pi = acos(-1.0);
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
                 real r = i*1000;
 				if (i > ((iDim-1)*DI + iMin)) continue;
 				
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
 					for (int jhalf =0; jhalf <=outputMish; jhalf++) {
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
@@ -56,7 +56,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 							
 							real tpw = 0;
 							
-							for (int kIndex = 0; kIndex < kDim; kIndex++) {
+							for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
 								for (int khalf =0; khalf <=outputMish; khalf++) {
 									for (int kmu = -khalf; kmu <= khalf; kmu++) {
 										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5*khalf));
@@ -91,17 +91,8 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real qrprime = 0.;
                                         for (int var = 0; var < varDim; var++) {
                                             for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                                                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                                                    int iNode = iiNode;
-                                                    //if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                                                    //if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                                                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                                                    
-                                                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                                        int jNode = jjNode;
-                                                        //if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                                        //if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                                                        if ((jNode < 0) or (jNode >= jDim)) continue;
+                                                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
+                                                    for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
 														ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 														jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 														kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -288,54 +279,54 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										
 										// On the nodes	
 										if (!ihalf and !jhalf and !khalf){
-											int fIndex = iDim*jDim*kDim; 
-											int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
-											internalAnalysis[fIndex * 0 + posIndex] = u;
-											internalAnalysis[fIndex * 1 + posIndex] = v;
-											internalAnalysis[fIndex * 2 + posIndex] = w;
-											internalAnalysis[fIndex * 3 + posIndex] = wspd;
-											internalAnalysis[fIndex * 4 + posIndex] = relhum;
-											internalAnalysis[fIndex * 5 + posIndex] = hprime;
-											internalAnalysis[fIndex * 6 + posIndex] = qvprime*2;
-											internalAnalysis[fIndex * 7 + posIndex] = rhoprime;
-											internalAnalysis[fIndex * 8 + posIndex] = tprime;
-											internalAnalysis[fIndex * 9 + posIndex] = pprime;
-											internalAnalysis[fIndex * 10 + posIndex] = vorticity;
-											internalAnalysis[fIndex * 11 + posIndex] = divergence;
-											internalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
-											internalAnalysis[fIndex * 13 + posIndex] = strain;
-											internalAnalysis[fIndex * 14 + posIndex] = tpw;
-											internalAnalysis[fIndex * 15 + posIndex] = rhou;
-											internalAnalysis[fIndex * 16 + posIndex] = rhov;
-											internalAnalysis[fIndex * 17 + posIndex] = rhow;
-											internalAnalysis[fIndex * 18 + posIndex] = rho;
-											internalAnalysis[fIndex * 19 + posIndex] = press;
-											internalAnalysis[fIndex * 20 + posIndex] = temp;
-											internalAnalysis[fIndex * 21 + posIndex] = qv;
-											internalAnalysis[fIndex * 22 + posIndex] = h;
-											internalAnalysis[fIndex * 23 + posIndex] = qr;
-                                            internalAnalysis[fIndex * 24 + posIndex] = absVorticity;
-											internalAnalysis[fIndex * 25 + posIndex] = udr;
-											internalAnalysis[fIndex * 26 + posIndex] = vdr;
-											internalAnalysis[fIndex * 27 + posIndex] = wdr;
-											internalAnalysis[fIndex * 28 + posIndex] = udt;
-											internalAnalysis[fIndex * 29 + posIndex] = vdt;
-											internalAnalysis[fIndex * 30 + posIndex] = wdt;
-											internalAnalysis[fIndex * 31 + posIndex] = udz;
-											internalAnalysis[fIndex * 32 + posIndex] = vdz;
-											internalAnalysis[fIndex * 33 + posIndex] = wdz;
-                                            internalAnalysis[fIndex * 34 + posIndex] = tdr;
-											internalAnalysis[fIndex * 35 + posIndex] = tdt;
-											internalAnalysis[fIndex * 36 + posIndex] = tdz;
-											internalAnalysis[fIndex * 37 + posIndex] = qvdr;
-											internalAnalysis[fIndex * 38 + posIndex] = qvdt;
-											internalAnalysis[fIndex * 39 + posIndex] = qvdz;
-											internalAnalysis[fIndex * 40 + posIndex] = pdr;
-											internalAnalysis[fIndex * 41 + posIndex] = pdt;
-											internalAnalysis[fIndex * 42 + posIndex] = pdz;
-                                            internalAnalysis[fIndex * 43 + posIndex] = rhodr;
-											internalAnalysis[fIndex * 44 + posIndex] = rhodt;
-											internalAnalysis[fIndex * 45 + posIndex] = rhodz - rhobardz;
+											int fIndex = (iDim-2)*(jDim-2)*(kDim-2); 
+											int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
+											finalAnalysis[fIndex * 0 + posIndex] = u;
+											finalAnalysis[fIndex * 1 + posIndex] = v;
+											finalAnalysis[fIndex * 2 + posIndex] = w;
+											finalAnalysis[fIndex * 3 + posIndex] = wspd;
+											finalAnalysis[fIndex * 4 + posIndex] = relhum;
+											finalAnalysis[fIndex * 5 + posIndex] = hprime;
+											finalAnalysis[fIndex * 6 + posIndex] = qvprime*2;
+											finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
+											finalAnalysis[fIndex * 8 + posIndex] = tprime;
+											finalAnalysis[fIndex * 9 + posIndex] = pprime;
+											finalAnalysis[fIndex * 10 + posIndex] = vorticity;
+											finalAnalysis[fIndex * 11 + posIndex] = divergence;
+											finalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
+											finalAnalysis[fIndex * 13 + posIndex] = strain;
+											finalAnalysis[fIndex * 14 + posIndex] = tpw;
+											finalAnalysis[fIndex * 15 + posIndex] = rhou;
+											finalAnalysis[fIndex * 16 + posIndex] = rhov;
+											finalAnalysis[fIndex * 17 + posIndex] = rhow;
+											finalAnalysis[fIndex * 18 + posIndex] = rho;
+											finalAnalysis[fIndex * 19 + posIndex] = press;
+											finalAnalysis[fIndex * 20 + posIndex] = temp;
+											finalAnalysis[fIndex * 21 + posIndex] = qv;
+											finalAnalysis[fIndex * 22 + posIndex] = h;
+											finalAnalysis[fIndex * 23 + posIndex] = qr;
+                                            finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
+											finalAnalysis[fIndex * 25 + posIndex] = udr;
+											finalAnalysis[fIndex * 26 + posIndex] = vdr;
+											finalAnalysis[fIndex * 27 + posIndex] = wdr;
+											finalAnalysis[fIndex * 28 + posIndex] = udt;
+											finalAnalysis[fIndex * 29 + posIndex] = vdt;
+											finalAnalysis[fIndex * 30 + posIndex] = wdt;
+											finalAnalysis[fIndex * 31 + posIndex] = udz;
+											finalAnalysis[fIndex * 32 + posIndex] = vdz;
+											finalAnalysis[fIndex * 33 + posIndex] = wdz;
+                                            finalAnalysis[fIndex * 34 + posIndex] = tdr;
+											finalAnalysis[fIndex * 35 + posIndex] = tdt;
+											finalAnalysis[fIndex * 36 + posIndex] = tdz;
+											finalAnalysis[fIndex * 37 + posIndex] = qvdr;
+											finalAnalysis[fIndex * 38 + posIndex] = qvdt;
+											finalAnalysis[fIndex * 39 + posIndex] = qvdz;
+											finalAnalysis[fIndex * 40 + posIndex] = pdr;
+											finalAnalysis[fIndex * 41 + posIndex] = pdt;
+											finalAnalysis[fIndex * 42 + posIndex] = pdz;
+                                            finalAnalysis[fIndex * 43 + posIndex] = rhodr;
+											finalAnalysis[fIndex * 44 + posIndex] = rhodt;
+											finalAnalysis[fIndex * 45 + posIndex] = rhodz - rhobardz;
 										}
 									}
 								}
@@ -400,18 +391,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                     if (!obsVector[wgt_index]) continue;
                     for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                         kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            //if ((iBCL[var] == PERIODIC) and (iNode < 0)) iNode = iDim-1;
-                            //if ((iBCR[var] == PERIODIC) and (iNode > (iDim-1))) iNode = iiNode - iDim;
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
-                            
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                //if ((jBCL[var] == PERIODIC) and (jNode < 0)) jNode = jDim-1;
-                                //if ((jBCR[var] == PERIODIC) and (jNode > (jDim-1))) jNode = jjNode - jDim;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;                            
+                        for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
+                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);                            
+                            for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
                                 int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                 jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
                                 tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
@@ -442,43 +424,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
             
         }
 	}
-	// Copy internalAnalysis except for R0, R2, and R3 BCs
-	int internaliDim = iDim;
-	int internaljDim = jDim;
-	int internalkDim = kDim;
 	
 	adjustInternalDomain(-1);
-        
-    finalAnalysis = new real[iDim*jDim*kDim*analysisDim];
-    
-	int fIndex = iDim*jDim*kDim; 
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				int posIndex = iDim*jDim*kIndex + iDim*jIndex + iIndex;
-				// Initialize to zero
-				for (int n = 0; n < analysisDim; ++n) {
-					finalAnalysis[fIndex * n + posIndex] = 0.0;
-				}
-				
-				// Copy internal analysis
-				int internalfIndex = internaliDim*internaljDim*internalkDim;
-				int internaliIndex, internaljIndex, internalkIndex;
-                internaliIndex = iIndex - 1;
-                internaljIndex = jIndex - 1;
-                internalkIndex = kIndex - 1;
-                
-				if ((internaliIndex < 0) or (internaliIndex > internaliDim - 1)) continue;
-				if ((internaljIndex < 0) or (internaljIndex > internaljDim - 1)) continue;
-				if ((internalkIndex < 0) or (internalkIndex > internalkDim - 1)) continue;
-				int internalposIndex = internaliDim*internaljDim*internalkIndex + internaliDim*internaljIndex + internaliIndex;
-				for (int n = 0; n < analysisDim; ++n) {
-					finalAnalysis[fIndex * n + posIndex] = internalAnalysis[internalfIndex * n + internalposIndex];
-                }
-			}
-		}
-	}
-	
+
 	// Write out to a netCDF file
 	if (configHash->value("output_netcdf") == "true") {
         QString cdfFileName = outFileName + ".nc";
@@ -495,7 +443,6 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 	adjustInternalDomain(1);
     
     // Free the memory for the analysis variables
-    delete[] internalAnalysis;
     delete[] finalAnalysis;
     
 	return true;
