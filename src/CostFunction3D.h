@@ -49,7 +49,7 @@ protected:
 	void obAdjustments();
 	void solveBC(real* A, real* B);
 	bool SAtransform(const real* Bstate, real* Astate);
-	bool SAtransform_ori(real* Bstate, real* Astate);
+    bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const QString& suffix, real* Astate) = 0;

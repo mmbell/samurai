@@ -349,7 +349,7 @@ void CostFunction3D::initState(const int iteration)
 	SCtranspose(stateC, stateA);
 	
 	// S^T (Inverse SA transform) yield B's, put it in the tempState
-	SAtransform(stateA, CTHTd);
+	SAtranspose(stateA, CTHTd);
 				
 }	
 
@@ -391,7 +391,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 	
 	SCtranspose(stateC, stateA);
 	
-	SAtransform(stateA, stateB);
+	SAtranspose(stateA, stateB);
 		
 	for (int n = 0; n < nState; n++) {
 		gradient[n] = state[n] + stateB[n] - CTHTd[n];
@@ -740,6 +740,175 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		delete[] b;
 	}
 
+	return true;
+}		
+
+bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
+{
+    
+	//#pragma omp parallel for
+	for (int var = 0; var < varDim; var++) {
+		int l;
+        real* iB = new real[iDim];
+		real* x = new real[iDim];
+        real* b = new real[iRank[var]];
+        real* a = new real[iDim];
+		for (int jIndex = 0; jIndex < jDim; jIndex++) {
+			for (int kIndex = 0; kIndex < kDim; kIndex++) {
+				for (int iIndex = 0; iIndex < iDim; iIndex++) {
+					iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+				}
+                // Multiply by gamma
+                for (int m = 0; m < iRank[var]; m++) {
+                    b[m] = 0;
+                    for (int i = 0; i < iDim; i++) {
+                        b[m] += iGamma[var][iDim*m + i]*iB[i];
+                    }
+                }
+                
+				// Solve for A's using compact storage
+				real sum = 0;
+				for (int i = 0; i < iRank[var]; i++) {
+					for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
+						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
+							sum -= iL[var][i*iLDim-l]*x[i+l];
+					}
+					x[i] = sum/iL[var][i*iLDim];
+				}	
+				for (int i=iRank[var]-1;i>=0;i--) {
+					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
+						if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
+							sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
+					}
+					x[i] = sum/iL[var][i*iLDim];
+				}
+                
+                // Multiply by gammaT
+                for (int i = 0; i < iDim; i++) {
+                    a[i] = 0;
+                    for (int m = 0; m < iRank[var]; m++) {
+                        a[i] += iGamma[var][iDim*m + i]*x[m];
+                    }
+                }
+                
+				for (int iIndex = 0; iIndex < iDim; iIndex++) {
+					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex]; 
+				}
+				
+			}
+		}
+		delete[] iB;
+		delete[] x;
+		delete[] b;
+
+        
+		real* jB = new real[jDim];
+		x = new real[jDim];
+        b = new real[jRank[var]];
+        a = new real[jDim];
+		for (int kIndex = 0; kIndex < kDim; kIndex++) {
+			for (int iIndex = 0; iIndex < iDim; iIndex++) {
+				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+					jB[jIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+				}
+                // Multiply by gamma
+                for (int m = 0; m < jRank[var]; m++) {
+                    b[m] = 0;
+                    for (int j = 0; j < jDim; j++) {
+                        b[m] += jGamma[var][jDim*m + j]*jB[j];
+                    }
+                }
+                
+				// Solve for A's using compact storage
+				real sum = 0;
+				for (int j = 0; j < jRank[var]; j++) {
+					for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
+						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
+							sum -= jL[var][j*jLDim-l]*x[j+l];
+					}
+					x[j] = sum/jL[var][j*jLDim];
+				}	
+				for (int j=jRank[var]-1;j>=0;j--) {
+					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
+						if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
+							sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
+					}
+					x[j] = sum/jL[var][j*jLDim];
+				}
+                
+                // Multiply by gammaT
+                for (int j = 0; j < jDim; j++) {
+                    a[j] = 0;
+                    for (int m = 0; m < jRank[var]; m++) {
+                        a[j] += jGamma[var][jDim*m + j]*x[m];
+                    }
+                }
+				for (int jIndex = 0; jIndex < jDim; jIndex++) {
+					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex]; 
+				}
+			}
+		}
+		delete[] jB;
+		delete[] x;
+		delete[] b;
+        
+        real* kB = new real[kDim];
+		x = new real[kDim];
+        b = new real[kRank[var]];
+        a = new real[kDim];
+		for (int iIndex = 0; iIndex < iDim; iIndex++) {
+			for (int jIndex = 0; jIndex < jDim; jIndex++) {
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+					kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+				}
+                // Multiply by gamma
+                for (int m = 0; m < kRank[var]; m++) {
+                    b[m] = 0;
+                    for (int k = 0; k < kDim; k++) {
+                        b[m] += kGamma[var][kDim*m + k]*kB[k];
+                    }
+                    //std::cout << m << " " << b[m] << "\n";
+                }
+                
+				// Solve for A's using compact storage
+				real sum = 0;
+				for (int k = 0; k < kRank[var]; k++) {
+					for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
+						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
+							sum -= kL[var][k*kLDim-l]*x[k+l];
+					}
+					x[k] = sum/kL[var][k*kLDim];
+				}	
+				for (int k=kRank[var]-1;k>=0;k--) {
+					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
+						if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
+							sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
+					}
+					x[k] = sum/kL[var][k*kLDim];
+				}
+				
+                // Multiply by gammaT
+                for (int k = 0; k < kDim; k++) {
+                    a[k] = 0;
+                    for (int m = 0; m < kRank[var]; m++) {
+                        a[k] += kGamma[var][kDim*m + k]*x[m];
+                    }
+                    //std::cout << k << " " << a[k] << "\n";
+                }
+                
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex]; 
+				}
+			}
+		}
+		delete[] kB;
+		delete[] b;
+		delete[] x;
+        delete[] a;
+
+        
+	}
+    
 	return true;
 }		
 
