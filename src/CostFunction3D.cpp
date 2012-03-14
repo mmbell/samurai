@@ -1055,66 +1055,125 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
             }
+            real* b = new real[kRank[var]];
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
+                    // Multiply by gamma
+                    for (int m = 0; m < kRank[var]; m++) {
+                        b[m] = 0;
+                        for (int k = 0; k < kDim; k++) {
+                            b[m] += kGamma[var][kDim*m + k]*kTemp[k];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
+
+					if (kFilterScale > 0) kFilter->filterArray(b, kRank[var]);
+                    
+                    // Multiply by gammaT
+                    for (int k = 0; k < kDim; k++) {
+                        kTemp[k] = 0;
+                        for (int m = 0; m < kRank[var]; m++) {
+                            kTemp[k] += kGamma[var][kDim*m + k]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
+                    }
+
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
 				}
 			}
-			
+			delete[] b;
+            b = new real[jRank[var]];
 			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
+                    // Multiply by gamma
+                    for (int m = 0; m < jRank[var]; m++) {
+                        b[m] = 0;
+                        for (int j = 0; j < jDim; j++) {
+                            b[m] += jGamma[var][jDim*m + j]*jTemp[j];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
+
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jPad[jIndex] = jTemp[jIndex];
-                                jPad[jIndex+jDim] = jTemp[jIndex];
-                                jPad[jIndex+jDim*2] = jTemp[jIndex];
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jPad[jIndex] = b[jIndex];
+                                jPad[jIndex+jRank[var]] = b[jIndex];
+                                jPad[jIndex+jRank[var]*2] = b[jIndex];
                             }
-                            jFilter->filterArray(jPad, jDim*3);
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jTemp[jIndex] = jPad[jIndex+jDim];
+                            jFilter->filterArray(jPad, jRank[var]*3);
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                b[jIndex] = jPad[jIndex+jRank[var]];
                             }
                         } else {
-                            jFilter->filterArray(jTemp, jDim);
+                            jFilter->filterArray(b, jRank[var]);
                         }
+                    }
+                    
+                    // Multiply by gammaT
+                    for (int j = 0; j < jDim; j++) {
+                        jTemp[j] = 0;
+                        for (int m = 0; m < jRank[var]; m++) {
+                            jTemp[j] += jGamma[var][jDim*m + j]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
                     }
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 					}
 				}
 			}
+            delete[] b;
+            b = new real[iRank[var]];
 			//FI
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
+                    // Multiply by gamma
+                    for (int m = 0; m < iRank[var]; m++) {
+                        b[m] = 0;
+                        for (int i = 0; i < iDim; i++) {
+                            b[m] += iGamma[var][iDim*m + i]*iTemp[i];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
+
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iPad[iIndex] = iTemp[iIndex];
-                                iPad[iIndex+iDim] = iTemp[iIndex];
-                                iPad[iIndex+iDim*2] = iTemp[iIndex];
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                iPad[iIndex] = b[iIndex];
+                                iPad[iIndex+iDim] = b[iIndex];
+                                iPad[iIndex+iDim*2] = b[iIndex];
                             }
-                            iFilter->filterArray(iPad, iDim*3);
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iTemp[iIndex] = iPad[iIndex+iDim];
+                            iFilter->filterArray(iPad, iRank[var]*3);
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                b[iIndex] = iPad[iIndex+iRank[var]];
                             }
                         } else {
-                            iFilter->filterArray(iTemp, iDim);
+                            iFilter->filterArray(b, iRank[var]);
                         }
+                    }
+                    
+                    // Multiply by gammaT
+                    for (int i = 0; i < iDim; i++) {
+                        iTemp[i] = 0;
+                        for (int m = 0; m < iRank[var]; m++) {
+                            iTemp[i] += iGamma[var][iDim*m + i]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
                     }
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						// D
@@ -1126,6 +1185,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
+            delete[] b;
             if (iBCL[var] == PERIODIC) {
                 delete[] iPad;
             }
@@ -1160,6 +1220,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
             }
+            real* b = new real[iRank[var]];
 			//FI & D
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1167,61 +1228,121 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
 						iTemp[iIndex] = Cstate[cIndex] * bgStdDev[cIndex];
 					}
+                    // Multiply by gamma
+                    for (int m = 0; m < iRank[var]; m++) {
+                        b[m] = 0;
+                        for (int i = 0; i < iDim; i++) {
+                            b[m] += iGamma[var][iDim*m + i]*iTemp[i];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iPad[iIndex] = iTemp[iIndex];
-                                iPad[iIndex+iDim] = iTemp[iIndex];
-                                iPad[iIndex+iDim*2] = iTemp[iIndex];
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                iPad[iIndex] = b[iIndex];
+                                iPad[iIndex+iDim] = b[iIndex];
+                                iPad[iIndex+iDim*2] = b[iIndex];
                             }
-                            iFilter->filterArray(iPad, iDim*3);
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iTemp[iIndex] = iPad[iIndex+iDim];
+                            iFilter->filterArray(iPad, iRank[var]*3);
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                b[iIndex] = iPad[iIndex+iRank[var]];
                             }
                         } else {
-                            iFilter->filterArray(iTemp, iDim);
+                            iFilter->filterArray(b, iRank[var]);
                         }
                     }
+                    
+                    // Multiply by gammaT
+                    for (int i = 0; i < iDim; i++) {
+                        iTemp[i] = 0;
+                        for (int m = 0; m < iRank[var]; m++) {
+                            iTemp[i] += iGamma[var][iDim*m + i]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
+                    }
+
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex]; 
 					}
 				}
 			}
+            delete[] b;
+            b = new real[jRank[var]];
 			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
+                    // Multiply by gamma
+                    for (int m = 0; m < jRank[var]; m++) {
+                        b[m] = 0;
+                        for (int j = 0; j < jDim; j++) {
+                            b[m] += jGamma[var][jDim*m + j]*jTemp[j];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
+                    
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jPad[jIndex] = jTemp[jIndex];
-                                jPad[jIndex+jDim] = jTemp[jIndex];
-                                jPad[jIndex+jDim*2] = jTemp[jIndex];
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jPad[jIndex] = b[jIndex];
+                                jPad[jIndex+jRank[var]] = b[jIndex];
+                                jPad[jIndex+jRank[var]*2] = b[jIndex];
                             }
-                            jFilter->filterArray(jPad, jDim*3);
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jTemp[jIndex] = jPad[jIndex+jDim];
+                            jFilter->filterArray(jPad, jRank[var]*3);
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                b[jIndex] = jPad[jIndex+jRank[var]];
                             }
                         } else {
-                            jFilter->filterArray(jTemp, jDim);
+                            jFilter->filterArray(b, jRank[var]);
                         }
                     }
+                    
+                    // Multiply by gammaT
+                    for (int j = 0; j < jDim; j++) {
+                        jTemp[j] = 0;
+                        for (int m = 0; m < jRank[var]; m++) {
+                            jTemp[j] += jGamma[var][jDim*m + j]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
+                    }
+                    
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
 					}
 				}
 			}
 			//FK
+            delete[] b;
+            b = new real[kRank[var]];
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
+                    // Multiply by gamma
+                    for (int m = 0; m < kRank[var]; m++) {
+                        b[m] = 0;
+                        for (int k = 0; k < kDim; k++) {
+                            b[m] += kGamma[var][kDim*m + k]*kTemp[k];
+                        }
+                        //std::cout << m << " " << b[m] << "\n";
+                    }
+                    
+					if (kFilterScale > 0) kFilter->filterArray(b, kRank[var]);
+                    
+                    // Multiply by gammaT
+                    for (int k = 0; k < kDim; k++) {
+                        kTemp[k] = 0;
+                        for (int m = 0; m < kRank[var]; m++) {
+                            kTemp[k] += kGamma[var][kDim*m + k]*b[m];
+                        }
+                        //std::cout << k << " " << a[k] << "\n";
+                    }
+
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
