@@ -105,15 +105,16 @@ protected:
     QHash<int, int> rankHash;
     
 	enum BoundaryConditionTypes {
-		R0 = -1,
-		R1T0 = 0,
-		R1T1 = 1,
-		R1T2 = 2,
-		R1T10 = 3,
-		R2T10 = 4,
-		R2T20 = 5,
-		R3 = 6,
-		PERIODIC = 7
+        RX = -1,
+		R0 = 0,
+		R1T0 = 1,
+		R1T1 = 2,
+		R1T2 = 3,
+		R1T10 = 4,
+		R2T10 = 5,
+		R2T20 = 6,
+		R3 = 7,
+		PERIODIC = 8
 	};
 
 	real iFilterScale,jFilterScale, kFilterScale;

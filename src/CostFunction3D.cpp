@@ -686,6 +686,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		delete[] jB;
 		delete[] x;
 		delete[] b;
+        delete[] a;
         
 		real* iB = new real[iDim];
 		x = new real[iDim];
@@ -738,6 +739,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 		delete[] iB;
 		delete[] x;
 		delete[] b;
+        delete[] a;
 	}
 
 	return true;
@@ -800,7 +802,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 		delete[] iB;
 		delete[] x;
 		delete[] b;
-
+        delete[] a;
         
 		real* jB = new real[jDim];
 		x = new real[jDim];
@@ -851,6 +853,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 		delete[] jB;
 		delete[] x;
 		delete[] b;
+        delete[] a;
         
         real* kB = new real[kDim];
 		x = new real[kDim];
@@ -906,7 +909,6 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 		delete[] x;
         delete[] a;
 
-        
 	}
     
 	return true;
@@ -1351,6 +1353,14 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
+            delete[] b;
+            if (iBCL[var] == PERIODIC) {
+                delete[] iPad;
+            }
+			if (jBCL[var] == PERIODIC) {
+                delete[] jPad;
+            }
+
 		}		
 	}
 }
@@ -1524,8 +1534,328 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 				break;
 		}
 	}
-    return b;
+    //if (((m > 1) and (m < M-1)) or (BL == RX)) return b;
+    if ((m > 1) and (m < M-1)) return b;
+    // Add the boundary conditions if we get this far
+    real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
+    return bc;
 }
+
+real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, const real& xmin, 
+                             const real& DX, const real& DXrecip, const int& derivative,
+                             const int& BL, const int& BR, const real& lambda)
+{
+	
+	real bmod = 0;
+	int node = -2;
+	real coeffmod = 0.;
+	// real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
+	if (m == 0) {
+		// Left BC
+		switch (BL) {
+			case R0:
+				// No boundary condition, but buffered so use R1T2
+				node = -1;
+				coeffmod = 2.;
+				break;
+			case R1T0:
+				node = -1;
+				coeffmod = -4.;
+				break;
+			case R1T1:
+				node = -1;
+				coeffmod = 0.;
+				break;
+			case R1T2:
+				node = -1;
+				coeffmod = 2.;
+				break;
+			case R1T10:
+				node = -1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case R2T10:
+				// For R2 BCs, the 0 node is recast as 1, with BCs applied to -1 and -2 
+				node = -2;
+				coeffmod = 1.;
+				break;
+			case R2T20:
+				node = -2;
+				coeffmod = -1.;
+				break;
+			case R3:
+				return b;	
+			case PERIODIC:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+		}
+	} else if (m == 1) {
+		// Left BC
+		switch (BL) {
+			case R0:
+				// No boundary condition, but buffered so use R1T0
+				node = -1;
+				coeffmod = -1.;
+				break;			
+			case R1T0:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case R1T1:
+				node = -1;
+				coeffmod = 1.;
+				break;
+			case R1T2:
+				node = -1;
+				coeffmod = -1.;
+				break;
+			case R1T10:
+				node = -1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case R2T10:
+				return b;
+			case R2T20:
+				return b;
+			case R3:
+				return b;
+			case PERIODIC:
+				node = M+2;
+				coeffmod = 1.;
+				break;
+		}
+	} else if (m == M) {
+		// Right BC
+		switch (BR) {
+			case R0:
+				// No boundary condition, but buffered so use R1T0
+				node = M+1;
+				coeffmod = 2.;
+				break;					
+			case R1T0:
+				node = M+1;
+				coeffmod = -4.;
+				break;
+			case R1T1:
+				node = M+1;
+				coeffmod = 0.;
+				break;
+			case R1T2:
+				node = M+1;
+				coeffmod = 2.;
+				break;
+			case R1T10:
+				node = M+1;
+				coeffmod = -4./(3.*lambda + 1.);
+				break;
+			case R2T10:
+				node = M+2;
+				coeffmod = 1.;
+				break;					
+			case R2T20:
+				node = M+2;
+				coeffmod = -1.;
+				break;					
+			case R3:
+				return b;
+			case PERIODIC:
+                node = -1;
+                coeffmod = 1.;
+                break;
+		} 
+	} else if (m == (M-1)) {
+		// Right BC
+		switch (BR) {
+			case R0:
+				// No boundary condition, but buffered so use R1T2
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case R1T0:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case R1T1:
+				node = M+1;
+				coeffmod = 1.;
+				break;
+			case R1T2:
+				node = M+1;
+				coeffmod = -1.;
+				break;
+			case R1T10:
+				node = M+1;
+				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+				break;
+			case R2T10:
+				return b;
+			case R2T20:
+				return b;
+			case R3:
+				return b;
+			case PERIODIC:
+                return b;
+		}
+	}	
+	
+	real xm = xmin + (node * DX);
+	real delta = (x - xm) * DXrecip;
+	real z = fabs(delta);
+	if (z < 2.0) {
+		real zi = z*1000000.;
+		int z1 = int(zi);
+		switch (derivative) {
+			case 0:
+				// Cheapest approximation
+				bmod = basis0[z1];
+				
+				// Slightly more expensive
+				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				
+				// Unapproximated
+				/* z = 2.0 - z;
+				 bmod = (z*z*z) * ONESIXTH;
+				 z -= 1.0;
+				 if (z > 0)
+				 bmod -= (z*z*z) * FOURSIXTH; */
+				
+				break;
+			case 1:
+				bmod = basis1[z1];
+				
+				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				
+				/* z = 2.0 - z;
+				 bmod = (z*z) * ONESIXTH;
+				 z -= 1.0;
+				 if (z > 0)
+				 bmod -= (z*z) * FOURSIXTH; */
+				
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				break;
+			case 2:
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= DXrecip * DXrecip;
+				break;
+			case 3:
+				if (z > 1.0) {
+					bmod = 1;
+				} else if (z < 1.0) {
+					bmod = -3.;
+				}
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+				break;
+		}
+	}	
+	b += coeffmod * bmod;
+	
+	// R2 needs one more addition
+	if ((BL == R1T10) and (m == 0)) {
+		node = -1;
+		coeffmod = -0.5;
+	} else if ((BR == R1T10) and (m == M)) {
+		node = M+1;
+		coeffmod = -0.5;
+	} else {
+		return b;
+	}
+	
+	xm = xmin + (node * DX);
+	delta = (x - xm) * DXrecip;
+	z = fabs(delta);
+	if (z < 2.0) {
+		real zi = z*1000000.;
+		int z1 = int(zi);
+		switch (derivative) {
+			case 0:
+				bmod = basis0[z1];
+				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);	
+				break;
+			case 1:
+				bmod = basis1[z1];
+				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+				break;
+			case 2:
+				z = 2.0 - z;
+				bmod = z;
+				z -= 1.0;
+				if (z > 0)
+					bmod -= z * 4;
+				bmod *= DXrecip * DXrecip;
+				break;
+			case 3:
+				if (z > 1.0) {
+					bmod = 1;
+				} else if (z < 1.0) {
+					bmod = -3.;
+				}
+				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+				break;
+		}
+	}
+	b += coeffmod * bmod;
+	
+	return b;
+	
+}
+
+/* void CostFunction3D::adjustInternalDomain(int increment)
+{
+	if (configHash->value("i_bc") == "R0") {
+		// Increase the "internal" size of the grid for the R0 condition
+		iMin -= DI*increment;
+		iMax += DI*increment;
+		iDim += 2*increment;
+	} else if ((configHash->value("i_bc") == "R2T10") or
+			   (configHash->value("i_bc") == "R2T10")) {
+		// Decrease the "internal" size of the grid for the R2 condition
+		iMin += DI*increment;
+		iMax -= DI*increment;
+		iDim -= 2*increment;
+	} else if (configHash->value("i_bc") == "R3") {
+		// Decrease the "internal" size of the grid for the R3 conditions
+		iMin += DI*2*increment;
+		iMax -= DI*2*increment;
+		iDim -= 4*increment;
+	}
+	
+	if (configHash->value("j_bc") == "R0") {
+		jMin -= DJ*increment;
+		jMax += DJ*increment;
+		jDim += 2*increment;
+	} else if ((configHash->value("j_bc") == "R2T10") or
+			   (configHash->value("j_bc") == "R2T20")) {
+		jMin += DJ*increment;
+		jMax -= DJ*increment;
+		jDim -= 2*increment;
+	} else if (configHash->value("j_bc") == "R3") {
+		jMin += DJ*2*increment;
+		jMax -= DJ*2*increment;
+		jDim -= 4*increment;
+	}
+	
+	if (configHash->value("k_bc") == "R0") {
+		kMin -= DK*increment;
+		kMax += DK*increment;
+		kDim += 2*increment;
+	} else if ((configHash->value("k_bc") == "R2T20") or
+			   (configHash->value("k_bc") == "R2T20")) {
+		kMin += DK*increment;
+		kMax -= DK*increment;
+		kDim -= 2*increment;
+	} else if (configHash->value("k_bc") == "R3") {
+		kMin += DK*2*increment;
+		kMax -= DK*2*increment;
+		kDim -= 4*increment;
+	}
+} */	
+
 
 void CostFunction3D::adjustInternalDomain(int increment)
 {
@@ -1650,10 +1980,10 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			for (int j = 0; j < pDim; j++) {
                 gamma[var][pDim*i + j] = G[i][j];
                 GT[j][i] = G[i][j];
-                //std::cout << G[i][j] << " ";
+                std::cout << G[i][j] << " ";
                 //std::cout << gamma[var][pDim*i + j] << " ";
-            } //std::cout << "\n";
-        } //std::cout << "\n";
+            } std::cout << "\n";
+        } std::cout << "\n";
         
         for (int i = 0; i < pDim; i++) {
 			for (int j = 0; j < mDim; j++) {
@@ -1667,25 +1997,25 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 				real i = xMin + DX * (Index + (0.5*sqrt(1./3.) * mu + 0.5));
 				int ii = (int)((i - xMin)*DXrecip);
                 for (int Node = max(ii-1,0); Node <= min(ii+2,pDim-1); ++Node) {                    
-					real pm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
-					real qm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+					real pm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
+					real qm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
 					real pn, qn;
 					PP[Node][Node] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((Node+1) < pDim) {
-						pn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
-						qn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						pn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
+						qn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
 						PP[Node][Node+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+1][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((Node+2) < pDim) {
-						pn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
-						qn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						pn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
+						qn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
 						PP[Node][Node+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+2][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((Node+3) < pDim) {
-						pn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 0, BCL[var], BCR[var]);
-						qn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 3, BCL[var], BCR[var]);
+						pn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
+						qn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
 						PP[Node][Node+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+3][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
