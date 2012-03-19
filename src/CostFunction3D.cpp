@@ -1534,7 +1534,6 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 				break;
 		}
 	}
-    //if (((m > 1) and (m < M-1)) or (BL == RX)) return b;
     if ((m > 1) and (m < M-1)) return b;
     // Add the boundary conditions if we get this far
     real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
@@ -1545,7 +1544,6 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
                              const real& DX, const real& DXrecip, const int& derivative,
                              const int& BL, const int& BR, const real& lambda)
 {
-	
 	real bmod = 0;
 	int node = -2;
 	real coeffmod = 0.;
@@ -1553,9 +1551,12 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	if (m == 0) {
 		// Left BC
 		switch (BL) {
+            case RX:
+                // Absolutely no boundary condition
+                return b;
 			case R0:
-				// No boundary condition, but buffered so use R1T2
-				node = -1;
+				// No boundary condition, but buffered so use R1T2 on outer node
+				node = -2;
 				coeffmod = 2.;
 				break;
 			case R1T0:
@@ -1575,27 +1576,23 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = -4./(3.*lambda + 1.);
 				break;
 			case R2T10:
-				// For R2 BCs, the 0 node is recast as 1, with BCs applied to -1 and -2 
-				node = -2;
-				coeffmod = 1.;
-				break;
+                return 0;
 			case R2T20:
-				node = -2;
-				coeffmod = -1.;
-				break;
+                return 0;
 			case R3:
-				return b;	
+                return 0;
 			case PERIODIC:
-				node = M+1;
+				node = M;
 				coeffmod = 1.;
 				break;
 		}
 	} else if (m == 1) {
 		// Left BC
 		switch (BL) {
+            case RX:
+                return b;
 			case R0:
-				// No boundary condition, but buffered so use R1T0
-				node = -1;
+				node = -2;
 				coeffmod = -1.;
 				break;			
 			case R1T0:
@@ -1615,22 +1612,25 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
 				break;
 			case R2T10:
-				return b;
+				node = -1;
+                coeffmod = 1.0;
 			case R2T20:
-				return b;
+				node = -1;
+                coeffmod = -1.0;
 			case R3:
-				return b;
+				return 0;
 			case PERIODIC:
-				node = M+2;
+				node = M+1;
 				coeffmod = 1.;
 				break;
 		}
 	} else if (m == M) {
 		// Right BC
 		switch (BR) {
+            case RX:
+                return b;
 			case R0:
-				// No boundary condition, but buffered so use R1T0
-				node = M+1;
+				node = M+2;
 				coeffmod = 2.;
 				break;					
 			case R1T0:
@@ -1650,26 +1650,21 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = -4./(3.*lambda + 1.);
 				break;
 			case R2T10:
-				node = M+2;
-				coeffmod = 1.;
-				break;					
+                return 0;
 			case R2T20:
-				node = M+2;
-				coeffmod = -1.;
-				break;					
+                return 0;
 			case R3:
-				return b;
+				return 0;
 			case PERIODIC:
-                node = -1;
-                coeffmod = 1.;
-                break;
+                return 0;
 		} 
 	} else if (m == (M-1)) {
 		// Right BC
 		switch (BR) {
+            case RX:
+                return b;
 			case R0:
-				// No boundary condition, but buffered so use R1T2
-				node = M+1;
+				node = M+2;
 				coeffmod = -1.;
 				break;
 			case R1T0:
@@ -1689,13 +1684,19 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
 				break;
 			case R2T10:
-				return b;
+                node = M+1;
+				coeffmod = 1.;
+				break;					
 			case R2T20:
-				return b;
+                node = M+1;
+				coeffmod = -1.;
+				break;					
 			case R3:
-				return b;
+				return 0;
 			case PERIODIC:
-                return b;
+                node = -1;
+                coeffmod = 1.;
+                break;
 		}
 	}	
 	
@@ -1755,11 +1756,11 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	b += coeffmod * bmod;
 	
 	// R2 needs one more addition
-	if ((BL == R1T10) and (m == 0)) {
-		node = -1;
+	if ((BL == R1T10) and (m == 1)) {
+		node = 0;
 		coeffmod = -0.5;
-	} else if ((BR == R1T10) and (m == M)) {
-		node = M+1;
+	} else if ((BR == R1T10) and (m == M-1)) {
+		node = M;
 		coeffmod = -0.5;
 	} else {
 		return b;
@@ -1922,6 +1923,10 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
         
         // Set boundary conditions
         switch (BCL[var]) {
+            //case R0:
+            //    G[0][0] =  2.0;
+            //    G[1][0] = -1.0;
+            //    break;
             case R1T0:
                 G[0][0] = -4.0;
                 G[1][0] = -1.0;
@@ -1947,6 +1952,10 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                 break;
         }
         switch (BCR[var]) {
+            //case R0:
+            //    G[mDim-1][pDim-1] =  2.0;
+            //    G[mDim-2][pDim-1] = -1.0;
+            //    break;
             case R1T0:
                 G[mDim-1][pDim-1] = -4.0;
                 G[mDim-2][pDim-1] = -1.0;
@@ -1992,30 +2001,30 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
             } //std::cout << "\n";
         } //std::cout << "\n";
         
-		for (int Index = 1; Index < (pDim-2); Index++) {
+		for (int Index = min(rankHash[BCL[var]],1); Index < max(pDim-1-rankHash[BCR[var]],pDim-2); Index++) {
 			for (int mu = -1; mu <= 1; mu += 2) {
 				real i = xMin + DX * (Index + (0.5*sqrt(1./3.) * mu + 0.5));
 				int ii = (int)((i - xMin)*DXrecip);
                 for (int Node = max(ii-1,0); Node <= min(ii+2,pDim-1); ++Node) {                    
-					real pm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
-					real qm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
+					real pm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 0, RX, RX);
+					real qm = Basis(Node, i, mDim-1, xMin, DX, DXrecip, 3, RX, RX);
 					real pn, qn;
 					PP[Node][Node] += 0.5 * ((pm * pm) + eq * (qm * qm));
 					if ((Node+1) < pDim) {
-						pn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
-						qn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
+						pn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 0, RX, RX);
+						qn = Basis(Node+1, i, mDim-1, xMin, DX, DXrecip, 3, RX, RX);
 						PP[Node][Node+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+1][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((Node+2) < pDim) {
-						pn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
-						qn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
+						pn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 0, RX, RX);
+						qn = Basis(Node+2, i, mDim-1, xMin, DX, DXrecip, 3, RX, RX);
 						PP[Node][Node+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+2][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
 					if ((Node+3) < pDim) {
-						pn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 0, R1T2, R1T2);
-						qn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 3, R1T2, R1T2);
+						pn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 0, RX, RX);
+						qn = Basis(Node+3, i, mDim-1, xMin, DX, DXrecip, 3, RX, RX);
 						PP[Node][Node+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
 						PP[Node+3][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
 					}
@@ -2023,12 +2032,12 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 			}
 		}
 		
-        /* for (int i = 0; i < pDim; i++) {
+        for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < pDim; j++) {
                 std::cout << PP[i][j] << " ";
             } std::cout << std::endl;
         }
-		std::cout << std::endl; */
+		std::cout << std::endl;
         
         for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < mDim; j++) {
@@ -2052,13 +2061,13 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 		//std::cout << std::endl;
         
 		
-		/* for (int i = 0; i < mDim; i++) {
+		for (int i = 0; i < mDim; i++) {
             for (int j = 0; j < mDim; j++) {
                 std::cout << P[i][j] << " ";
             } std::cout << std::endl;
         }	
 		std::cout << std::endl;
-        */
+        
 		// Cholesky decomp of P+Q
 		for (int i=0;i<mDim;i++) {
 			for (int j=i;j<mDim;j++) {
