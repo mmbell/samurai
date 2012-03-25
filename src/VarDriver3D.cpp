@@ -90,7 +90,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 
-	int uStateSize = 8*(idim-1)*(jdim-1)*(kdim-1)*(numVars);
+	int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
 	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
 	cout << "Physical (mish) State size = " << uStateSize << "\n";
 	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
@@ -99,7 +99,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	bgU = new real[uStateSize];
 	bgWeights = new real[uStateSize];
 	for (int i=0; i < uStateSize; i++) {
-		bgU[i] = 0.;
+		bgU[i] = 1.;
 		bgWeights[i] = 0.;
 	}		
 	
