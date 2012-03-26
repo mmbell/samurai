@@ -91,8 +91,16 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real qrprime = 0.;
                                         for (int var = 0; var < varDim; var++) {
                                             for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                                                for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
-                                                    for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
+                                                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+                                                    int iNode = iiNode;
+                                                    if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
+                                                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
+                                                    if ((iNode < 0) or (iNode >= iDim)) continue;
+                                                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+                                                        int jNode = jjNode;
+                                                        if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
+                                                        if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
+                                                        if ((jNode < 0) or (jNode >= jDim)) continue;
 														ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 														jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 														kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -391,9 +399,17 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                     if (!obsVector[wgt_index]) continue;
                     for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
                         kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                        for (int iNode = max(ii-1,0); iNode <= min(ii+2,iDim-1); ++iNode) {
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);                            
-                            for (int jNode = max(jj-1,0); jNode <= min(jj+2,jDim-1); ++jNode) {
+                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+                            int iNode = iiNode;
+                            if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
+                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
+                            if ((iNode < 0) or (iNode >= iDim)) continue;
+                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
+                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+                                int jNode = jjNode;
+                                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
+                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
+                                if ((jNode < 0) or (jNode >= jDim)) continue;
                                 int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                 jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
                                 tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
