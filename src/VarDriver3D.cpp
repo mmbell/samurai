@@ -939,13 +939,15 @@ bool VarDriver3D::preProcessMetObs()
                                                 if (fabs(jPos-obY) > jincr*ROI*2.) continue;
                                                 rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
                                             } else if (runMode == RTZ) {
-                                                if (fabs(jPos-obTheta) > jincr*ROI*2.) continue;
+												real dTheta = fabs(jPos-obTheta);
+												if (dTheta > 360.) dTheta -= 360.;
+                                                if (dTheta > jincr*ROI*2.) continue;
                                                 rSquare = (obRadius-iPos)*(obRadius-iPos) + (obTheta-jPos)*(obTheta-jPos) + (obZ-kPos)*(obZ-kPos);                                                
                                             }
                                             // Add one extra index to account for buffer zone in analysis
-                                            int bgI = ii*2 + (imu+1)/2 + 1;
-                                            int bgJ = ji*2 + (jmu+1)/2 + 1;
-                                            int bgK = ki*2 + (kmu+1)/2 + 1;
+                                            int bgI = (ii+1)*2 + (imu+1)/2;
+                                            int bgJ = (ji+1)*2 + (jmu+1)/2;
+											int bgK = (ki+1)*2 + (kmu+1)/2;
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (rSquare < Rsquare) {
                                                 real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -1005,9 +1007,9 @@ bool VarDriver3D::preProcessMetObs()
                                         // On the mish
                                         if (ihalf and jhalf and khalf and 
                                             (imu != 0) and (jmu != 0) and (kmu != 0)){
-                                            int bgI = iIndex*2 + (imu+1)/2 + 1;
-                                            int bgJ = jIndex*2 + (jmu+1)/2 + 1;
-                                            int bgK = kIndex*2 + (kmu+1)/2 + 1;
+                                            int bgI = (iIndex+1)*2 + (imu+1)/2;
+                                            int bgJ = (jIndex+1)*2 + (jmu+1)/2;
+                                            int bgK = (kIndex+1)*2 + (kmu+1)/2;
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
@@ -1376,13 +1378,15 @@ int VarDriver3D::loadBackgroundObs()
                                         if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
                                         rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
                                     } else if (runMode == RTZ) {
-                                        if (fabs(jPos-bgTheta) > jincr*ROI*2.) continue;
+										real dTheta = fabs(jPos-bgTheta);
+										if (dTheta > 360.) dTheta -= 360.;
+										if (dTheta > jincr*ROI*2.) continue;
                                         rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
                                     }
                                     // Add one extra index to account for buffer zone in analysis
-                                    int bgI = ii*2 + (imu+1)/2 + 1;
-                                    int bgJ = ji*2 + (jmu+1)/2 + 1;
-                                    int bgK = ki*2 + (kmu+1)/2 + 1;
+                                    int bgI = (ii+1)*2 + (imu+1)/2;
+                                    int bgJ = (ji+1)*2 + (jmu+1)/2;
+                                    int bgK = (ki+1)*2 + (kmu+1)/2;
                                     int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                     if (rSquare < Rsquare) {
                                         real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -1477,13 +1481,15 @@ int VarDriver3D::loadBackgroundObs()
                                 if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
                                 rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
                             } else if (runMode == RTZ) {
-                                if (fabs(jPos-bgTheta) > jincr*ROI*2.) continue;
+								real dTheta = fabs(jPos-bgTheta);
+								if (dTheta > 360.) dTheta -= 360.;
+								if (dTheta > jincr*ROI*2.) continue;
                                 rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
                             }
                             // Add one extra index to account for buffer zone in analysis
-                            int bgI = ii*2 + (imu+1)/2 + 1;
-                            int bgJ = ji*2 + (jmu+1)/2 + 1;
-                            int bgK = ki*2 + (kmu+1)/2 + 1;
+                            int bgI = (ii+1)*2 + (imu+1)/2;
+                            int bgJ = (ji+1)*2 + (jmu+1)/2;
+                            int bgK = (ki+1)*2 + (kmu+1)/2;
                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                             if (rSquare < Rsquare) {
                                 real weight = exp(-2.302585092994045*rSquare/Rsquare);
@@ -1541,9 +1547,9 @@ int VarDriver3D::loadBackgroundObs()
                         for (int ji = 0; ji < (jdim-1); ji++) {
                             for (int jmu = -1; jmu <= 1; jmu += 2) {
                                 real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
-                                int bgI = ii*2 + (imu+1)/2 + 1;
-                                int bgJ = ji*2 + (jmu+1)/2 + 1;
-                                int bgK = ki*2 + (kmu+1)/2 + 1;
+                                int bgI = (ii+1)*2 + (imu+1)/2;
+                                int bgJ = (ji+1)*2 + (jmu+1)/2;
+                                int bgK = (ki+1)*2 + (kmu+1)/2;
                                 int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
