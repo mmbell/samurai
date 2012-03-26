@@ -98,6 +98,7 @@ protected:
 	real constHeight;
 	real mcWeight;
 
+	int basisappx;
 	real* basis0;
 	real* basis1;
 	const QHash<QString, QString>* configHash;
@@ -117,6 +118,12 @@ protected:
 		PERIODIC = 8
 	};
 
+	enum BasisApproximation {
+		NONE = 0,
+		PARTIAL = 1,
+		FULL = 2
+	};
+	
 	real iFilterScale,jFilterScale, kFilterScale;
 	RecursiveFilter* iFilter;
 	RecursiveFilter* jFilter;

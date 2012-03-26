@@ -56,6 +56,9 @@ CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
     derivative[3][0] = 0;
     derivative[3][1] = 0;
     derivative[3][2] = 1;
+	
+	// Use the full basis unless otherwise specified
+	basisappx = 0;
     
 }
 
@@ -85,8 +88,10 @@ void CostFunction3D::finalize()
 	delete[] stateA;
 	delete[] stateB;
 	delete[] stateC;
-	delete[] basis0;
-	delete[] basis1;
+	if (basisappx > 0) {
+		delete[] basis0;
+		delete[] basis1;
+	}
     for (int var = 0; var < varDim; ++var) {
         delete[] iGamma[var];
         delete[] jGamma[var];
@@ -233,10 +238,12 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 
     }
 	// Precalculate the basis functions for lookup table option
-	basis0 = new real[2000000];
-	basis1 = new real[2000000];
-	fillBasisLookup();
-	
+	basisappx = configHash->value("spline_approximation").toInt();
+	if (basisappx > 0) {
+		basis0 = new real[2000000];
+		basis1 = new real[2000000];
+		fillBasisLookup();
+	}
 }	
 
 void CostFunction3D::initState(const int iteration)
@@ -981,13 +988,8 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
                                             
 											int ui = uIndex + var;
 											if (Ustate[ui] == 0) continue;
-											/* if (Ustate[ui] != 1) {
-                                                std::cout << uI << " " << uJ << " " << uK << " " << ui << "\n"; 
-                                            } */
 											int bi = bIndex + var;
 											//#pragma omp atomic
-                                            //std::cout << ui << " " << Ustate[ui] << "\n";
-                                            //std::cout << bi << " " << iNode << " " << jNode << " " << kNode << " " << Bstate[bi] << "\n";
 											Bstate[bi] += Ustate[ui] * ijkbasis; 
 										}
 									}	
@@ -1083,13 +1085,15 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			real* iTemp = new real[iDim];
 			real* jTemp = new real[jDim];
 			real* kTemp = new real[kDim];
-            real* iPad;
-            real* jPad;
+            real* iPad = NULL;
+            real* jPad = NULL;
             if (iBCL[var] == PERIODIC) {
                 iPad = new real[iDim*3];
+				//for (int iIndex = 0; iIndex < iDim*3; iIndex++) iPad[iIndex] = 0.;
             }
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
+				//for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
             }
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1187,8 +1191,8 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			real* iTemp = new real[iDim];
 			real* jTemp = new real[jDim];
 			real* kTemp = new real[kDim];
-            real* iPad;
-            real* jPad;
+            real* iPad = NULL;
+            real* jPad = NULL;
             if (iBCL[var] == PERIODIC) {
                 iPad = new real[iDim*3];
             }
@@ -1403,35 +1407,44 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 	real z = fabs(delta);
 	real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
 	if (z < 2.0) {
-		//real zi = z*1000000.;
-		//int z1 = int(zi);
 		switch (derivative) {
 			case 0:
-				// Cheapest approximation
-				//b = basis0[z1];
-				
-				// Slightly more expensive
-				//b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-
-				// Unapproximated
-				z = 2.0 - z;
-				b = (z*z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					b -= (z*z*z) * FOURSIXTH;
-				
+				if (basisappx == NONE) {
+					// Unapproximated
+					z = 2.0 - z;
+					b = (z*z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						b -= (z*z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					// Cheaper approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				} else {
+					// Cheapest approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					b = basis0[z1];
+				}
 				break;
 			case 1:
-				//b = basis1[z1];
-				
-				//b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-				
-				z = 2.0 - z;
-				b = (z*z) * ONESIXTH;
-				z -= 1.0;
-				if (z > 0)
-					b -= (z*z) * FOURSIXTH;
-
+				if (basisappx == NONE) {
+					z = 2.0 - z;
+					b = (z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						b -= (z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+					
+				} else {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					b = basis1[z1];
+				}
 				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
 			case 2:
@@ -1452,7 +1465,6 @@ real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real&
 				break;
 		}
 	}
-    //return b;
     if ((m > 2) and (m < M-2)) return b;
     // Add the boundary conditions if we get this far
     real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
@@ -1639,35 +1651,44 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	real delta = (x - xm) * DXrecip;
 	real z = fabs(delta);
 	if (z < 2.0) {
-		real zi = z*1000000.;
-		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
-				// Cheapest approximation
-				//bmod = basis0[z1];
-				
-				// Slightly more expensive
-				//bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-				
-				// Unapproximated
-				 z = 2.0 - z;
-				 bmod = (z*z*z) * ONESIXTH;
-				 z -= 1.0;
-				 if (z > 0)
-				 bmod -= (z*z*z) * FOURSIXTH;
-				
+				if (basisappx == NONE) {
+					// Unapproximated
+					z = 2.0 - z;
+					bmod = (z*z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						bmod -= (z*z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					// Cheaper approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				} else {
+					// Cheapest approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis0[z1];
+				}
 				break;
 			case 1:
-				//bmod = basis1[z1];
-				
-				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-				
-				 z = 2.0 - z;
-				 bmod = (z*z) * ONESIXTH;
-				 z -= 1.0;
-				 if (z > 0)
-				 bmod -= (z*z) * FOURSIXTH;
-				
+				if (basisappx == NONE) {
+					z = 2.0 - z;
+					bmod = (z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						bmod -= (z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+					
+				} else {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis1[z1];
+				}
 				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
 			case 2:
@@ -1705,32 +1726,44 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
 	delta = (x - xm) * DXrecip;
 	z = fabs(delta);
 	if (z < 2.0) {
-		real zi = z*1000000.;
-		int z1 = int(zi);
 		switch (derivative) {
 			case 0:
-				//bmod = basis0[z1];
-				
-                //bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-                
-                // Unapproximated
-                z = 2.0 - z;
-                bmod = (z*z*z) * ONESIXTH;
-                z -= 1.0;
-                if (z > 0)
-                    bmod -= (z*z*z) * FOURSIXTH;
-                
+				if (basisappx == NONE) {
+					// Unapproximated
+					z = 2.0 - z;
+					bmod = (z*z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						bmod -= (z*z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					// Cheaper approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+				} else {
+					// Cheapest approximation
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis0[z1];
+				}
 				break;
 			case 1:
-				//bmod = basis1[z1];
-                
-				//bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-				
-                z = 2.0 - z;
-                bmod = (z*z) * ONESIXTH;
-                z -= 1.0;
-                if (z > 0)
-                    bmod -= (z*z) * FOURSIXTH;
+				if (basisappx == NONE) {
+					z = 2.0 - z;
+					bmod = (z*z) * ONESIXTH;
+					z -= 1.0;
+					if (z > 0)
+						bmod -= (z*z) * FOURSIXTH;
+				} else if (basisappx == PARTIAL) {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+					
+				} else {
+					real zi = z*1000000.;
+					int z1 = int(zi);
+					bmod = basis1[z1];
+				}
                 bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
 				break;
 			case 2:

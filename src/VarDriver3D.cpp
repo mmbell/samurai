@@ -1013,6 +1013,22 @@ bool VarDriver3D::preProcessMetObs()
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
+												if (bgI == 2) {
+													int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
+													int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
+													bgU[bIzero + 6] = bgU[bIone + 6] = bgU[bIndex + 6];
+												}
+												if (bgJ == 2) {
+													int bJzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*bgI;
+													int bJone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2 +numVars*bgI;
+													bgU[bJzero + 6] = bgU[bJone + 6] = bgU[bIndex + 6];
+												}
+												if (bgK == 2) {
+													int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
+													int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
+													bgU[bKzero + 6] = bgU[bKone + 6] = bgU[bIndex + 6];
+												}
+												
                                             }
                                             if (bgU[bIndex +6] > 0) {
                                                 maxrefHeight = k;
@@ -1244,7 +1260,8 @@ int VarDriver3D::loadBackgroundObs()
     int time;
     QString bgTimestring, tcstart, tcend;
     real lat, lon, alt, u, v, w, t, qv, rhoa;
-    real bgX, bgY, bgZ, bgRadius, bgTheta;
+    real bgX, bgY, bgRadius, bgTheta;
+	real bgZ = -32768.; 
     // backgroundroi is in km, ROI is gridpoints
     real ROI = configHash.value("background_roi").toFloat() / iincr;
     real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI);
@@ -1554,10 +1571,25 @@ int VarDriver3D::loadBackgroundObs()
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
+										if (bgI == 2) {
+											int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
+											int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
+											bgU[bIzero + var] = bgU[bIone + var] = bgU[bIndex + var];
+										}
+										if (bgJ == 2) {
+											int bJzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*bgI;
+											int bJone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2 +numVars*bgI;
+											bgU[bJzero + var] = bgU[bJone + var] = bgU[bIndex + var];
+										}
+										if (bgK == 2) {
+											int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
+											int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
+											bgU[bKzero + var] = bgU[bKone + var] = bgU[bIndex + var];
+										}
                                     } else {
                                         cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
                                     }
-                                }				
+                                }
                                 bgWeights[bIndex] = 0.;
                             }
                         }
@@ -1586,6 +1618,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     
     int p = 0;
     real obX, obY, obRadius, obTheta;
+	obX = obY = obRadius = obTheta = -32768.;
     for (int m=0; m < bgIn.size(); m+=11) {
         if (runMode == XYZ) {
             obX = bgIn[m];

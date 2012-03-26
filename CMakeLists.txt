@@ -1,6 +1,6 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
-set ( CMAKE_BUILD_TYPE Debug )
+set ( CMAKE_BUILD_TYPE Release )
 add_definitions ( -Wall )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	set ( CMAKE_CXX_COMPILER "icpc" )
@@ -82,9 +82,9 @@ set ( samurai_SRCS
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
 	)
-#set_source_files_properties ( src/CostFunction3D.cpp
-	#PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
-	#				)
+set_source_files_properties ( src/CostFunction3D.cpp
+	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
+	)
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 target_link_libraries ( samurai  
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
