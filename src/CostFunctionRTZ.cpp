@@ -1289,8 +1289,8 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 	
 	// Y Header
 	id[165] = (int)jMin*100;
-	id[166] = (int)jMax*64;
-	id[167] = (int)jDim;
+	id[166] = (int)(jMax-DJ)*64;
+	id[167] = (int)jDim-1;
 	id[168] = (int)(DJ * 64);
 	id[169] = 2;
 	
@@ -1333,7 +1333,7 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 	// Write data
 	for(int k = 0; k < kDim; k++) {
 		out << reset << "level" << qSetFieldWidth(2) << k+1 << endl;
-		for(int j = 0; j < jDim; j++) {
+		for(int j = 0; j < jDim-1; j++) {
 			out << reset << "azimuth" << qSetFieldWidth(3) << j+1 << endl;
 			for(int n = 0; n < fieldNames.size(); n++) {
 				out << reset << left << fieldNames.at(n) << endl;

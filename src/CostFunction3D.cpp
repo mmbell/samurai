@@ -1091,7 +1091,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
             }
-            real* b = new real[kRank[var]];
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1103,8 +1102,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 					}
 				}
 			}
-			delete[] b;
-            b = new real[jRank[var]];
 			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1132,8 +1129,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 					}
 				}
 			}
-            delete[] b;
-            b = new real[iRank[var]];
 			//FI
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1166,7 +1161,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-            delete[] b;
             if (iBCL[var] == PERIODIC) {
                 delete[] iPad;
             }
@@ -1201,7 +1195,6 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
             }
-            real* b = new real[iRank[var]];
 			//FI & D
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1230,8 +1223,6 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 					}
 				}
 			}
-            delete[] b;
-            b = new real[jRank[var]];
 			//FJ
 			for (int kIndex = 0; kIndex < kDim; kIndex++) {
 				for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1260,14 +1251,12 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 				}
 			}
 			//FK
-            delete[] b;
-            b = new real[kRank[var]];
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
 					}
-					if (kFilterScale > 0) kFilter->filterArray(b, kDim);
+					if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
                     for (int kIndex = 0; kIndex < kDim; kIndex++) {
 						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
 					}
@@ -1276,7 +1265,6 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-            delete[] b;
             if (iBCL[var] == PERIODIC) {
                 delete[] iPad;
             }
