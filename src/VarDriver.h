@@ -52,6 +52,7 @@ protected:
 	ReferenceState* refstate;    
 	// Data Processing
 	QHash<QString, int> dataSuffix;
+	QDir dataPath;
 	enum dataFormats {
 		unknown,
 		cen,

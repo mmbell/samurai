@@ -30,13 +30,13 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
     QString samuraiout = "samurai_XYZ_" + suffix + ".out";
     ofstream samuraistream;
     if (configHash->value("output_txt") == "true") {
-        samuraistream.open(samuraiout.toAscii().data());
-        samuraistream << "X\tY\tZ\trhoE\tu\tv\tw\tVorticity\tDivergence\tqv'\trho'\tT'\tP'\th\t";
+        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
+        samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\t";
         samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
     }
     
-    int analysisDim = 46;
+    int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
 	
@@ -177,17 +177,37 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
 										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
-										real tempc = temp - 273.15;
-										real satvp = 6.112 * exp((17.62 * tempc)/(243.12 + tempc));
+										//real tempc = temp - 273.15;
+										//real satvp = 6.112 * exp((17.67 * tempc)/(243.5 + tempc));
+										real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp 
+												+ 1.673952e-5 * temp*temp + 2.433502 * log(temp));
 										real vp = temp*rhoq*461./100.;
-										real relhum = -999.;
-										if (satvp != 0)
-											relhum = 100*vp/satvp;
+										//real vp = airpress * qv / (622 + qv);
 										real press = airpress + vp;
 										
 										real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
 										real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
 										
+										real RoverCp = 0.2854*(1 - 0.00028*qv);
+										real theta = temp * pow((1000/press), RoverCp);
+										real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
+										real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
+										real qvsat = 1000.0 * 0.622 * vp / airpress;
+										real relhum = -999.;
+										real thetaes = -999.;
+										if (satvp != 0) {
+											relhum = 100*vp/satvp;
+											lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
+											thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
+										} else {
+											relhum = -999.;
+											thetaes = -999.;
+										}
+										if (relhum > 100.) relhum = 100.0;
+										real dewp = -999.0;
+										if (vp != 0) {
+											dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
+										}
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
 										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
@@ -266,14 +286,16 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
                                                 qvdx = -999.; qvdy = -999.; qvdz = -999.;
                                                 pdx = -999.; pdy = -999.; pdz = -999.;
                                                 rhodx = -999.; rhody = -999.; rhodz = -999.;
-												rhoE = -999.;
+												rhoE = -999.; dewp = -999.;
+												theta = -999.; thetae = -999.; thetaes = -999.;
 											}
 										}
                                         
                                         if (configHash->value("output_txt") == "true") {
-                                            samuraistream << scientific << i << "\t" << j << "\t"  << k << "\t" << rhoE
+                                            samuraistream << scientific << i << "\t" << j << "\t"  << k
                                             << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-                                            << "\t" << qvprime*2 << "\t" << rhoprime << "\t" << tprime << "\t" << pprime <<  "\t" << hprime << "\t"
+                                            << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press 
+											<< "\t" << theta << "\t" << thetae << "\t"
                                             << udx << "\t" << udy << "\t" << udz << "\t"
                                             << vdx << "\t" << vdy << "\t" << vdz << "\t"
                                             << wdx << "\t" << wdy << "\t" << wdz << "\t" 
@@ -312,27 +334,32 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 											finalAnalysis[fIndex * 22 + posIndex] = h;
 											finalAnalysis[fIndex * 23 + posIndex] = qr;
                                             finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
-											finalAnalysis[fIndex * 25 + posIndex] = udx;
-											finalAnalysis[fIndex * 26 + posIndex] = vdx;
-											finalAnalysis[fIndex * 27 + posIndex] = wdx;
-											finalAnalysis[fIndex * 28 + posIndex] = udy;
-											finalAnalysis[fIndex * 29 + posIndex] = vdy;
-											finalAnalysis[fIndex * 30 + posIndex] = wdy;
-											finalAnalysis[fIndex * 31 + posIndex] = udz;
-											finalAnalysis[fIndex * 32 + posIndex] = vdz;
-											finalAnalysis[fIndex * 33 + posIndex] = wdz;
-                                            finalAnalysis[fIndex * 34 + posIndex] = tdx;
-											finalAnalysis[fIndex * 35 + posIndex] = tdy;
-											finalAnalysis[fIndex * 36 + posIndex] = tdz;
-											finalAnalysis[fIndex * 37 + posIndex] = qvdx;
-											finalAnalysis[fIndex * 38 + posIndex] = qvdy;
-											finalAnalysis[fIndex * 39 + posIndex] = qvdz;
-											finalAnalysis[fIndex * 40 + posIndex] = pdx;
-											finalAnalysis[fIndex * 41 + posIndex] = pdy;
-											finalAnalysis[fIndex * 42 + posIndex] = pdz;
-                                            finalAnalysis[fIndex * 43 + posIndex] = rhodx;
-											finalAnalysis[fIndex * 44 + posIndex] = rhody;
-											finalAnalysis[fIndex * 45 + posIndex] = rhodz - rhobardz;
+											finalAnalysis[fIndex * 25 + posIndex] = dewp;
+											finalAnalysis[fIndex * 26 + posIndex] = theta;
+											finalAnalysis[fIndex * 27 + posIndex] = thetae;
+											finalAnalysis[fIndex * 28 + posIndex] = thetaes;
+											finalAnalysis[fIndex * 29 + posIndex] = udx;
+											finalAnalysis[fIndex * 30 + posIndex] = vdx;
+											finalAnalysis[fIndex * 31 + posIndex] = wdx;
+											finalAnalysis[fIndex * 32 + posIndex] = udy;
+											finalAnalysis[fIndex * 33 + posIndex] = vdy;
+											finalAnalysis[fIndex * 34 + posIndex] = wdy;
+											finalAnalysis[fIndex * 35 + posIndex] = udz;
+											finalAnalysis[fIndex * 36 + posIndex] = vdz;
+											finalAnalysis[fIndex * 37 + posIndex] = wdz;
+                                            finalAnalysis[fIndex * 38 + posIndex] = tdx;
+											finalAnalysis[fIndex * 39 + posIndex] = tdy;
+											finalAnalysis[fIndex * 40 + posIndex] = tdz;
+											finalAnalysis[fIndex * 41 + posIndex] = qvdx;
+											finalAnalysis[fIndex * 42 + posIndex] = qvdy;
+											finalAnalysis[fIndex * 43 + posIndex] = qvdz;
+											finalAnalysis[fIndex * 44 + posIndex] = pdx;
+											finalAnalysis[fIndex * 45 + posIndex] = pdy;
+											finalAnalysis[fIndex * 46 + posIndex] = pdz;
+                                            finalAnalysis[fIndex * 47 + posIndex] = rhodx;
+											finalAnalysis[fIndex * 48 + posIndex] = rhody;
+											finalAnalysis[fIndex * 49 + posIndex] = rhodz - rhobardz;
+											finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 										}
 									}
 								}
@@ -345,19 +372,13 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 	}
     
 	QString fileName = "samurai_XYZ_" + suffix;
-	QString outFileName;
-	if(QDir::isAbsolutePath(fileName)) {
-		outFileName = fileName;
-	}
-	else {
-		outFileName = QDir::current().filePath(fileName);
-	}
+	QString outFileName = outputPath.absoluteFilePath(fileName);
 	
 	// Write the Obs to a summary text file
     if (configHash->value("output_qc") == "true") {
         QString qcout = "samurai_QC_" + suffix + ".out";
-        ofstream qcstream(qcout.toAscii().data());
-        ifstream obstream("./Observations.out");
+		QString qcFileName = outputPath.absoluteFilePath(qcout);
+        ofstream qcstream(qcFileName.toAscii().data());
         ostream_iterator<string> os(qcstream, "\t ");
         *os++ = "Observation";
         *os++ = "Inverse Error";
@@ -445,13 +466,13 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 	// Write out to a netCDF file
 	if (configHash->value("output_netcdf") == "true") {
         QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(cdfFileName))
+        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
             cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl; 	
     }    
 	// Write out to an asi file
     if (configHash->value("output_asi") == "true") {
         QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(asiFileName))
+        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
             cout << "Error writing asi file " << asiFileName.toStdString() << endl; 	
     }	
 	// Set the domain back
@@ -527,6 +548,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     NcVar *dudx, *dvdx, *dwdx, *dudy, *dvdy, *dwdy, *dudz, *dvdz, *dwdz;
 	NcVar *dtdx, *dqdx, *dpdx, *dtdy, *dqdy, *dpdy, *dtdz, *dqdz, *dpdz;
     NcVar *drhodx, *drhody, *drhodz;
+	NcVar *dewp, *theta, *thetae, *thetaes, *mcresidual;
     
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim, 
                                lvlDim, latDim, lonDim)))
@@ -609,6 +631,18 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim, 
                                           lvlDim, latDim, lonDim)))
 		return NC_ERR;
+	if (!(dewp = dataFile.add_var("DEWPOINT", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(theta = dataFile.add_var("THETA", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(thetae = dataFile.add_var("THETAE", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	if (!(thetaes = dataFile.add_var("THETAES", ncFloat, timeDim, 
+								lvlDim, latDim, lonDim)))
+		return NC_ERR;	
     if (!(dudx = dataFile.add_var("DUDX", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
@@ -672,7 +706,10 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	if (!(drhodz = dataFile.add_var("DRHODZ", ncFloat, timeDim, 
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
-    
+	if (!(mcresidual = dataFile.add_var("MCRESIDUAL", ncFloat, timeDim, 
+                                    lvlDim, latDim, lonDim)))
+		return NC_ERR;
+	
 	// Define units attributes for data variables.
 	if (!u->add_att("units", "m s-1"))
 		return NC_ERR;
@@ -729,6 +766,14 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     }
     if (!absVorticity->add_att("units", "10-5s-1")) 
 		return NC_ERR;
+	if (!dewp->add_att("units", "K")) 
+		return NC_ERR;
+	if (!theta->add_att("units", "K")) 
+		return NC_ERR;
+	if (!thetae->add_att("units", "K")) 
+		return NC_ERR;
+	if (!thetaes->add_att("units", "K")) 
+		return NC_ERR;
 	if (!dudx->add_att("units", "10-5s-1")) 
 		return NC_ERR;
 	if (!dvdx->add_att("units", "10-5s-1")) 
@@ -771,7 +816,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!drhodz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-    
+	if (!mcresidual->add_att("units", "10-5s-1")) 
+		return NC_ERR;
+
 	// Define long names for data variables.
 	if (!u->add_att("long_name", "u wind component"))
 		return NC_ERR;
@@ -828,6 +875,14 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     }
     if (!absVorticity->add_att("long_name", "absolute vertical vorticity")) 
 		return NC_ERR;
+	if (!dewp->add_att("long_name", "dewpoint temperature")) 
+		return NC_ERR;
+	if (!theta->add_att("long_name", "potential temperature")) 
+		return NC_ERR;
+	if (!thetae->add_att("long_name", "equivalent potential temperature")) 
+		return NC_ERR;
+	if (!thetaes->add_att("long_name", "saturation equivalent potential temperature")) 
+		return NC_ERR;
     if (!dudx->add_att("long_name", "wind gradient")) 
 		return NC_ERR;	
 	if (!dvdx->add_att("long_name", "wind gradient")) 
@@ -869,6 +924,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	if (!drhody->add_att("long_name", "density gradient")) 
 		return NC_ERR;	
 	if (!drhodz->add_att("long_name", "density gradient")) 
+		return NC_ERR;
+	if (!mcresidual->add_att("long_name", "residual from mass continuity equation")) 
 		return NC_ERR;
     
 	// Define missing data
@@ -921,7 +978,15 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	if (!qr->add_att("missing_value", -999.f))
 		return NC_ERR;
 	if (!absVorticity->add_att("missing_value", -999.f))
-		return NC_ERR;    
+		return NC_ERR;
+	if (!dewp->add_att("missing_value", -999.f))
+		return NC_ERR;
+	if (!theta->add_att("missing_value", -999.f))
+		return NC_ERR;
+	if (!thetae->add_att("missing_value", -999.f))
+		return NC_ERR;
+	if (!thetaes->add_att("missing_value", -999.f))
+		return NC_ERR;
     if (!dudx->add_att("missing_value", -999.f))
 		return NC_ERR;	
 	if (!dvdx->add_att("missing_value", -999.f))
@@ -964,7 +1029,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;	
 	if (!drhodz->add_att("missing_value", -999.f))
 		return NC_ERR;
-    
+	if (!mcresidual->add_att("missing_value", -999.f))
+		return NC_ERR;
+
 	// Define _Fill_Value for NCL users
 	if (!u->add_att("_FillValue", -999.f))
 		return NC_ERR;
@@ -1015,7 +1082,15 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	if (!qr->add_att("_FillValue", -999.f))
 		return NC_ERR;
 	if (!absVorticity->add_att("_FillValue", -999.f))
-		return NC_ERR;    
+		return NC_ERR;
+	if (!dewp->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!theta->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!thetae->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	if (!thetaes->add_att("_FillValue", -999.f))
+		return NC_ERR;	
     if (!dudx->add_att("_FillValue", -999.f))
 		return NC_ERR;	
 	if (!dvdx->add_att("_FillValue", -999.f))
@@ -1058,7 +1133,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;	
 	if (!drhodz->add_att("_FillValue", -999.f))
 		return NC_ERR;
-    
+	if (!mcresidual->add_att("_FillValue", -999.f))
+		return NC_ERR;
+	
 	// Write the coordinate variable data to the file.
 	real *lons = new real[iDim];
 	real *lats = new real[jDim];
@@ -1166,47 +1243,57 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
         if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec)) 
 			return NC_ERR;
-        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec)) 
+		if (!dewp->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec)) 
 			return NC_ERR;
-		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec)) 
+		if (!theta->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec)) 
 			return NC_ERR;
-		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec)) 
+		if (!thetae->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec)) 
 			return NC_ERR;
-		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec)) 
+		if (!thetaes->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec)) 
 			return NC_ERR;
-		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec)) 
+        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec)) 
 			return NC_ERR;
-		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec)) 
+		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec)) 
 			return NC_ERR;
-		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec)) 
+		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec)) 
 			return NC_ERR;
-		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec)) 
+		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec)) 
 			return NC_ERR;
-		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*33], rec)) 
+		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*33], rec)) 
 			return NC_ERR;
-		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*kDim*34], rec)) 
+		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*34], rec)) 
 			return NC_ERR;
-		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*kDim*35], rec)) 
+		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*35], rec)) 
 			return NC_ERR;
-		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*kDim*36], rec)) 
+		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*36], rec)) 
 			return NC_ERR;
-		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*kDim*37], rec)) 
+		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*37], rec)) 
 			return NC_ERR;
-		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*kDim*38], rec)) 
+		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*kDim*38], rec)) 
 			return NC_ERR;
-		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*kDim*39], rec)) 
+		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*kDim*39], rec)) 
 			return NC_ERR;
-		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*kDim*40], rec)) 
+		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*kDim*40], rec)) 
 			return NC_ERR;
-		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*kDim*41], rec)) 
+		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*kDim*41], rec)) 
 			return NC_ERR;
-		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*kDim*42], rec)) 
+		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*kDim*42], rec)) 
 			return NC_ERR;
-		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*kDim*43], rec)) 
+		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*kDim*43], rec)) 
 			return NC_ERR;
-		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*kDim*44], rec)) 
+		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*kDim*44], rec)) 
 			return NC_ERR;
-		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*kDim*45], rec)) 
+		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*kDim*45], rec)) 
+			return NC_ERR;
+		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*kDim*46], rec)) 
+			return NC_ERR;
+		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*kDim*47], rec)) 
+			return NC_ERR;
+		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*kDim*48], rec)) 
+			return NC_ERR;
+		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*kDim*49], rec)) 
+			return NC_ERR;        
+		if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*kDim*50], rec)) 
 			return NC_ERR;        
         
 	}
@@ -1234,7 +1321,7 @@ bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
 	// Calculate headers
 	QStringList fieldNames;
 	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
-	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV";
+	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
 	id[175] = fieldNames.size();
 	for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);

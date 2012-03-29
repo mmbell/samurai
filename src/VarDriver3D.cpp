@@ -103,8 +103,26 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		bgWeights[i] = 0.;
 	}		
 	
+	/* Set the data path */
+	dataPath.setPath(configHash.value("data_directory"));
+	if (dataPath.exists()) {
+		dataPath.setFilter(QDir::Files);
+		dataPath.setSorting(QDir::Name);
+	} else {
+		cout << "Can't find data directory: " << configHash.value("data_directory").toStdString() << endl;
+		return false;
+	}
+	
+	/* Check to make sure the output path exists */
+	QDir outputPath(configHash.value("output_directory"));
+	if (!outputPath.exists()) {
+		cout << "Can't find output directory: " << configHash.value("output_directory").toStdString() << endl;
+		return false;
+	}
+	
 	// Define the Reference state
-    refstate = new ReferenceState(configHash.value("ref_state"));	
+	QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
+    refstate = new ReferenceState(refSounding);	
 	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
 	for (real k = kmin; k < kmax+kincr; k+= kincr) {
 		cout << "                   " << k << "\t";
@@ -149,7 +167,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	/* Set the maximum number of iterations to the multipass reduction factor
      Multiple outer loops will reduce the cutoff wavelengths and background error variance */
 	maxIter = configHash.value("num_iterations").toInt();
-    
+    		
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	QString loadBG = configHash.value("load_background");
 	int numbgObs = 0;
@@ -266,12 +284,7 @@ bool VarDriver3D::preProcessMetObs()
     zeroClevel = height;
     cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl; 
     
-	// Check the data directory for files
-	QDir dataPath("./vardata");
-	dataPath.setFilter(QDir::Files);
-	dataPath.setSorting(QDir::Name);
-	QStringList filenames = dataPath.entryList();
-	
+	QStringList filenames = dataPath.entryList();	
 	int processedFiles = 0;
 	QList<MetObs>* metData = new QList<MetObs>;
 	cout << "Found " << filenames.size() << " data files to read..." << endl;
@@ -1095,10 +1108,11 @@ bool VarDriver3D::preProcessMetObs()
             }
         }
     }
-    cout << obVector.size() << " total observations including pseudo W obs" << endl;
+    cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
     
     // Write the Obs to a summary text file
-    ofstream obstream("samurai_Observations.in");
+	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
+    ofstream obstream(obFilename.toAscii().data());
     // Header messes up reload
     /*ostream_iterator<string> os(obstream, "\t ");
      *os++ = "Type";
@@ -1188,7 +1202,8 @@ bool VarDriver3D::loadMetObs()
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
     
     // Open and read the file
-    ifstream obstream("samurai_Observations.in");
+	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
+    ifstream obstream(obFilename.toAscii().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
            >> wgt[0][0] >> wgt[1][0] >> wgt[2][0] >> wgt[3][0] >> wgt[4][0] >> wgt[5][0] >> wgt[6][0]
            >> wgt[0][1] >> wgt[1][1] >> wgt[2][1] >> wgt[3][1] >> wgt[4][1] >> wgt[5][1] >> wgt[6][1]
@@ -1265,7 +1280,8 @@ int VarDriver3D::loadBackgroundObs()
     // backgroundroi is in km, ROI is gridpoints
     real ROI = configHash.value("background_roi").toFloat() / iincr;
     real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI);
-    ifstream bgstream("./samurai_Background.in");
+	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
+    ifstream bgstream(bgFilename.toAscii().data());
     if (!bgstream.good()) {
         cout << "Error opening samurai_Background.in for reading.\n";
         exit(1);
@@ -1309,13 +1325,13 @@ int VarDriver3D::loadBackgroundObs()
         
         // Make sure the ob is in the Interpolation domain
         if (runMode == XYZ) {
-            if ((bgX < (imin-(ROI*iincr*2))) or (bgX > (imax+(ROI*iincr*2))) or
-                (bgY < (jmin-(ROI*jincr*2))) or (bgY > (jmax+(ROI*jincr*2)))
+            if ((bgX < (imin-iincr-(ROI*iincr*2))) or (bgX > (imax+iincr+(ROI*iincr*2))) or
+                (bgY < (jmin-jincr-(ROI*jincr*2))) or (bgY > (jmax+jincr+(ROI*jincr*2)))
                 or (bgZ < kmin)) //Allow for higher values for interpolation purposes
                 continue;
         } else if (runMode == RTZ) {
-            if ((bgRadius < (imin-(ROI*iincr*2))) or (bgRadius > (imax+(ROI*iincr*2))) or
-                (bgTheta < jmin-(ROI*jincr*2)) or (bgTheta > jmax+(ROI*jincr*2)) or
+            if ((bgRadius < (imin-iincr-(ROI*iincr*2))) or (bgRadius > (imax+iincr+(ROI*iincr*2))) or
+                (bgTheta < jmin-jincr-(ROI*jincr*2)) or (bgTheta > jmax+jincr+(ROI*jincr*2)) or
                 (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
                 continue;
         }
@@ -1372,14 +1388,14 @@ int VarDriver3D::loadBackgroundObs()
             }
             
             // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-            for (int ki = 0; ki < (kdim-1); ki++) {	
+            for (int ki = -1; ki < (kdim); ki++) {	
                 for (int kmu = -1; kmu <= 1; kmu += 2) {
                     real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
                     if (kPos < 0) kPos = 0.001;
                     real logzPos = log(kPos);
                     if (logzPos < logheights[0]) logzPos = logheights[0];
                     //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-                    for (int ii = 0; ii < (idim-1); ii++) {
+                    for (int ii = -1; ii < (idim); ii++) {
                         for (int imu = -1; imu <= 1; imu += 2) {
                             real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                             if (runMode == XYZ) {
@@ -1387,7 +1403,7 @@ int VarDriver3D::loadBackgroundObs()
                             } else if (runMode == RTZ) {
                                 if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
                             }
-                            for (int ji = 0; ji < (jdim-1); ji++) {
+                            for (int ji = -1; ji < (jdim); ji++) {
                                 for (int jmu = -1; jmu <= 1; jmu += 2) {
                                     real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                     real rSquare = 0.0;
@@ -1475,14 +1491,14 @@ int VarDriver3D::loadBackgroundObs()
     }
     
     // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-    for (int ki = 0; ki < (kdim-1); ki++) {	
+    for (int ki = -1; ki < (kdim); ki++) {	
         for (int kmu = -1; kmu <= 1; kmu += 2) {
             real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
             if (kPos < 0) kPos = 0.001;
             real logzPos = log(kPos);
             if (logzPos < logheights[0]) logzPos = logheights[0];
             //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-            for (int ii = 0; ii < (idim-1); ii++) {
+            for (int ii = -1; ii < (idim); ii++) {
                 for (int imu = -1; imu <= 1; imu += 2) {
                     real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                     if (runMode == XYZ) {
@@ -1490,7 +1506,7 @@ int VarDriver3D::loadBackgroundObs()
                     } else if (runMode == RTZ) {
                         if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
                     }
-                    for (int ji = 0; ji < (jdim-1); ji++) {
+                    for (int ji = -1; ji < (jdim); ji++) {
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                             real rSquare = 0.0;
@@ -1555,13 +1571,13 @@ int VarDriver3D::loadBackgroundObs()
     int numbgObs = bgIn.size()*7/11;
     if (numbgObs > 0) {
         // Check interpolation
-        for (int ki = 0; ki < (kdim-1); ki++) {	
+        for (int ki = -1; ki < (kdim); ki++) {	
             for (int kmu = -1; kmu <= 1; kmu += 2) {
                 real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
-                for (int ii = 0; ii < (idim-1); ii++) {
+                for (int ii = -1; ii < (idim); ii++) {
                     for (int imu = -1; imu <= 1; imu += 2) {
                         real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
-                        for (int ji = 0; ji < (jdim-1); ji++) {
+                        for (int ji = -1; ji < (jdim); ji++) {
                             for (int jmu = -1; jmu <= 1; jmu += 2) {
                                 real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                 int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1571,7 +1587,7 @@ int VarDriver3D::loadBackgroundObs()
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
-										if (bgI == 2) {
+										/* if (bgI == 2) {
 											int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
 											int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
 											bgU[bIzero + var] = bgU[bIone + var] = bgU[bIndex + var];
@@ -1585,7 +1601,7 @@ int VarDriver3D::loadBackgroundObs()
 											int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
 											int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
 											bgU[bKzero + var] = bgU[bKone + var] = bgU[bIndex + var];
-										}
+										} */
                                     } else {
                                         cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
                                     }
@@ -1775,7 +1791,8 @@ bool VarDriver3D::validateXMLconfig()
     "i_tempk_bcL" << "i_tempk_bcR" << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" <<    
     "i_qv_bcL" << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" <<
     "i_rhoa_bcL" << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR" <<
-    "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR";
+    "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR" <<
+	"data_directory" << "output_directory";
     for (int i = 0; i < configKeys.count(); i++) {
         if (!configHash.contains(configKeys.at(i))) {
             cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;

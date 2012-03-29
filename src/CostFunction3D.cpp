@@ -13,7 +13,6 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QFile>
-#include <QDir>
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
@@ -110,6 +109,9 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
     derivDim = 4;
 	configHash = config;
 
+	/* Set the output path */
+	outputPath.setPath(configHash->value("output_directory"));
+	
 	// Horizontal boundary conditions
 	iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
     iBCR[0] = bcHash.value(configHash->value("i_rhou_bcR"));
@@ -472,7 +474,8 @@ void CostFunction3D::updateBG()
 	outputAnalysis("increment", stateC);	
 	
 	// In BG update we are directly summing C + A
-	ofstream cstream("samurai_Coefficients.out");
+	QString cFilename = outputPath.absoluteFilePath("samurai_Coefficients.out");
+	ofstream cstream(cFilename.toAscii().data());
 	cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
 	for (int var = 0; var < varDim; var++) {
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {

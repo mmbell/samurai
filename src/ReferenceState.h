@@ -26,6 +26,7 @@ private:
     real qvbhypcoeff[5];
 	real rhoacoeff[5];
 	real dpdzcoeff[5];
+	real sfcpress;
 };
 
 namespace ReferenceVariable {

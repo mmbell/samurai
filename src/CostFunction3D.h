@@ -21,6 +21,7 @@
 #include <string>
 #include <QString>
 #include <QHash>
+#include <QDir>
 
 class CostFunction3D: public CostFunction
 {
@@ -130,7 +131,7 @@ protected:
 	RecursiveFilter* kFilter;
 	
     ReferenceState* refstate;
-    
+    QDir outputPath;
 	
 };
 

@@ -35,10 +35,13 @@ ReferenceState::ReferenceState(const QString& config)
 		dpdzcoeff[1] = 0.0010633;
 		dpdzcoeff[2] = -4.0545e-08;
 		dpdzcoeff[3] =  7.9634e-13;
-		dpdzcoeff[4] = -5.8778e-18;		
+		dpdzcoeff[4] = -5.8778e-18;
+
+		sfcpress = 1015.10;
 	} else {
 		QTextStream in(&refFile);
 		QString coeff;
+		in >> coeff >> sfcpress;
 		in >> coeff >> qvbhypcoeff[0] >> qvbhypcoeff[1] >> qvbhypcoeff[2] >> qvbhypcoeff[3] >> qvbhypcoeff[4];
 		in >> coeff >> rhoacoeff[0] >> rhoacoeff[1] >> rhoacoeff[2] >> rhoacoeff[3] >> rhoacoeff[4];
 		in >> coeff >> dpdzcoeff[0] >> dpdzcoeff[1] >> dpdzcoeff[2] >> dpdzcoeff[3] >> dpdzcoeff[4];
@@ -145,7 +148,7 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 			}
 			
 		}
-		press += 101510.0;
+		press += sfcpress*100.0;
 		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
 		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
 		switch (refVariable) {
