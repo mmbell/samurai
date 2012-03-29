@@ -1091,11 +1091,11 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
             real* iPad = NULL;
             real* jPad = NULL;
             if (iBCL[var] == PERIODIC) {
-                iPad = new real[iDim*3];
+                iPad = new real[iRank[var]*3];
 				//for (int iIndex = 0; iIndex < iDim*3; iIndex++) iPad[iIndex] = 0.;
             }
 			if (jBCL[var] == PERIODIC) {
-                jPad = new real[jDim*3];
+                jPad = new real[jRank[var]*3];
 				//for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
             }
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1118,14 +1118,14 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jPad[jIndex] = jTemp[jIndex];
-                                jPad[jIndex+jDim] = jTemp[jIndex];
-                                jPad[jIndex+jDim*2] = jTemp[jIndex];
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jPad[jIndex] = jTemp[jIndex+1];
+                                jPad[jIndex+jRank[var]] = jTemp[jIndex+1];
+                                jPad[jIndex+jRank[var]*2] = jTemp[jIndex+1];
                             }
-                            jFilter->filterArray(jPad, jDim*3);
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jTemp[jIndex] = jPad[jIndex+jDim];
+                            jFilter->filterArray(jPad, jRank[var]*3);
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jTemp[jIndex+1] = jPad[jIndex+jRank[var]];
                             }
                         } else {
                             jFilter->filterArray(jTemp, jDim);
@@ -1145,14 +1145,14 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iPad[iIndex] = iTemp[iIndex];
-                                iPad[iIndex+iDim] = iTemp[iIndex];
-                                iPad[iIndex+iDim*2] = iTemp[iIndex];
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                iPad[iIndex] = iTemp[iIndex+1];
+                                iPad[iIndex+iRank[var]] = iTemp[iIndex+1];
+                                iPad[iIndex+iRank[var]*2] = iTemp[iIndex+1];
                             }
-                            iFilter->filterArray(iPad, iDim*3);
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iTemp[iIndex] = iPad[iIndex+iDim];
+                            iFilter->filterArray(iPad, iRank[var]*3);
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                iTemp[iIndex+1] = iPad[iIndex+iRank[var]];
                             }
                         } else {
                             iFilter->filterArray(iTemp, iDim);
@@ -1197,10 +1197,10 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
             real* iPad = NULL;
             real* jPad = NULL;
             if (iBCL[var] == PERIODIC) {
-                iPad = new real[iDim*3];
+                iPad = new real[iRank[var]*3];
             }
 			if (jBCL[var] == PERIODIC) {
-                jPad = new real[jDim*3];
+                jPad = new real[jRank[var]*3];
             }
 			//FI & D
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1213,13 +1213,13 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
                             for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
-                                iPad[iIndex] = iTemp[iIndex];
-                                iPad[iIndex+iDim] = iTemp[iIndex];
-                                iPad[iIndex+iDim*2] = iTemp[iIndex];
+                                iPad[iIndex] = iTemp[iIndex+1];
+                                iPad[iIndex+iRank[var]] = iTemp[iIndex+1];
+                                iPad[iIndex+iRank[var]*2] = iTemp[iIndex+1];
                             }
-                            iFilter->filterArray(iPad, iDim*3);
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iTemp[iIndex] = iPad[iIndex+iDim];
+                            iFilter->filterArray(iPad, iRank[var]*3);
+                            for (int iIndex = 0; iIndex < iRank[var]; iIndex++) {
+                                iTemp[iIndex+1] = iPad[iIndex+iRank[var]];
                             }
                         } else {
                             iFilter->filterArray(iTemp, iDim);
@@ -1239,14 +1239,14 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jPad[jIndex] = jTemp[jIndex];
-                                jPad[jIndex+jDim] = jTemp[jIndex];
-                                jPad[jIndex+jDim*2] = jTemp[jIndex];
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jPad[jIndex] = jTemp[jIndex+1];
+                                jPad[jIndex+jRank[var]] = jTemp[jIndex+1];
+                                jPad[jIndex+jRank[var]*2] = jTemp[jIndex+1];
                             }
-                            jFilter->filterArray(jPad, jDim*3);
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jTemp[jIndex] = jPad[jIndex+jDim];
+                            jFilter->filterArray(jPad, jRank[var]*3);
+                            for (int jIndex = 0; jIndex < jRank[var]; jIndex++) {
+                                jTemp[jIndex+1] = jPad[jIndex+jRank[var]];
                             }
                         } else {
                             jFilter->filterArray(jTemp, jDim);

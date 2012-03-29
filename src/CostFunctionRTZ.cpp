@@ -335,10 +335,10 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											finalAnalysis[fIndex * 22 + posIndex] = h;
 											finalAnalysis[fIndex * 23 + posIndex] = qr;
                                             finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
-											finalAnalysis[fIndex * 25 + posIndex] = theta;
-											finalAnalysis[fIndex * 26 + posIndex] = thetae;
-											finalAnalysis[fIndex * 27 + posIndex] = thetaes;
-											finalAnalysis[fIndex * 28 + posIndex] = dewp;
+											finalAnalysis[fIndex * 25 + posIndex] = dewp;
+											finalAnalysis[fIndex * 26 + posIndex] = theta;
+											finalAnalysis[fIndex * 27 + posIndex] = thetae;
+											finalAnalysis[fIndex * 28 + posIndex] = thetaes;
 											finalAnalysis[fIndex * 29 + posIndex] = udr;
 											finalAnalysis[fIndex * 30 + posIndex] = vdr;
 											finalAnalysis[fIndex * 31 + posIndex] = wdr;
@@ -1308,7 +1308,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	delete[] lons; */
 	delete[] levs;
 	delete[] radius;
-    delete[] theta;
+    delete[] thetadeg;
 	return true;
 	
 }

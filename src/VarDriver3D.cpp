@@ -932,11 +932,11 @@ bool VarDriver3D::preProcessMetObs()
                     // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
                     real ROI = configHash.value("reflectivity_roi").toFloat();
                     real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
-                    for (int ki = 0; ki < (kdim-1); ki++) {	
+                    for (int ki = -1; ki < (kdim); ki++) {	
                         for (int kmu = -1; kmu <= 1; kmu += 2) {
                             real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
                             if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-                            for (int ii = 0; ii < (idim-1); ii++) {
+                            for (int ii = -1; ii < (idim); ii++) {
                                 for (int imu = -1; imu <= 1; imu += 2) {
                                     real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                                     if (runMode == XYZ) {
@@ -944,7 +944,7 @@ bool VarDriver3D::preProcessMetObs()
                                     } else if (runMode == RTZ) {
                                         if (fabs(iPos-obRadius) > iincr*ROI*2.) continue;
                                     }
-                                    for (int ji = 0; ji < (jdim-1); ji++) {
+                                    for (int ji = -1; ji < (jdim); ji++) {
                                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                                             real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                             real rSquare = 0.0;
@@ -999,20 +999,20 @@ bool VarDriver3D::preProcessMetObs()
         }
     }
     real gausspoint = 0.5*sqrt(1./3.);
-    for (int iIndex = 0; iIndex < idim; iIndex++) {
+    for (int iIndex = -1; iIndex < idim; iIndex++) {
         for (int ihalf = 0; ihalf <= 1; ihalf++) {
             for (int imu = -ihalf; imu <= ihalf; imu++) {
                 real i = imin + iincr * (iIndex + (gausspoint * imu + 0.5*ihalf));
                 if (i > ((idim-1)*iincr + imin)) continue;
                 
-                for (int jIndex = 0; jIndex < jdim; jIndex++) {
+                for (int jIndex = -1; jIndex < jdim; jIndex++) {
                     for (int jhalf =0; jhalf <= 1; jhalf++) {
                         for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
                             real j = jmin + jincr * (jIndex + (gausspoint * jmu + 0.5*jhalf));
                             if (j > ((jdim-1)*jincr + jmin)) continue;	
                             
                             real maxrefHeight = -1;
-                            for (int kIndex = 0; kIndex < kdim; kIndex++) {
+                            for (int kIndex = -1; kIndex < kdim; kIndex++) {
                                 for (int khalf =0; khalf <= 1; khalf++) {
                                     for (int kmu = -khalf; kmu <= khalf; kmu++) {
                                         real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
@@ -1026,7 +1026,7 @@ bool VarDriver3D::preProcessMetObs()
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
-												if (bgI == 2) {
+												/* if (bgI == 2) {
 													int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
 													int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
 													bgU[bIzero + 6] = bgU[bIone + 6] = bgU[bIndex + 6];
@@ -1040,7 +1040,7 @@ bool VarDriver3D::preProcessMetObs()
 													int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
 													int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
 													bgU[bKzero + 6] = bgU[bKone + 6] = bgU[bIndex + 6];
-												}
+												} */
 												
                                             }
                                             if (bgU[bIndex +6] > 0) {
@@ -1322,7 +1322,7 @@ int VarDriver3D::loadBackgroundObs()
         bgZ = heightm/1000.;
         bgRadius = sqrt(bgX*bgX + bgY*bgY);
         bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
-        
+        if (bgTheta < 0) bgTheta += 360.0;
         // Make sure the ob is in the Interpolation domain
         if (runMode == XYZ) {
             if ((bgX < (imin-iincr-(ROI*iincr*2))) or (bgX > (imax+iincr+(ROI*iincr*2))) or
