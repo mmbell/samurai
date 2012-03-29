@@ -762,9 +762,9 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
                         if (runMode == XYZ) {
-                            rhou = (u - Um);
+                            rhov = (v - Vm);
                         } else if (runMode == RTZ) {
-                            rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                            rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
                         }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("amv_rhov_error").toFloat());
