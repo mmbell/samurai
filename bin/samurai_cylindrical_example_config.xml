@@ -28,14 +28,17 @@
   <background>
     <ref_state>dunion_mt.snd</ref_state>
     <ref_time>00:00:00</ref_time>
-    <background_roi>25.</background_roi>
+    <i_background_roi>25.</i_background_roi>
+    <j_background_roi>25.</j_background_roi>
   </background>
   <radar>
     <radar_skip>1</radar_skip>
     <radar_stride>3</radar_stride>
     <dynamic_stride>0</dynamic_stride>
     <qr_variable>dbz</qr_variable>
-    <reflectivity_roi>1.0</reflectivity_roi>
+    <i_reflectivity_roi>1.0</i_reflectivity_roi>
+    <j_reflectivity_roi>10.0</j_reflectivity_roi>
+    <k_reflectivity_roi>1.0</k_reflectivity_roi>
     <dbz_pseudow_weight>0.0</dbz_pseudow_weight>
     <radar_dbz>DBZ</radar_dbz>
     <radar_vel>VG</radar_vel>

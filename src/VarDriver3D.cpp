@@ -913,14 +913,14 @@ bool VarDriver3D::preProcessMetObs()
                         if (H > hhi) precipmass = icemass;
                         qr = refstate->bhypTransform(precipmass/rhoBar);
                         
-                        /* Include an observation of this quantity in the variational synthesis
-                         varOb.setOb(qr);
-                         varOb.setWeight(1., 6);
-                         varOb.setError(1.0);
-                         obVector.push_back(varOb); */
+                        //Include an observation of this quantity in the variational synthesis
+						varOb.setOb(qr);
+						varOb.setWeight(1., 6);
+						varOb.setError(1.0);
+						obVector.push_back(varOb);
                         
                     } else if (gridref == "dbz") {
-                        qr = (Z+35.)*0.1;
+						qr = ZZ;
                         /* Include an observation of this quantity in the variational synthesis
                          varOb.setOb(qr);
                          varOb.setWeight(1., 6);
@@ -930,32 +930,34 @@ bool VarDriver3D::preProcessMetObs()
                     }
                     
                     // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
-                    real ROI = configHash.value("reflectivity_roi").toFloat();
-                    real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI) + (kincr*ROI)*(kincr*ROI);
-                    for (int ki = -1; ki < (kdim); ki++) {	
+                    real iROI = configHash.value("i_reflectivity_roi").toFloat() / iincr;
+					real jROI = configHash.value("j_reflectivity_roi").toFloat() / jincr;
+					real kROI = configHash.value("k_reflectivity_roi").toFloat() / kincr;
+                    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+                    for (int ki = 0; ki < (kdim-1); ki++) {	
                         for (int kmu = -1; kmu <= 1; kmu += 2) {
                             real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
-                            if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-                            for (int ii = -1; ii < (idim); ii++) {
+                            if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+                            for (int ii = 0; ii < (idim-1); ii++) {
                                 for (int imu = -1; imu <= 1; imu += 2) {
                                     real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                                     if (runMode == XYZ) {
-                                        if (fabs(iPos-obX) > iincr*ROI*2.) continue;
+                                        if (fabs(iPos-obX) > iincr*iROI*2.) continue;
                                     } else if (runMode == RTZ) {
-                                        if (fabs(iPos-obRadius) > iincr*ROI*2.) continue;
+                                        if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
                                     }
-                                    for (int ji = -1; ji < (jdim); ji++) {
+                                    for (int ji = 0; ji < (jdim-1); ji++) {
                                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                                             real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                             real rSquare = 0.0;
                                             if (runMode == XYZ) {
-                                                if (fabs(jPos-obY) > jincr*ROI*2.) continue;
+                                                if (fabs(jPos-obY) > jincr*jROI*2.) continue;
                                                 rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
                                             } else if (runMode == RTZ) {
 												real dTheta = fabs(jPos-obTheta);
 												if (dTheta > 360.) dTheta -= 360.;
-                                                if (dTheta > jincr*ROI*2.) continue;
-                                                rSquare = (obRadius-iPos)*(obRadius-iPos) + (obTheta-jPos)*(obTheta-jPos) + (obZ-kPos)*(obZ-kPos);                                                
+                                                if (dTheta > jincr*jROI*2.) continue;
+                                                rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);                                                
                                             }
                                             // Add one extra index to account for buffer zone in analysis
                                             int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1026,6 +1028,10 @@ bool VarDriver3D::preProcessMetObs()
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
+												if (configHash.value("qr_variable") == "dbz") {
+													real dbzavg = 10* log10(bgU[bIndex +6]);
+													bgU[bIndex +6] = (dbzavg+35.)*0.1;
+												}
 												/* if (bgI == 2) {
 													int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
 													int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
@@ -1278,16 +1284,18 @@ int VarDriver3D::loadBackgroundObs()
     real bgX, bgY, bgRadius, bgTheta;
 	real bgZ = -32768.; 
     // backgroundroi is in km, ROI is gridpoints
-    real ROI = configHash.value("background_roi").toFloat() / iincr;
-    real Rsquare = (iincr*ROI)*(iincr*ROI) + (jincr*ROI)*(jincr*ROI);
+    real iROI = configHash.value("i_background_roi").toFloat() / iincr;
+	real jROI = configHash.value("j_background_roi").toFloat() / jincr;
+    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
 	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
     ifstream bgstream(bgFilename.toAscii().data());
     if (!bgstream.good()) {
         cout << "Error opening samurai_Background.in for reading.\n";
         exit(1);
     }
-    cout << "Loading background onto Gaussian mish with " << ROI << " grid length radius of influence" << endl;
-    
+    cout << "Loading background onto Gaussian mish with " << iROI << " grid length radius of influence in i direction" << endl;
+    cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
+	
     while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa)
     {
         
@@ -1325,13 +1333,13 @@ int VarDriver3D::loadBackgroundObs()
         if (bgTheta < 0) bgTheta += 360.0;
         // Make sure the ob is in the Interpolation domain
         if (runMode == XYZ) {
-            if ((bgX < (imin-iincr-(ROI*iincr*2))) or (bgX > (imax+iincr+(ROI*iincr*2))) or
-                (bgY < (jmin-jincr-(ROI*jincr*2))) or (bgY > (jmax+jincr+(ROI*jincr*2)))
+            if ((bgX < (imin-iincr-(iROI*iincr*2))) or (bgX > (imax+iincr+(iROI*iincr*2))) or
+                (bgY < (jmin-jincr-(jROI*jincr*2))) or (bgY > (jmax+jincr+(jROI*jincr*2)))
                 or (bgZ < kmin)) //Allow for higher values for interpolation purposes
                 continue;
         } else if (runMode == RTZ) {
-            if ((bgRadius < (imin-iincr-(ROI*iincr*2))) or (bgRadius > (imax+iincr+(ROI*iincr*2))) or
-                (bgTheta < jmin-jincr-(ROI*jincr*2)) or (bgTheta > jmax+jincr+(ROI*jincr*2)) or
+            if ((bgRadius < (imin-iincr-(iROI*iincr*2))) or (bgRadius > (imax+iincr+(iROI*iincr*2))) or
+                (bgTheta < jmin-jincr-(jROI*jincr*2)) or (bgTheta > jmax+jincr+(jROI*jincr*2)) or
                 (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
                 continue;
         }
@@ -1399,22 +1407,22 @@ int VarDriver3D::loadBackgroundObs()
                         for (int imu = -1; imu <= 1; imu += 2) {
                             real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                             if (runMode == XYZ) {
-                                if (fabs(iPos-bgX) > iincr*ROI*2.) continue;
+                                if (fabs(iPos-bgX) > iincr*iROI*2.) continue;
                             } else if (runMode == RTZ) {
-                                if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
+                                if (fabs(iPos-bgRadius) > iincr*iROI*2.) continue;
                             }
                             for (int ji = -1; ji < (jdim); ji++) {
                                 for (int jmu = -1; jmu <= 1; jmu += 2) {
                                     real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                     real rSquare = 0.0;
                                     if (runMode == XYZ) {
-                                        if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
+                                        if (fabs(jPos-bgY) > jincr*jROI*2.) continue;
                                         rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
                                     } else if (runMode == RTZ) {
 										real dTheta = fabs(jPos-bgTheta);
 										if (dTheta > 360.) dTheta -= 360.;
-										if (dTheta > jincr*ROI*2.) continue;
-                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
+										if (dTheta > jincr*jROI*2.) continue;
+                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta) + (bgZ-kPos)*(bgZ-kPos);                                                
                                     }
                                     // Add one extra index to account for buffer zone in analysis
                                     int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1502,22 +1510,22 @@ int VarDriver3D::loadBackgroundObs()
                 for (int imu = -1; imu <= 1; imu += 2) {
                     real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                     if (runMode == XYZ) {
-                        if (fabs(iPos-bgX) > iincr*ROI*2.) continue;
+                        if (fabs(iPos-bgX) > iincr*iROI*2.) continue;
                     } else if (runMode == RTZ) {
-                        if (fabs(iPos-bgRadius) > iincr*ROI*2.) continue;
+                        if (fabs(iPos-bgRadius) > iincr*iROI*2.) continue;
                     }
                     for (int ji = -1; ji < (jdim); ji++) {
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                             real rSquare = 0.0;
                             if (runMode == XYZ) {
-                                if (fabs(jPos-bgY) > jincr*ROI*2.) continue;
+                                if (fabs(jPos-bgY) > jincr*jROI*2.) continue;
                                 rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
                             } else if (runMode == RTZ) {
 								real dTheta = fabs(jPos-bgTheta);
 								if (dTheta > 360.) dTheta -= 360.;
-								if (dTheta > jincr*ROI*2.) continue;
-                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (bgTheta-jPos)*(bgTheta-jPos) + (bgZ-kPos)*(bgZ-kPos);                                                
+								if (dTheta > jincr*jROI*2.) continue;
+                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta + (bgZ-kPos)*(bgZ-kPos);                                                
                             }
                             // Add one extra index to account for buffer zone in analysis
                             int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1601,7 +1609,7 @@ int VarDriver3D::loadBackgroundObs()
 											int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
 											int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
 											bgU[bKzero + var] = bgU[bKone + var] = bgU[bIndex + var];
-										} */
+										}*/
                                     } else {
                                         cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
                                     }
