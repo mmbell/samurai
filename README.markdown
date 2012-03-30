@@ -17,11 +17,9 @@ Another distinguishing characteristic from other variational solvers is the use 
 
 The analysis is performed in a manner similar to the spectral transform method Machenhauer (1979), transforming to and from the spline coefficients and physical space at each step of the cost function minimization. 
 
-A more technical description of SAMURAI is given in the documentation, and in
+A more technical description of SAMURAI is given in the documentation and in Bell et al. (2012).
 
-Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, *accepted with minor revisions*.
-
-Please reference this publication if you use SAMURAI in your research. A description of the 3D version including analytic tests is currently in preparation.
+Please reference Bell et al. (2012) if you use SAMURAI in your research. A description of the 3D version including analytic tests is currently in preparation, and will serve as a useful citation for v1.x shortly.
 
 ## Compilation
 
@@ -43,9 +41,9 @@ A few external libraries are required:
 
 ## Running SAMURAI
 
-The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a `vardata` subdirectory. 
+The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a subdirectory specified in the configuration. 
 
-The current interface is only available for the 3D Cartesian analysis. The 2D Cylindrical interface will be added soon. More complete documentation on how to run the software will be also be added shortly.
+The current interface is available for 3D Cartesian and 3D cylindrical analysis. The 2D Cylindrical interface will be added soon. 
 
 Several utility scripts are included in the `util` subdirectory, and more will be added as available.
 
@@ -62,11 +60,23 @@ See the Wiki page for the User's Manual with more details
 
 ## Copyright
 
-Copyright (c) 2011 Michael Bell
+Copyright (c) 2012 Michael Bell
 
-See LICENSE for details.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+See LICENSE for a copy of the GNU General Public License, or [gnu.org] (http://www.gnu.org/licenses/).
 
 ### References
+Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, *accepted with minor revisions*.
+
 Gao, J., M. Xue, K. Brewster, and K. K. Droegemeier, 2004: A three-dimensional variational data analysis method with recursive filter for Doppler radars. *J. Atmos. Oceanic Technol.*, **21**, 457–469.
 
 Machenhauer, B., 1979: The spectral method. *Numerical methods used in atmospheric models*, A. Kasahara, Ed., GARP Publications Series No 17, WMO and ICSU, Vol. 2, pp. 121–275.
