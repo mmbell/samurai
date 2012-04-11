@@ -415,6 +415,7 @@ bool VarDriver3D::preProcessMetObs()
                     (obTheta < jmin) or (obTheta > jmax) or
                     (obZ < kmin) or (obZ > kmax))
                     continue;
+				if (obRadius == 0.0) continue;
             }
 			// Create an observation and set its basic info
 			Observation varOb;
@@ -1062,13 +1063,15 @@ bool VarDriver3D::preProcessMetObs()
                                                 varOb.setWeight(1.0, 1, 2);
                                                 varOb.setWeight(1.0, 2, 3);
                                             } else if (runMode == RTZ) {
-                                                varOb.setRadius(i);
-                                                varOb.setTheta(j);
-                                                real rInverse = 180.0/(i*Pi);
-                                                varOb.setWeight((1.0/i), 0, 0);
-                                                varOb.setWeight(1.0, 0, 1);
-                                                varOb.setWeight(rInverse, 1, 2);
-                                                varOb.setWeight(1.0, 2, 3);
+												if (i > 0) {
+													varOb.setRadius(i);
+													varOb.setTheta(j);
+													real rInverse = 180.0/(i*Pi);
+													varOb.setWeight((1.0/i), 0, 0);
+													varOb.setWeight(1.0, 0, 1);
+													varOb.setWeight(rInverse, 1, 2);
+													varOb.setWeight(1.0, 2, 3);
+												}
                                             }
                                             varOb.setAltitude(k);
                                             varOb.setError(mc_weight);

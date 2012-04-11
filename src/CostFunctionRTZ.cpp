@@ -179,36 +179,36 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
 										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
-                                                                                real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
-                                                                                                + 1.673952e-5 * temp*temp + 2.433502 * log(temp));
-                                                                                real vp = temp*rhoq*461./100.;
-                                                                                //real vp = airpress * qv / (622 + qv);
-                                                                                real press = airpress + vp;
-
-                                                                                real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
-                                                                                real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
-
-                                                                                real RoverCp = 0.2854*(1 - 0.00028*qv);
-                                                                                real theta = temp * pow((1000/press), RoverCp);
-                                                                                real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
-                                                                                real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
-                                                                                real qvsat = 1000.0 * 0.622 * vp / airpress;
-                                                                                real relhum = -999.;
-                                                                                real thetaes = -999.;
-                                                                                if (satvp != 0) {
-                                                                                        relhum = 100*vp/satvp;
-                                                                                        lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
-                                                                                        thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
-                                                                                } else {
-                                                                                        relhum = -999.;
-                                                                                        thetaes = -999.;
-                                                                                }
-                                                                                if (relhum > 100.) relhum = 100.0;
-                                                                                real dewp = -999.0;
-                                                                                if (vp != 0) {
-                                                                                        dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
-                                                                                }
-
+										real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
+														  + 1.673952e-5 * temp*temp + 2.433502 * log(temp));
+										real vp = temp*rhoq*461./100.;
+										//real vp = airpress * qv / (622 + qv);
+										real press = airpress + vp;
+										
+										real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
+										real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
+										
+										real RoverCp = 0.2854*(1 - 0.00028*qv);
+										real theta = temp * pow((1000/press), RoverCp);
+										real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
+										real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
+										real qvsat = 1000.0 * 0.622 * vp / airpress;
+										real relhum = -999.;
+										real thetaes = -999.;
+										if (satvp != 0) {
+											relhum = 100*vp/satvp;
+											lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
+											thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
+										} else {
+											relhum = -999.;
+											thetaes = -999.;
+										}
+										if (relhum > 100.) relhum = 100.0;
+										real dewp = -999.0;
+										if (vp != 0) {
+											dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
+										}
+										
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
 										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
@@ -292,6 +292,45 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											}
 										}
                                         
+										// Avoid singularity at origin
+										if (r==0) {
+											u = -999.;
+											v = -999.;
+											w = -999.;
+											wspd = -999.;
+											relhum = -999.;
+											hprime = -999.;
+											qvprime = -999.;
+											rhoprime = -999.;
+											tprime = -999.;
+											pprime = -999.;
+											vorticity = -999.;
+											absVorticity = -999.;
+											divergence = -999.;
+											okuboweiss = -999.;
+											strain = -999.;
+											tpw = -999.;
+											rhou = -999.;
+											rhov = -999.;
+											rhow = -999.;
+											rho = -999.;
+											press = -999.;
+											temp = -999.;
+											qv = -999.;
+											h = -999.;
+											qr = -999.;
+											udr = -999.; udt = -999.; udz = -999.;
+											vdr = -999.; vdt = -999.; vdz = -999.;
+											wdr = -999.; wdt = -999.; wdz = -999.;
+											tdr = -999.; tdt = -999.; tdz = -999.;
+											qvdr = -999.; qvdt = -999.; qvdz = -999.;
+											pdr = -999.; pdt = -999.; pdz = -999.;
+											rhodr = -999.; rhodt = -999.; rhodz = -999.;
+											rhoE = -999.; dewp = -999.;
+											theta = -999.; thetae = -999.; thetaes = -999.;
+										}
+										
+										
                                         if (configHash->value("output_txt") == "true") {
                                             samuraistream << scientific << i << "\t" << j << "\t"  << k 
                                             << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
