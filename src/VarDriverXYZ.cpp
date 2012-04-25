@@ -1385,6 +1385,8 @@ int VarDriverXYZ::loadBackgroundObs()
 										bgU[bIndex +var] /= bgWeights[bIndex];
 									} else {
 										cout << "Empty background mish at " << xPos << ", " << yPos << ", " << zPos << endl;
+										cout << "Please check your background file.\n";
+										exit(-1);
 									}
 								}				
 								bgWeights[bIndex] = 0.;
