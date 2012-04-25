@@ -113,37 +113,37 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 															case 0:
 																rhou +=  Astate[aIndex] * basis3x;
 																rhoudr += Astate[aIndex] * idbasis * jbasis * kbasis;
-																rhoudt += 180 * Astate[aIndex] * ibasis * jdbasis * kbasis / (r * Pi);
+																rhoudt += 180 * Astate[aIndex] * ibasis * jdbasis * kbasis / (i * Pi);
 																rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
 																break;
 															case 1:
 																rhov +=  Astate[aIndex + 1] * basis3x;
 																rhovdr += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
-																rhovdt += 180 * Astate[aIndex + 1] * ibasis * jdbasis * kbasis / (r * Pi);
+																rhovdt += 180 * Astate[aIndex + 1] * ibasis * jdbasis * kbasis / (i * Pi);
 																rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
 																break;
 															case 2:
 																rhow += Astate[aIndex + 2] * basis3x;
 																rhowdr += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
-																rhowdt += 180 * Astate[aIndex + 2] * ibasis * jdbasis * kbasis / (r * Pi);
+																rhowdt += 180 * Astate[aIndex + 2] * ibasis * jdbasis * kbasis / (i * Pi);
 																rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
 																break;
 															case 3:
 																tprime += Astate[aIndex + 3] * basis3x;
                                                                 tdr += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
-																tdt += 180 * Astate[aIndex + 3] * ibasis * jdbasis * kbasis / (r * Pi);
+																tdt += 180 * Astate[aIndex + 3] * ibasis * jdbasis * kbasis / (i * Pi);
 																tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis; 
 																break;
 															case 4:
 																qvprime += Astate[aIndex + 4] * basis3x;
 																qvdr += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
-																qvdt += 180 * Astate[aIndex + 4] * ibasis * jdbasis * kbasis / (r * Pi);
+																qvdt += 180 * Astate[aIndex + 4] * ibasis * jdbasis * kbasis / (i * Pi);
 																qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis; 
 																break;
 															case 5:
 																rhoprime += Astate[aIndex + 5] * basis3x;
 																rhoadr += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
-																rhoadt += 180 * Astate[aIndex + 5] * ibasis * jdbasis * kbasis / (r * Pi);
+																rhoadt += 180 * Astate[aIndex + 5] * ibasis * jdbasis * kbasis / (i * Pi);
 																rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
 																break;
 															case 6:
@@ -232,20 +232,20 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wdz = 100. * (rhowdz - w*rhodz) / rho;
 										
 										// Vorticity units are 10-5
-										real vorticity = 1.0e5 * (vdr * 1.0e-5 + v/r - udt);
-										real divergence = 1.0e5 * (udr * 1.0e-5 + u/r + vdt);
-										real s1 = 1.0e5 * (udr * 1.0e-5 + u/r - vdt);
-										real s2 = 1.0e5 * (vdr * 1.0e-5 + v/r + udt);
+										real vorticity = 1.0e5 * (vdr * 1.0e-5 + v/r - udt * 1.0e-5);
+										real divergence = 1.0e5 * (udr * 1.0e-5 + u/r + vdt * 1.0e-5);
+										real s1 = 1.0e5 * (udr * 1.0e-5 + u/r - vdt * 1.0e-5);
+										real s2 = 1.0e5 * (vdr * 1.0e-5 + v/r + udt * 1.0e-5);
 										real strain = sqrt(s1*s1 + s2*s2);
 										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-										real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt + rhowdz * 1.0e-5);
+										real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt * 1.0e-5 + rhowdz * 1.0e-5);
                                         
                                         // Add Coriolis parameter to relative vorticity
                                         real latReference = configHash->value("ref_lat").toFloat();	
                                         real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
                                         real absVorticity = vorticity + Coriolisf;
                                         
-                                        // Thermodtnamic derivatives
+                                        // Thermodynamic derivatives
                                         tdr *= 100.; tdt *= 100.; tdz *= 100.;
                                         pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhodr-rhoadr)*temp)*461./100.;
                                         pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdr*rhoq + (rhodt-rhoadt)*temp)*461./100.;

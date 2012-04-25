@@ -30,10 +30,12 @@ install_name_tool -change /usr/local/lib/libsz.2.0.0.dylib @executable_path/../l
 install_name_tool -change /usr/local/lib/libhdf5.7.dylib @executable_path/../lib/libhdf5.dylib lib/libnetcdf.dylib
 install_name_tool -change /usr/local/lib/libhdf5_hl.7.dylib @executable_path/../lib/libhdf5_hl.dylib lib/libnetcdf.dylib
 install_name_tool -change /usr/local/lib/libsz.2.0.0.dylib @executable_path/../lib/libsz.dylib lib/libhdf5_hl.dylib
-install_name_tool -change /usr/local/Cellar/hdf5/1.8.7/lib/libhdf5.7.dylib @executable_path/../lib/libhdf5.dylib lib/libhdf5_hl.dylib
+install_name_tool -change /usr/local/Cellar/hdf5/1.8.8/lib/libhdf5.7.dylib @executable_path/../lib/libhdf5.dylib lib/libhdf5_hl.dylib
 install_name_tool -change /usr/local/lib/libsz.2.0.0.dylib @executable_path/../lib/libsz.dylib lib/libnetcdf_c++.dylib
 install_name_tool -change /usr/local/lib/libhdf5.7.dylib @executable_path/../lib/libhdf5.dylib lib/libnetcdf_c++.dylib
 install_name_tool -change /usr/local/lib/libhdf5_hl.7.dylib @executable_path/../lib/libhdf5_hl.dylib lib/libnetcdf_c++.dylib
+install_name_tool -change /usr/local/Cellar/netcdf/4.1.3/lib/libnetcdf.7.dylib @executable_path/../lib/libnetcdf.dylib lib/libnetcdf_c++.dylib
+install_name_tool -change /usr/lib/libcurl.4.dylib @executable_path/../lib/libcurl.dylib lib/libnetcdf_c++.dylib
 
 install_name_tool -id @executable_path/../lib/libhdf5.dylib ./lib/libhdf5.dylib
 install_name_tool -id @executable_path/../lib/libhdf5_hl.dylib ./lib/libhdf5_hl.dylib
@@ -51,6 +53,6 @@ install_name_tool -change /usr/local/Cellar/qt/4.7.4/lib/QtCore.framework/Versio
 install_name_tool -change /usr/local/Cellar/qt/4.7.4/lib/QtCore.framework/Versions/4/QtCore @executable_path/../lib/QtCore ./lib/QtXml
 
 chmod 444 lib/*
-rm samurai_v0.4.1.tar.bz2
-tar -cjvf samurai_v0.4.1.tar.bz2 bin/ lib/ util/*.pl util/*.rb doc/ 
+rm samurai_v1.0.0-beta.tar.bz2
+tar -cjvf samurai_v1.0.0-beta.tar.bz2 bin/ lib/ util/*.pl util/*.rb doc/ 
 
