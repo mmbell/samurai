@@ -1615,6 +1615,8 @@ int VarDriver3D::loadBackgroundObs()
 										}*/
                                     } else {
                                         cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
+					cout << "Please check your background file or ROI values.\n";
+					exit(-1);
                                     }
                                 }
                                 bgWeights[bIndex] = 0.;
