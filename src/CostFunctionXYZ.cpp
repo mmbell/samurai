@@ -31,7 +31,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
     ofstream samuraistream;
     if (configHash->value("output_txt") == "true") {
         samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
-        samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\n";
+        samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
         samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
     }
