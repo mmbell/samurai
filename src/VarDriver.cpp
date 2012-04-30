@@ -608,7 +608,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			MetObs ob;
 			real range = gatesp[n+stride/2];
 			if (dynamicStride) {
-				stride = (int)(range*beamwidth)/gatelength;
+				stride = (int)(range*beamwidth/gatelength);
 				if (stride < minstride) stride = minstride;
 			}
 			real dz = 0;

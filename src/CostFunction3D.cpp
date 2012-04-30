@@ -365,10 +365,9 @@ void CostFunction3D::initState(const int iteration)
 real CostFunction3D::funcValue(real* state)
 {
 
-	real qIP, obIP, mcIP;
+	real qIP, obIP;
 	qIP = 0.;
 	obIP = 0.;
-	mcIP = 0.;
 	
 	updateHCq(state);
 
@@ -2079,3 +2078,4 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
         delete[] p;
     }
 }
+

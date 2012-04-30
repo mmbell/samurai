@@ -119,6 +119,7 @@ void CostFunction::dlinmin(real* &p, real* &xi, real &fret)
 	}
 	ax = 0.0;
 	xx = 1.0;
+	xmin = 0.0;
 	mnbrack(ax,xx,bx,fa,fx,fb);
 	fret = dbrent(ax,xx,bx,TOL,xmin);
 	for (j=0; j<nState; j++) {

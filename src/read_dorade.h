@@ -21,6 +21,7 @@
 /* STRUCTURES */
 /***************************************************/
 // Required pragma to support 64-bit operation
+#pragma pack(push)
 #pragma pack(4)
 struct key_table_info {
     int offset;
@@ -255,5 +256,5 @@ struct rktb_info {
     int angle_table_offset;
     int num_rays;
 };
-
-#pragma options align=reset
+#pragma pack(pop)
+//#pragma options align=reset
