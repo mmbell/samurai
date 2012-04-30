@@ -372,13 +372,13 @@ real CostFunction3D::funcValue(real* state)
 	updateHCq(state);
 
 	// Compute inner product of state vector
-	#pragma omp parallel for reduction(+:qIP)
+	//#pragma omp parallel for reduction(+:qIP)
 	for (int n = 0; n < nState; n++) {
 		qIP += state[n]*state[n];
 	}
 		
 	// Subtract d from HCq to yield mObs length vector and compute inner product
-	#pragma omp parallel for reduction(+:obIP)
+	//#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
         int obIndex = m*(7+varDim*derivDim) + 1; 
 		obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
