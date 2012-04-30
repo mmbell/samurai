@@ -31,7 +31,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
     ofstream samuraistream;
     if (configHash->value("output_txt") == "true") {
         samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
-        samuraistream << "R\tT\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tThetae\t";
+        samuraistream << "R\tT\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
         samuraistream << "udr\tudt\tudz\tvdr\tvdt\tvdz\twdr\twdt\twdz\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
     }
@@ -192,7 +192,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real theta = temp * pow((1000/press), RoverCp);
 										real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
 										real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
-										real qvsat = 1000.0 * 0.622 * vp / airpress;
+										real qvsat = 622 * satvp / airpress;
 										real relhum = -999.;
 										real thetaes = -999.;
 										if (satvp != 0) {
@@ -335,7 +335,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                                             samuraistream << scientific << i << "\t" << j << "\t"  << k 
                                             << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 											<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press 
-											<< "\t" << theta << "\t" << thetae << "\t"
+											<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
                                             << udr << "\t" << udt << "\t" << udz << "\t"
                                             << vdr << "\t" << vdt << "\t" << vdz << "\t"
                                             << wdr << "\t" << wdt << "\t" << wdz << "\t" 
