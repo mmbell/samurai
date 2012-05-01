@@ -12,5 +12,7 @@ cp /opt/intel/composerxe-2011.4.191/compiler/lib/intel64/libiomp5.so lib/
 cp /work/mmbell/lib/libhdf5_hl.so.6 lib/
 chmod 444 lib/*
 rm samurai_v1.0.0-RC1_Linux_intel.tar.bz2
-tar -cjvf samurai_v1.0.0-RC1_Linux_intel.tar.bz2 bin/ lib/ util/ecgrads2bg.pl util/samurai_out2bg.pl util/samurai_lineartrack.pl doc/ 
-
+cd ../
+tar -cjvf samurai_v1.0.0-RC1_Linux_intel.tar.bz2 samurai/bin/ samurai/lib/ samurai/util/ecgrads2bg.pl samurai/util/samurai_out2bg.pl samurai/util/samurai_lineartrack.pl samurai/doc/ 
+mv samurai_v1.0.0-RC1_Linux_intel.tar.bz2 samurai/
+cd samurai/
