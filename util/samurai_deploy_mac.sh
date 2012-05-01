@@ -53,6 +53,7 @@ install_name_tool -change /usr/local/Cellar/qt/4.7.4/lib/QtCore.framework/Versio
 install_name_tool -change /usr/local/Cellar/qt/4.7.4/lib/QtCore.framework/Versions/4/QtCore @executable_path/../lib/QtCore ./lib/QtXml
 
 chmod 444 lib/*
-rm samurai_v1.0.0-beta.tar.bz2
-tar -cjvf samurai_v1.0.0-beta.tar.bz2 bin/ lib/ util/*.pl util/*.rb doc/ 
-
+rm samurai_v1.0.0-RC1_Darwin_gcc.tar.bz2
+cd ../
+tar -cjvf samurai_v1.0.0-RC1_Darwin_gcc.tar.bz2 samurai/bin/ samurai/lib/ samurai/util/ecgrads2bg.pl samurai/util/samurai_out2bg.pl samurai/util/samurai_lineartrack.pl samurai/doc/
+cd samurai
