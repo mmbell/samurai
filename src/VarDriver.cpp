@@ -54,9 +54,6 @@ VarDriver::~VarDriver()
 bool VarDriver::readFrameCenters()
 {
 	// Check the data directory for a centerfile
-	QDir dataPath("./vardata");
-	dataPath.setFilter(QDir::Files);
-	dataPath.setSorting(QDir::Name);
 	QStringList filenames = dataPath.entryList();
 	QString centerFilename;
 	for (int i = 0; i < filenames.size(); ++i) {
@@ -979,7 +976,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 }
 
 /* This routine reads a generic insitu format suitable for many different observation types
-TIME       Lat       Lon    Altitude   Pressure  Temperature  Dewpoint    WindDir   WindSpeed  VerticalVelocity*/
+TIME       Lat       Lon    Altitude   Pressure  Temperature (C)  Dewpoint (C)  WindDir   WindSpeed  VerticalVelocity*/
 bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -1043,12 +1040,16 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 			ob.setPressure(-999.0);
 		}
 		if (lineparts[5].toFloat() > -273) {
-			ob.setTemperature(lineparts[5].toFloat() + 273.15);
+			float temp = lineparts[5].toFloat();
+			if (temp < 100) temp += 273.15;
+			ob.setTemperature(temp);
 		} else {
 			ob.setTemperature(-999.0);
 		}
 		if (lineparts[6].toFloat() > -273) {
-			ob.setDewpoint(lineparts[6].toFloat() + 273.15);
+			float dewp = lineparts[6].toFloat();
+			if (dewp < 100) dewp += 273.15;
+			ob.setDewpoint(dewp);
 		} else {
 			ob.setDewpoint(-999.0);
 		}

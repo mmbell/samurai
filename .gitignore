@@ -14,3 +14,4 @@ CMakeScripts
 cmake_install.cmake
 Makefile
 Info.plist
+install_manifest.txt

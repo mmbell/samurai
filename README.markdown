@@ -28,6 +28,17 @@ To compile, use [CMake] (http://www.cmake.org) from the top-level directory:
      $ cmake .
 
 to create a Makefile or Xcode project for your machine. Run `make` or build via Xcode to create the `samurai` binary.
+Run `make install` to install the binary to /usr/local/bin
+
+To install samurai in an alternate location:
+
+     $ cmake -DCMAKE_INSTALL_PREFIX=/some/other/location .
+
+To use an alternate compiler (for example the Intel C++ compiler):
+
+     $ cmake -DCMAKE_CXX_COMPILER="icpc" . 
+
+The program is known to work with GCC and Intel compilers, but has not been tested with other compilers.
 
 A few external libraries are required:
 

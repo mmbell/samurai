@@ -1,7 +1,7 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
 set ( CMAKE_BUILD_TYPE Release )
-set ( CMAKE_CXX_COMPILER "icpc" )
+#set ( CMAKE_CXX_COMPILER "icpc" )
 add_definitions ( -Wall )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	if(${CMAKE_CXX_COMPILER} MATCHES "icpc")
@@ -94,3 +94,4 @@ target_link_libraries ( samurai
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
 	${HDF5_LIBRARY} ${NETCDF_LIBRARY}
 	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
+install ( TARGETS samurai DESTINATION bin )

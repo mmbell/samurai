@@ -375,6 +375,7 @@ bool VarDriver3D::preProcessMetObs()
 		// Process the metObs into Observations
 		QDateTime startTime = frameVector.front().getTime();
 		QDateTime endTime = frameVector.back().getTime();
+		int prevobs = obVector.size();
 		for (int i = 0; i < metData->size(); ++i) {
 			
 			// Make sure the ob is within the time limits
@@ -984,7 +985,13 @@ bool VarDriver3D::preProcessMetObs()
                     
             }
             
-        } 
+        }
+		int newobs = obVector.size() - prevobs;
+		if (metData->size() > 0) {
+			cout << "Processed " << newobs << " observations from " << metData->size() << " entries (" << 100.0*(float)newobs/(6*(float)metData->size()) << "%)\n";
+		} else {
+			cout << "No valid observations in file\n";
+		}
         cout << obVector.size() << " total observations." << endl;
     }
     
