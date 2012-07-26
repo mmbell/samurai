@@ -15,6 +15,7 @@
 #include <QDomDocument>
 #include <QDomNodeList>
 #include <GeographicLib/TransverseMercatorExact.hpp>
+#include <netcdfcpp.h>
 
 // Constructor
 VarDriver::VarDriver()
@@ -38,6 +39,7 @@ VarDriver::VarDriver()
 	dataSuffix["cimss"] = cimss;
 	dataSuffix["dwl"] = dwl;
 	dataSuffix["insitu"] = insitu;
+    dataSuffix["mesonet"] = mesonet;
 }
 
 // Destructor
@@ -1140,3 +1142,119 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	
 }
 
+bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
+{
+	NcError err(NcError::verbose_nonfatal);
+	
+	// Create the file.
+	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	
+	// Check to see if the file was created.
+	if(!dataFile.is_valid())
+		return false;
+
+    // Get the number of records
+    NcDim* recnum;
+    if (!(recnum = dataFile.get_dim("recNum")))
+        return false;
+    int NREC = recnum->size();
+
+    NcVar *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+        *dewpVar, *wdirVar, *wspdVar, *pressVar;
+    if (!(latVar = dataFile.get_var("latitude")))
+        return false;
+    if (!(lonVar = dataFile.get_var("longitude")))
+        return false;
+    if (!(altVar = dataFile.get_var("elevation")))
+        return false;
+    if (!(timeVar = dataFile.get_var("observationTime")))
+        return false;
+    if (!(tempVar  = dataFile.get_var("temperature")))
+        return false;
+    if (!(dewpVar = dataFile.get_var("dewpoint")))
+        return false;
+    if (!(wdirVar = dataFile.get_var("windDir")))
+        return false;
+    if (!(wspdVar = dataFile.get_var("windSpeed")))
+        return false;
+    if (!(pressVar = dataFile.get_var("stationPressure")))
+        return false;
+    
+    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC], 
+        dewp[NREC], wdir[NREC], wspd[NREC], press[NREC];
+    if (!latVar->get(lat, NREC))
+        return false;
+    if (!lonVar->get(lon, NREC))
+        return false;
+    if (!altVar->get(alt, NREC))
+        return false;
+    if (!timeVar->get(obtime, NREC))
+        return false;
+    if (!tempVar->get(temp, NREC))
+        return false;
+    if (!dewpVar->get(dewp, NREC))
+        return false;
+    if (!wdirVar->get(wdir, NREC))
+        return false;
+    if (!wspdVar->get(wspd, NREC))
+        return false;
+    if (!pressVar->get(press, NREC))
+        return false;
+
+    MetObs ob;
+	ob.setStationName("Mesonet");
+    for (int rec = 0; rec < NREC; rec++)
+    {
+        if ((lat[rec] != -9999.0) and (lat[rec] < 1.0e32)) {
+			ob.setLat(lat[rec]);
+		} else {
+			ob.setLat(-999.0);
+		}
+        if ((lon[rec] != -9999.0) and (lon[rec] < 1.0e32)) {
+			ob.setLon(lon[rec]);
+		} else {
+			ob.setLon(-999.0);
+		}
+        if ((alt[rec] != -9999.0) and (alt[rec] < 1.0e32)) {
+			ob.setAltitude(alt[rec]);
+		} else {
+			ob.setAltitude(-999.0);
+		}
+
+        QDateTime datetime;
+        datetime = QDateTime::fromTime_t(obtime[rec]);
+        ob.setTime(datetime.toUTC());
+        
+        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) { 
+			ob.setTemperature(temp[rec]);
+		} else {
+			ob.setTemperature(-999.0);
+		}
+        if ((dewp[rec] != -9999.0) and (dewp[rec] < 1.0e32)) {
+			ob.setDewpoint(dewp[rec]);
+		} else {
+			ob.setDewpoint(-999.0);
+		}
+        if ((wdir[rec] != -9999.0) and (wdir[rec] < 1.0e32)) {
+			ob.setWindDirection(wdir[rec]);
+		} else {
+			ob.setWindDirection(-999.0);
+		}
+        if ((wspd[rec] != -9999.0) and (wspd[rec] < 1.0e32)) {
+			ob.setWindSpeed(wspd[rec]);
+		} else {
+			ob.setWindSpeed(-999.0);
+		}
+        if ((press[rec] != -9999.0) and (press[rec] < 1.0e32)) {
+			ob.setPressure(press[rec]/100.0);
+		} else {
+			ob.setPressure(-999.0);
+		}
+        
+        ob.setObType(MetObs::mesonet);
+		metObVector->push_back(ob);
+    }
+    
+    return true;
+    
+}

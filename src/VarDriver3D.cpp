@@ -362,9 +362,13 @@ bool VarDriver3D::preProcessMetObs()
 			case (insitu):
 				if (!read_insitu(metFile, metData))
 					cout << "Error reading insitu file" << endl;
-				break;				
+				break;
+            case (mesonet):
+                if (!read_mesonet(metFile, metData))
+					cout << "Error reading mesonet file" << endl;
+				break;
 			case (cen):
-				continue;				
+				continue;
 			default:
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
@@ -982,7 +986,82 @@ bool VarDriver3D::preProcessMetObs()
                     
                     break;
                 }	
+                
+                case(MetObs::mesonet):
+                {
+                    varOb.setType(MetObs::mesonet);
+                    u = metOb.getCartesianUwind();
+                    v = metOb.getCartesianVwind();
+                    w = metOb.getVerticalVelocity();
+                    rho = metOb.getMoistDensity();
+                    rhoa = metOb.getAirDensity();
+                    qv = metOb.getQv();
+                    tempk = metOb.getTemperature();
                     
+                    // Separate obs for each measurement
+                    // rho v 1 m/s error
+                    if ((u != -999) and (rho != -999)) {
+                        // rho u 1 m/s error
+                        varOb.setWeight(1., 0);
+                        if (runMode == XYZ) {
+                            rhou = rho*(u - Um);
+                        } else if (runMode == RTZ) {
+                            rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+                        }
+                        //cout << "RhoU: " << rhou << endl;
+                        varOb.setOb(rhou);
+                        varOb.setError(configHash.value("mesonet_rhou_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 0);
+                        
+                        varOb.setWeight(1., 1);
+                        if (runMode == XYZ) {
+                            rhov = rho*(v - Vm);
+                        } else if (runMode == RTZ) {
+                            rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+                        }
+                        varOb.setOb(rhov);
+                        varOb.setError(configHash.value("mesonet_rhov_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 1);
+                        
+                    }
+                    if ((w != -999) and (rho != -999)) {
+                        // rho w 1.5 m/s error
+                        varOb.setWeight(1., 2);
+                        rhow = rho*w;
+                        varOb.setOb(rhow);
+                        varOb.setError(configHash.value("mesonet_rhow_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 2);
+                    }
+                    if (tempk != -999) {
+                        // temperature 1 K error
+                        varOb.setWeight(1., 3);
+                        varOb.setOb(tempk - tBar);
+                        varOb.setError(configHash.value("mesonet_tempk_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 3);
+                    }
+                    if (qv != -999) {
+                        // Qv 0.5 g/kg error
+                        varOb.setWeight(1., 4);
+                        qv = refstate->bhypTransform(qv);
+                        varOb.setOb(qv-qBar);
+                        varOb.setError(configHash.value("mesonet_qv_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 4);
+                    }
+                    if (rhoa != -999) {
+                        // Rho prime .1 kg/m^3 error
+                        varOb.setWeight(1., 5);
+                        varOb.setOb((rhoa-rhoBar)*100);
+                        varOb.setError(configHash.value("mesonet_rhoa_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 5);
+                    }
+                    break;
+                }
             }
             
         }

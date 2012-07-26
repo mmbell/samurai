@@ -116,7 +116,8 @@ class MetObs
 			ascat,
 			AMV,
 			lidar,
-			insitu
+			insitu,
+            mesonet
 		};
 		
 	protected:
