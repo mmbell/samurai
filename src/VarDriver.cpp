@@ -40,6 +40,7 @@ VarDriver::VarDriver()
 	dataSuffix["dwl"] = dwl;
 	dataSuffix["insitu"] = insitu;
     dataSuffix["mesonet"] = mesonet;
+    dataSuffix["classnc"] = classnc;
 }
 
 // Destructor
@@ -1146,10 +1147,10 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 {
 	NcError err(NcError::verbose_nonfatal);
 	
-	// Create the file.
+	// Read the file.
 	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
 	
-	// Check to see if the file was created.
+	// Check to see if the file was read.
 	if(!dataFile.is_valid())
 		return false;
 
@@ -1252,6 +1253,130 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 		}
         
         ob.setObType(MetObs::mesonet);
+		metObVector->push_back(ob);
+    }
+    
+    return true;
+    
+}
+
+bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
+{
+	NcError err(NcError::verbose_nonfatal);
+	
+	// Read the file.
+	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	
+	// Check to see if the file was read.
+	if(!dataFile.is_valid())
+		return false;
+    
+    // Get the number of records
+    NcDim* recnum;
+    if (!(recnum = dataFile.get_dim("time")))
+        return false;
+    int NREC = recnum->size();
+    
+    NcVar *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+    *rhVar, *wdirVar, *wspdVar, *pressVar;
+    if (!(latVar = dataFile.get_var("lat")))
+        return false;
+    if (!(lonVar = dataFile.get_var("lon")))
+        return false;
+    if (!(altVar = dataFile.get_var("alt")))
+        return false;
+    if (!(timeVar = dataFile.get_var("time")))
+        return false;
+    if (!(tempVar  = dataFile.get_var("temp")))
+        return false;
+    if (!(rhVar = dataFile.get_var("rh")))
+        return false;
+    if (!(wdirVar = dataFile.get_var("wdir")))
+        return false;
+    if (!(wspdVar = dataFile.get_var("wspd")))
+        return false;
+    if (!(pressVar = dataFile.get_var("pres")))
+        return false;
+    
+    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC], 
+        rh[NREC], wdir[NREC], wspd[NREC], press[NREC];
+    if (!latVar->get(lat, NREC))
+        return false;
+    if (!lonVar->get(lon, NREC))
+        return false;
+    if (!altVar->get(alt, NREC))
+        return false;
+    if (!timeVar->get(obtime, NREC))
+        return false;
+    if (!tempVar->get(temp, NREC))
+        return false;
+    if (!rhVar->get(rh, NREC))
+        return false;
+    if (!wdirVar->get(wdir, NREC))
+        return false;
+    if (!wspdVar->get(wspd, NREC))
+        return false;
+    if (!pressVar->get(press, NREC))
+        return false;
+
+    QDateTime datetime;
+    QStringList fileparts = metFile.fileName().split(".");
+	QDate startDate = QDate::fromString(fileparts[1], "yyyyMMdd");
+    QTime startTime = QTime::fromString(fileparts[2], "HHmmss");
+
+	// Get the platform name
+	MetObs ob;
+	ob.setStationName(fileparts[0]);
+    for (int rec = 0; rec < NREC; rec++)
+    {
+        if ((lat[rec] != -9999.0) and (lat[rec] < 1.0e32)) {
+			ob.setLat(lat[rec]);
+		} else {
+			ob.setLat(-999.0);
+		}
+        if ((lon[rec] != -9999.0) and (lon[rec] < 1.0e32)) {
+			ob.setLon(lon[rec]);
+		} else {
+			ob.setLon(-999.0);
+		}
+        if ((alt[rec] != -9999.0) and (alt[rec] < 1.0e32)) {
+			ob.setAltitude(alt[rec]*1000.0);
+		} else {
+			ob.setAltitude(-999.0);
+		}
+        
+        QTime time(startTime);
+        time.addSecs(obtime[rec]);
+        datetime = QDateTime(startDate, time, Qt::UTC);
+        ob.setTime(datetime);
+                
+        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) { 
+			ob.setTemperature(temp[rec]+273.15);
+		} else {
+			ob.setTemperature(-999.0);
+		}
+        if ((rh[rec] != -9999.0) and (rh[rec] < 1.0e32)) {
+			ob.setRH(rh[rec]);
+		} else {
+			ob.setRH(-999.0);
+		}
+        if ((wdir[rec] != -9999.0) and (wdir[rec] < 1.0e32)) {
+			ob.setWindDirection(wdir[rec]);
+		} else {
+			ob.setWindDirection(-999.0);
+		}
+        if ((wspd[rec] != -9999.0) and (wspd[rec] < 1.0e32)) {
+			ob.setWindSpeed(wspd[rec]);
+		} else {
+			ob.setWindSpeed(-999.0);
+		}
+        if ((press[rec] != -9999.0) and (press[rec] < 1.0e32)) {
+			ob.setPressure(press[rec]);
+		} else {
+			ob.setPressure(-999.0);
+		}
+        
+        ob.setObType(MetObs::classnc);
 		metObVector->push_back(ob);
     }
     
