@@ -371,6 +371,10 @@ bool VarDriver3D::preProcessMetObs()
                 if (!read_classnc(metFile, metData))
 					cout << "Error reading classnc file" << endl;
 				break;
+            case (qcf):
+                if (!read_qcf(metFile, metData))
+					cout << "Error reading classnc file" << endl;
+				break;
 			case (cen):
 				continue;
 			default:

@@ -41,6 +41,7 @@ VarDriver::VarDriver()
 	dataSuffix["insitu"] = insitu;
     dataSuffix["mesonet"] = mesonet;
     dataSuffix["classnc"] = classnc;
+    dataSuffix["qcf"] = qcf;
 }
 
 // Destructor
@@ -1383,3 +1384,54 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
     return true;
     
 }
+
+/* This routine reads the qcf composite data format*/
+
+bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
+{
+	
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	MetObs ob;
+	QDate startDate;
+	QDateTime datetime;
+	// Skip three lines
+	QString line;
+	in.readLine(); in.readLine(); in.readLine();
+	while (!in.atEnd()) {
+		line = in.readLine();
+		QStringList lineparts = line.split(QRegExp("\\s+"));
+        QDate date = QDate::fromString(lineparts[0], "yyyy/MM/dd");
+        QTime time = QTime::fromString(lineparts[1], "HH:mm:ss");
+		datetime = QDateTime(date, time, Qt::UTC);
+        ob.setTime(datetime);
+        ob.setStationName(lineparts[5]);
+		ob.setLat(lineparts[6].toFloat());
+		ob.setLon(lineparts[7].toFloat());
+		ob.setAltitude(lineparts[9].toFloat());
+        if (lineparts[11] == "G") {
+            ob.setPressure(lineparts[10].toFloat());
+        }
+        if (lineparts[17] == "G") {
+            ob.setTemperature(lineparts[16].toFloat() + 273.15);
+        }
+        if (lineparts[19] == "G") {
+            ob.setDewpoint(lineparts[18].toFloat() + 273.15);
+        }
+        if (lineparts[21] == "G") {
+            ob.setWindSpeed(lineparts[20].toFloat());
+        }
+        if (lineparts[23] == "G") {
+            ob.setWindDirection(lineparts[22].toFloat());
+        }
+		ob.setObType(MetObs::mesonet);
+		metObVector->push_back(ob);
+	}
+	
+	metFile.close();
+	return true;		
+	
+}
+
