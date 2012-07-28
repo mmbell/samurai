@@ -118,7 +118,7 @@ class MetObs
 			lidar,
 			insitu,
             mesonet,
-            classnc
+            aeri
 		};
 		
 	protected:

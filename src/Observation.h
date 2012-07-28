@@ -38,7 +38,7 @@ public:
 	void setWeight(const double &wgt, const unsigned int& var, const unsigned int& derivative = 0);
 
 	// Note that you set this as error, but it returns 1/error or error
-	double inline getInverseError() const { return (1./error); }
+    double getInverseError() const;
 	double inline getError() const { return error; }
 	void setError(const double &err);
 	

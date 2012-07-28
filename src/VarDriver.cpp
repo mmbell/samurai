@@ -42,6 +42,7 @@ VarDriver::VarDriver()
     dataSuffix["mesonet"] = mesonet;
     dataSuffix["classnc"] = classnc;
     dataSuffix["qcf"] = qcf;
+    dataSuffix["aeri"] = aeri;
 }
 
 // Destructor
@@ -1377,7 +1378,7 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 			ob.setPressure(-999.0);
 		}
         
-        ob.setObType(MetObs::classnc);
+        ob.setObType(MetObs::dropsonde);
 		metObVector->push_back(ob);
     }
     
@@ -1435,3 +1436,123 @@ bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
 	
 }
 
+bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
+{
+	NcError err(NcError::verbose_nonfatal);
+	
+	// Read the file.
+	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	
+	// Check to see if the file was read.
+	if(!dataFile.is_valid())
+		return false;
+    
+    // Get the number of records
+    NcDim* recnum;
+    if (!(recnum = dataFile.get_dim("time")))
+        return false;
+    int NREC = recnum->size();
+
+    // Get the number of pressure levels
+    NcDim* pres_level;
+    if (!(pres_level = dataFile.get_dim("pres_level")))
+        return false;
+    int NLVL = pres_level->size();
+    
+    NcVar *latVar, *lonVar, *altVarBase, *altVar, *timeVarBase, *timeVar,
+    *tempVar, *dewpVar, *pressVar;
+    if (!(latVar = dataFile.get_var("lat")))
+        return false;
+    if (!(lonVar = dataFile.get_var("lon")))
+        return false;
+    if (!(altVarBase = dataFile.get_var("alt")))
+        return false;
+    if (!(altVar = dataFile.get_var("height")))
+        return false;
+    if (!(timeVarBase = dataFile.get_var("base_time")))
+        return false;
+    if (!(timeVar = dataFile.get_var("time_offset")))
+        return false;
+    if (!(tempVar  = dataFile.get_var("ambientTemp")))
+        return false;
+    if (!(dewpVar = dataFile.get_var("dewpointTemp")))
+        return false;
+    if (!(pressVar = dataFile.get_var("pressure")))
+        return false;
+    
+    real lat, lon, altBase, basetime, alt[NREC][NLVL], obtime[NREC], temp[NREC][NLVL], 
+    dewp[NREC][NLVL], press[NREC][NLVL];
+    if (!latVar->get(&lat, 1))
+        return false;
+    if (!lonVar->get(&lon, 1))
+        return false;
+    if (!altVarBase->get(&altBase, 1))
+        return false;
+    if (!timeVarBase->get(&basetime, 1))
+        return false;
+    if (!altVar->get(&alt[0][0], NREC, NLVL))
+        return false;    
+    if (!timeVar->get(&obtime[0], NREC, NLVL))
+        return false;
+    if (!tempVar->get(&temp[0][0], NREC, NLVL))
+        return false;
+    if (!dewpVar->get(&dewp[0][0], NREC, NLVL))
+        return false;
+    if (!pressVar->get(&press[0][0], NREC, NLVL))
+        return false;
+
+    QDateTime datetime;
+    
+	// Get the platform name
+	MetObs ob;
+    QStringList fileparts = metFile.fileName().split("_");
+	ob.setStationName(fileparts[0]);
+    for (int rec = 0; rec < NREC; rec++) {
+        for (int p = 0; p < NLVL; p++) {
+        if ((lat != -9999.0) and (lat < 1.0e32)) {
+			ob.setLat(lat);
+		} else {
+			ob.setLat(-999.0);
+		}
+        if ((lon != -9999.0) and (lon < 1.0e32)) {
+			ob.setLon(lon);
+		} else {
+			ob.setLon(-999.0);
+		}
+        if ((alt[rec][p] != -9999.0) and (alt[rec][p] < 1.0e32)) {
+			ob.setAltitude(alt[rec][p] + altBase);
+		} else {
+			ob.setAltitude(-999.0);
+		}
+        
+        datetime = QDateTime::fromTime_t(basetime);
+        QString obstring = datetime.toString(Qt::ISODate);
+        QDateTime obdatetime = datetime.addSecs(obtime[rec]).toUTC();
+        obstring = obdatetime.toString(Qt::ISODate);
+        ob.setTime(obdatetime);
+        
+        if ((temp[rec][p] != -9999.0) and (temp[rec][p] < 1.0e32)) { 
+			ob.setTemperature(temp[rec][p]);
+		} else {
+            //cout << temp[rec][p] << "\n";
+			ob.setTemperature(-999.0);
+		}
+        if ((dewp[rec][p] != -9999.0) and (dewp[rec][p] < 1.0e32)) {
+			ob.setDewpoint(dewp[rec][p]);
+		} else {
+			ob.setDewpoint(-999.0);
+		}
+        if ((press[rec][p] != -9999.0) and (press[rec][p] < 1.0e32)) {
+			ob.setPressure(press[rec][p]);
+		} else {
+			ob.setPressure(-999.0);
+		}
+        
+        ob.setObType(MetObs::aeri);
+		metObVector->push_back(ob);
+        }
+    }
+    
+    return true;
+    
+}

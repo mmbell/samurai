@@ -72,7 +72,8 @@ protected:
 		insitu,
         mesonet,
         classnc,
-        qcf
+        qcf,
+        aeri
 	};
 
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
@@ -92,6 +93,7 @@ protected:
     bool read_mesonet(QFile& metFile, QList<MetObs>* metObVector);
     bool read_classnc(QFile& metFile, QList<MetObs>* metObVector);
     bool read_qcf(QFile& metFile, QList<MetObs>* metObVector);
+    bool read_aeri(QFile& metFile, QList<MetObs>* metObVector);
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
 

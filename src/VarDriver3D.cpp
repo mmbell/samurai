@@ -375,6 +375,10 @@ bool VarDriver3D::preProcessMetObs()
                 if (!read_qcf(metFile, metData))
 					cout << "Error reading classnc file" << endl;
 				break;
+            case(aeri):
+                if (!read_aeri(metFile, metData))
+					cout << "Error reading aeri file" << endl;
+				break;
 			case (cen):
 				continue;
 			default:
@@ -1071,9 +1075,9 @@ bool VarDriver3D::preProcessMetObs()
                     break;
                 }
                     
-                case(MetObs::classnc):
+                case(MetObs::aeri):
                 {
-                    varOb.setType(MetObs::classnc);
+                    varOb.setType(MetObs::aeri);
                     u = metOb.getCartesianUwind();
                     v = metOb.getCartesianVwind();
                     w = metOb.getVerticalVelocity();
@@ -1094,7 +1098,7 @@ bool VarDriver3D::preProcessMetObs()
                         }
                         //cout << "RhoU: " << rhou << endl;
                         varOb.setOb(rhou);
-                        varOb.setError(configHash.value("classnc_rhou_error").toFloat());
+                        varOb.setError(configHash.value("aeri_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
                         
@@ -1105,7 +1109,7 @@ bool VarDriver3D::preProcessMetObs()
                             rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
                         }
                         varOb.setOb(rhov);
-                        varOb.setError(configHash.value("classnc_rhov_error").toFloat());
+                        varOb.setError(configHash.value("aeri_rhov_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 1);
                         
@@ -1115,7 +1119,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setWeight(1., 2);
                         rhow = rho*w;
                         varOb.setOb(rhow);
-                        varOb.setError(configHash.value("classnc_rhow_error").toFloat());
+                        varOb.setError(configHash.value("aeri_rhow_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 2);
                     }
@@ -1123,7 +1127,7 @@ bool VarDriver3D::preProcessMetObs()
                         // temperature 1 K error
                         varOb.setWeight(1., 3);
                         varOb.setOb(tempk - tBar);
-                        varOb.setError(configHash.value("classnc_tempk_error").toFloat());
+                        varOb.setError(configHash.value("aeri_tempk_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 3);
                     }
@@ -1132,7 +1136,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setWeight(1., 4);
                         qv = refstate->bhypTransform(qv);
                         varOb.setOb(qv-qBar);
-                        varOb.setError(configHash.value("classnc_qv_error").toFloat());
+                        varOb.setError(configHash.value("aeri_qv_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 4);
                     }
@@ -1140,7 +1144,7 @@ bool VarDriver3D::preProcessMetObs()
                         // Rho prime .1 kg/m^3 error
                         varOb.setWeight(1., 5);
                         varOb.setOb((rhoa-rhoBar)*100);
-                        varOb.setError(configHash.value("classnc_rhoa_error").toFloat());
+                        varOb.setError(configHash.value("aeri_rhoa_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 5);
                     }
@@ -1313,7 +1317,12 @@ bool VarDriver3D::preProcessMetObs()
     for (int i=0; i < obVector.size(); i++) {
         Observation ob = obVector.at(i);
         *od++ = ob.getOb();
-        *od++ = ob.getInverseError();
+        real invError = ob.getInverseError();
+        if (!invError) {
+            cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+            return false;
+        }
+        *od++ = invError;
         if (runMode == XYZ) {
             *od++ = ob.getCartesianX();
             *od++ = ob.getCartesianY();
@@ -1338,7 +1347,12 @@ bool VarDriver3D::preProcessMetObs()
         int n = m*(7+numVars*numDerivatives);
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
-        obs[n+1] = ob.getInverseError();
+        real invError = ob.getInverseError();
+        if (!invError) {
+            cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+            return false;
+        }
+        obs[n+1] = invError;
         if (runMode == XYZ) {
             obs[n+2] = ob.getCartesianX();
             obs[n+3] = ob.getCartesianY();
@@ -1415,7 +1429,12 @@ bool VarDriver3D::loadMetObs()
         int n = m*(7+numVars*numDerivatives);
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
-        obs[n+1] = ob.getInverseError();
+        real invError = ob.getInverseError();
+        if (!invError) {
+            cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+            return false;
+        }
+        obs[n+1] = invError;
         if (runMode == XYZ) {
             obs[n+2] = ob.getCartesianX();
             obs[n+3] = ob.getCartesianY();
