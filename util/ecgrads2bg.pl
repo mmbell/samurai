@@ -96,8 +96,8 @@ for $i (0 .. $xdim-1) {
 	  $temp = $cart_data[4][$i][$j][0];
 	  $dewp = $cart_data[5][$i][$j][0];
 	  $press = $cart_data[3][$i][$j][0]/100.;
-	  $rhoa = 100*$press/($temp*287);
 	  $vp = e_from_dp($dewp);
+          $rhoa = 100*($press-$vp)/($temp*287);
 	  $qv = 1000*.622*$vp/($press-$vp);
 	  if ($qv < 0) {
 	    # Problem!
@@ -167,9 +167,11 @@ for $p (0 .. $#presslevels) {
 	  #$cart_data[0][$i][$j][$z] = $cart_data[0][$i][$j][$z]/9.80665;
 	  $temp = $cart_data[4][$i][$j][$z];
 	  $press = $presslevels[$p];
-	  $rhoa = 100*$press/($temp*287);
 	  $cart_data[3][$i][$j][$z] /= -(9.80665*$rhoa);
-	  $qv = $cart_data[5][$i][$j][$z] * 1000;
+	  $qv = $cart_data[5][$i][$j][$z];
+          $vp = $press * $qv/(0.622 + $qv);
+          $rhoa = 100*($press-$vp)/($temp*287);
+	  $qv *= 1000;
 	  #$cart_data[4][$i][$j][$z] = 1005.7*$temp + 9.80665*$cart_data[0][$i][$j][$z] + 2.5e3*$qv;
 	  $cart_data[5][$i][$j][$z] = $qv;
 	  $cart_data[6][$i][$j][$z] = $rhoa;
