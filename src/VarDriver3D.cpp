@@ -1301,6 +1301,11 @@ int VarDriver3D::loadBackgroundObs()
     // backgroundroi is in km, ROI is gridpoints
     real iROI = configHash.value("i_background_roi").toFloat() / iincr;
 	real jROI = configHash.value("j_background_roi").toFloat() / jincr;
+    QString interp_mode = configHash.value("bg_interpolation");
+    real maxGridDist = 3.0;
+    if (interp_mode == "Cressman") {
+        maxGridDist = 1.0;
+    }
     real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
 	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
     ifstream bgstream(bgFilename.toAscii().data());
@@ -1348,13 +1353,13 @@ int VarDriver3D::loadBackgroundObs()
         if (bgTheta < 0) bgTheta += 360.0;
         // Make sure the ob is in the Interpolation domain
         if (runMode == XYZ) {
-            if ((bgX < (imin-iincr-(iROI*iincr*2))) or (bgX > (imax+iincr+(iROI*iincr*2))) or
-                (bgY < (jmin-jincr-(jROI*jincr*2))) or (bgY > (jmax+jincr+(jROI*jincr*2)))
+            if ((bgX < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgX > (imax+iincr+(iROI*iincr*maxGridDist))) or
+                (bgY < (jmin-jincr-(jROI*jincr*maxGridDist))) or (bgY > (jmax+jincr+(jROI*jincr*maxGridDist)))
                 or (bgZ < kmin)) //Allow for higher values for interpolation purposes
                 continue;
         } else if (runMode == RTZ) {
-            if ((bgRadius < (imin-iincr-(iROI*iincr*2))) or (bgRadius > (imax+iincr+(iROI*iincr*2))) or
-                (bgTheta < jmin-jincr-(jROI*jincr*2)) or (bgTheta > jmax+jincr+(jROI*jincr*2)) or
+            if ((bgRadius < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgRadius > (imax+iincr+(iROI*iincr*maxGridDist))) or
+                (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
                 (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
                 continue;
         }
@@ -1422,30 +1427,33 @@ int VarDriver3D::loadBackgroundObs()
                         for (int imu = -1; imu <= 1; imu += 2) {
                             real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                             if (runMode == XYZ) {
-                                if (fabs(iPos-bgX) > iincr*iROI*2.) continue;
+                                if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
                             } else if (runMode == RTZ) {
-                                if (fabs(iPos-bgRadius) > iincr*iROI*2.) continue;
+                                if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
                             }
                             for (int ji = -1; ji < (jdim); ji++) {
                                 for (int jmu = -1; jmu <= 1; jmu += 2) {
                                     real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                                     real rSquare = 0.0;
                                     if (runMode == XYZ) {
-                                        if (fabs(jPos-bgY) > jincr*jROI*2.) continue;
-                                        rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
+                                        if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
+                                        rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
                                     } else if (runMode == RTZ) {
 										real dTheta = fabs(jPos-bgTheta);
 										if (dTheta > 360.) dTheta -= 360.;
 										if (dTheta > jincr*jROI*2.) continue;
-                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta) + (bgZ-kPos)*(bgZ-kPos);                                                
+                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);                                                
                                     }
                                     // Add one extra index to account for buffer zone in analysis
                                     int bgI = (ii+1)*2 + (imu+1)/2;
                                     int bgJ = (ji+1)*2 + (jmu+1)/2;
                                     int bgK = (ki+1)*2 + (kmu+1)/2;
                                     int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                                    if (rSquare < Rsquare) {
+                                    if (rSquare < Rsquare*maxGridDist) {
                                         real weight = exp(-2.302585092994045*rSquare/Rsquare);
+                                        if (interp_mode == "Cressman") {
+                                            weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+                                        }
                                         if (logzPos > logheights.front()) {
                                             bgSpline->solve(uBG.data());
                                             bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
@@ -1525,30 +1533,33 @@ int VarDriver3D::loadBackgroundObs()
                 for (int imu = -1; imu <= 1; imu += 2) {
                     real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
                     if (runMode == XYZ) {
-                        if (fabs(iPos-bgX) > iincr*iROI*2.) continue;
+                        if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
                     } else if (runMode == RTZ) {
-                        if (fabs(iPos-bgRadius) > iincr*iROI*2.) continue;
+                        if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
                     }
                     for (int ji = -1; ji < (jdim); ji++) {
                         for (int jmu = -1; jmu <= 1; jmu += 2) {
                             real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
                             real rSquare = 0.0;
                             if (runMode == XYZ) {
-                                if (fabs(jPos-bgY) > jincr*jROI*2.) continue;
-                                rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos) + (bgZ-kPos)*(bgZ-kPos);
+                                if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
+                                rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
                             } else if (runMode == RTZ) {
 								real dTheta = fabs(jPos-bgTheta);
 								if (dTheta > 360.) dTheta -= 360.;
 								if (dTheta > jincr*jROI*2.) continue;
-                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta + (bgZ-kPos)*(bgZ-kPos);                                                
+                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta;                                                
                             }
                             // Add one extra index to account for buffer zone in analysis
                             int bgI = (ii+1)*2 + (imu+1)/2;
                             int bgJ = (ji+1)*2 + (jmu+1)/2;
                             int bgK = (ki+1)*2 + (kmu+1)/2;
                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                            if (rSquare < Rsquare) {
+                            if (rSquare < Rsquare*maxGridDist) {
                                 real weight = exp(-2.302585092994045*rSquare/Rsquare);
+                                if (interp_mode == "Cressman") {
+                                    weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+                                }
                                 if (logzPos > logheights.front()) {
                                     bgSpline->solve(uBG.data());
                                     bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
