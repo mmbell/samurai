@@ -355,7 +355,11 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											finalAnalysis[fIndex * 3 + posIndex] = wspd;
 											finalAnalysis[fIndex * 4 + posIndex] = relhum;
 											finalAnalysis[fIndex * 5 + posIndex] = hprime;
-											finalAnalysis[fIndex * 6 + posIndex] = qvprime*2;
+                                            if (qvprime != -999) {
+                                                finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
+                                            } else {
+                                                finalAnalysis[fIndex * 6 + posIndex] = -999;
+                                            }
 											finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
 											finalAnalysis[fIndex * 8 + posIndex] = tprime;
 											finalAnalysis[fIndex * 9 + posIndex] = pprime;
