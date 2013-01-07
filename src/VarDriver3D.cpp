@@ -819,6 +819,9 @@ bool VarDriver3D::preProcessMetObs()
                 {
                     varOb.setType(MetObs::radar);
                     // Geometry terms
+                    real maxel = configHash.value("max_radar_elevation").toFloat();
+                    if ((maxel) and (fabs(metOb.getElevation()) > maxel)) continue;
+                    
                     real az = metOb.getAzimuth()*Pi/180.;
                     real el = metOb.getElevation()*Pi/180.;
                     real uWgt, vWgt;
@@ -830,6 +833,8 @@ bool VarDriver3D::preProcessMetObs()
                         vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
                     }
                     real wWgt = sin(el);
+                    // Restrict to horizontal component only
+                    if (configHash.value("horizontal_radar_appx") == "true") wWgt = 0;
                     
                     // Fall speed
                     real Z = metOb.getReflectivity();
