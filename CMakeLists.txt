@@ -86,7 +86,7 @@ set ( samurai_SRCS
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
 	)
-set_source_files_properties ( src/CostFunction3D.cpp
+set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp
 	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 	)
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})

@@ -1292,7 +1292,7 @@ int VarDriver3D::loadBackgroundObs()
     real referenceLon = configHash.value("ref_lon").toFloat();
     
     QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
-    SplineD* bgSpline;
+    //SplineD* bgSpline;
     int time;
     QString bgTimestring, tcstart, tcend;
     real lat, lon, alt, u, v, w, t, qv, rhoa;
@@ -1409,14 +1409,16 @@ int VarDriver3D::loadBackgroundObs()
                 cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
                 return -1;
             }
-            bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
-            if (!bgSpline->ok()) {
-                cerr << "bgSpline setup failed." << endl;
-                return -1;
-            }
+
             
             // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-            for (int ki = -1; ki < (kdim); ki++) {	
+#pragma omp parallel for
+            for (int ki = -1; ki < (kdim); ki++) {
+                SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
+                if (!bgSpline->ok()) {
+                    cerr << "bgSpline setup failed." << endl;
+                    continue; //return -1;
+                }
                 for (int kmu = -1; kmu <= 1; kmu += 2) {
                     real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
                     if (kPos < 0) kPos = 0.001;
@@ -1484,9 +1486,9 @@ int VarDriver3D::loadBackgroundObs()
                         }
                     }
                 }
+                delete bgSpline;
             }
             
-            delete bgSpline;
             logheights.clear();
             uBG.clear();
             vBG.clear();
@@ -1514,15 +1516,16 @@ int VarDriver3D::loadBackgroundObs()
     }
     
     // Solve for the last spline
-    bgSpline = new SplineD(&logheights.front(), logheights.size(), &uBG[0], 2, SplineBase::BC_ZERO_SECOND);
-    if (!bgSpline->ok())
-    {
-        cerr << "bgSpline setup failed." << endl;
-        return -1;
-    }
     
     // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-    for (int ki = -1; ki < (kdim); ki++) {	
+#pragma omp parallel for
+    for (int ki = -1; ki < (kdim); ki++) {
+        SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 2, SplineBase::BC_ZERO_SECOND);
+        if (!bgSpline->ok())
+        {
+            cerr << "bgSpline setup failed." << endl;
+            continue; //return -1;
+        }
         for (int kmu = -1; kmu <= 1; kmu += 2) {
             real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
             if (kPos < 0) kPos = 0.001;
@@ -1590,9 +1593,9 @@ int VarDriver3D::loadBackgroundObs()
                 }
             }
         }
+        delete bgSpline;
     }
     
-    delete bgSpline;
     logheights.clear();
     uBG.clear();
     vBG.clear();
