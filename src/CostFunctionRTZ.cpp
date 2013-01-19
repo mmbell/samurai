@@ -1367,7 +1367,7 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 	// Calculate headers
 	QStringList fieldNames;
 	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
-	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV";
+	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
 	id[175] = fieldNames.size();
 	for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);
