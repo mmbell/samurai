@@ -99,6 +99,15 @@ void CostFunction3D::finalize()
         delete[] jL[var];
         delete[] kL[var];
     }
+    fftw_destroy_plan(iForward);
+    fftw_destroy_plan(iBackward);
+    fftw_destroy_plan(jForward);
+    fftw_destroy_plan(jBackward);
+    fftw_free(iFFTin);
+    fftw_free(jFFTin);
+    fftw_free(iFFTout);
+    fftw_free(jFFTout);
+    
 }
 
 void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
@@ -246,7 +255,19 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 		basis1 = new real[2000000];
 		fillBasisLookup();
 	}
-}	
+    
+    // Initialize the Fourier transforms
+    iFFTin = (double*) fftw_malloc(sizeof(double) * iDim);
+    iFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * iDim);
+    iForward = fftw_plan_dft_r2c_1d(iDim, iFFTin, iFFTout, FFTW_MEASURE);
+    iBackward = fftw_plan_dft_c2r_1d(iDim, iFFTout, iFFTin, FFTW_MEASURE);
+    jFFTin = (double*) fftw_malloc(sizeof(double) * jDim);
+    jFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * jDim);
+    jForward = fftw_plan_dft_r2c_1d(jDim, jFFTin, jFFTout, FFTW_MEASURE);
+    jBackward = fftw_plan_dft_c2r_1d(jDim, jFFTout, jFFTin, FFTW_MEASURE);
+    iMaxWavenumber = configHash->value("i_max_wavenumber").toFloat();
+    jMaxWavenumber = configHash->value("j_max_wavenumber").toFloat();
+}
 
 void CostFunction3D::initState(const int iteration)
 {
@@ -1164,6 +1185,45 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 					}
 				}
 			}
+            
+            // Enforce max wavenumber
+            if ((jBCL[var] == PERIODIC) and (jMaxWavenumber >= 0)) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                            jFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                        }
+                        fftw_execute(jForward);
+                        for (int jIndex = jMaxWavenumber+1; jIndex < (jDim/2)+1; jIndex++) {
+                            jFFTout[jIndex][0] = 0.0;
+                            jFFTout[jIndex][1] = 0.0;
+                        }
+                        fftw_execute(jBackward);
+                        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex];
+                        }
+                    }
+				}
+			}
+            if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                            iFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                        }
+                        fftw_execute(iForward);
+                        for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
+                            iFFTout[iIndex][0] = 0.0;
+                            iFFTout[iIndex][1] = 0.0;
+                        }
+                        fftw_execute(iBackward);
+                        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex];
+                        }
+                    }
+				}
+			}
+
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
@@ -1173,7 +1233,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			if (jBCL[var] == PERIODIC) {
                 delete[] jPad;
             }
-		} 
+		}
 	}
 }
 
@@ -1201,12 +1261,54 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			if (jBCL[var] == PERIODIC) {
                 jPad = new real[jRank[var]*3];
             }
+            
+            for (int n = 0; n < nState; n++) {
+                Astate[n]= Cstate[n];
+            }
+            // Enforce max wavenumber
+            if ((jBCL[var] == PERIODIC) and (jMaxWavenumber >= 0)) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                            jFFTin[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                        }
+                        fftw_execute(jForward);
+                        for (int jIndex = jMaxWavenumber+1; jIndex < (jDim/2)+1; jIndex++) {
+                            jFFTout[jIndex][0] = 0.0;
+                            jFFTout[jIndex][1] = 0.0;
+                        }
+                        fftw_execute(jBackward);
+                        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex];
+                        }
+                    }
+				}
+			}
+            if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                            iFFTin[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                        }
+                        fftw_execute(iForward);
+                        for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
+                            iFFTout[iIndex][0] = 0.0;
+                            iFFTout[iIndex][1] = 0.0;
+                        }
+                        fftw_execute(iBackward);
+                        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex];
+                        }
+                    }
+				}
+			}
+
 			//FI & D
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
 						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-						iTemp[iIndex] = Cstate[cIndex] * bgStdDev[cIndex];
+						iTemp[iIndex] = Astate[cIndex] * bgStdDev[cIndex];
 					}
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {

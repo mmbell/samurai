@@ -39,12 +39,13 @@ find_package ( Qt4 REQUIRED )
 find_package ( HDF5 REQUIRED )
 find_package ( NetCDF REQUIRED )
 find_package ( Geographic REQUIRED )
+find_package ( FFTW REQUIRED )
 include ( ${QT_USE_FILE} )
 include_directories (
 	${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
 	${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR} ${QT_QTXML_INCLUDE_DIR}
 	${HDF5_INCLUDE_DIR} ${NETCDF_INCLUDE_DIR}
-	${GEOGRAPHIC_INCLUDE_DIR} )
+	${GEOGRAPHIC_INCLUDE_DIR} ${FFTW_INCLUDE_DIR} )
 set ( EXECUTABLE_OUTPUT_PATH build/release )
 set ( samurai_HDRS
 	src/BandedMatrix.h 
@@ -92,6 +93,6 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 target_link_libraries ( samurai  
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
-	${HDF5_LIBRARY} ${NETCDF_LIBRARY}
+	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY}
 	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
 install ( TARGETS samurai DESTINATION bin )

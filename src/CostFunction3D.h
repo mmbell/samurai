@@ -22,6 +22,8 @@
 #include <QString>
 #include <QHash>
 #include <QDir>
+//#include <complex.h>
+#include <fftw3.h>
 
 class CostFunction3D: public CostFunction
 {
@@ -98,7 +100,11 @@ protected:
     int derivative[4][3];
 	real constHeight;
 	real mcWeight;
-
+    int iMaxWavenumber, jMaxWavenumber;
+    double *iFFTin, *jFFTin;
+    fftw_complex *iFFTout, *jFFTout;
+    fftw_plan iForward, jForward, iBackward, jBackward;
+    
 	int basisappx;
 	real* basis0;
 	real* basis1;
