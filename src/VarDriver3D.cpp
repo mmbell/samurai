@@ -362,9 +362,13 @@ bool VarDriver3D::preProcessMetObs()
 			case (insitu):
 				if (!read_insitu(metFile, metData))
 					cout << "Error reading insitu file" << endl;
-				break;				
+				break;
+            case (mtp):
+				if (!read_mtp(metFile, metData))
+					cout << "Error reading mtp file" << endl;
+				break;
 			case (cen):
-				continue;				
+				continue;
 			default:
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
@@ -663,6 +667,29 @@ bool VarDriver3D::preProcessMetObs()
                     
                     break;
                     
+                case (MetObs::mtp):
+                    varOb.setType(MetObs::mtp);
+                    rhoa = metOb.getDryDensity(); // Pressure/density is from dry air only?
+                    tempk = metOb.getTemperature();
+                    if (tempk != -999) {
+                        // temperature 1 K error
+                        varOb.setWeight(1., 3);
+                        varOb.setOb(tempk - tBar);
+                        varOb.setError(metOb.getTemperatureError() + configHash.value("mtp_tempk_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 3);
+                    }
+                    if (rhoa != -999) {
+                        // Rho prime .1 kg/m^3 error
+                        varOb.setWeight(1., 5);
+                        varOb.setOb((rhoa-rhoBar)*100);
+                        varOb.setError(configHash.value("mtp_rhoa_error").toFloat());
+                        obVector.push_back(varOb);
+                        varOb.setWeight(0., 5);
+                    }
+                    
+                    break;
+
                 case (MetObs::sfmr):
                     varOb.setType(MetObs::sfmr);
                     wspd = metOb.getWindSpeed();

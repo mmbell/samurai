@@ -62,7 +62,9 @@ class MetObs
 		
 		float getTemperature() const;
 		void setTemperature(const float& T);
-		
+        float getTemperatureError() const;
+		void setTemperatureError(const float& T);
+        
 		float getDewpoint() const;
 		void setDewpoint(const float& D);
 		void setRH(const float& RH);
@@ -116,7 +118,8 @@ class MetObs
 			ascat,
 			AMV,
 			lidar,
-			insitu
+			insitu,
+            mtp
 		};
 		
 	protected:
@@ -132,6 +135,7 @@ class MetObs
 		float verticalVelocity;
 		float dewpoint;
 		float temperature;
+        float temperatureError;
 		float radialVelocity;
 		float reflectivity;
 		float spectrumWidth;

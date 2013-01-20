@@ -69,7 +69,8 @@ protected:
 		eol,
 		cimss,
 		dwl,
-		insitu
+		insitu,
+        mtp
 	};
 
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
@@ -85,7 +86,8 @@ protected:
 	bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
-	bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);	
+	bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);
+    bool read_mtp(QFile& metFile, QList<MetObs>* metObVector);
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
 

@@ -38,6 +38,7 @@ VarDriver::VarDriver()
 	dataSuffix["cimss"] = cimss;
 	dataSuffix["dwl"] = dwl;
 	dataSuffix["insitu"] = insitu;
+    dataSuffix["mtp"] = mtp;
 }
 
 // Destructor
@@ -1071,6 +1072,73 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 	
 	metFile.close();
 	return true;	
+}
+
+bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
+{
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	
+	QTextStream in(&metFile);
+	QString datestr, timestr, platform;
+	QDateTime datetime;
+	QFileInfo info(metFile);
+	QString fileName = info.fileName();
+	datestr = fileName.mid(2,8);
+	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
+	// Get the platform name
+	platform = "GV";
+	MetObs ob;
+	ob.setStationName(platform);
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+        QStringList lineparts = line.split(QRegExp("\\s+"));
+        lineparts.removeFirst();
+        if (lineparts.size() > 5) {
+            QDate date;
+            date = startDate;
+            int UTSEC = lineparts[0].toInt();
+            QTime time(0,0,0);
+            time = time.addSecs(UTSEC);
+            QString timestring = time.toString();
+            if (UTSEC > 86400) date = startDate.addDays(1);
+            datetime = QDateTime(date, time, Qt::UTC);
+            ob.setTime(datetime);
+            ob.setLat(lineparts[10].toFloat());
+            ob.setLon(lineparts[11].toFloat());
+		} else {
+            if (lineparts[1].toFloat() < 9999) {
+                float temp = lineparts[1].toFloat();
+                ob.setTemperature(temp);
+                if (lineparts[4].toFloat() != 99999.0) {
+                    float pressure = temp * lineparts[4].toFloat() * 0.000138;
+                    ob.setPressure(pressure);
+                } else {
+                    ob.setPressure(-999.0);
+                }
+            } else {
+                ob.setTemperature(-999.0);
+                ob.setPressure(-999.0);
+            }
+            if (lineparts[2].toFloat() < 9999) {
+                float error = lineparts[2].toFloat();
+                ob.setTemperatureError(error);
+            } else {
+                ob.setTemperatureError(1.0);
+            }
+            if (lineparts[3].toFloat() != 99999) {
+                float altitude = lineparts[3].toFloat();
+                ob.setAltitude(altitude);
+            } else {
+                ob.setAltitude(-999.0);
+            }
+            ob.setObType(MetObs::mtp);
+            metObVector->push_back(ob);
+        }
+	}
+	
+	metFile.close();
+	return true;
 }
 
 /* This routine parses the supplied XML configuration 

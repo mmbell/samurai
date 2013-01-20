@@ -22,6 +22,7 @@ MetObs::MetObs()
 	verticalVelocity = -999;
 	dewpoint = -999;
 	temperature = -999;
+    temperatureError = -999;
 	radialVelocity = -999;
 	reflectivity = -999;
 	spectrumWidth = -999;
@@ -44,6 +45,7 @@ MetObs::MetObs(const MetObs& other)
 	verticalVelocity = other.verticalVelocity;
 	dewpoint = other.dewpoint;
 	temperature = other.temperature;
+    temperatureError = other.temperatureError;
 	radialVelocity = other.radialVelocity;
 	reflectivity = other.reflectivity;
 	spectrumWidth = other.spectrumWidth;
@@ -165,6 +167,16 @@ float MetObs::getTemperature() const
 void MetObs::setTemperature(const float& T)
 {
 	temperature = T;
+}
+
+float MetObs::getTemperatureError() const
+{
+	return temperatureError;
+}
+
+void MetObs::setTemperatureError(const float& T)
+{
+	temperatureError = T;
 }
 
 float MetObs::getDewpoint() const
