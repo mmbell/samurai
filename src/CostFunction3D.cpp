@@ -1245,8 +1245,11 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			Astate[n]= Cstate[n] * bgStdDev[n];
 		}
 	} else {
-		// Isotropic Recursive filter, no anisotropic "triad" working yet 
-              //_#pragma omp parallel for
+		// Isotropic Recursive filter, no anisotropic "triad" working yet
+        for (int n = 0; n < nState; n++) {
+            Astate[n]= Cstate[n];
+        }
+        //_#pragma omp parallel for
 		for (int var = 0; var < varDim; var++) {
 			
 			// These are local for parallelization
@@ -1262,9 +1265,6 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                 jPad = new real[jRank[var]*3];
             }
             
-            for (int n = 0; n < nState; n++) {
-                Astate[n]= Cstate[n];
-            }
             // Enforce max wavenumber
             if ((jBCL[var] == PERIODIC) and (jMaxWavenumber >= 0)) {
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
