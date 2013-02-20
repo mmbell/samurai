@@ -92,3 +92,10 @@ void Observation::setTime(const int &t)
 {
 	time = t;
 }
+
+double Observation::getInverseError() const
+{
+    if (error) return (1./error);
+    // If  error is 0 then there is a problem
+    return 0;
+}

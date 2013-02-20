@@ -119,7 +119,9 @@ class MetObs
 			AMV,
 			lidar,
 			insitu,
-            mtp
+            mtp,
+            mesonet,
+            aeri
 		};
 		
 	protected:
