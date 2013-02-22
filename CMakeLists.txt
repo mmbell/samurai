@@ -53,6 +53,7 @@ set ( samurai_HDRS
         src/CostFunction.h 
         src/CostFunction3D.h	
 	src/CostFunctionXYZ.h
+	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
 	src/MetObs.h 
         src/Observation.h 
@@ -73,6 +74,7 @@ set ( samurai_SRCS
 	src/CostFunction.cpp
 	src/CostFunction3D.cpp
 	src/CostFunctionXYZ.cpp
+	src/CostFunctionXYP.cpp
 	src/CostFunctionRTZ.cpp
 	src/main.cpp
 	src/MetObs.cpp

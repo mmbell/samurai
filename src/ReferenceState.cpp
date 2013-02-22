@@ -114,27 +114,30 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 		real temp = 0.;
 		real qvbhyp = 0.;
 		real rhoa = 0.;
+		real dpdz = 0.;
 		for (int i = 0; i < 5; i++) {
 			real power = pow(heightm, i);
 			real power1 = pow(heightm, i+1);
 			press += dpdzcoeff[i] * power1 / (i+1);
+			dpdz += dpdzcoeff[i] * power;
 			rhoa += rhoacoeff[i] * power;
 			qvbhyp += qvbhypcoeff[i] * power;
 		}
 		if (qvbhyp < 0.) qvbhyp = 0.;
 		real qv = bhypInvTransform(qvbhyp);
+		press += sfcpress*100.0;
 		if (dz) {
 			real rhoadz = 0.;
 			real qvdz = 0.;
-			real dpdz = 0.;
 			for (int i = dz; i < 5; i++) {
 				real power = pow(heightm, i-dz); 
 				rhoadz += rhoacoeff[i] * power * i;
 				qvdz += qvbhypcoeff[i] * power * i;
-				dpdz += dpdzcoeff[i] * power;
 			}
-			real alphadz = 1/(rhoadz * (286.9 + 461.5*qv/1000.) + 461.5 * rhoa * (qvdz/500.));
-			real dtdz = press*alphadz + dpdz/(286.9*rhoa + 461.5*rhoa*qv/1000.);
+			real alphadz = -(rhoadz*(1 + qv/1000.) + rhoa*qvdz/500.)/(rhoa*(1+qv/1000.)*rhoa*(1+qv/1000.));
+			real dtdz = (press*alphadz + dpdz/(rhoa*(1+qv/1000.)))/286.9;
+			//real alphadz = 1/(rhoadz * (286.9 + 461.5*qv/1000.) + 461.5 * rhoa * (qvdz/500.));
+			//real dtdz = press*alphadz + dpdz/(286.9*rhoa + 461.5*rhoa*qv/1000.);
 			real dhdz = 1005.7*dtdz + 9.81 + 2.5e3*qvdz;
 			switch (refVariable) {
 				case href:
@@ -148,7 +151,6 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 			}
 			
 		}
-		press += sfcpress*100.0;
 		temp = press/(286.9*rhoa + 461.5*rhoa*qv/1000.);
 		real h = 1005.7*temp + 9.81*heightm + 2.5e3*qv;
 		switch (refVariable) {

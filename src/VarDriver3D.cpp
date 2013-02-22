@@ -210,7 +210,11 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	delete[] bgWeights;	
 	
     if (runMode == XYZ) {
-        obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
+		if (configHash.value("output_pressure_increment").toFloat() > 0) {
+			obCost3D = new CostFunctionXYP(obVector.size(), bStateSize);
+		} else {
+			obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
+		}
     } else if (runMode == RTZ) {
         obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
     }
@@ -1931,7 +1935,11 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
-        bgCost3D = new CostFunctionXYZ(numbgObs, bStateSize);
+		if (configHash.value("output_pressure_increment").toFloat() > 0) {
+			bgCost3D = new CostFunctionXYP(numbgObs, bStateSize);
+		} else {
+        	bgCost3D = new CostFunctionXYZ(numbgObs, bStateSize);
+		}
     } else if (runMode == RTZ) {
         bgCost3D = new CostFunctionRTZ(numbgObs, bStateSize);
     }
