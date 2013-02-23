@@ -33,7 +33,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
     if (configHash->value("output_txt") == "true") {
         samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
         samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
-        samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
+        samuraistream << "udx\tudy\tudp\tvdx\tvdy\tvdp\twdx\twdy\twdp\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
     }
     
@@ -303,13 +303,18 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 									dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
 								}
 								// Calculate the kinematic derivatives
-								// rhoa derivatives divided by 100
-								// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
-								real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
-								real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
-								real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
+								// rhoa derivatives divided by 100 to yield kg/m^-3/km
+								// qv derivatives multipled by 2 to account for hyperbolic transform
+								rhoadx /= 100.;
+								rhoady /= 100.;
+								rhoadz /= 100.;
+								real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/500.;
+								real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/500.;
+								real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
 								real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 								rhodz += rhobardz;
+								real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+								rhoadz += rhoabardz;
                                         
 								// Units 10-5
 								real udx = 100. * (rhoudx - u*rhodx) / rho;
@@ -323,7 +328,42 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 								real wdx = 100. * (rhowdx - w*rhodx) / rho;
 								real wdy = 100. * (rhowdy - w*rhody) / rho;
 								real wdz = 100. * (rhowdz - w*rhodz) / rho;
-										
+								
+                                // Thermodynamic derivatives
+                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.)*461./100.;
+                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.)*461./100.;
+                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.)*461./100.;
+								
+								// Convert derivatives to pressure surfaces
+								udx = udx - pdx * udz / pdz;
+								udy = udy - pdy * udz / pdz;
+								udz = udz / pdz;
+
+								vdx = vdx - pdx * vdz / pdz;
+								vdy = vdy - pdy * vdz / pdz;
+								vdz = vdz / pdz;
+								
+								wdx = wdx - pdx * wdz / pdz;
+								wdy = wdy - pdy * wdz / pdz;
+								wdz = wdz / pdz;
+								w = w * pdz / 1000.;
+								
+								tdx = tdx - pdx * tdz / pdz;
+								tdy = tdy - pdy * tdz / pdz;
+								tdz = tdz / pdz;
+								
+								qvdx = qvdx - pdx * qvdz / pdz;
+								qvdy = qvdy - pdy * qvdz / pdz;
+								qvdz = qvdz / pdz;
+								
+								rhodx = rhodx - pdx * rhodz / pdz;
+								rhody = rhody - pdy * rhodz / pdz;
+								rhodz = rhodz / pdz;
+								
+								pdx = 0.;
+								pdy = 0.;
+								pdz = 1./pdz;
+								
 								// Vorticity units are 10-5
 								real vorticity = (vdx - udy);
 								real divergence = (udx + vdy);
@@ -338,11 +378,6 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
                                 real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
                                 real absVorticity = vorticity + Coriolisf;
                                         
-                                // Thermodynamic derivatives
-                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhodx-rhoadx)*temp)*461./100.;
-                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhody-rhoady)*temp)*461./100.;
-                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhodz-rhoadz)*temp)*461./100.;
-                                tdx *= 100.; tdy *= 100.; tdz *= 100.;
                                         
 								QString refmask = configHash->value("mask_reflectivity");
 								if (refmask != "None") {
@@ -456,7 +491,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 									finalAnalysis[fIndex * 46 + posIndex] = pdz;
                                     finalAnalysis[fIndex * 47 + posIndex] = rhodx;
 									finalAnalysis[fIndex * 48 + posIndex] = rhody;
-									finalAnalysis[fIndex * 49 + posIndex] = rhodz - rhobardz;
+									finalAnalysis[fIndex * 49 + posIndex] = rhodz;
 									finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 								}
 									
@@ -764,13 +799,13 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(dwdy = dataFile.add_var("DWDY", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dudz = dataFile.add_var("DUDZ", ncFloat, timeDim, 
+	if (!(dudz = dataFile.add_var("DUDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dvdz = dataFile.add_var("DVDZ", ncFloat, timeDim, 
+	if (!(dvdz = dataFile.add_var("DVDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dwdz = dataFile.add_var("DWDZ", ncFloat, timeDim, 
+	if (!(dwdz = dataFile.add_var("DWDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(dtdx = dataFile.add_var("DTDX", ncFloat, timeDim, 
@@ -791,13 +826,13 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(dpdy = dataFile.add_var("DPDY", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dtdz = dataFile.add_var("DTDZ", ncFloat, timeDim, 
+	if (!(dtdz = dataFile.add_var("DTDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dqdz = dataFile.add_var("DQVDZ", ncFloat, timeDim, 
+	if (!(dqdz = dataFile.add_var("DQVDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(dpdz = dataFile.add_var("DPDZ", ncFloat, timeDim, 
+	if (!(dpdz = dataFile.add_var("DZDP", ncFloat, timeDim, 
                                   lvlDim, latDim, lonDim)))
 		return NC_ERR;
     if (!(drhodx = dataFile.add_var("DRHODX", ncFloat, timeDim, 
@@ -806,7 +841,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(drhody = dataFile.add_var("DRHODY", ncFloat, timeDim, 
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(drhodz = dataFile.add_var("DRHODZ", ncFloat, timeDim, 
+	if (!(drhodz = dataFile.add_var("DRHODP", ncFloat, timeDim, 
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(mcresidual = dataFile.add_var("MCRESIDUAL", ncFloat, timeDim, 
@@ -889,11 +924,11 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dwdy->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-	if (!dudz->add_att("units", "10-5s-1")) 
+	if (!dudz->add_att("units", "10-5m hPa-1s-1")) 
 		return NC_ERR;
-	if (!dvdz->add_att("units", "10-5s-1")) 
+	if (!dvdz->add_att("units", "10-5m hPa-1s-1")) 
 		return NC_ERR;
-	if (!dwdz->add_att("units", "10-5s-1")) 
+	if (!dwdz->add_att("units", "10-5m hPa-1s-1")) 
 		return NC_ERR;
     if (!dtdx->add_att("units", "K km-1")) 
 		return NC_ERR;
@@ -907,17 +942,17 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dpdy->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!dtdz->add_att("units", "K km-1")) 
+	if (!dtdz->add_att("units", "K hPa-1")) 
 		return NC_ERR;
-	if (!dqdz->add_att("units", "g kg-1 km-1")) 
+	if (!dqdz->add_att("units", "g kg-1 hPa-1")) 
 		return NC_ERR;
-	if (!dpdz->add_att("units", "hPa km-1")) 
+	if (!dpdz->add_att("units", "km hPa-1")) 
 		return NC_ERR;
-	if (!drhodx->add_att("units", "kg m-3 km-1")) 
+	if (!drhodx->add_att("units", "kg m-3 hPa-1")) 
 		return NC_ERR;
-	if (!drhody->add_att("units", "kg m-3 km-1")) 
+	if (!drhody->add_att("units", "kg m-3 hPa-1")) 
 		return NC_ERR;
-	if (!drhodz->add_att("units", "kg m-3 km-1")) 
+	if (!drhodz->add_att("units", "kg m-3 hPa-1")) 
 		return NC_ERR;
 	if (!mcresidual->add_att("units", "10-5s-1")) 
 		return NC_ERR;
