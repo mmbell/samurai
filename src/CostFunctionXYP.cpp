@@ -43,7 +43,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	DP = configHash->value("output_pressure_increment").toFloat();
 	pMax = pMax - int(pMax)%int(DP) + DP;
 	pMin = pMin - int(pMin)%int(DP);
-	pDim = (pMax - pMin)/DP + 1;
+	pDim = (pMax - pMin)/DP + 2;
 
     int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
@@ -71,6 +71,13 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 								real height = kMin + DK * (kDim-1)/2; // Initial guess only
 								real peps = 1e34;
 								int iter = 0;
+								if (pIndex == pDim-2) {
+									// Last level is surface
+									pLevel = 2013.0;
+									height = 0.0;
+									peps = 0.0;
+								}
+								
 								while ((fabs(peps) > 0.01) and (iter < 5000)) {
 									int var = 3;
 									real tprime = 0.0; real tdz = 0.0;
@@ -443,7 +450,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 									finalAnalysis[fIndex * 2 + posIndex] = w;
 									finalAnalysis[fIndex * 3 + posIndex] = wspd;
 									finalAnalysis[fIndex * 4 + posIndex] = relhum;
-									finalAnalysis[fIndex * 5 + posIndex] = hprime;
+									finalAnalysis[fIndex * 5 + posIndex] = press;
                                     if (qvprime != -999) {
                                         finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
                                     } else {
@@ -703,7 +710,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim, 
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(hprime = dataFile.add_var("HP", ncFloat, timeDim, 
+	if (!(hprime = dataFile.add_var("P", ncFloat, timeDim, 
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(qvprime = dataFile.add_var("QVP", ncFloat, timeDim, 
@@ -859,7 +866,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("units", "percent"))
 		return NC_ERR;
-	if (!hprime->add_att("units", "kJ"))
+	if (!hprime->add_att("units", "hPa"))
 		return NC_ERR;
 	if (!qvprime->add_att("units", "g kg-1")) 
 		return NC_ERR;
@@ -968,7 +975,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("long_name", "relative humidity"))
 		return NC_ERR;
-	if (!hprime->add_att("long_name", "moist static energy perturbation"))
+	if (!hprime->add_att("long_name", "pressure"))
 		return NC_ERR;
 	if (!qvprime->add_att("long_name", "water vapor mixing ratio perturbation")) 
 		return NC_ERR;
@@ -1318,10 +1325,12 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!yVar->put(y, jDim))
 		return NC_ERR;   
     
-	for (int pIndex = 0; pIndex < pDim; pIndex++) {
+	for (int pIndex = 0; pIndex < pDim-1; pIndex++) {
 		real p = pMin + DP * pIndex;
 		levs[pIndex] = p;
 	}
+	levs[pDim-1] = 2013;
+	
 	if (!lvlVar->put(levs, pDim))
 		return NC_ERR; 
 	
