@@ -156,6 +156,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										// Output it										
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = refstate->bhypInvTransform(qBar + qvprime);
+										real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+										qvdz = 2.0*(qbardz + qvdz);
+										
 										real qr; 
 										QString gridref = configHash->value("qr_variable");
 										if (gridref == "dbz") {
@@ -174,6 +177,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wspd = sqrt(u*u + v*v);
 										real KE = 0.5*rho*(v*v + u*u + w*w);
 										real temp = tBar + tprime;
+										real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+										tdz = tbardz + tdz;
+	
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
 										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
@@ -211,11 +217,16 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
 										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
-										real rhodx = rhoadx * (1. + qv/1000.) / 100. + rhoa * qvdx/500.;
-										real rhody = rhoady * (1. + qv/1000.) / 100. + rhoa * qvdy/500.;
-										real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
+										rhoadx /= 100.;
+										rhoady /= 100.;
+										rhoadz /= 100.;
+										real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/500.;
+										real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/500.;
+										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
 										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 										rhodz += rhobardz;
+										real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+										rhoadz += rhoabardz;
                                         
 										// Units 10-5
 										real udx = 100. * (rhoudx - u*rhodx) / rho;
@@ -229,6 +240,11 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wdx = 100. * (rhowdx - w*rhodx) / rho;
 										real wdy = 100. * (rhowdy - w*rhody) / rho;
 										real wdz = 100. * (rhowdz - w*rhodz) / rho;
+										
+		                                // Thermodynamic derivatives
+		                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.)*461./100.;
+		                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.)*461./100.;
+		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.)*461./100.;
 										
 										// Vorticity units are 10-5
 										real vorticity = (vdx - udy);
@@ -362,7 +378,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 											finalAnalysis[fIndex * 46 + posIndex] = pdz;
                                             finalAnalysis[fIndex * 47 + posIndex] = rhodx;
 											finalAnalysis[fIndex * 48 + posIndex] = rhody;
-											finalAnalysis[fIndex * 49 + posIndex] = rhodz - rhobardz;
+											finalAnalysis[fIndex * 49 + posIndex] = rhodz;
 											finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 										}
 									}

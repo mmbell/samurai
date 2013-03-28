@@ -158,6 +158,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										// Output it										
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = refstate->bhypInvTransform(qBar + qvprime);
+										real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+										qvdz = 2.0*(qbardz + qvdz);
+										
 										real qr; 
 										QString gridref = configHash->value("qr_variable");
 										if (gridref == "dbz") {
@@ -176,6 +179,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wspd = sqrt(u*u + v*v);
 										real KE = 0.5*rho*(v*v + u*u + w*w);
 										real temp = tBar + tprime;
+										real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+										tdz = tbardz + tdz;
+										
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
 										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
@@ -212,11 +218,16 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
 										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
-										real rhodr = rhoadr * (1. + qv/1000.) / 100. + rhoa * qvdr/500.;
-										real rhodt = rhoadt * (1. + qv/1000.) / 100. + rhoa * qvdt/500.;
-										real rhodz = rhoadz * (1. + qv/1000.) / 100. + rhoa * qvdz/500.;
+										rhoadr /= 100.;
+										rhoadt /= 100.;
+										rhoadz /= 100.;
+										real rhodr = rhoadr * (1. + qv/1000.) + rhoa * qvdr/500.;
+										real rhodt = rhoadt * (1. + qv/1000.) + rhoa * qvdt/500.;
+										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
 										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 										rhodz += rhobardz;
+										real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+										rhoadz += rhoabardz;
                                         
 										// Units 10-5
 										real udr = 100. * (rhoudr - u*rhodr) / rho;
@@ -246,11 +257,10 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                                         real absVorticity = vorticity + Coriolisf;
                                         
                                         // Thermodynamic derivatives
-                                        tdr *= 100.; tdt *= 100.; tdz *= 100.;
-                                        pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhodr-rhoadr)*temp)*461./100.;
-                                        pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdr*rhoq + (rhodt-rhoadt)*temp)*461./100.;
-                                        pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdr*rhoq + (rhodz-rhoadz)*temp)*461./100.;
-                                        
+		                                pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhoadr*qv + qvdr*rhoa)*temp)*461./100.;
+		                                pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp)*461./100.;
+		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp)*461./100.;
+										                                        
 										QString refmask = configHash->value("mask_reflectivity");
 										if (refmask != "None") {
 											real refthreshold = refmask.toFloat();
@@ -402,7 +412,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											finalAnalysis[fIndex * 46 + posIndex] = pdz;
                                             finalAnalysis[fIndex * 47 + posIndex] = rhodr;
 											finalAnalysis[fIndex * 48 + posIndex] = rhodt;
-											finalAnalysis[fIndex * 49 + posIndex] = rhodz - rhobardz;
+											finalAnalysis[fIndex * 49 + posIndex] = rhodz;
 											finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 										}
 									}
