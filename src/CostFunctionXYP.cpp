@@ -48,6 +48,20 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
     int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
+	real latReference = configHash->value("ref_lat").toFloat();	
+	real lonReference = configHash->value("ref_lon").toFloat();
+	real refX, refY;
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
+	real minLat, minLon;
+	if (latlonIncr > 0) {
+		real lat, lon;
+		real invIncr = (1.0/latlonIncr);
+		tm.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
+		minLat = int(lat*invIncr)/invIncr;
+		minLon = int(lon*invIncr)/invIncr;
+	}
 	for (int n = 0; n < analysisSize*analysisDim; n++) finalAnalysis[n] = -999.0;	
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
@@ -60,7 +74,18 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							if (j > ((jDim-1)*DJ + jMin)) continue;	
-							
+	
+							// Adjust to lat lon increments
+							if (latlonIncr > 0) {
+								real lat, lon;
+								lon = minLon + latlonIncr*iIndex;
+								lat = minLat + latlonIncr*jIndex;
+								tm.Forward(lonReference, lat, lon, i, j);
+								i = (i-refX)/1000.0;
+								if ((i < iMin) or (i > ((iDim-1)*DI + iMin))) continue;
+								j = (j-refY)/1000.0;
+								if ((j < jMin) or (j > ((jDim-1)*DJ + jMin))) continue;
+							}							
 							real tpw = 0;
 							int ii = (int)((i - iMin)*DIrecip);
 							int jj = (int)((j - jMin)*DJrecip);
@@ -1293,24 +1318,48 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	time[0] = configHash->value("ref_time").toInt();
 	real latReference = configHash->value("ref_lat").toFloat();	
 	real lonReference = configHash->value("ref_lon").toFloat();
+	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
 	real refX, refY;
 	
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	real minLat, minLon;
+	if (latlonIncr > 0) {
+		real lat, lon;
+		real invIncr = (1.0/latlonIncr);
+		tm.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
+		minLat = int(lat*invIncr)/invIncr;
+		minLon = int(lon*invIncr)/invIncr;
+	}
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-		real i = (iMin + DI * iIndex)*1000;
-		real j = (jMin + DJ * (jDim/2))*1000;
-		real latnull = 0;
-		tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
-        x[iIndex] = i/1000; 
+		if (latlonIncr > 0) {
+			real i, j;
+			lons[iIndex] = minLon + latlonIncr*iIndex;
+			tm.Forward(lonReference, latReference, lons[iIndex], i, j);
+	        x[iIndex] = (i-refX)/1000;
+		} else {
+			real i = (iMin + DI * iIndex)*1000;
+			real j = (jMin + DJ * (jDim/2))*1000;
+			real latnull = 0;
+			tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
+	        x[iIndex] = i/1000; 			
+		}
 	}
 	
 	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-		real i = (iMin + DI * (iDim/2))*1000;
-		real j = (jMin + DJ * jIndex)*1000;
-		real lonnull = 0;
-		tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
-        y[jIndex] = j/1000; 
+
+		if (latlonIncr > 0) {
+			real i, j;
+			lats[jIndex] = minLat + latlonIncr*jIndex;
+			tm.Forward(lonReference, lats[jIndex], lonReference, i, j);
+	        y[jIndex] = (j-refY)/1000;
+		} else {
+			real i = (iMin + DI * (iDim/2))*1000;
+			real j = (jMin + DJ * jIndex)*1000;
+			real lonnull = 0;
+			tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
+	        y[jIndex] = j/1000; 
+		}
 	}
 	
 	if (!lonVar->put(lons, iDim))
