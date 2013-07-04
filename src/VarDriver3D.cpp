@@ -1505,11 +1505,11 @@ int VarDriver3D::loadBackgroundObs()
     GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
     real referenceLon = configHash.value("ref_lon").toFloat();
     
-    QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG;
+    QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
     //SplineD* bgSpline;
     int time;
     QString bgTimestring, tcstart, tcend;
-    real lat, lon, alt, u, v, w, t, qv, rhoa;
+    real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
     real bgX, bgY, bgRadius, bgTheta;
 	real bgZ = -32768.; 
     // backgroundroi is in km, ROI is gridpoints
@@ -1530,7 +1530,7 @@ int VarDriver3D::loadBackgroundObs()
     cout << "Loading background onto Gaussian mish with " << iROI << " grid length radius of influence in i direction" << endl;
     cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
 	
-    while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa)
+    while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr)
     {
         
         // Process the metObs into Observations
@@ -1593,7 +1593,8 @@ int VarDriver3D::loadBackgroundObs()
         real rhoprime = (rhoa-rhoBar)*100;
         real logZ = log(bgZ);
         // We assume here that the background precipitation field is always zero
-        real qr = 0.;
+        // real qr = 0.;
+		
         if (runMode == XYZ) {
             bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
         } else if (runMode == RTZ) {
@@ -1608,6 +1609,7 @@ int VarDriver3D::loadBackgroundObs()
             tBG.push_back(tprime);
             qBG.push_back(qvprime);
             rBG.push_back(rhoprime);
+            zBG.push_back(qr);
         } else if (logZ > logheights.back()) {
             // Same column
             logheights.push_back(logZ);
@@ -1617,6 +1619,7 @@ int VarDriver3D::loadBackgroundObs()
             tBG.push_back(tprime);
             qBG.push_back(qvprime);
             rBG.push_back(rhoprime);
+            zBG.push_back(qr);
         } else {
             // Solve for the spline
             if (logheights.size() == 1) {
@@ -1684,6 +1687,8 @@ int VarDriver3D::loadBackgroundObs()
                                             bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
                                             bgSpline->solve(rBG.data());
                                             bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+                                            bgSpline->solve(zBG.data());
+                                            bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
                                             bgWeights[bIndex] += weight;
                                         } else {
                                             // Below the spline interpolation
@@ -1693,6 +1698,7 @@ int VarDriver3D::loadBackgroundObs()
                                             bgU[bIndex +3] += weight*tBG.front();
                                             bgU[bIndex +4] += weight*qBG.front();
                                             bgU[bIndex +5] += weight*rBG.front();
+                                            bgU[bIndex +6] += weight*zBG.front();
                                             bgWeights[bIndex] += weight;
                                         }											
                                     }
@@ -1711,14 +1717,16 @@ int VarDriver3D::loadBackgroundObs()
             tBG.clear();
             qBG.clear();
             rBG.clear();
-            
+            zBG.clear();
+			
             logheights.push_back(log(bgZ));
             uBG.push_back(rhou);
             vBG.push_back(rhov);
             wBG.push_back(rhow);
             tBG.push_back(tprime);
             qBG.push_back(qvprime);
-            rBG.push_back(rhoprime);			
+            rBG.push_back(rhoprime);
+            zBG.push_back(qr);			
         }
     }				
     
@@ -1791,6 +1799,8 @@ int VarDriver3D::loadBackgroundObs()
                                     bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
                                     bgSpline->solve(rBG.data());
                                     bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+                                    bgSpline->solve(zBG.data());
+                                    bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
                                     bgWeights[bIndex] += weight;
                                 } else {
                                     // Below the spline interpolation
@@ -1800,6 +1810,7 @@ int VarDriver3D::loadBackgroundObs()
                                     bgU[bIndex +3] += weight*tBG.front();
                                     bgU[bIndex +4] += weight*qBG.front();
                                     bgU[bIndex +5] += weight*rBG.front();
+                                    bgU[bIndex +6] += weight*zBG.front();
                                     bgWeights[bIndex] += weight;
                                 }								
                             }
@@ -1818,7 +1829,7 @@ int VarDriver3D::loadBackgroundObs()
     tBG.clear();
     qBG.clear();
     rBG.clear();
-    
+    zBG.clear(); 
     
     int numbgObs = bgIn.size()*7/11;
     if (numbgObs > 0) {
@@ -1839,6 +1850,10 @@ int VarDriver3D::loadBackgroundObs()
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
+										if ((var == 6) and (configHash.value("qr_variable") == "dbz")) {
+											real dbzavg = 10* log10(bgU[bIndex +6]);
+											bgU[bIndex +6] = (dbzavg+35.)*0.1;
+										}
 										/* if (bgI == 2) {
 											int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
 											int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
