@@ -1832,6 +1832,7 @@ int VarDriver3D::loadBackgroundObs()
     zBG.clear(); 
     
     int numbgObs = bgIn.size()*7/11;
+	QVector<int> emptybg;
     if (numbgObs > 0) {
         // Check interpolation
         for (int ki = -1; ki < (kdim); ki++) {	
@@ -1851,37 +1852,63 @@ int VarDriver3D::loadBackgroundObs()
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
 										if ((var == 6) and (configHash.value("qr_variable") == "dbz")) {
+										if (bgU[bIndex +6] > 0) {
 											real dbzavg = 10* log10(bgU[bIndex +6]);
 											bgU[bIndex +6] = (dbzavg+35.)*0.1;
+										} else {
+											bgU[bIndex +6] = 0.0;
 										}
-										/* if (bgI == 2) {
-											int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
-											int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
-											bgU[bIzero + var] = bgU[bIone + var] = bgU[bIndex + var];
 										}
-										if (bgJ == 2) {
-											int bJzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*bgI;
-											int bJone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2 +numVars*bgI;
-											bgU[bJzero + var] = bgU[bJone + var] = bgU[bIndex + var];
-										}
-										if (bgK == 2) {
-											int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
-											int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
-											bgU[bKzero + var] = bgU[bKone + var] = bgU[bIndex + var];
-										}*/
                                     } else {
-                                        cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
-					cout << "Please check your background file or ROI values.\n";
-					exit(-1);
+										emptybg.push_back(bIndex);
+										cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
                                     }
                                 }
-                                bgWeights[bIndex] = 0.;
+                                //bgWeights[bIndex] = 0.;
                             }
                         }
                     }
                 }
             }
-        }	
+        }
+		
+		// Attempt to fill holes
+		if (emptybg.size() > 0) {
+			int neighbors[6];
+			real avg[numVars];
+			int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
+			for (unsigned int var = 0; var < numVars; var++) avg[var] = 0.0;
+			for (int i=0; i < emptybg.size(); i++) {
+				// Check the neighbors
+				int bIndex = emptybg[i];
+				neighbors[0] = bIndex + numVars*(idim+1)*2*(jdim+1)*2;
+				neighbors[1] = bIndex - numVars*(idim+1)*2*(jdim+1)*2;
+				neighbors[2] = bIndex + numVars*(idim+1)*2;
+				neighbors[3] = bIndex - numVars*(idim+1)*2;
+				neighbors[4] = bIndex + 1;
+				neighbors[5] = bIndex - 1;
+				real count = 0.0;
+				for (int j = 0; j < 6; j++) {
+					if ((neighbors[j] >= 0) and (neighbors[j] < uStateSize) and (bgWeights[neighbors[j]])) {
+						// A good neighbor
+						for (unsigned int var = 0; var < numVars; var++) {
+							avg[var] += bgU[neighbors[j] + var];
+							count++;
+						}
+					}
+				}
+				// Need at least 3 neighbors
+				if (count > 2) {
+					for (unsigned int var = 0; var < numVars; var++) {
+						bgU[bIndex + var] = avg[var]/count;
+					}
+				} else {
+					cout << "Too large a hole in the background field!\n";
+					cout << "Please check your background file or ROI values.\n";
+					exit(-1);
+				}
+			}
+		}		
     } else {
         cout << "No background observations loaded" << endl;
         return 0;
