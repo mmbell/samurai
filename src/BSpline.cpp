@@ -1047,7 +1047,7 @@ BSpline<T>::solve (const T *y)
 
 	for (m = my::max(0,mx-1); m <= my::min(mx+2,M); ++m)
 	{
-	    B[m] += yj * Basis (m, xj);
+	    B[m] += yj * this->Basis (m, xj);
 	}
     }
 
@@ -1121,7 +1121,7 @@ BSpline<T>::solveGQ (const T *y)
 		// Assuming that the xj array is set up on GQ points
 		for (m = my::max(0,mx-1); m <= my::min(mx+2,M); ++m)
 		{
-			B[m] += yj * Basis (m, xj) * 0.5;
+			B[m] += yj * this->Basis (m, xj) * 0.5;
 		}
     }
 	
@@ -1290,7 +1290,7 @@ BSpline<T>::solveInverseGQ (const T *b)
 		mx = (int)((xj - xmin) / DX);
 		for (m = my::max(0,mx-1); m <= my::min(mx+2,M); ++m)
 		{
-			y += B[m] * Basis (m, xj) * 0.5;
+			y += B[m] * this->Basis (m, xj) * 0.5;
 		}
 		// Put the results in the hidden spline vector
 		s->spline.push_back(y);
@@ -1373,7 +1373,7 @@ const T *BSpline<T>::getBGQ (const T *y)
 		// Assuming that the xj array is set up on GQ points
 		for (m = my::max(0,mx-1); m <= my::min(mx+2,M); ++m)
 		{
-			B[m] += yj * Basis (m, xj) * 0.5;
+			B[m] += yj * this->Basis (m, xj) * 0.5;
 		}
     }
 
@@ -1389,7 +1389,7 @@ T BSpline<T>::evaluate (T x)
 	int n = (int)((x - xmin)/DX);
 	for (int i = my::max(0,n-1); i <= my::min(M,n+2); ++i)
 	{
-	    y += s->A[i] * Basis (i, x);
+	    y += s->A[i] * this->Basis (i, x);
 	}
 	y += mean;
     }
@@ -1408,7 +1408,7 @@ T BSpline<T>::slope (T x)
 
 	for (int i = my::max(0,n-1); i <= my::min(M,n+2); ++i)
 	{
-	    dy += s->A[i] * DBasis (i, x);
+	    dy += s->A[i] * this->DBasis (i, x);
 	}
     }
     return dy;
@@ -1417,13 +1417,13 @@ T BSpline<T>::slope (T x)
 template <class T>
 T BSpline<T>::getBasis (int n, T x)
 {
-	return Basis (n, x);
+	return this->Basis (n, x);
 }
 
 template <class T>
 T BSpline<T>::getDBasis (int n, T x)
 {
-	return DBasis (n, x);
+	return this->DBasis (n, x);
 }
 
 	
