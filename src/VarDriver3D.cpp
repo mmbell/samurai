@@ -1592,6 +1592,9 @@ int VarDriver3D::loadBackgroundObs()
         real qvprime = qv-qBar;
         real rhoprime = (rhoa-rhoBar)*100;
         real logZ = log(bgZ);
+	if (configHash.value("qr_variable") == "qr") {
+	  qr = refstate->bhypTransform(qr);
+	}
         // We assume here that the background precipitation field is always zero
         // real qr = 0.;
 		
