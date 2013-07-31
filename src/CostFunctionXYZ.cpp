@@ -157,6 +157,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = refstate->bhypInvTransform(qBar + qvprime);
 										real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+										// qv derivatives multipled by 2 to account for hyperbolic transform
+										qvdx = 2.0*qvdx;
+										qvdy = 2.0*qvdy;
 										qvdz = 2.0*(qbardz + qvdz);
 										
 										real qr; 
@@ -216,13 +219,12 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										}
 										// Calculate the kinematic derivatives
 										// rhoa derivatives divided by 100
-										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
 										rhoadx /= 100.;
 										rhoady /= 100.;
 										rhoadz /= 100.;
-										real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/500.;
-										real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/500.;
-										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
+										real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/1000.;
+										real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/1000.;
+										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/1000.;
 										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 										rhodz += rhobardz;
 										real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
@@ -242,9 +244,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										real wdz = 100. * (rhowdz - w*rhodz) / rho;
 										
 		                                // Thermodynamic derivatives
-		                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.)*461./100.;
-		                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.)*461./100.;
-		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.)*461./100.;
+		                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.0)*461./100.;
+		                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.0)*461./100.;
+		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
 										
 										// Vorticity units are 10-5
 										real vorticity = (vdx - udy);
@@ -259,13 +261,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
                                         real latReference = configHash->value("ref_lat").toFloat();	
                                         real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
                                         real absVorticity = vorticity + Coriolisf;
-                                        
-                                        // Thermodynamic derivatives
-                                        tdx *= 100.; tdy *= 100.; tdz *= 100.;
-                                        pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhodx-rhoadx)*temp)*461./100.;
-                                        pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdx*rhoq + (rhody-rhoady)*temp)*461./100.;
-                                        pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdx*rhoq + (rhodz-rhoadz)*temp)*461./100.;
-                                        
+                                                                                
 										QString refmask = configHash->value("mask_reflectivity");
 										if (refmask != "None") {
 											real refthreshold = refmask.toFloat();
@@ -812,31 +808,31 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dwdz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-    if (!dtdx->add_att("units", "10-5s-1")) 
+    if (!dtdx->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdx->add_att("units", "10-5s-1")) 
+	if (!dqdx->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdx->add_att("units", "10-5s-1")) 
+	if (!dpdx->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!dtdy->add_att("units", "10-5s-1")) 
+	if (!dtdy->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdy->add_att("units", "10-5s-1")) 
+	if (!dqdy->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdy->add_att("units", "10-5s-1")) 
+	if (!dpdy->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!dtdz->add_att("units", "10-5s-1")) 
+	if (!dtdz->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdz->add_att("units", "10-5s-1")) 
+	if (!dqdz->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdz->add_att("units", "10-5s-1")) 
+	if (!dpdz->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!drhodx->add_att("units", "10-5s-1")) 
+	if (!drhodx->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
-	if (!drhody->add_att("units", "10-5s-1")) 
+	if (!drhody->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
-	if (!drhodz->add_att("units", "10-5s-1")) 
+	if (!drhodz->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
-	if (!mcresidual->add_att("units", "10-5s-1")) 
+	if (!mcresidual->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
 
 	// Define long names for data variables.

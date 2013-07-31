@@ -159,6 +159,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = refstate->bhypInvTransform(qBar + qvprime);
 										real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+										// qv derivatives multipled by 2 to account for hyperbolic transform
+										qvdr = 2.0*qvdr;
+										qvdt = 2.0*qvdt;
 										qvdz = 2.0*(qbardz + qvdz);
 										
 										real qr; 
@@ -221,9 +224,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										rhoadr /= 100.;
 										rhoadt /= 100.;
 										rhoadz /= 100.;
-										real rhodr = rhoadr * (1. + qv/1000.) + rhoa * qvdr/500.;
-										real rhodt = rhoadt * (1. + qv/1000.) + rhoa * qvdt/500.;
-										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
+										real rhodr = rhoadr * (1. + qv/1000.) + rhoa * qvdr/1000.;
+										real rhodt = rhoadt * (1. + qv/1000.) + rhoa * qvdt/1000.;
+										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/1000.;
 										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 										rhodz += rhobardz;
 										real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
@@ -257,9 +260,9 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                                         real absVorticity = vorticity + Coriolisf;
                                         
                                         // Thermodynamic derivatives
-		                                pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhoadr*qv + qvdr*rhoa)*temp)*461./100.;
-		                                pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp)*461./100.;
-		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp)*461./100.;
+		                                pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhoadr*qv + qvdr*rhoa)*temp/1000.0)*461./100.;
+		                                pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp/1000.0)*461./100.;
+		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
 										                                        
 										QString refmask = configHash->value("mask_reflectivity");
 										if (refmask != "None") {
@@ -846,29 +849,29 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dwdz->add_att("units", "10-5s-1")) 
 		return NC_ERR;
-    if (!dtdr->add_att("units", "10-5s-1")) 
+    if (!dtdr->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdr->add_att("units", "10-5s-1")) 
+	if (!dqdr->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdr->add_att("units", "10-5s-1")) 
+	if (!dpdr->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!dtdt->add_att("units", "10-5s-1")) 
+	if (!dtdt->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdt->add_att("units", "10-5s-1")) 
+	if (!dqdt->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdt->add_att("units", "10-5s-1")) 
+	if (!dpdt->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!dtdz->add_att("units", "10-5s-1")) 
+	if (!dtdz->add_att("units", "K km-1")) 
 		return NC_ERR;
-	if (!dqdz->add_att("units", "10-5s-1")) 
+	if (!dqdz->add_att("units", "g kg-1 km-1")) 
 		return NC_ERR;
-	if (!dpdz->add_att("units", "10-5s-1")) 
+	if (!dpdz->add_att("units", "hPa km-1")) 
 		return NC_ERR;
-	if (!drhodr->add_att("units", "10-5s-1")) 
+	if (!drhodr->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
-	if (!drhodt->add_att("units", "10-5s-1")) 
+	if (!drhodt->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
-	if (!drhodz->add_att("units", "10-5s-1")) 
+	if (!drhodz->add_att("units", "kg m-3 km-1")) 
 		return NC_ERR;
 	if (!mcresidual->add_att("units", "10-5s-1")) 
 		return NC_ERR;
