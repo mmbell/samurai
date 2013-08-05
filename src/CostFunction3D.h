@@ -66,11 +66,11 @@ protected:
 	void adjustInternalDomain(int increment);
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                 const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
-                                real* L[7], real* gamma[7]);
+                                real** L, real** gamma);
 	bool outputMish;
 	int iDim, jDim, kDim;
     int iLDim, jLDim, kLDim;
-    int iRank[7], jRank[7], kRank[7];
+    int* iRank, jRank, kRank;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
@@ -86,17 +86,17 @@ protected:
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
-	real* iL[7];
-	real* jL[7];
-	real* kL[7];
-    real* iGamma[7];
-    real* jGamma[7];
-    real* kGamma[7];
+	real** iL;
+	real** jL;
+	real** kL;
+    real** iGamma;
+    real** jGamma;
+    real** kGamma;
 	real* finalAnalysis;
 	int varDim;
     int derivDim;
-	real bgError[7];
-	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
+	real* bgError;
+	int* iBCL, iBCR, jBCL, jBCR, kBCL, kBCR;
     int derivative[4][3];
 	real constHeight;
 	real mcWeight;
