@@ -112,10 +112,7 @@ void CostFunction3D::finalize()
 
 void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
 {
-
 	// Initialize number of variables
-	varDim = 7;
-    derivDim = 4;
 	configHash = config;
 
 	/* Set the output path */
@@ -221,27 +218,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	stateA = new real[nState];
 	stateB = new real[nState];
 	stateC = new real[nState];
-	
-	//AF These are to avoid the declaration of varDim in the header file 
-	iRank = new int[varDim];
-	jRank = new int[varDim];
-	kRank = new int[varDim];
-	iL = new real*[varDim];
-	jL = new real*[varDim];
-	kL = new real*[varDim];
-	iGamma = new real*[varDim];
-	jGamma = new real*[varDim];
-	kGamma = new real*[varDim];	
-	bgError = new real[varDim];
-	iBCL = new int[varDim];
-	iBCR = new int[varDim];
-	jBCL = new int[varDim];
-	jBCR = new int[varDim];
-	kBCL = new int[varDim];
-	kBCR = new int[varDim];
-		
-
-	
+    
     if (iBCL[0] == PERIODIC) {
         iLDim = iDim-2;   
     } else {
@@ -1931,9 +1908,8 @@ void CostFunction3D::adjustInternalDomain(int increment)
 
 void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                             const real& xMin, const real& DX, const real& DXrecip, const int& LDim,
-                                            real** L, real** gamma)
+                                            real* L[7], real* gamma[7])
 {
-    
     
 	for (int var = 0; var < varDim; var++) {
         int pDim = Dim;

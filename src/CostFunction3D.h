@@ -37,6 +37,8 @@ public:
 	void initState(const int iteration);
 	
 protected:
+	static const int varDim = 7;
+    static const int derivDim = 4;
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
@@ -66,11 +68,11 @@ protected:
 	void adjustInternalDomain(int increment);
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                 const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
-                                real** L, real** gamma);
+                                real* L[varDim], real* gamma[varDim]);
 	bool outputMish;
 	int iDim, jDim, kDim;
     int iLDim, jLDim, kLDim;
-    int* iRank, jRank, kRank;
+    int iRank[varDim], jRank[varDim], kRank[varDim];
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
@@ -86,17 +88,15 @@ protected:
 	real* CTHTd;
 	real* HCq;
 	real* innovation;
-	real** iL;
-	real** jL;
-	real** kL;
-    real** iGamma;
-    real** jGamma;
-    real** kGamma;
+	real* iL[varDim];
+	real* jL[varDim];
+	real* kL[varDim];
+    real* iGamma[varDim];
+    real* jGamma[varDim];
+    real* kGamma[varDim];
 	real* finalAnalysis;
-	int varDim;
-    int derivDim;
-	real* bgError;
-	int* iBCL, iBCR, jBCL, jBCR, kBCL, kBCR;
+	real bgError[varDim];
+	int iBCL[varDim], iBCR[varDim], jBCL[varDim], jBCR[varDim], kBCL[varDim], kBCR[varDim];
     int derivative[4][3];
 	real constHeight;
 	real mcWeight;
