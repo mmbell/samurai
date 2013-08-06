@@ -58,6 +58,8 @@ CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
 	
 	// Use the full basis unless otherwise specified
 	basisappx = 0;
+	
+	obMetaSize = 7;
     
 }
 
@@ -210,7 +212,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 	// These are local to this one
 	CTHTd = new real[nState];
 	stateU = new real[nState];
-	obsVector = new real[mObs*(7+varDim*derivDim)];
+	obsVector = new real[mObs*(obMetaSize+varDim*derivDim)];
 	HCq = new real[mObs+nodes];
 	innovation = new real[mObs+nodes];	
 	bgState = new real[nState];
@@ -398,7 +400,7 @@ real CostFunction3D::funcValue(real* state)
 	// Subtract d from HCq to yield mObs length vector and compute inner product
 	//#pragma omp parallel for reduction(+:obIP)
 	for (int m = 0; m < mObs; m++) {
-        int obIndex = m*(7+varDim*derivDim) + 1; 
+        int obIndex = m*(obMetaSize+varDim*derivDim) + 1; 
 		obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
 	}
 		
@@ -437,7 +439,7 @@ void CostFunction3D::updateHCq(real* state)
 	// H
 	#pragma omp parallel for
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
+		int mi = m*(obMetaSize+varDim*derivDim);
 		real i = obsVector[mi+2];
 		real j = obsVector[mi+3];
 		real k = obsVector[mi+4];
@@ -450,7 +452,7 @@ void CostFunction3D::updateHCq(real* state)
 		real kbasis = 0;
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
+                int wgt_index = mi + (obMetaSize*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                     int iNode = iiNode;
@@ -519,13 +521,13 @@ void CostFunction3D::calcInnovation()
 	cout << "Initializing innovation vector..." << endl;
 	for (int m = 0; m < mObs; m++) {
 		HCq[m] = 0.0;
-		innovation[m] = obsVector[m*(7+varDim*derivDim)];
+		innovation[m] = obsVector[m*(obMetaSize+varDim*derivDim)];
 	}
 	
 	real innovationRMS = 0.;
 	#pragma omp parallel for reduction(+:innovationRMS)
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
+		int mi = m*(obMetaSize+varDim*derivDim);
 		real i = obsVector[mi+2];
 		real j = obsVector[mi+3];
 		real k = obsVector[mi+4];
@@ -535,7 +537,7 @@ void CostFunction3D::calcInnovation()
 		int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
+                int wgt_index = mi + (obMetaSize*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                     int iNode = iiNode;
@@ -582,7 +584,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	for (int m = 0; m < mObs; m++) {
 		// Sum over obs this time
 		// Multiply state by H weights
-		int mi = m*(7+varDim*derivDim);
+		int mi = m*(obMetaSize+varDim*derivDim);
 		real i = obsVector[mi+2];
 		int ii = (int)((i - iMin)*DIrecip);
 		
@@ -593,7 +595,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 		int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
+                int wgt_index = mi + (obMetaSize*(d+1)) + var;
                 if (!obsVector[wgt_index]) continue;
                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                     int iNode = iiNode;
@@ -1412,8 +1414,8 @@ void CostFunction3D::obAdjustments() {
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
 	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
-		for (int ob = 0; ob < (7+varDim*derivDim); ob++) {
+		int mi = m*(obMetaSize+varDim*derivDim);
+		for (int ob = 0; ob < (obMetaSize+varDim*derivDim); ob++) {
 			obsVector[mi+ob] = rawObs[mi+ob];
 		}
 		real type = obsVector[mi+5];
@@ -1908,7 +1910,7 @@ void CostFunction3D::adjustInternalDomain(int increment)
 
 void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                             const real& xMin, const real& DX, const real& DXrecip, const int& LDim,
-                                            real* L[7], real* gamma[7])
+                                            real* L[varDim], real* gamma[varDim])
 {
     
 	for (int var = 0; var < varDim; var++) {

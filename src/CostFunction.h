@@ -28,6 +28,7 @@ public:
 protected:
 	int mObs;
 	int nState;
+	int obMetaSize;
 	real* currState;
 	real* currGradient;
 	real* tempState;

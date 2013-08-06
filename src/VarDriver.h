@@ -46,6 +46,7 @@ protected:
     unsigned int numDerivatives;
 	unsigned int maxJdim;
 	unsigned int maxKdim;
+	unsigned int obMetaSize;
 	vector<FrameCenter> frameVector;
 	QDomDocument domDoc;
 	QHash<QString, QString> configHash;

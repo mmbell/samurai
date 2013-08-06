@@ -24,6 +24,7 @@ VarDriver3D::VarDriver3D()
 {
 	numVars = 7;
     numDerivatives = 4;
+    obMetaSize = 7;
 }
 
 // Destructor
@@ -1379,9 +1380,9 @@ bool VarDriver3D::preProcessMetObs()
     }
     
     // Load the observations into a vector
-    obs = new real[obVector.size()*(7+numVars*numDerivatives)];
+    obs = new real[obVector.size()*(obMetaSize+numVars*numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
-        int n = m*(7+numVars*numDerivatives);
+        int n = m*(obMetaSize+numVars*numDerivatives);
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
         real invError = ob.getInverseError();
@@ -1402,7 +1403,7 @@ bool VarDriver3D::preProcessMetObs()
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (7*(d+1)) + var;
+                int wgt_index = n + (obMetaSize*(d+1)) + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }
@@ -1461,9 +1462,9 @@ bool VarDriver3D::loadMetObs()
     }
     
     // Load the observations into the vector
-    obs = new real[obVector.size()*(7+numVars*numDerivatives)];
+    obs = new real[obVector.size()*(obMetaSize+numVars*numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
-        int n = m*(7+numVars*numDerivatives);
+        int n = m*(obMetaSize+numVars*numDerivatives);
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
         real invError = ob.getInverseError();
@@ -1484,7 +1485,7 @@ bool VarDriver3D::loadMetObs()
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (7*(d+1)) + var;
+                int wgt_index = n + (obMetaSize*(d+1)) + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }        
@@ -1925,8 +1926,8 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 
     // Load the observations into a vector
     int numbgObs = bgIn.size()*7/11 + idim*jdim*kdim;
-    bgObs = new real[numbgObs*(7+numVars*numDerivatives)];
-    for (unsigned int m=0; m < numbgObs*(7+numVars*numDerivatives); m++) bgObs[m] = 0.;
+    bgObs = new real[numbgObs*(obMetaSize+numVars*numDerivatives)];
+    for (unsigned int m=0; m < numbgObs*(obMetaSize+numVars*numDerivatives); m++) bgObs[m] = 0.;
     
     int p = 0;
     real obX, obY, obRadius, obTheta;
@@ -1974,7 +1975,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
             bgObs[p+5] = -1;
             bgObs[p+6] = obTime;
             bgObs[p+7+n] = 1.;
-            p += (7+numVars*numDerivatives);
+            p += (obMetaSize+numVars*numDerivatives);
         }
     }	
     
