@@ -35,11 +35,11 @@ public:
 	~VarDriver3D();
 	
 	// ESMF type calls
-	bool initialize(const QDomElement& configuration);
-	bool run();
-	bool finalize();
+	virtual bool initialize(const QDomElement& configuration);
+	virtual bool run();
+	virtual bool finalize();
 	
-private:
+protected:
 	typedef BSplineBase<real> SplineBase;
 	typedef BSpline<real> SplineD;
 	

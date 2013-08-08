@@ -31,16 +31,16 @@ class CostFunction3D: public CostFunction
 public:
 	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref); 
-	void finalize();
+    virtual void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref); 
+	virtual void finalize();
 	void updateBG();
-	void initState(const int iteration);
+	virtual void initState(const int iteration);
 	
 protected:
 	static const int varDim = 7;
     static const int derivDim = 4;
-	double funcValue(double* state);
-	void funcGradient(double* state, double* gradient);
+	virtual double funcValue(double* state);
+	virtual void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
 			   const real& DX, const real& DXrecip, const int& derivative,

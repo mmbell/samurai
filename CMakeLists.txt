@@ -1,6 +1,7 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
 set ( CMAKE_BUILD_TYPE Release )
+#set ( CMAKE_CXX_COMPILER "g++-4.2" )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 add_definitions ( -Wall )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -55,11 +56,13 @@ set ( samurai_HDRS
 	src/CostFunctionXYZ.h
 	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
+	src/CostFunctionThermo.h
 	src/MetObs.h 
         src/Observation.h 
         src/RecursiveFilter.h 
         src/VarDriver.h 
         src/VarDriver3D.h
+        src/VarDriverThermo.h
 	src/ReferenceState.h	
         src/Dorade.h 
         src/read_dorade.h 
@@ -76,12 +79,14 @@ set ( samurai_SRCS
 	src/CostFunctionXYZ.cpp
 	src/CostFunctionXYP.cpp
 	src/CostFunctionRTZ.cpp
+	src/CostFunctionThermo.cpp
 	src/main.cpp
 	src/MetObs.cpp
 	src/Observation.cpp
 	src/RecursiveFilter.cpp
 	src/VarDriver.cpp
 	src/VarDriver3D.cpp
+	src/VarDriverThermo.cpp	
 	src/ReferenceState.cpp
 	src/Dorade.cpp
         src/FrameCenter.cpp

@@ -22,7 +22,7 @@
 VarDriver3D::VarDriver3D()
 : VarDriver()
 {
-	numVars = 7;
+	numVars = 3;
     numDerivatives = 4;
     obMetaSize = 7;
 }
