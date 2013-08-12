@@ -327,9 +327,9 @@ void CostFunction3D::initState(const int iteration)
 		// SA transform = bg B's -> bg A's
 		SAtransform(stateB, bgState);
 	}
-	
-	// Using a constant bg error variance for now, but this could be variable across the nodes
+		
 	for (int var = 0; var < varDim; var++) {
+		// Using a constant bg error variance for now, but this could be variable across the nodes
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1200,7 +1200,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                         }
                         fftw_execute(jBackward);
                         for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex];
+                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex]/jDim;
                         }
                     }
 				}
@@ -1218,7 +1218,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                         }
                         fftw_execute(iBackward);
                         for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex];
+                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex]/iDim;
                         }
                     }
 				}
@@ -1279,7 +1279,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                         }
                         fftw_execute(jBackward);
                         for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex];
+                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex]/jDim;
                         }
                     }
 				}
@@ -1297,7 +1297,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                         }
                         fftw_execute(iBackward);
                         for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex];
+                            Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex]/iDim;
                         }
                     }
 				}
