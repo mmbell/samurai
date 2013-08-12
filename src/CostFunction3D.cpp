@@ -318,17 +318,57 @@ void CostFunction3D::initState(const int iteration)
 		// Set up the background state
 		for (int n = 0; n < nState; n++) {
 			bgState[n] = 0.0;
-			bgStdDev[n] = 0.0;
+			bgStdDev[n] = 1.0;
 		}
 		
 		// SB Transform on the original bg fields
 		SBtransform(bgFields, stateB);
 		
 		// SA transform = bg B's -> bg A's
-		SAtransform(stateB, bgState);
+		SAtransform(stateB, stateA);
+		
+		SCtransform(stateA, bgState);
 	}
 		
 	for (int var = 0; var < varDim; var++) {
+        /* // Enforce max wavenumber
+        if ((jBCL[var] == PERIODIC) and (jMaxWavenumber >= 0)) {
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        jFFTin[jIndex] = bgState[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
+                    fftw_execute(jForward);
+                    for (int jIndex = jMaxWavenumber+1; jIndex < (jDim/2)+1; jIndex++) {
+                        jFFTout[jIndex][0] = 0.0;
+                        jFFTout[jIndex][1] = 0.0;
+                    }
+                    fftw_execute(jBackward);
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        bgState[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex]/jDim;
+                    }
+                }
+			}
+		}
+        if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        iFFTin[jIndex] = bgState[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
+                    fftw_execute(iForward);
+                    for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
+                        iFFTout[iIndex][0] = 0.0;
+                        iFFTout[iIndex][1] = 0.0;
+                    }
+                    fftw_execute(iBackward);
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        bgState[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex]/iDim;
+                    }
+                }
+			}
+		} */
+		
 		// Using a constant bg error variance for now, but this could be variable across the nodes
 		for (int iIndex = 0; iIndex < iDim; iIndex++) {
 			for (int jIndex = 0; jIndex < jDim; jIndex++) {
