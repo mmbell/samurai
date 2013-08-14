@@ -44,6 +44,8 @@ public:
 private:
    int test;
    CostFunctionThermo* obCost3D;
+   bool readNcFile();
+   bool loadObsVector();
    
 };
 

@@ -169,60 +169,24 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
 	maxIter = configHash.value("num_iterations").toInt();
     		
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
-	QString loadBG = configHash.value("load_background");
-	int numbgObs = 0;
-	if (loadBG == "true") {
-		numbgObs = loadBackgroundObs();
-		if (numbgObs < 0) {
-			cout << "Error loading background file\n";
-			return false;
-		}
-	}
 	
-	/* Optionally adjust the interpolated background to satisfy mass continuity
-	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
-	 the background estimates as "observations" */
-	QString adjustBG = configHash.value("adjust_background");
-	if ((adjustBG == "true") and numbgObs) {
-		if (!adjustBackground(bStateSize)) {
-			cout << "Error adjusting background\n";
-			return false;
-		}
-	}
+	if(!this->readNcFile()) {
+				cout << "Reading Nc-File failed ...Exit." << endl;
+				return EXIT_FAILURE;
+			}
 	
-	// Read in the observations, process them into weights and positions
-	// Either preprocess from raw observations or load an already processed Observations.in file
-	QString preprocess = configHash.value("preprocess_obs");
-	if (preprocess == "true") {
-		if (!preProcessMetObs()) {
-			cout << "Error pre-processing observations\n";
-			return false;
-		}
-	} else {
-		if (!loadMetObs()) {
-			cout << "Error loading observations\n";
-			return false;
-		}
-	}
-	cout << "Number of New Observations: " << obVector.size() << endl;		
+	if(!this->loadObsVector()) {
+				cout << "Loading ObsVector failed ...Exit." << endl;
+				return EXIT_FAILURE;
+			}			
 	
+// AF for now set the background to zero and don't allow any additional observations, i.e. skip loadBackgroundObs, adjustBackground, preProcessMetObs and loadMetObs
+
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;	
-	
-/* AF replaced for now
-    if (runMode == XYZ) {
-		if (configHash.value("output_pressure_increment").toFloat() > 0) {
-			obCost3D = new CostFunctionXYP(obVector.size(), bStateSize);
-		} else {
-			obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
-		}
-    } else if (runMode == RTZ) {
-        obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
-    }
-    
-*/    
-	obCost3D = new CostFunctionThermo(obVector.size(), bStateSize);
-	obCost3D->initialize(&configHash, bgU, obs, refstate);
+	   
+	//obCost3D = new CostFunctionThermo(obVector.size(), bStateSize);
+	//obCost3D->initialize(&configHash, bgU, obs, refstate);
 	
 	// If we got here, then everything probably went OK!
 	return true;
@@ -234,17 +198,17 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
 
 bool VarDriverThermo::run()
 {
-	int iter=1;
-	while (iter <= maxIter) {
-		cout << "Outer Loop Iteration: " << iter << endl;
-		obCost3D->initState(iter);
-		obCost3D->minimize();
-		obCost3D->updateBG();
-		iter++;
+	//int iter=1;
+	//while (iter <= maxIter) {
+		//cout << "Outer Loop Iteration: " << iter << endl;
+		//obCost3D->initState(iter);
+		//obCost3D->minimize();
+		//obCost3D->updateBG();
+		//iter++;
 		
 		// Optionally update the analysis parameters for an additional iteration
-		updateAnalysisParams(iter);
-	}	
+		//updateAnalysisParams(iter);
+	//}	
 	
 	return true;
 	
@@ -254,14 +218,25 @@ bool VarDriverThermo::run()
 
 bool VarDriverThermo::finalize()
 {
-	obCost3D->finalize();
+	//obCost3D->finalize();
 	delete[] obs;
 	delete[] bgU;
-	delete obCost3D;
+	//delete obCost3D;
 	delete refstate;
 	return true;
 }
 
 
+bool VarDriverThermo::readNcFile()
+{
+  cout << "Read in NC File " << endl;
+  return true;
+  
+}
 
-
+bool VarDriverThermo::loadObsVector()
+{
+  cout << "Load Obs Vector " << endl;
+  return true;
+  
+}
