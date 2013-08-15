@@ -68,6 +68,7 @@ set ( samurai_HDRS
         src/read_dorade.h 
         src/precision.h 
         src/FrameCenter.h
+    src/NetCDF.h    
 	)
 
 set ( samurai_SRCS
@@ -90,6 +91,7 @@ set ( samurai_SRCS
 	src/ReferenceState.cpp
 	src/Dorade.cpp
         src/FrameCenter.cpp
+    src/NetCDF.cpp    
 	
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig

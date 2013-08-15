@@ -20,6 +20,7 @@
 #include "CostFunctionThermo.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
+#include "NetCDF.h"
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -46,6 +47,7 @@ private:
    CostFunctionThermo* obCost3D;
    bool readNcFile();
    bool loadObsVector();
+   NetCDF ncFile;
    
 };
 

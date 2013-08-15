@@ -229,7 +229,17 @@ bool VarDriverThermo::finalize()
 
 bool VarDriverThermo::readNcFile()
 {
-  cout << "Read in NC File " << endl;
+  cout << "Read in NetCDF File " << endl;
+  QString ncFileName = "/bora/rita2005/Samurai/wrf/20050920_19.nc";
+  if (ncFile.readNetCDF(ncFileName.toAscii().data()) != 0) {
+	  cout << "Error reading NetCDF file\n";
+	  exit(1);
+	}
+	
+  double radius,theta,alt,u;
+	
+  ncFile.getPoint(4,5,6,radius,theta,alt,u);	
+  std::cout << "Found point at r:" << radius << ", theta: " << theta <<  ", alt: " << alt  << ", u: " << u << "\n";
   return true;
   
 }
