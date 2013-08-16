@@ -14,7 +14,8 @@
 #include <iostream>
 #include <QString>
 
-NetCDF::NetCDF() {
+NetCDF::NetCDF() :c_p(1005.7), g(9.81), f(0.448432045656147e-05)
+ {
 	NDIMS = 4;
 	NALT = 33;
 	NRADIUS = 73;
@@ -206,9 +207,10 @@ int NetCDF::readNetCDF(const char* filename) {
 }
 
 
-bool NetCDF::getValue(const int &i,const int &j,const int &k, const QString &varName, double &value_out)
+double NetCDF::getValue(const int &i,const int &j,const int &k, const QString &varName)
 {
 	//Returned values are all in SI units
+	double value_out;
 
 	if ((i<0) or (i > NRADIUS-1)) return false;
 	if ((j<0) or (j > NTHETA-1)) return false;
@@ -258,21 +260,81 @@ bool NetCDF::getValue(const int &i,const int &j,const int &k, const QString &var
 	}
 	
 	 
-	return true;	
+	return value_out;	
 }
 
-/*
-bool NetCDF::getPoint(const int &i,const int &j,const int &k, double &radius_out, double &theta_out, double &alt_out, double &u_out)
+
+double NetCDF::calc_A(const int &i,const int &j,const int &k)
 {
-	if ((i<0) or (i > NRADIUS-1)) return false;
-	if ((j<0) or (j > NTHETA-1)) return false;
-	if ((k<0) or (k > NALT-1)) return false;
-	
-	radius_out = radius[i];
-	theta_out = theta[j];
-	alt_out = altitude[k];
-	u_out= u[k*NTHETA*NRADIUS + j*NTHETA + i];
+	QString var;
+	var = "THETARHOBAR";
+	double thetarhobar = this->getValue(i,j,k,var);
+	var = "U";
+	double u = this->getValue(i,j,k,var);
+	var = "DUDR";
+	double dudr = this->getValue(i,j,k,var);
+	var = "V";
+	double v = this->getValue(i,j,k,var);	
+	var = "DUDT";
+	double dudlambda = this->getValue(i,j,k,var);
+	var = "W";
+	double w = this->getValue(i,j,k,var);	
+	var = "DUDZ";
+	double dudz = this->getValue(i,j,k,var);
+	var = "VBAR";
+	double vbar = this->getValue(i,j,k,var);	
+	var = "VP";
+	double vprime = this->getValue(i,j,k,var);
+	var = "R";
+	double r = this->getValue(i,j,k,var);
 
-	return true;	
+	double a =1.0/c_p/thetarhobar*(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-1.0*vprime*vprime/r-f*vprime);
+	return a;	
 }
-*/
+
+
+double NetCDF::calc_B(const int &i,const int &j,const int &k)
+{
+	QString var;
+	var = "THETARHOBAR";
+	double thetarhobar = this->getValue(i,j,k,var);
+	var = "U";
+	double u = this->getValue(i,j,k,var);
+	var = "DVDR";
+	double dvdr = this->getValue(i,j,k,var);
+	var = "V";
+	double v = this->getValue(i,j,k,var);	
+	var = "DVDT";
+	double dvdlambda = this->getValue(i,j,k,var);
+	var = "W";
+	double w = this->getValue(i,j,k,var);	
+	var = "DVDZ";
+	double dvdz = this->getValue(i,j,k,var);
+	var = "R";
+	double r = this->getValue(i,j,k,var);
+
+	double b =1.0*r/c_p/thetarhobar*(u*dvdr+v*dvdlambda+w*dvdz+1.0*u*v/r+f*u);
+	return b;	
+}
+
+double NetCDF::calc_C(const int &i,const int &j,const int &k)
+{
+	QString var;
+	var = "THETARHOBAR";
+	double thetarhobar = this->getValue(i,j,k,var);
+	var = "U";
+	double u = this->getValue(i,j,k,var);
+	var = "DWDR";
+	double dwdr = this->getValue(i,j,k,var);
+	var = "V";
+	double v = this->getValue(i,j,k,var);	
+	var = "DWDT";
+	double dwdlambda = this->getValue(i,j,k,var);
+	var = "W";
+	double w = this->getValue(i,j,k,var);	
+	var = "DWDZ";
+	double dwdz = this->getValue(i,j,k,var);
+
+	double c =1.0/c_p/thetarhobar* (u*dwdr+v*dwdlambda+w*dwdz);
+	return c;	
+}

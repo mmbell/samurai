@@ -22,7 +22,10 @@ public:
 	~NetCDF();
 	
 	int readNetCDF(const char* filename);
-	bool getValue(const int &i,const int &j,const int &k,const QString &varName, double &value_out);	
+	double getValue(const int &i,const int &j,const int &k,const QString &varName);	
+	double calc_A(const int &i,const int &j,const int &k);
+	double calc_B(const int &i,const int &j,const int &k);
+	double calc_C(const int &i,const int &j,const int &k);
 	
 private:
 	int NDIMS, NALT, NRADIUS, NTHETA, NREC, NC_ERR;
@@ -47,9 +50,12 @@ private:
 	float* thetarhobar;
 	float* vbar;
 	float* vp;
-
-	QString varName;
 	
+	QString varName;
+		
+	const float c_p;
+	const float g;
+	const double f; //this needs to be made dynamic eventually, here lat assumed to be 22 deg north
 };
 
 
