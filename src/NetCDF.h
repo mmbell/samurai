@@ -1,9 +1,10 @@
-/*
+ /*
  *  NetCDF.h
+ *  samurai
  *
- *  Created by Michael Bell on 5/29/13.
+ *  Created by Annette Foerster on 8/15/13.
  *  Based on example code from netCDF library
- *  Copyright 2013. All rights reserved.
+ *  Copyright 2013 Michael Bell. All rights reserved.
  *
  */
 
@@ -11,6 +12,7 @@
 #define NETCDF_H
 
 #include <netcdfcpp.h>
+#include <QString>
 	 
 class NetCDF  
 {
@@ -20,7 +22,7 @@ public:
 	~NetCDF();
 	
 	int readNetCDF(const char* filename);
-	bool getPoint(const int &i,const int &j,const int &k, double &radius_out, double &theta_out, double &alt_out, double &u_out);	
+	bool getValue(const int &i,const int &j,const int &k,const QString &varName, double &value_out);	
 	
 private:
 	int NDIMS, NALT, NRADIUS, NTHETA, NREC, NC_ERR;
@@ -29,6 +31,24 @@ private:
 	float* theta;
 	float* altitude;	
 	float* u;
+	float* v;
+	float* w;
+	float* dudr;
+	float* dvdr;
+	float* dwdr;
+	float* dudt;
+	float* dvdt;
+	float* dwdt;
+	float* dudz;
+	float* dvdz;
+	float* dwdz;
+	float* rhoa;
+	float* pibar;
+	float* thetarhobar;
+	float* vbar;
+	float* vp;
+
+	QString varName;
 	
 };
 

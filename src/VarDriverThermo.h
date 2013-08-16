@@ -48,7 +48,6 @@ private:
    bool readNcFile();
    bool loadObsVector();
    NetCDF ncFile;
-   
 };
 
 #endif

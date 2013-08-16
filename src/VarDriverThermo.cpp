@@ -235,11 +235,13 @@ bool VarDriverThermo::readNcFile()
 	  cout << "Error reading NetCDF file\n";
 	  exit(1);
 	}
+
+  double value;
+  QString varName;
+  varName = "DUDR";	
 	
-  double radius,theta,alt,u;
-	
-  ncFile.getPoint(4,5,6,radius,theta,alt,u);	
-  std::cout << "Found point at r:" << radius << ", theta: " << theta <<  ", alt: " << alt  << ", u: " << u << "\n";
+  ncFile.getValue(4,5,6,varName,value);	
+  std::cout << "Found point:" << value << "\n";
   return true;
   
 }
