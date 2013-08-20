@@ -259,7 +259,6 @@ double NetCDF::getValue(const int &i,const int &j,const int &k, const QString &v
 	return false;
 	}
 	
-	 
 	return value_out;	
 }
 

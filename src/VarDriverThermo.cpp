@@ -170,7 +170,11 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
     		
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	
-	if(!this->readNcFile()) {
+	QList<MetObs>* metData = new QList<MetObs>;
+    
+	QString metFile = "/bora/rita2005/Samurai/wrf/20050920_19.nc";
+	
+	if(!this->readNcFile(metFile, metData)) {
 				cout << "Reading Nc-File failed ...Exit." << endl;
 				return EXIT_FAILURE;
 			}
@@ -179,6 +183,7 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
 				cout << "Loading ObsVector failed ...Exit." << endl;
 				return EXIT_FAILURE;
 			}			
+	metData->clear();
 	
 // AF for now set the background to zero and don't allow any additional observations, i.e. skip loadBackgroundObs, adjustBackground, preProcessMetObs and loadMetObs
 
@@ -227,23 +232,55 @@ bool VarDriverThermo::finalize()
 }
 
 
-bool VarDriverThermo::readNcFile()
+bool VarDriverThermo::readNcFile(QString& metFile, QList<MetObs>* metObVector)
 {
   cout << "Read in NetCDF File " << endl;
-  QString ncFileName = "/bora/rita2005/Samurai/wrf/20050920_19.nc";
-  if (ncFile.readNetCDF(ncFileName.toAscii().data()) != 0) {
+  if (ncFile.readNetCDF(metFile.toAscii().data()) != 0) {
 	  cout << "Error reading NetCDF file\n";
 	  exit(1);
 	}
   
-  double a = ncFile.calc_A(4,5,6);
-  std::cout << "A is: " << a << "\n";
+  int nalt = 33;
+  int nradius = 73;
+  int ntheta = 73;
 
-  double b = ncFile.calc_B(4,5,6);
-  std::cout << "B is: " << b << "\n";
-  
-  double c = ncFile.calc_C(4,5,6);
-  std::cout << "C is: " << c << "\n";
+  for (int i = 0; i < nradius; ++i) {
+    for (int j = 0; j < ntheta; ++j) {
+      for (int k = 0; k < nalt; ++k) {
+        MetObs ob;
+        
+        QString file,datestr,timestr;
+        file = metFile.section("/",-1);
+        datestr = file.left(8);
+        QDate date = QDate::fromString(datestr, "yyyyMMdd");
+        timestr = file.section("_",-1).section(".",0,0);
+        QTime time;
+        if (timestr.size()==2) {
+          time = QTime::fromString(timestr, "HH");
+        } else {
+          std::cout << "Implement reading routine for filenames which don't look like yyyymmdd_hh.nc \n";
+          exit(1);
+        }
+          
+		QDateTime datetime;
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		//Setting lat and lon missing
+		
+		QString var;
+		var = "Z";
+		double alt = ncFile.getValue(i,j,k,var);
+        ob.setAltitude(alt);
+        
+        ob.setA(ncFile.calc_A(i,j,k));
+    	ob.setB(ncFile.calc_B(i,j,k));
+    	ob.setC(ncFile.calc_C(i,j,k));
+
+		//ob.setObType(MetObs::nc);
+		metObVector->push_back(ob);
+      }
+    }
+  }
 
   return true;
   

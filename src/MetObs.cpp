@@ -484,4 +484,42 @@ void MetObs::printString()
 	
 }
 
+float MetObs::getA() const
+{
+	return A;
+}
 
+void MetObs::setA(const float& a)
+{
+	A = a;
+}
+
+float MetObs::getB() const
+{
+	return B;
+}
+
+void MetObs::setB(const float& b)
+{
+	B = b;
+}
+
+float MetObs::getC() const
+{
+	return C;
+}
+
+void MetObs::setC(const float& c)
+{
+	C = c;
+}
+
+float MetObs::getD() const
+{
+	return D;
+}
+
+void MetObs::setD(const float& d)
+{
+	D = d;
+}

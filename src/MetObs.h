@@ -87,6 +87,18 @@ class MetObs
 		int getObType() const;
 		void setObType(const int& type);
 		
+		float getA() const;
+		void setA(const float& A);
+
+		float getB() const;
+		void setB(const float& B);
+		
+		float getC() const;
+		void setC(const float& C);
+		
+		float getD() const;
+		void setD(const float& D);		
+				
 		// Derived variables
 		float getQv() const;
 		float getQvSaturation() const;
@@ -145,7 +157,10 @@ class MetObs
 		float elevation;
 		int obType;
 
-		
+		float A;
+		float B;
+		float C;
+		float D;
 	};
 
 #endif
