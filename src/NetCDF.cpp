@@ -14,7 +14,7 @@
 #include <iostream>
 #include <QString>
 
-NetCDF::NetCDF() :c_p(1005.7), g(9.81), f(0.448432045656147e-05)
+NetCDF::NetCDF() :c_p(1005.7), g(9.81), f(0.448432045656147e-05), pi(3.14159265358979323846)
  {
 	NDIMS = 4;
 	NALT = 33;
@@ -218,6 +218,8 @@ double NetCDF::getValue(const int &i,const int &j,const int &k, const QString &v
 	
 	if (varName=="R") {
 	value_out= radius[i]*1000.0;
+	} else if (varName=="LAMBDA") {
+	value_out= theta[j];	
 	} else if (varName=="Z") {
 	value_out= altitude[k]*1000.0;
 	} else if (varName=="U") {
@@ -337,3 +339,70 @@ double NetCDF::calc_C(const int &i,const int &j,const int &k)
 	double c =1.0/c_p/thetarhobar* (u*dwdr+v*dwdlambda+w*dwdz);
 	return c;	
 }
+
+double NetCDF::calc_D(const int &i,const int &j,const int &k)
+{
+	QString var;
+	var = "U";
+	double u = this->getValue(i,j,k,var);
+	var = "W";
+	double w = this->getValue(i,j,k,var);	
+	var = "THETARHOBAR";
+	double dthetarhobardr = this->calcDerivative(i,j,k,var,0);
+	double dthetarhobardz = this->calcDerivative(i,j,k,var,2);	
+	
+	double d = -u*dthetarhobardr-w*dthetarhobardz;
+	return d;	
+}
+
+
+double NetCDF::calcDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der)
+{
+	// input variable "der" specifies direction of derivation: 0=dr, 1=dlambda, 2=dz
+	double derivative;
+	QString derDir;
+	switch ( der ) {
+	  case 0:
+	    derDir = "R";
+	    if (i==0){
+	      derivative = (this->getValue(i+1,j,k,var)-this->getValue(i,j,k,var))/(this->getValue(i+1,j,k,derDir)-this->getValue(i,j,k,derDir));
+	    } else if (i== NRADIUS-1) {
+	      derivative = (this->getValue(i,j,k,var)-this->getValue(i-1,j,k,var))/(this->getValue(i,j,k,derDir)-this->getValue(i-1,j,k,derDir));	    
+	    } else {
+	      derivative = (this->getValue(i+1,j,k,var)-this->getValue(i-1,j,k,var))/(this->getValue(i+1,j,k,derDir)-this->getValue(i-1,j,k,derDir));	    
+	    }
+	    break;
+	  case 1:
+	    derDir = "LAMBDA";
+	    if (j==0){
+	      derivative = (this->getValue(i,j+1,k,var)-this->getValue(i,j,k,var))/(this->getValue(i,j+1,k,derDir)-this->getValue(i,j,k,derDir));
+	    } else if (j== NTHETA-1) {
+	      derivative = (this->getValue(i,j,k,var)-this->getValue(i,j-1,k,var))/(this->getValue(i,j,k,derDir)-this->getValue(i,j-1,k,derDir));	    
+	    } else {
+	      derivative = (this->getValue(i,j+1,k,var)-this->getValue(i,j-1,k,var))/(this->getValue(i,j+1,k,derDir)-this->getValue(i,j-1,k,derDir));	    
+	    }
+	    derivative = derivative*180/pi;
+	    break;
+	  case 2:
+	  	derDir = "Z";
+	    if (k==0){
+	      derivative = (this->getValue(i,j,k+1,var)-this->getValue(i,j,k,var))/(this->getValue(i,j,k+1,derDir)-this->getValue(i,j,k,derDir));
+	    } else if (k== NALT-1) {
+	      derivative = (this->getValue(i,j,k,var)-this->getValue(i,j,k-1,var))/(this->getValue(i,j,k,derDir)-this->getValue(i,j,k-1,derDir));	    
+	    } else {
+	      derivative = (this->getValue(i,j,k+1,var)-this->getValue(i,j,k-1,var))/(this->getValue(i,j,k+1,derDir)-this->getValue(i,j,k-1,derDir));	    
+	    }	  	   
+	    break; 
+	  default:
+		std::cout << "Unknown value for calculating derivative. Valid options are 0, 1 and 2.\n";
+		exit(1);
+	}
+	return derivative;
+}
+
+
+
+
+
+
+

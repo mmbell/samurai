@@ -26,6 +26,9 @@ public:
 	double calc_A(const int &i,const int &j,const int &k);
 	double calc_B(const int &i,const int &j,const int &k);
 	double calc_C(const int &i,const int &j,const int &k);
+	double calc_D(const int &i,const int &j,const int &k);
+	double calcDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der);
+
 	
 private:
 	int NDIMS, NALT, NRADIUS, NTHETA, NREC, NC_ERR;
@@ -56,6 +59,7 @@ private:
 	const float c_p;
 	const float g;
 	const double f; //this needs to be made dynamic eventually, here lat assumed to be 22 deg north
+	const double pi;
 };
 
 

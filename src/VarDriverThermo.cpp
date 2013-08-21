@@ -275,6 +275,7 @@ bool VarDriverThermo::readNcFile(QString& metFile, QList<MetObs>* metObVector)
         ob.setA(ncFile.calc_A(i,j,k));
     	ob.setB(ncFile.calc_B(i,j,k));
     	ob.setC(ncFile.calc_C(i,j,k));
+    	ob.setD(ncFile.calc_D(i,j,k));
 
 		//ob.setObType(MetObs::nc);
 		metObVector->push_back(ob);
