@@ -45,9 +45,12 @@ public:
 private:
    int test;
    CostFunctionThermo* obCost3D;
-   bool readNcFile(QString& metFile, QList<MetObs>* metObVector);
-   bool loadObsVector();
+   bool loadMetData(QString& metFile, QList<MetObs>* metObVector);
+   bool loadObservations(QString& metFile, QList<Observation>* obVector);
    NetCDF ncFile;
+   QList<Observation> obVector;
+   
+   real* obs;
 };
 
 #endif

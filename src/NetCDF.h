@@ -23,11 +23,11 @@ public:
 	
 	int readNetCDF(const char* filename);
 	double getValue(const int &i,const int &j,const int &k,const QString &varName);	
+	double getDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der);
 	double calc_A(const int &i,const int &j,const int &k);
 	double calc_B(const int &i,const int &j,const int &k);
 	double calc_C(const int &i,const int &j,const int &k);
 	double calc_D(const int &i,const int &j,const int &k);
-	double calcDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der);
 
 	
 private:

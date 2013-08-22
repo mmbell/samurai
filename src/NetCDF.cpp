@@ -267,27 +267,16 @@ double NetCDF::getValue(const int &i,const int &j,const int &k, const QString &v
 
 double NetCDF::calc_A(const int &i,const int &j,const int &k)
 {
-	QString var;
-	var = "THETARHOBAR";
-	double thetarhobar = this->getValue(i,j,k,var);
-	var = "U";
-	double u = this->getValue(i,j,k,var);
-	var = "DUDR";
-	double dudr = this->getValue(i,j,k,var);
-	var = "V";
-	double v = this->getValue(i,j,k,var);	
-	var = "DUDT";
-	double dudlambda = this->getValue(i,j,k,var);
-	var = "W";
-	double w = this->getValue(i,j,k,var);	
-	var = "DUDZ";
-	double dudz = this->getValue(i,j,k,var);
-	var = "VBAR";
-	double vbar = this->getValue(i,j,k,var);	
-	var = "VP";
-	double vprime = this->getValue(i,j,k,var);
-	var = "R";
-	double r = this->getValue(i,j,k,var);
+	double thetarhobar = this->getValue(i,j,k,(QString)"THETARHOBAR");
+	double u = this->getValue(i,j,k,(QString)"U");
+	double dudr = this->getValue(i,j,k,(QString)"DUDR");
+	double v = this->getValue(i,j,k,(QString)"V");	
+	double dudlambda = this->getValue(i,j,k,(QString)"DUDT");
+	double w = this->getValue(i,j,k,(QString)"W");	
+	double dudz = this->getValue(i,j,k,(QString)"DUDZ");
+	double vbar = this->getValue(i,j,k,(QString)"VBAR");	
+	double vprime = this->getValue(i,j,k,(QString)"VP");
+	double r = this->getValue(i,j,k,(QString)"R");
 
 	double a =1.0/c_p/thetarhobar*(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-1.0*vprime*vprime/r-f*vprime);
 	return a;	
@@ -296,23 +285,14 @@ double NetCDF::calc_A(const int &i,const int &j,const int &k)
 
 double NetCDF::calc_B(const int &i,const int &j,const int &k)
 {
-	QString var;
-	var = "THETARHOBAR";
-	double thetarhobar = this->getValue(i,j,k,var);
-	var = "U";
-	double u = this->getValue(i,j,k,var);
-	var = "DVDR";
-	double dvdr = this->getValue(i,j,k,var);
-	var = "V";
-	double v = this->getValue(i,j,k,var);	
-	var = "DVDT";
-	double dvdlambda = this->getValue(i,j,k,var);
-	var = "W";
-	double w = this->getValue(i,j,k,var);	
-	var = "DVDZ";
-	double dvdz = this->getValue(i,j,k,var);
-	var = "R";
-	double r = this->getValue(i,j,k,var);
+	double thetarhobar = this->getValue(i,j,k,(QString)"THETARHOBAR");
+	double u = this->getValue(i,j,k,(QString)"U");
+	double dvdr = this->getValue(i,j,k,(QString)"DVDR");
+	double v = this->getValue(i,j,k,(QString)"V");	
+	double dvdlambda = this->getValue(i,j,k,(QString)"DVDT");
+	double w = this->getValue(i,j,k,(QString)"W");	
+	double dvdz = this->getValue(i,j,k,(QString)"DVDZ");
+	double r = this->getValue(i,j,k,(QString)"R");
 
 	double b =1.0*r/c_p/thetarhobar*(u*dvdr+v*dvdlambda+w*dvdz+1.0*u*v/r+f*u);
 	return b;	
@@ -320,21 +300,13 @@ double NetCDF::calc_B(const int &i,const int &j,const int &k)
 
 double NetCDF::calc_C(const int &i,const int &j,const int &k)
 {
-	QString var;
-	var = "THETARHOBAR";
-	double thetarhobar = this->getValue(i,j,k,var);
-	var = "U";
-	double u = this->getValue(i,j,k,var);
-	var = "DWDR";
-	double dwdr = this->getValue(i,j,k,var);
-	var = "V";
-	double v = this->getValue(i,j,k,var);	
-	var = "DWDT";
-	double dwdlambda = this->getValue(i,j,k,var);
-	var = "W";
-	double w = this->getValue(i,j,k,var);	
-	var = "DWDZ";
-	double dwdz = this->getValue(i,j,k,var);
+	double thetarhobar = this->getValue(i,j,k,(QString)"THETARHOBAR");
+	double u = this->getValue(i,j,k,(QString)"U");
+	double dwdr = this->getValue(i,j,k,(QString)"DWDR");
+	double v = this->getValue(i,j,k,(QString)"V");	
+	double dwdlambda = this->getValue(i,j,k,(QString)"DWDT");
+	double w = this->getValue(i,j,k,(QString)"W");	
+	double dwdz = this->getValue(i,j,k,(QString)"DWDZ");
 
 	double c =1.0/c_p/thetarhobar* (u*dwdr+v*dwdlambda+w*dwdz);
 	return c;	
@@ -342,27 +314,23 @@ double NetCDF::calc_C(const int &i,const int &j,const int &k)
 
 double NetCDF::calc_D(const int &i,const int &j,const int &k)
 {
-	QString var;
-	var = "U";
-	double u = this->getValue(i,j,k,var);
-	var = "W";
-	double w = this->getValue(i,j,k,var);	
-	var = "THETARHOBAR";
-	double dthetarhobardr = this->calcDerivative(i,j,k,var,0);
-	double dthetarhobardz = this->calcDerivative(i,j,k,var,2);	
+	double u = this->getValue(i,j,k,(QString)"U");
+	double w = this->getValue(i,j,k,(QString)"W");	
+	double dthetarhobardr = this->getDerivative(i,j,k,(QString)"THETARHOBAR",1);
+	double dthetarhobardz = this->getDerivative(i,j,k,(QString)"THETARHOBAR",3);	
 	
 	double d = -u*dthetarhobardr-w*dthetarhobardz;
 	return d;	
 }
 
 
-double NetCDF::calcDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der)
+double NetCDF::getDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der)
 {
-	// input variable "der" specifies direction of derivation: 0=dr, 1=dlambda, 2=dz
+	// input variable "der" specifies direction of derivation: 1=dr, 2=dlambda, 3=dz
 	double derivative;
 	QString derDir;
 	switch ( der ) {
-	  case 0:
+	  case 1:
 	    derDir = "R";
 	    if (i==0){
 	      derivative = (this->getValue(i+1,j,k,var)-this->getValue(i,j,k,var))/(this->getValue(i+1,j,k,derDir)-this->getValue(i,j,k,derDir));
@@ -372,7 +340,7 @@ double NetCDF::calcDerivative(const int &i,const int &j,const int &k, const QStr
 	      derivative = (this->getValue(i+1,j,k,var)-this->getValue(i-1,j,k,var))/(this->getValue(i+1,j,k,derDir)-this->getValue(i-1,j,k,derDir));	    
 	    }
 	    break;
-	  case 1:
+	  case 2:
 	    derDir = "LAMBDA";
 	    if (j==0){
 	      derivative = (this->getValue(i,j+1,k,var)-this->getValue(i,j,k,var))/(this->getValue(i,j+1,k,derDir)-this->getValue(i,j,k,derDir));
@@ -383,7 +351,7 @@ double NetCDF::calcDerivative(const int &i,const int &j,const int &k, const QStr
 	    }
 	    derivative = derivative*180/pi;
 	    break;
-	  case 2:
+	  case 3:
 	  	derDir = "Z";
 	    if (k==0){
 	      derivative = (this->getValue(i,j,k+1,var)-this->getValue(i,j,k,var))/(this->getValue(i,j,k+1,derDir)-this->getValue(i,j,k,derDir));

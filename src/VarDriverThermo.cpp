@@ -170,20 +170,53 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
     		
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	
-	QList<MetObs>* metData = new QList<MetObs>;
-    
 	QString metFile = "/bora/rita2005/Samurai/wrf/20050920_19.nc";
 	
-	if(!this->readNcFile(metFile, metData)) {
-				cout << "Reading Nc-File failed ...Exit." << endl;
-				return EXIT_FAILURE;
-			}
+	//QList<MetObs>* metData = new QList<MetObs>;    	
+	//if(!this->loadMetData(metFile, metData)) {
+	//			cout << "Loading MetData failed ...Exit." << endl;
+	//			return EXIT_FAILURE;
+	//		}
 	
-	if(!this->loadObsVector()) {
-				cout << "Loading ObsVector failed ...Exit." << endl;
+	if(!this->loadObservations(metFile, &obVector)) {
+				cout << "Loading Observations failed ...Exit." << endl;
 				return EXIT_FAILURE;
 			}			
-	metData->clear();
+
+	cout << "Number of New Observations: " << obVector.size() << endl;		
+	
+	
+	// Load the observations into a vector
+    obs = new real[obVector.size()*(obMetaSize+numVars*numDerivatives)];
+    for (int m=0; m < obVector.size(); m++) {
+        int n = m*(obMetaSize+numVars*numDerivatives);
+        Observation ob = obVector.at(m);
+        obs[n] = ob.getOb();
+        real invError = ob.getInverseError();
+        if (!invError) {
+            cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+            return false;
+        }
+        obs[n+1] = invError;
+        if (runMode == XYZ) {
+            obs[n+2] = ob.getCartesianX();
+            obs[n+3] = ob.getCartesianY();
+        } else if (runMode == RTZ) {
+            obs[n+2] = ob.getRadius();
+            obs[n+3] = ob.getTheta();
+        }
+        obs[n+4] = ob.getAltitude();
+        obs[n+5] = ob.getType();
+        obs[n+6] = ob.getTime();
+        for (unsigned int var = 0; var < numVars; var++) {
+            for (unsigned int d = 0; d < numDerivatives; ++d) {
+                int wgt_index = n + (obMetaSize*(d+1)) + var;
+                obs[wgt_index] = ob.getWeight(var, d);
+            }
+        }
+    }
+	
+	
 	
 // AF for now set the background to zero and don't allow any additional observations, i.e. skip loadBackgroundObs, adjustBackground, preProcessMetObs and loadMetObs
 
@@ -232,7 +265,7 @@ bool VarDriverThermo::finalize()
 }
 
 
-bool VarDriverThermo::readNcFile(QString& metFile, QList<MetObs>* metObVector)
+bool VarDriverThermo::loadMetData(QString& metFile, QList<MetObs>* metObVector)
 {
   cout << "Read in NetCDF File " << endl;
   if (ncFile.readNetCDF(metFile.toAscii().data()) != 0) {
@@ -277,7 +310,6 @@ bool VarDriverThermo::readNcFile(QString& metFile, QList<MetObs>* metObVector)
     	ob.setC(ncFile.calc_C(i,j,k));
     	ob.setD(ncFile.calc_D(i,j,k));
 
-		//ob.setObType(MetObs::nc);
 		metObVector->push_back(ob);
       }
     }
@@ -287,9 +319,111 @@ bool VarDriverThermo::readNcFile(QString& metFile, QList<MetObs>* metObVector)
   
 }
 
-bool VarDriverThermo::loadObsVector()
-{
-  cout << "Load Obs Vector " << endl;
+bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obVector)
+{  
+  cout << "Read in NetCDF File ... " << endl;
+  if (ncFile.readNetCDF(metFile.toAscii().data()) != 0) {
+	  cout << "Error reading NetCDF file\n";
+	  exit(1);
+	}  
+ 
+  cout << "Load Observations ... " << endl;
+  
+  int nalt = 33;
+  int nradius = 73;
+  int ntheta = 73;
+  
+  QString file,datestr,timestr;
+  file = metFile.section("/",-1);  
+  datestr = file.left(8);
+  QDate date = QDate::fromString(datestr, "yyyyMMdd");
+  timestr = file.section("_",-1).section(".",0,0);
+  QTime time;
+  if (timestr.size()==2) {
+    time = QTime::fromString(timestr, "HH");
+  } else {
+    std::cout << "Implement reading routine for filenames which don't look like yyyymmdd_hh.nc \n";
+    exit(1);
+  } 
+  
+  QDateTime obTime;
+  obTime = QDateTime(date, time, Qt::UTC);  
+  QString obstring = obTime.toString(Qt::ISODate);
+  QDateTime startTime = frameVector.front().getTime();
+  QDateTime endTime = frameVector.back().getTime();
+  QString tcstart = startTime.toString(Qt::ISODate);
+  QString tcend = endTime.toString(Qt::ISODate);		
+  int fi = startTime.secsTo(obTime);
+  if ((fi < 0) or (fi > (int)frameVector.size())) {
+	cout << "Time problem with observation " << fi << endl;
+	exit(1);
+  }  
+  
+  for (int i = 0; i < nradius; ++i) {
+    for (int j = 0; j < ntheta; ++j) {
+      for (int k = 0; k < nalt; ++k) {
+        Observation varOb;
+        
+		double r = ncFile.getValue(i,j,k,(QString)"R");
+		double lambda = ncFile.getValue(i,j,k,(QString)"LAMBDA");
+		double alt = ncFile.getValue(i,j,k,(QString)"Z");
+
+		varOb.setType(MetObs::insitu);
+		varOb.setRadius(r);
+        varOb.setTheta(lambda);
+		varOb.setAltitude(alt);
+		varOb.setTime(obTime.toTime_t());
+		
+		double a = ncFile.calc_A(i,j,k);
+		double b = ncFile.calc_B(i,j,k);
+		double c = ncFile.calc_C(i,j,k);
+		double d = ncFile.calc_D(i,j,k);
+		double thetarhobar = ncFile.getValue(i,j,k,(QString)"THETARHOBAR");
+		double dpibardr = ncFile.getDerivative(i,j,k,(QString)"PIBAR",1);
+		double u = ncFile.getValue(i,j,k,(QString)"U");
+		double v = ncFile.getValue(i,j,k,(QString)"V");
+		double w = ncFile.getValue(i,j,k,(QString)"W");
+		float c_p = 1005.7;
+		float g = 9.81;
+
+		varOb.setOb(a);
+		varOb.setWeight(-1/thetarhobar*dpibardr,1,0);
+		varOb.setWeight(-1,0,1);		
+		varOb.setError(configHash.value("thermo_A_error").toFloat());
+		obVector->push_back(varOb);
+		varOb.setWeight(0,1,0);
+		varOb.setWeight(0,0,1);
+		
+		varOb.setOb(b);
+		varOb.setWeight(-1,0,2);		
+		varOb.setError(configHash.value("thermo_B_error").toFloat());
+		obVector->push_back(varOb);
+		varOb.setWeight(0,0,2);
+		
+		varOb.setOb(c);
+		varOb.setWeight(g/c_p/(thetarhobar*thetarhobar),1,0);
+		varOb.setWeight(-1,0,3);		
+		varOb.setError(configHash.value("thermo_C_error").toFloat());
+		obVector->push_back(varOb);
+		varOb.setWeight(0,1,0);
+		varOb.setWeight(0,0,3);
+
+		varOb.setOb(d);
+		varOb.setWeight(u,1,1);
+		varOb.setWeight(v/r,1,2);	
+		varOb.setWeight(w,1,3);		
+		varOb.setWeight(-1,2,0);		
+		varOb.setError(configHash.value("thermo_D_error").toFloat());
+		obVector->push_back(varOb);
+		varOb.setWeight(0,1,1);
+		varOb.setWeight(0,1,2);	
+		varOb.setWeight(0,1,3);		
+		varOb.setWeight(0,2,0);			
+
+      }
+    }
+  }
+    
   return true;
   
 }
