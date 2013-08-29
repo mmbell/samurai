@@ -33,9 +33,6 @@ public:
 	void initState(const int iteration);
 	
 protected:
-	double funcValue(double* state);
-	void funcGradient(double* state, double* gradient);
-
 	bool outputAnalysis(const QString& suffix, real* Astate);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);

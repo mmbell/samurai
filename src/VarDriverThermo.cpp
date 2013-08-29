@@ -210,21 +210,20 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (obMetaSize*(d+1)) + var;
+                int wgt_index = n + obMetaSize + numVars*d + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }
     }
-	
-	
+
 	
 // AF for now set the background to zero and don't allow any additional observations, i.e. skip loadBackgroundObs, adjustBackground, preProcessMetObs and loadMetObs
 
 	// We are done with the bgWeights, so free up that memory
-	delete[] bgWeights;	
+	delete[] bgWeights;	   
 	   
-	//obCost3D = new CostFunctionThermo(obVector.size(), bStateSize);
-	//obCost3D->initialize(&configHash, bgU, obs, refstate);
+	obCost3D = new CostFunctionThermo(obVector.size(), bStateSize);
+	obCost3D->initialize(&configHash, bgU, obs, refstate);
 	
 	// If we got here, then everything probably went OK!
 	return true;
@@ -236,17 +235,17 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
 
 bool VarDriverThermo::run()
 {
-	//int iter=1;
-	//while (iter <= maxIter) {
-		//cout << "Outer Loop Iteration: " << iter << endl;
-		//obCost3D->initState(iter);
-		//obCost3D->minimize();
-		//obCost3D->updateBG();
-		//iter++;
+	int iter=1;
+	while (iter <= maxIter) {
+		cout << "Outer Loop Iteration: " << iter << endl;
+		obCost3D->initState(iter);
+		obCost3D->minimize();
+		obCost3D->updateBG();
+		iter++;
 		
 		// Optionally update the analysis parameters for an additional iteration
-		//updateAnalysisParams(iter);
-	//}	
+		updateAnalysisParams(iter);
+	}	
 	
 	return true;
 	
@@ -256,10 +255,10 @@ bool VarDriverThermo::run()
 
 bool VarDriverThermo::finalize()
 {
-	//obCost3D->finalize();
+	obCost3D->finalize();
 	delete[] obs;
 	delete[] bgU;
-	//delete obCost3D;
+	delete obCost3D;
 	delete refstate;
 	return true;
 }
@@ -358,6 +357,24 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 	cout << "Time problem with observation " << fi << endl;
 	exit(1);
   }  
+ 
+ 
+ 	//This section just to for testing. Delete later!!
+         Observation varOb;
+		varOb.setType(101);
+		varOb.setRadius(10);
+        varOb.setTheta(50);
+		varOb.setAltitude(2);
+		varOb.setTime(obTime.toTime_t());
+		varOb.setOb(-27.0);
+		varOb.setWeight(-1/360.0,1,0);
+		varOb.setWeight(-1,0,1);		
+		varOb.setError(configHash.value("thermo_A_error").toFloat());
+		obVector->push_back(varOb);
+		
+		return true;
+ 
+ 
   
   for (int i = 0; i < nradius; ++i) {
     for (int j = 0; j < ntheta; ++j) {
@@ -365,13 +382,15 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
         Observation varOb;
         
 		double r = ncFile.getValue(i,j,k,(QString)"R");
+		double r_km = r/1000.0;
 		double lambda = ncFile.getValue(i,j,k,(QString)"LAMBDA");
 		double alt = ncFile.getValue(i,j,k,(QString)"Z");
+		double alt_km = alt/1000.0;
 
-		varOb.setType(MetObs::insitu);
-		varOb.setRadius(r);
+		varOb.setType(101);
+		varOb.setRadius(r_km);
         varOb.setTheta(lambda);
-		varOb.setAltitude(alt);
+		varOb.setAltitude(alt_km);
 		varOb.setTime(obTime.toTime_t());
 		
 		double a = ncFile.calc_A(i,j,k);
@@ -385,8 +404,11 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		double w = ncFile.getValue(i,j,k,(QString)"W");
 		float c_p = 1005.7;
 		float g = 9.81;
-
-		varOb.setOb(a);
+		
+		double scaling1 = 1000000000.0;
+		double scaling2 = 10000.0;
+		
+		varOb.setOb(a*scaling1);
 		varOb.setWeight(-1/thetarhobar*dpibardr,1,0);
 		varOb.setWeight(-1,0,1);		
 		varOb.setError(configHash.value("thermo_A_error").toFloat());
@@ -394,13 +416,13 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,1);
 		
-		varOb.setOb(b);
+		varOb.setOb(b*scaling2);
 		varOb.setWeight(-1,0,2);		
 		varOb.setError(configHash.value("thermo_B_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,0,2);
 		
-		varOb.setOb(c);
+		varOb.setOb(c*scaling1);
 		varOb.setWeight(g/c_p/(thetarhobar*thetarhobar),1,0);
 		varOb.setWeight(-1,0,3);		
 		varOb.setError(configHash.value("thermo_C_error").toFloat());
@@ -408,7 +430,7 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,3);
 
-		varOb.setOb(d);
+		varOb.setOb(d*scaling2);
 		varOb.setWeight(u,1,1);
 		varOb.setWeight(v/r,1,2);	
 		varOb.setWeight(w,1,3);		

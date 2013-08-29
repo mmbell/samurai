@@ -424,8 +424,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 	for (int n = 0; n < nState; n++) {
 		gradient[n] = state[n] + stateB[n] - CTHTd[n];
 	}
-	
-	
+
 }
 
 void CostFunction3D::updateHCq(real* state)
@@ -537,7 +536,7 @@ void CostFunction3D::calcInnovation()
 		int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (obMetaSize*(d+1)) + var;
+                int wgt_index = mi + obMetaSize + varDim*d + var; 
                 if (!obsVector[wgt_index]) continue;
                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                     int iNode = iiNode;
@@ -595,7 +594,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 		int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (obMetaSize*(d+1)) + var;
+                int wgt_index = mi + obMetaSize + varDim*d + var; 
                 if (!obsVector[wgt_index]) continue;
                 for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                     int iNode = iiNode;

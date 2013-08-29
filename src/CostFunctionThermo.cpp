@@ -19,49 +19,7 @@
 
 CostFunctionThermo::CostFunctionThermo(const int& numObs, const int& stateSize)
 	: CostFunction3D(numObs, stateSize)
-{
-	// Set up the boundary condition hash
-	bcHash["R0"] = R0;
-	bcHash["R1T0"] = R1T0;
-	bcHash["R1T1"] = R1T1;
-	bcHash["R1T2"] = R1T2;
-	bcHash["R1T10"] = R1T10;
-	bcHash["R2T10"] = R2T10;
-	bcHash["R2T20"] = R2T20;
-	bcHash["R3"] = R3;
-	bcHash["PERIODIC"] = PERIODIC;	
-    
-    rankHash[R0] = 0;
-    rankHash[R1T0] = 1;
-    rankHash[R1T1] = 1;
-    rankHash[R1T2] = 1;
-    rankHash[R2T10] = 2;
-    rankHash[R2T20] = 2;
-    rankHash[PERIODIC] = 1;
-    rankHash[R3] = 3;
-    
-    // Set the derivative array
-    derivative[0][0] = 0;
-    derivative[0][1] = 0;
-    derivative[0][2] = 0;
-    
-    derivative[1][0] = 1;
-    derivative[1][1] = 0;
-    derivative[1][2] = 0;
-
-    derivative[2][0] = 0;
-    derivative[2][1] = 1;
-    derivative[2][2] = 0;
-
-    derivative[3][0] = 0;
-    derivative[3][1] = 0;
-    derivative[3][2] = 1;
-	
-	// Use the full basis unless otherwise specified
-	basisappx = 0;
-	
-	obMetaSize = 7;
-    
+{   
 }
 
 CostFunctionThermo::~CostFunctionThermo()
@@ -69,48 +27,7 @@ CostFunctionThermo::~CostFunctionThermo()
 }
 
 void CostFunctionThermo::finalize()
-{	
-
-	delete iFilter;
-	delete jFilter;
-	delete kFilter;
-	delete[] currState;
-	delete[] currGradient;
-	delete[] tempState;
-	delete[] tempGradient;
-	delete[] xt;
-	delete[] df;
-	delete[] CTHTd;
-	delete[] stateU;
-	delete[] obsVector;
-	delete[] HCq;
-	delete[] innovation;
-	delete[] bgState;
-	delete[] bgStdDev;
-	delete[] stateA;
-	delete[] stateB;
-	delete[] stateC;
-	if (basisappx > 0) {
-		delete[] basis0;
-		delete[] basis1;
-	}
-    for (int var = 0; var < varDim; ++var) {
-        delete[] iGamma[var];
-        delete[] jGamma[var];
-        delete[] kGamma[var];
-        delete[] iL[var];
-        delete[] jL[var];
-        delete[] kL[var];
-    }
-    fftw_destroy_plan(iForward);
-    fftw_destroy_plan(iBackward);
-    fftw_destroy_plan(jForward);
-    fftw_destroy_plan(jBackward);
-    fftw_free(iFFTin);
-    fftw_free(jFFTin);
-    fftw_free(iFFTout);
-    fftw_free(jFFTout);
-    
+{	    
 }
 
 void CostFunctionThermo::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
@@ -122,50 +39,26 @@ void CostFunctionThermo::initialize(const QHash<QString, QString>* config, real*
 	outputPath.setPath(configHash->value("output_directory"));
 	
 	// Horizontal boundary conditions
-	iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
-    iBCR[0] = bcHash.value(configHash->value("i_rhou_bcR"));
-	iBCL[1] = bcHash.value(configHash->value("i_rhov_bcL"));
-    iBCR[1] = bcHash.value(configHash->value("i_rhov_bcR"));
-	iBCL[2] = bcHash.value(configHash->value("i_rhow_bcL"));
-    iBCR[2] = bcHash.value(configHash->value("i_rhow_bcR"));
-	iBCL[3] = bcHash.value(configHash->value("i_tempk_bcL"));
-    iBCR[3] = bcHash.value(configHash->value("i_tempk_bcR"));
-	iBCL[4] = bcHash.value(configHash->value("i_qv_bcL"));
-    iBCR[4] = bcHash.value(configHash->value("i_qv_bcR"));
-	iBCL[5] = bcHash.value(configHash->value("i_rhoa_bcL"));
-    iBCR[5] = bcHash.value(configHash->value("i_rhoa_bcR"));
-	iBCL[6] = bcHash.value(configHash->value("i_qr_bcL"));
-    iBCR[6] = bcHash.value(configHash->value("i_qr_bcR"));
+	iBCL[0] = bcHash.value(configHash->value("i_pip_bcL"));
+    iBCR[0] = bcHash.value(configHash->value("i_pip_bcR"));
+	iBCL[1] = bcHash.value(configHash->value("i_thetarhop_bcL"));
+    iBCR[1] = bcHash.value(configHash->value("i_thetarhop_bcR"));
+	iBCL[2] = bcHash.value(configHash->value("i_ftheta_bcL"));
+    iBCR[2] = bcHash.value(configHash->value("i_ftheta_bcR"));
 
-    jBCL[0] = bcHash.value(configHash->value("j_rhou_bcL"));
-    jBCR[0] = bcHash.value(configHash->value("j_rhou_bcR"));
-	jBCL[1] = bcHash.value(configHash->value("j_rhov_bcL"));
-    jBCR[1] = bcHash.value(configHash->value("j_rhov_bcR"));
-	jBCL[2] = bcHash.value(configHash->value("j_rhow_bcL"));
-    jBCR[2] = bcHash.value(configHash->value("j_rhow_bcR"));
-	jBCL[3] = bcHash.value(configHash->value("j_tempk_bcL"));
-    jBCR[3] = bcHash.value(configHash->value("j_tempk_bcR"));
-	jBCL[4] = bcHash.value(configHash->value("j_qv_bcL"));
-    jBCR[4] = bcHash.value(configHash->value("j_qv_bcR"));
-	jBCL[5] = bcHash.value(configHash->value("j_rhoa_bcL"));
-    jBCR[5] = bcHash.value(configHash->value("j_rhoa_bcR"));
-	jBCL[6] = bcHash.value(configHash->value("j_qr_bcL"));
-    jBCR[6] = bcHash.value(configHash->value("j_qr_bcR"));
+	jBCL[0] = bcHash.value(configHash->value("j_pip_bcL"));
+    jBCR[0] = bcHash.value(configHash->value("j_pip_bcR"));
+	jBCL[1] = bcHash.value(configHash->value("j_thetarhop_bcL"));
+    jBCR[1] = bcHash.value(configHash->value("j_thetarhop_bcR"));
+	jBCL[2] = bcHash.value(configHash->value("j_ftheta_bcL"));
+    jBCR[2] = bcHash.value(configHash->value("j_ftheta_bcR"));
 
-    kBCL[0] = bcHash.value(configHash->value("k_rhou_bcL"));
-    kBCR[0] = bcHash.value(configHash->value("k_rhou_bcR"));
-	kBCL[1] = bcHash.value(configHash->value("k_rhov_bcL"));
-    kBCR[1] = bcHash.value(configHash->value("k_rhov_bcR"));
-	kBCL[2] = bcHash.value(configHash->value("k_rhow_bcL"));
-    kBCR[2] = bcHash.value(configHash->value("k_rhow_bcR"));
-	kBCL[3] = bcHash.value(configHash->value("k_tempk_bcL"));
-    kBCR[3] = bcHash.value(configHash->value("k_tempk_bcR"));
-	kBCL[4] = bcHash.value(configHash->value("k_qv_bcL"));
-    kBCR[4] = bcHash.value(configHash->value("k_qv_bcR"));
-	kBCL[5] = bcHash.value(configHash->value("k_rhoa_bcL"));
-    kBCR[5] = bcHash.value(configHash->value("k_rhoa_bcR"));
-	kBCL[6] = bcHash.value(configHash->value("k_qr_bcL"));
-    kBCR[6] = bcHash.value(configHash->value("k_qr_bcR"));
+	kBCL[0] = bcHash.value(configHash->value("k_pip_bcL"));
+    kBCR[0] = bcHash.value(configHash->value("k_pip_bcR"));
+	kBCL[1] = bcHash.value(configHash->value("k_thetarhop_bcL"));
+    kBCR[1] = bcHash.value(configHash->value("k_thetarhop_bcR"));
+	kBCL[2] = bcHash.value(configHash->value("k_ftheta_bcL"));
+    kBCR[2] = bcHash.value(configHash->value("k_ftheta_bcR"));
 
 	// Define the Reference state
     refstate = ref;
@@ -173,6 +66,7 @@ void CostFunctionThermo::initialize(const QHash<QString, QString>* config, real*
 	// Assign local object pointers
 	bgFields = bgU;
 	rawObs = obs;
+
 	iMin = configHash->value("i_min").toFloat();
 	iMax = configHash->value("i_max").toFloat();
 	DI = configHash->value("i_incr").toFloat();
@@ -286,15 +180,17 @@ void CostFunctionThermo::initState(const int iteration)
 		stateC[n] = 0.0;
 	}
 	
-	// Initialize background errors and filter scales
-	bgError[0] = configHash->value("bg_rhou_error").toFloat();
-	bgError[1] = configHash->value("bg_rhov_error").toFloat();
-	bgError[2] = configHash->value("bg_rhow_error").toFloat();
-	bgError[3] = configHash->value("bg_tempk_error").toFloat();
-	bgError[4] = configHash->value("bg_qv_error").toFloat();	
-	bgError[5] = configHash->value("bg_rhoa_error").toFloat();
-	bgError[6] = configHash->value("bg_qr_error").toFloat();	
 	
+	// Initialize background errors and filter scales
+	bgError[0] = configHash->value("bg_pip_error").toFloat();
+	bgError[1] = configHash->value("bg_thetarhop_error").toFloat();
+	bgError[2] = configHash->value("bg_ftheta_error").toFloat();
+	bgError[3] = 0;
+	bgError[4] = 0;
+	bgError[5] = 0;
+	bgError[6] = 0;
+	
+	// Initialize filter scales
 	// Set up the recursive filter
 	iFilterScale = configHash->value("i_filter_length").toFloat();
 	jFilterScale = configHash->value("j_filter_length").toFloat();
@@ -363,7 +259,8 @@ void CostFunctionThermo::initState(const int iteration)
 	}
 	
 	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
-	obAdjustments();
+	//obAdjustments();
+	obsVector= rawObs;
 
 	// d = y - HXb
 	calcInnovation();
@@ -383,51 +280,6 @@ void CostFunctionThermo::initState(const int iteration)
 				
 }	
 
-real CostFunctionThermo::funcValue(real* state)
-{
-
-	real qIP, obIP;
-	qIP = 0.;
-	obIP = 0.;
-	
-	updateHCq(state);
-
-	// Compute inner product of state vector
-	//#pragma omp parallel for reduction(+:qIP)
-	for (int n = 0; n < nState; n++) {
-		qIP += state[n]*state[n];
-	}
-		
-	// Subtract d from HCq to yield mObs length vector and compute inner product
-	//#pragma omp parallel for reduction(+:obIP)
-	for (int m = 0; m < mObs; m++) {
-        int obIndex = m*(obMetaSize+varDim*derivDim) + 1; 
-		obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-	}
-		
-	real J = 0.5*(qIP + obIP);
-	return J;
-	
-}
-
-void CostFunctionThermo::funcGradient(real* state, real* gradient)
-{
-	
-	updateHCq(state);
-		
-	// HTHCq
-	calcHTranspose(HCq, stateC);
-	
-	SCtranspose(stateC, stateA);
-	
-	SAtranspose(stateA, stateB);
-		
-	for (int n = 0; n < nState; n++) {
-		gradient[n] = state[n] + stateB[n] - CTHTd[n];
-	}
-	
-	
-}
 bool CostFunctionThermo::outputAnalysis(const QString& suffix, real* Astate)
 {
 	

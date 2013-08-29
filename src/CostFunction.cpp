@@ -75,7 +75,7 @@ void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fr
 	}
 	for (its=0; its<ITMAX; its++) {
 		cout << "\t\tIteration: " << its << "\tJ: " << fq << endl;
-		dlinmin(q, xi, fret);
+		dlinmin(q, xi, fret);			
 		if (2.0*fabs(fret-fq) <= ftol*(fabs(fret)+fabs(fq)+EPS)) {
 			cout << "\tMinimum J: " << fret << endl;
 			cout << "\tFound minimum in " << its << " iterations." << endl;

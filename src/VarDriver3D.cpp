@@ -1403,7 +1403,7 @@ bool VarDriver3D::preProcessMetObs()
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (obMetaSize*(d+1)) + var;
+                int wgt_index = n + obMetaSize +numVars*d + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }
@@ -1485,7 +1485,7 @@ bool VarDriver3D::loadMetObs()
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (obMetaSize*(d+1)) + var;
+                int wgt_index = n + obMetaSize +numVars*d + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }        

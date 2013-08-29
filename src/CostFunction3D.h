@@ -39,8 +39,8 @@ public:
 protected:
 	static const int varDim = 7;
     static const int derivDim = 4;
-	virtual double funcValue(double* state);
-	virtual void funcGradient(double* state, double* gradient);
+	double funcValue(double* state);
+	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
 			   const real& DX, const real& DXrecip, const int& derivative,
