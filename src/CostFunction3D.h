@@ -37,7 +37,7 @@ public:
 	virtual void initState(const int iteration);
 	
 protected:
-	static const int varDim = 7;
+	static const int varDim = 3;
     static const int derivDim = 4;
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
