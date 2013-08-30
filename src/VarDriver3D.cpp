@@ -1583,6 +1583,10 @@ int VarDriver3D::loadBackgroundObs()
                 (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
                 (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
                 continue;
+			real cylUm = (Um*bgX + Vm*bgY)/bgRadius;
+			real cylVm = (-Um*bgY + Vm*bgX)/bgRadius;
+			Um = cylUm;
+			Vm = cylVm;
         }
         
         // Reference states			
