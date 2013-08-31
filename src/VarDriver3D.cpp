@@ -722,8 +722,8 @@ bool VarDriver3D::preProcessMetObs()
                     // This needs to be redone for the Cartesian case
                     //vBG = 1.e3*bilinearField(obX, obY, 0);
                     //uBG = -1.e5*bilinearField(obX, 20., 1)/(rad*20.);
-                    varOb.setWeight(1., 0);
-                    //varOb.setWeight(1., 1);
+                    //varOb.setWeight(1., 0);
+                    varOb.setWeight(1., 1);
                     varOb.setOb(wspd);
                     varOb.setError(configHash.value("sfmr_windspeed_error").toFloat());
                     obVector.push_back(varOb);
