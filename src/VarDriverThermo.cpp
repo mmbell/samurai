@@ -357,25 +357,7 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 	cout << "Time problem with observation " << fi << endl;
 	exit(1);
   }  
- 
- 
- 	//This section just to for testing. Delete later!!
-         Observation varOb;
-		varOb.setType(101);
-		varOb.setRadius(10);
-        varOb.setTheta(50);
-		varOb.setAltitude(2);
-		varOb.setTime(obTime.toTime_t());
-		varOb.setOb(-27.0);
-		varOb.setWeight(-1/360.0,1,0);
-		varOb.setWeight(-1,0,1);		
-		varOb.setError(configHash.value("thermo_A_error").toFloat());
-		obVector->push_back(varOb);
-		
-		return true;
- 
- 
-  
+		  
   for (int i = 0; i < nradius; ++i) {
     for (int j = 0; j < ntheta; ++j) {
       for (int k = 0; k < nalt; ++k) {
@@ -408,7 +390,7 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		double scaling1 = 1000000000.0;
 		double scaling2 = 10000.0;
 		
-		varOb.setOb(a*scaling1);
+		varOb.setOb(a*scaling2);
 		varOb.setWeight(-1/thetarhobar*dpibardr,1,0);
 		varOb.setWeight(-1,0,1);		
 		varOb.setError(configHash.value("thermo_A_error").toFloat());
@@ -422,7 +404,7 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		obVector->push_back(varOb);
 		varOb.setWeight(0,0,2);
 		
-		varOb.setOb(c*scaling1);
+		varOb.setOb(c*scaling2);
 		varOb.setWeight(g/c_p/(thetarhobar*thetarhobar),1,0);
 		varOb.setWeight(-1,0,3);		
 		varOb.setError(configHash.value("thermo_C_error").toFloat());
