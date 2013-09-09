@@ -278,7 +278,7 @@ double NetCDF::calc_A(const int &i,const int &j,const int &k)
 	double vprime = this->getValue(i,j,k,(QString)"VP");
 	double r = this->getValue(i,j,k,(QString)"R");
 
-	double a =1.0/c_p/thetarhobar*(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-1.0*vprime*vprime/r-f*vprime);
+	double a =(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-vprime*vprime/r-f*vprime)/(c_p*thetarhobar);
 	return a;	
 }
 
@@ -288,13 +288,13 @@ double NetCDF::calc_B(const int &i,const int &j,const int &k)
 	double thetarhobar = this->getValue(i,j,k,(QString)"THETARHOBAR");
 	double u = this->getValue(i,j,k,(QString)"U");
 	double dvdr = this->getValue(i,j,k,(QString)"DVDR");
-	double v = this->getValue(i,j,k,(QString)"V");	
+	double v = this->getValue(i,j,k,(QString)"V");
 	double dvdlambda = this->getValue(i,j,k,(QString)"DVDT");
 	double w = this->getValue(i,j,k,(QString)"W");	
 	double dvdz = this->getValue(i,j,k,(QString)"DVDZ");
 	double r = this->getValue(i,j,k,(QString)"R");
 
-	double b =1.0*r/c_p/thetarhobar*(u*dvdr+v*dvdlambda+w*dvdz+1.0*u*v/r+f*u);
+	double b =(u*dvdr+v*dvdlambda+w*dvdz+u*v/r+f*u)*r/(c_p*thetarhobar);
 	return b;	
 }
 
@@ -308,7 +308,7 @@ double NetCDF::calc_C(const int &i,const int &j,const int &k)
 	double w = this->getValue(i,j,k,(QString)"W");	
 	double dwdz = this->getValue(i,j,k,(QString)"DWDZ");
 
-	double c =1.0/c_p/thetarhobar* (u*dwdr+v*dwdlambda+w*dwdz);
+	double c =(u*dwdr+v*dwdlambda+w*dwdz)/(c_p*thetarhobar);
 	return c;	
 }
 
