@@ -167,39 +167,39 @@ int NetCDF::readNetCDF(const char* filename) {
     if (!vpVar->set_cur(NREC, 0, 0, 0))
 		return NC_ERR;	
 											 
-	if (!uVar->get(u, 1, NALT, NRADIUS, NTHETA))
+	if (!uVar->get(u, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
-  	if (!vVar->get(v, 1, NALT, NRADIUS, NTHETA))
+  	if (!vVar->get(v, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!wVar->get(w, 1, NALT, NRADIUS, NTHETA))
+ 	if (!wVar->get(w, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 
-	if (!dudrVar->get(dudr, 1, NALT, NRADIUS, NTHETA))
+	if (!dudrVar->get(dudr, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
-  	if (!dvdrVar->get(dvdr, 1, NALT, NRADIUS, NTHETA))
+  	if (!dvdrVar->get(dvdr, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!dwdrVar->get(dwdr, 1, NALT, NRADIUS, NTHETA))
+ 	if (!dwdrVar->get(dwdr, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 
-	if (!dudtVar->get(dudt, 1, NALT, NRADIUS, NTHETA))
+	if (!dudtVar->get(dudt, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
-  	if (!dvdtVar->get(dvdt, 1, NALT, NRADIUS, NTHETA))
+  	if (!dvdtVar->get(dvdt, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!dwdtVar->get(dwdt, 1, NALT, NRADIUS, NTHETA))
+ 	if (!dwdtVar->get(dwdt, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 
-	if (!dudzVar->get(dudz, 1, NALT, NRADIUS, NTHETA))
+	if (!dudzVar->get(dudz, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
-  	if (!dvdzVar->get(dvdz, 1, NALT, NRADIUS, NTHETA))
+  	if (!dvdzVar->get(dvdz, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!dwdzVar->get(dwdz, 1, NALT, NRADIUS, NTHETA))
+ 	if (!dwdzVar->get(dwdz, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 
-	if (!rhoaVar->get(rhoa, 1, NALT, NRADIUS, NTHETA))
+	if (!rhoaVar->get(rhoa, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
-  	if (!pibarVar->get(pibar, 1, NALT, NRADIUS, NTHETA))
+  	if (!pibarVar->get(pibar, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!thetarhobarVar->get(thetarhobar, 1, NALT, NRADIUS, NTHETA))
+ 	if (!thetarhobarVar->get(thetarhobar, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 	
-  	if (!vbarVar->get(vbar, 1, NALT, NRADIUS, NTHETA))
+  	if (!vbarVar->get(vbar, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
- 	if (!vpVar->get(vp, 1, NALT, NRADIUS, NTHETA))
+ 	if (!vpVar->get(vp, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 	
 									      
    return 0;
@@ -278,7 +278,7 @@ double NetCDF::calc_A(const int &i,const int &j,const int &k)
 	double vprime = this->getValue(i,j,k,(QString)"VP");
 	double r = this->getValue(i,j,k,(QString)"R");
 
-	double a =(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-vprime*vprime/r-f*vprime)/(c_p*thetarhobar);
+	double a =(u*dudr+v*dudlambda+w*dudz-2.0*vbar*vprime/r-vprime*vprime/r-f*vprime); //(c_p*thetarhobar);
 	return a;	
 }
 
@@ -294,7 +294,7 @@ double NetCDF::calc_B(const int &i,const int &j,const int &k)
 	double dvdz = this->getValue(i,j,k,(QString)"DVDZ");
 	double r = this->getValue(i,j,k,(QString)"R");
 
-	double b =(u*dvdr+v*dvdlambda+w*dvdz+u*v/r+f*u)*r/(c_p*thetarhobar);
+	double b =(u*dvdr+v*dvdlambda+w*dvdz+u*v/r+f*u)*r; //(c_p*thetarhobar);
 	return b;	
 }
 
@@ -308,7 +308,7 @@ double NetCDF::calc_C(const int &i,const int &j,const int &k)
 	double w = this->getValue(i,j,k,(QString)"W");	
 	double dwdz = this->getValue(i,j,k,(QString)"DWDZ");
 
-	double c =(u*dwdr+v*dwdlambda+w*dwdz)/(c_p*thetarhobar);
+	double c =(u*dwdr+v*dwdlambda+w*dwdz); //(c_p*thetarhobar);
 	return c;	
 }
 

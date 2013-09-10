@@ -205,10 +205,17 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 			return false;
 		}
 	}
-	cout << "Number of New Observations: " << obVector.size() << endl;		
 	
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;	
+	
+	if (obVector.size() == 0) {
+		// No observations so quit
+		cout << "No observations loaded, unable to perform analysis.\n";
+		return false;
+	} else {
+		cout << "Number of New Observations: " << obVector.size() << endl;
+	}
 	
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
@@ -716,8 +723,8 @@ bool VarDriver3D::preProcessMetObs()
                     // This needs to be redone for the Cartesian case
                     //vBG = 1.e3*bilinearField(obX, obY, 0);
                     //uBG = -1.e5*bilinearField(obX, 20., 1)/(rad*20.);
-                    varOb.setWeight(1., 0);
-                    //varOb.setWeight(1., 1);
+                    //varOb.setWeight(1., 0);
+                    varOb.setWeight(1., 1);
                     varOb.setOb(wspd);
                     varOb.setError(configHash.value("sfmr_windspeed_error").toFloat());
                     obVector.push_back(varOb);
@@ -1577,6 +1584,10 @@ int VarDriver3D::loadBackgroundObs()
                 (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
                 (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
                 continue;
+			real cylUm = (Um*bgX + Vm*bgY)/bgRadius;
+			real cylVm = (-Um*bgY + Vm*bgX)/bgRadius;
+			Um = cylUm;
+			Vm = cylVm;
         }
         
         // Reference states			
@@ -1593,6 +1604,9 @@ int VarDriver3D::loadBackgroundObs()
         real qvprime = qv-qBar;
         real rhoprime = (rhoa-rhoBar)*100;
         real logZ = log(bgZ);
+	if (configHash.value("qr_variable") == "qr") {
+	  qr = refstate->bhypTransform(qr);
+	}
         // We assume here that the background precipitation field is always zero
         // real qr = 0.;
 		
@@ -1925,9 +1939,12 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
      to avoid artifacts when running interpolating to small mesoscale grids */
 
     // Load the observations into a vector
-    int numbgObs = bgIn.size()*7/11 + idim*jdim*kdim;
-    bgObs = new real[numbgObs*(obMetaSize+numVars*numDerivatives)];
-    for (unsigned int m=0; m < numbgObs*(obMetaSize+numVars*numDerivatives); m++) bgObs[m] = 0.;
+    int numbgObs = bgIn.size()*7/11;
+	if (configHash.value("mc_weight").toFloat() > 0) {
+		numbgObs += idim*jdim*kdim;
+	}
+    bgObs = new real[numbgObs*(7+numVars*numDerivatives)];
+    for (unsigned int m=0; m < numbgObs*(7+numVars*numDerivatives); m++) bgObs[m] = 0.;
     
     int p = 0;
     real obX, obY, obRadius, obTheta;
@@ -1980,40 +1997,42 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     }	
     
 	// Add mass continuity constraint
-    for (int iIndex = -1; iIndex < idim; iIndex++) {
-	    real i = imin + iincr * iIndex;
-        if (i > ((idim-1)*iincr + imin)) continue;       
-        for (int jIndex = -1; jIndex < jdim; jIndex++) {
-	        real j = jmin + jincr * jIndex;
-            if (j > ((jdim-1)*jincr + jmin)) continue;	
-			for (int kIndex = -1; kIndex < kdim; kIndex++) {
-	            real k = kmin + kincr * kIndex;
-                if (k > ((kdim-1)*kincr + kmin)) continue;
-				bgObs[p] = 0.0;
-				bgObs[p+1] = configHash.value("mc_weight").toFloat();
-                bgObs[p+2] = i;
-                bgObs[p+3] = j;
-				bgObs[p+4] = k;
-	            // Null type
-	            bgObs[p+5] = -1;
-				bgObs[p+6] = configHash.value("ref_time").toInt();
-                if (runMode == XYZ) {
-					bgObs[p+(7*(1+1))] = 1.0;
-					bgObs[p+(7*(2+1))+1] = 1.0;
-					bgObs[p+(7*(3+1))+2] = 1.0;					
-                } else if (runMode == RTZ) {
-					if (i > 0) {
-						real rInverse = 180.0/(i*Pi);
-						bgObs[p+7] = 1.0/i;
+	if (configHash.value("mc_weight").toFloat() > 0) {
+	    for (int iIndex = -1; iIndex < idim; iIndex++) {
+		    real i = imin + iincr * iIndex;
+	        if (i > ((idim-1)*iincr + imin)) continue;       
+	        for (int jIndex = -1; jIndex < jdim; jIndex++) {
+		        real j = jmin + jincr * jIndex;
+	            if (j > ((jdim-1)*jincr + jmin)) continue;	
+				for (int kIndex = -1; kIndex < kdim; kIndex++) {
+		            real k = kmin + kincr * kIndex;
+	                if (k > ((kdim-1)*kincr + kmin)) continue;
+					bgObs[p] = 0.0;
+					bgObs[p+1] = configHash.value("mc_weight").toFloat();
+	                bgObs[p+2] = i;
+	                bgObs[p+3] = j;
+					bgObs[p+4] = k;
+		            // Null type
+		            bgObs[p+5] = -1;
+					bgObs[p+6] = configHash.value("ref_time").toInt();
+	                if (runMode == XYZ) {
 						bgObs[p+(7*(1+1))] = 1.0;
-						bgObs[p+(7*(2+1))+1] = rInverse;
-						bgObs[p+(7*(3+1))+2] = 1.0;
-					}
-                }
+						bgObs[p+(7*(2+1))+1] = 1.0;
+						bgObs[p+(7*(3+1))+2] = 1.0;					
+	                } else if (runMode == RTZ) {
+						if (i > 0) {
+							real rInverse = 180.0/(i*Pi);
+							bgObs[p+7] = 1.0/i;
+							bgObs[p+(7*(1+1))] = 1.0;
+							bgObs[p+(7*(2+1))+1] = rInverse;
+							bgObs[p+(7*(3+1))+2] = 1.0;
+						}
+	                }
+					p += (7+numVars*numDerivatives);
+				}
 			}
 		}
-	}
-	
+	}	
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {

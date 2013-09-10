@@ -397,31 +397,31 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		double scaling2 = 1.0;
 		
 		varOb.setOb(a*scaling2);
-		varOb.setWeight(-dpibardr/thetarhobar,1,0);
-		varOb.setWeight(-1,0,1);		
+		varOb.setWeight(-c_p*dpibardr,1,0);
+		varOb.setWeight(-c_p*thetarhobar/1000.0,0,1);		
 		varOb.setError(configHash.value("thermo_A_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,1);
 		
 		varOb.setOb(b*scaling2);
-		varOb.setWeight(-180.0/Pi,0,2);		
+		varOb.setWeight(-c_p*thetarhobar*180.0/(Pi*1000.0),0,2);		
 		varOb.setError(configHash.value("thermo_B_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,0,2);
 		
 		varOb.setOb(c*scaling2);
-		varOb.setWeight(g/(c_p*thetarhobar*thetarhobar),1,0);
-		varOb.setWeight(-1,0,3);		
+		varOb.setWeight(g/thetarhobar,1,0);
+		varOb.setWeight(-c_p*thetarhobar/1000.0,0,3);		
 		varOb.setError(configHash.value("thermo_C_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,3);
 
 		varOb.setOb(d*scaling2);
-		varOb.setWeight(u,1,1);
-		varOb.setWeight(v/r,1,2);	
-		varOb.setWeight(w,1,3);		
+		varOb.setWeight(u/1000.0,1,1);
+		varOb.setWeight(v*180.0/(r*Pi*1000.0),1,2);	
+		varOb.setWeight(w/1000.0,1,3);		
 		varOb.setWeight(-1,2,0);		
 		varOb.setError(configHash.value("thermo_D_error").toFloat());
 		obVector->push_back(varOb);

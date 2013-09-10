@@ -696,7 +696,7 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 		//cout << datestr.toAscii().data() << endl;
 		ob.setLat(lineparts[5].toFloat());
 		ob.setLon(lineparts[6].toFloat());
-		ob.setAltitude(0.0);
+		ob.setAltitude(10.0);
 		ob.setWindSpeed(lineparts[7].toFloat());
 		ob.setObType(MetObs::sfmr);
 		metObVector->push_back(ob);
