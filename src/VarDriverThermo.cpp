@@ -387,42 +387,60 @@ bool VarDriverThermo::loadObservations(QString& metFile, QList<Observation>* obV
 		double d = ncFile.calc_D(i,j,k);
 		double thetarhobar = ncFile.getValue(i,j,k,(QString)"THETARHOBAR");
 		double dpibardr = ncFile.getDerivative(i,j,k,(QString)"PIBAR",1);
+		double thetarhop = ncFile.getValue(i,j,k,(QString)"THETARHOP");
+		double dpipdr = ncFile.getDerivative(i,j,k,(QString)"PIP",1);
+		double dpipdlambda = ncFile.getDerivative(i,j,k,(QString)"PIP",2);
+		double dpipdz = ncFile.getDerivative(i,j,k,(QString)"PIP",3);
+		double dtrpdr = ncFile.getDerivative(i,j,k,(QString)"THETARHOP",1);
+		double dtrpdlambda = ncFile.getDerivative(i,j,k,(QString)"THETARHOP",2);
+		double dtrpdz = ncFile.getDerivative(i,j,k,(QString)"THETARHOP",3);
+		
 		double u = ncFile.getValue(i,j,k,(QString)"U");
 		double v = ncFile.getValue(i,j,k,(QString)"V");
 		double w = ncFile.getValue(i,j,k,(QString)"W");
 		float c_p = 1005.7;
 		float g = 9.81;
 		
-		double scaling1 = 1000000000.0;
-		double scaling2 = 1.0;
+		/* Test the residual
+		double a_residual = -c_p*thetarhobar*dpipdr -c_p*dpibardr*thetarhop - a;
+		double b_residual = -c_p*thetarhobar*dpipdlambda/r - b;
+		double c_residual =	-c_p*thetarhobar*dpipdz + g*thetarhop/thetarhobar - c; 	
+		double d_residual = dtrpdr*u + dtrpdlambda*v/r + dtrpdz*w - d;
 		
-		varOb.setOb(a*scaling2);
-		varOb.setWeight(-c_p*dpibardr,1,0);
-		varOb.setWeight(-c_p*thetarhobar/1000.0,0,1);		
+		cout << "A: " << a_residual << "\n";
+		cout << "B: " << b_residual << "\n";
+		cout << "C: " << c_residual << "\n";
+		cout << "D: " << d_residual << "\n";						 
+		double scaling1 = 1000000000.0; */
+		double scaling = 1000.0;
+		
+		varOb.setOb(a*scaling);
+		varOb.setWeight(-c_p*dpibardr*scaling,1,0);
+		varOb.setWeight(-c_p*thetarhobar*scaling/1000.0,0,1);		
 		varOb.setError(configHash.value("thermo_A_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,1);
 		
-		varOb.setOb(b*scaling2);
-		varOb.setWeight(-c_p*thetarhobar*180.0/(Pi*1000.0),0,2);		
+		varOb.setOb(b*scaling);
+		varOb.setWeight(-c_p*thetarhobar*180.0*scaling/(Pi*r),0,2);		
 		varOb.setError(configHash.value("thermo_B_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,0,2);
 		
-		varOb.setOb(c*scaling2);
-		varOb.setWeight(g/thetarhobar,1,0);
-		varOb.setWeight(-c_p*thetarhobar/1000.0,0,3);		
+		varOb.setOb(c*scaling);
+		varOb.setWeight(g/thetarhobar*scaling,1,0);
+		varOb.setWeight(-c_p*thetarhobar*scaling/1000.0,0,3);		
 		varOb.setError(configHash.value("thermo_C_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,1,0);
 		varOb.setWeight(0,0,3);
 
-		varOb.setOb(d*scaling2);
-		varOb.setWeight(u/1000.0,1,1);
-		varOb.setWeight(v*180.0/(r*Pi*1000.0),1,2);	
-		varOb.setWeight(w/1000.0,1,3);		
-		varOb.setWeight(-1,2,0);		
+		varOb.setOb(d*scaling);
+		varOb.setWeight(u/1000.0*scaling,1,1);
+		varOb.setWeight(v*180.0*scaling/(r*Pi),1,2);	
+		varOb.setWeight(w/1000.0*scaling,1,3);		
+		varOb.setWeight(-scaling,2,0);		
 		varOb.setError(configHash.value("thermo_D_error").toFloat());
 		obVector->push_back(varOb);
 		varOb.setWeight(0,1,1);

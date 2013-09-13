@@ -41,6 +41,8 @@ NetCDF::NetCDF() :c_p(1005.7), g(9.81), f(0.448432045656147e-05), pi(3.141592653
 	rhoa = new float[NALT*NRADIUS*NTHETA];
 	pibar = new float[NALT*NRADIUS*NTHETA];
 	thetarhobar = new float[NALT*NRADIUS*NTHETA];	
+	pip = new float[NALT*NRADIUS*NTHETA];
+	thetarhop = new float[NALT*NRADIUS*NTHETA];	
 	vbar = new float[NALT*NRADIUS*NTHETA];
 	vp = new float[NALT*NRADIUS*NTHETA];	
 }
@@ -64,7 +66,9 @@ NetCDF::~NetCDF() {
 	delete[] dwdz;	
 	delete[] rhoa;
 	delete[] pibar;
-	delete[] thetarhobar;	
+	delete[] thetarhobar;
+	delete[] pip;
+	delete[] thetarhop;	
 	delete[] vbar;
 	delete[] vp;	
 }
@@ -96,6 +100,7 @@ int NetCDF::readNetCDF(const char* filename) {
 
      // Get pointers to the pressure and temperature variables.
     NcVar *uVar,*vVar,*wVar,*dudrVar,*dvdrVar,*dwdrVar,*dudtVar,*dvdtVar,*dwdtVar,*dudzVar,*dvdzVar,*dwdzVar,*rhoaVar,*pibarVar,*thetarhobarVar,*vbarVar,*vpVar;
+	NcVar *pipVar, *thetarhopVar;
 
     if (!(uVar = dataFile.get_var("U")))
     	return NC_ERR;
@@ -126,6 +131,10 @@ int NetCDF::readNetCDF(const char* filename) {
     if (!(pibarVar = dataFile.get_var("PIBAR")))
     	return NC_ERR;   
     if (!(thetarhobarVar = dataFile.get_var("THETARHOBAR")))
+    	return NC_ERR;    
+    if (!(pipVar = dataFile.get_var("PIP")))
+    	return NC_ERR;   
+    if (!(thetarhopVar = dataFile.get_var("THETARHOP")))
     	return NC_ERR;    
     if (!(vbarVar = dataFile.get_var("VBAR")))
     	return NC_ERR;   
@@ -162,6 +171,10 @@ int NetCDF::readNetCDF(const char* filename) {
 		return NC_ERR;
     if (!thetarhobarVar->set_cur(NREC, 0, 0, 0))
 		return NC_ERR;	
+    if (!pipVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!thetarhopVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;	
     if (!vbarVar->set_cur(NREC, 0, 0, 0))
 		return NC_ERR;
     if (!vpVar->set_cur(NREC, 0, 0, 0))
@@ -196,6 +209,10 @@ int NetCDF::readNetCDF(const char* filename) {
   	if (!pibarVar->get(pibar, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
  	if (!thetarhobarVar->get(thetarhobar, 1, NALT, NTHETA, NRADIUS))
+		return NC_ERR; 	
+  	if (!pipVar->get(pip, 1, NALT, NTHETA, NRADIUS))
+		return NC_ERR;
+ 	if (!thetarhopVar->get(thetarhop, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR; 	
   	if (!vbarVar->get(vbar, 1, NALT, NTHETA, NRADIUS))
 		return NC_ERR;
@@ -252,6 +269,10 @@ double NetCDF::getValue(const int &i,const int &j,const int &k, const QString &v
 	value_out= pibar[k*NTHETA*NRADIUS + j*NTHETA + i];		
 	} else if (varName=="THETARHOBAR") {
 	value_out= thetarhobar[k*NTHETA*NRADIUS + j*NTHETA + i];	
+	} else if (varName=="PIP") {
+	value_out= pip[k*NTHETA*NRADIUS + j*NTHETA + i];		
+	} else if (varName=="THETARHOP") {
+	value_out= thetarhop[k*NTHETA*NRADIUS + j*NTHETA + i];	
 	} else if (varName=="VBAR") {
 	value_out= vbar[k*NTHETA*NRADIUS + j*NTHETA + i];		
 	} else if (varName=="VP") {
@@ -294,7 +315,9 @@ double NetCDF::calc_B(const int &i,const int &j,const int &k)
 	double dvdz = this->getValue(i,j,k,(QString)"DVDZ");
 	double r = this->getValue(i,j,k,(QString)"R");
 
-	double b =(u*dvdr+v*dvdlambda+w*dvdz+u*v/r+f*u)*r; //(c_p*thetarhobar);
+	double b =(u*dvdr+v*dvdlambda+w*dvdz+u*v/r+f*u); //(c_p*thetarhobar);
+	double dpipdlambda = this->getDerivative(i,j,k,(QString)"PIP",2);
+	double scaled = (c_p*thetarhobar)*dpipdlambda;
 	return b;	
 }
 

@@ -51,6 +51,8 @@ private:
 	float* rhoa;
 	float* pibar;
 	float* thetarhobar;
+	float* pip;
+	float* thetarhop;
 	float* vbar;
 	float* vp;
 	
