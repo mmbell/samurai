@@ -6,7 +6,7 @@
 #define FLIGHT_NUM_LEN 8
 #define FAC_NAME_LEN 8
 #define RAD_NAME_LEN 8
-#define MAX_NUM_PARMS 20 
+#define MAX_NUM_PARMS 40 
 #define PARM_NAME_LEN 8 
 #define PARM_DESC_LEN 40
 #define PARM_UNIT_LEN 8
@@ -20,7 +20,7 @@
 /***************************************************/
 /* STRUCTURES */
 /***************************************************/
-// Required pragma to support 64-bit operation
+// Required pragma to support 64-bit operation on 32-bit files
 #pragma pack(push)
 #pragma pack(4)
 struct key_table_info {
