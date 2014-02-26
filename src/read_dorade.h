@@ -20,9 +20,15 @@
 /***************************************************/
 /* STRUCTURES */
 /***************************************************/
-// Required pragma to support 64-bit operation on 32-bit files
+/* Required pragma to support 64-bit operation on 32-bit files
+   becoming obsolete with new solo3 operations. Need to come up
+   with run-time way to handle this */
 #pragma pack(push)
+
+// For older soloii files
 #pragma pack(4)
+// For newer solo3 files
+//#pragma pack(8)
 struct key_table_info {
     int offset;
     int size;
