@@ -99,8 +99,8 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	bgU = new real[uStateSize];
 	bgWeights = new real[uStateSize];
 	for (int i=0; i < uStateSize; i++) {
-		bgU[i] = 0.;
-		bgWeights[i] = 0.;
+		bgU[i] = 0.0;
+		bgWeights[i] = 0.0;
 	}		
 	
 	/* Set the data path */
@@ -1442,10 +1442,20 @@ bool VarDriver3D::loadMetObs()
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ifstream obstream(obFilename.toAscii().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
-           >> wgt[0][0] >> wgt[1][0] >> wgt[2][0] >> wgt[3][0] >> wgt[4][0] >> wgt[5][0] >> wgt[6][0]
-           >> wgt[0][1] >> wgt[1][1] >> wgt[2][1] >> wgt[3][1] >> wgt[4][1] >> wgt[5][1] >> wgt[6][1]
-           >> wgt[0][2] >> wgt[1][2] >> wgt[2][2] >> wgt[3][2] >> wgt[4][2] >> wgt[5][2] >> wgt[6][2]
-           >> wgt[0][3] >> wgt[1][3] >> wgt[2][3] >> wgt[3][3] >> wgt[4][3] >> wgt[5][3] >> wgt[6][3])
+			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
+			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
+			>> wgt[1][0] >> wgt[1][1] >> wgt[2][2] >> wgt[3][3]
+   			>> wgt[1][0] >> wgt[1][1] >> wgt[2][2] >> wgt[3][3]
+   			>> wgt[2][0] >> wgt[2][1] >> wgt[2][2] >> wgt[2][3]
+   			>> wgt[2][0] >> wgt[2][1] >> wgt[2][2] >> wgt[2][3]
+  			>> wgt[3][0] >> wgt[3][1] >> wgt[3][2] >> wgt[3][3]
+   			>> wgt[3][0] >> wgt[3][1] >> wgt[3][2] >> wgt[3][3]
+   			>> wgt[4][0] >> wgt[4][1] >> wgt[4][2] >> wgt[4][3]
+   			>> wgt[4][0] >> wgt[4][1] >> wgt[4][2] >> wgt[4][3]
+   			>> wgt[5][0] >> wgt[5][1] >> wgt[5][2] >> wgt[5][3]
+   			>> wgt[5][0] >> wgt[5][1] >> wgt[5][2] >> wgt[5][3]
+   			>> wgt[6][0] >> wgt[6][1] >> wgt[6][2] >> wgt[6][3]
+   			>> wgt[6][0] >> wgt[6][1] >> wgt[6][2] >> wgt[6][3])
     {
         varOb.setOb(ob);
         if (runMode == XYZ) {
@@ -1978,7 +1988,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
         for (unsigned int n = 0; n < numVars; n++) {
             bgObs[p] = bgIn[m+4+n];
             // Error of background = 1
-            bgObs[p+1] = 1.;
+            bgObs[p+1] = 100.;
             if (runMode == XYZ) {
                 bgObs[p+2] = obX;
                 bgObs[p+3] = obY;
@@ -2031,7 +2041,26 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 				}
 			}
 		}
-	}	
+	}
+	
+	// Store and set the background errors
+	QString bgError[7];
+	bgError[0] = configHash.value("bg_rhou_error");
+	bgError[1] = configHash.value("bg_rhov_error");
+	bgError[2] = configHash.value("bg_rhow_error");
+	bgError[3] = configHash.value("bg_tempk_error");
+	bgError[4] = configHash.value("bg_qv_error");	
+	bgError[5] = configHash.value("bg_rhoa_error");
+	bgError[6] = configHash.value("bg_qr_error");	
+	
+	configHash["bg_rhou_error"] = "10.0";
+	configHash["bg_rhov_error"] = "10.0";
+	configHash["bg_rhow_error"] = "10.0";
+	configHash["bg_tempk_error"] = "10.0";
+	configHash["bg_qv_error"] = "10.0";
+	configHash["bg_rhoa_error"] = "10.0";
+	configHash["bg_qr_error"] = "10.0";	
+	
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
@@ -2056,6 +2085,15 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     delete bgCost3D;
     delete[] bgObs;
     
+	// Reset the background errors
+	configHash["bg_rhou_error"] = bgError[0];
+	configHash["bg_rhov_error"] = bgError[1];
+	configHash["bg_rhow_error"] = bgError[2];
+	configHash["bg_tempk_error"] = bgError[3];
+	configHash["bg_qv_error"] = bgError[4];
+	configHash["bg_rhoa_error"] = bgError[5];
+	configHash["bg_qr_error"] = bgError[6];	
+	
     return true;
 }
 
