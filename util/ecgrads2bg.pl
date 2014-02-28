@@ -113,6 +113,8 @@ for $i (0 .. $xdim-1) {
 	  for $f (0 .. $#pvars+1) {
 	      printf EC ("%e\t",$cart_data[$f][$i][$j][0]);
 	  }
+      # Print an extra 0 for qr
+      printf EC ("%e\t",0.0);
 	  print EC "\n";
       }
   }
@@ -181,7 +183,9 @@ for $p (0 .. $#presslevels) {
 	    printf EC ("%e\t",$cart_data[$f][$i][$j][$z]);
 	    #print "$f, $i, $j, $z defined...\n";
 	  }
-	  print EC "\n";
+        # Print an extra 0 for qr
+        printf EC ("%e\t",0.0);
+        print EC "\n";
 	}
       }
     }
