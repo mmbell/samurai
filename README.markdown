@@ -50,6 +50,8 @@ A few external libraries are required:
 
 [cURL] (http://curl.haxx.se/libcurl) and [HDF5] (http://www.hdfgroup.org/HDF5) are prerequisites for NetCDF4.
 
+[FFTW] (http://www.fftw.org/) is used for Fourier filtering in periodic domains
+
 ## Running SAMURAI
 
 The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a subdirectory specified in the configuration. 
