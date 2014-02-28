@@ -60,6 +60,7 @@ protected:
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);
 	void SCtranspose(const real* Cstate, real* Astate);
+	void FFtransform(const real* Astate, real* Cstate);
 	
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
