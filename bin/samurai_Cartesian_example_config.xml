@@ -57,8 +57,8 @@
     <bg_rhoa_error>3.0</bg_rhoa_error>
     <bg_qr_error>3.0</bg_qr_error>
     <mc_weight>1.0</mc_weight>
-    <i_filter_length>2.0</i_filter_length>
-    <j_filter_length>2.0</j_filter_length>
+    <i_filter_length>4.0</i_filter_length>
+    <j_filter_length>4.0</j_filter_length>
     <k_filter_length>2.0</k_filter_length>
     <i_spline_cutoff>2.0</i_spline_cutoff>
     <j_spline_cutoff>2.0</j_spline_cutoff>

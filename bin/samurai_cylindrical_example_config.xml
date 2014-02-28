@@ -5,7 +5,7 @@
     <i_max>50.</i_max>
     <i_incr>1.0</i_incr>
     <j_min>0.</j_min>
-    <j_max>360.</j_max>
+    <j_max>350.</j_max>
     <j_incr>10.0</j_incr>
     <k_min>0.</k_min>
     <k_max>16.0</k_max>
