@@ -39,19 +39,20 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
     int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
-	
+	real gausspoint = 0.5*sqrt(1./3.);
     real Pi = acos(-1.0);
+
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
+				real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5*ihalf));
                 real r = i*1000;
 				if (i > ((iDim-1)*DI + iMin)) continue;
 				
 				for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
 					for (int jhalf =0; jhalf <=outputMish; jhalf++) {
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
+							real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5*jhalf));
 							if (j > ((jDim-1)*DJ + jMin)) continue;	
 							
 							real tpw = 0;
@@ -59,7 +60,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 							for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
 								for (int khalf =0; khalf <=outputMish; khalf++) {
 									for (int kmu = -khalf; kmu <= khalf; kmu++) {
-										real k = kMin + DK * (kIndex + (0.5*sqrt(1./3.) * kmu + 0.5*khalf));
+										real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5*khalf));
 										if (k > ((kDim-1)*DK + kMin)) continue;	
 										
 										real heightm = 1000*k;
@@ -155,6 +156,22 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											}
 										}
                                         
+										// Save mish values for future iterations
+										if ((imu != 0) and (jmu != 0) and (kmu != 0)) {
+			                                int uJ = jIndex*2 + (jmu+1)/2;
+			                                int uI = iIndex*2 + (imu+1)/2;
+                                            int uK = kIndex*2 + (kmu+1)/2;
+                                            int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+											
+											bgFields[uIndex] = rhou;
+											bgFields[uIndex + 1] = rhov;
+											bgFields[uIndex + 2] = rhow;
+											bgFields[uIndex + 3] = tprime;
+											bgFields[uIndex + 4] = qvprime;
+											bgFields[uIndex + 5] = rhoprime;
+											bgFields[uIndex + 6] = qrprime;
+										}											
+										
 										// Output it										
 										real rhoa = rhoBar + rhoprime / 100;
 										real qv = refstate->bhypInvTransform(qBar + qvprime);

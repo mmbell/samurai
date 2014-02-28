@@ -2052,6 +2052,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	bgError[4] = configHash.value("bg_qv_error");	
 	bgError[5] = configHash.value("bg_rhoa_error");
 	bgError[6] = configHash.value("bg_qr_error");	
+	QString output_mish = configHash.value("output_mish");
 	
 	configHash["bg_rhou_error"] = "10.0";
 	configHash["bg_rhov_error"] = "10.0";
@@ -2060,7 +2061,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_qv_error"] = "10.0";
 	configHash["bg_rhoa_error"] = "10.0";
 	configHash["bg_qr_error"] = "10.0";	
-	
+	configHash["output_mish"] = "true";
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
@@ -2093,6 +2094,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_qv_error"] = bgError[4];
 	configHash["bg_rhoa_error"] = bgError[5];
 	configHash["bg_qr_error"] = bgError[6];	
+	configHash["output_mish"] = output_mish;
 	
     return true;
 }

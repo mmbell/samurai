@@ -307,7 +307,11 @@ void CostFunction3D::initState(const int iteration)
 	setupSplines();
 
 	// Flag whether or not to print the subgrid information
-	outputMish = configHash->value("output_mish").toInt();
+	if (configHash->value("output_mish") == "true") {
+		outputMish = 1;
+	} else {
+		outputMish = 0;
+	}
 	
 	// Mass continuity weight
 	mcWeight = configHash->value("mc_weight").toFloat();
