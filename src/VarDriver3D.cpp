@@ -1443,18 +1443,11 @@ bool VarDriver3D::loadMetObs()
     ifstream obstream(obFilename.toAscii().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
-			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
 			>> wgt[1][0] >> wgt[1][1] >> wgt[2][2] >> wgt[3][3]
-   			>> wgt[1][0] >> wgt[1][1] >> wgt[2][2] >> wgt[3][3]
-   			>> wgt[2][0] >> wgt[2][1] >> wgt[2][2] >> wgt[2][3]
    			>> wgt[2][0] >> wgt[2][1] >> wgt[2][2] >> wgt[2][3]
   			>> wgt[3][0] >> wgt[3][1] >> wgt[3][2] >> wgt[3][3]
-   			>> wgt[3][0] >> wgt[3][1] >> wgt[3][2] >> wgt[3][3]
-   			>> wgt[4][0] >> wgt[4][1] >> wgt[4][2] >> wgt[4][3]
    			>> wgt[4][0] >> wgt[4][1] >> wgt[4][2] >> wgt[4][3]
    			>> wgt[5][0] >> wgt[5][1] >> wgt[5][2] >> wgt[5][3]
-   			>> wgt[5][0] >> wgt[5][1] >> wgt[5][2] >> wgt[5][3]
-   			>> wgt[6][0] >> wgt[6][1] >> wgt[6][2] >> wgt[6][3]
    			>> wgt[6][0] >> wgt[6][1] >> wgt[6][2] >> wgt[6][3])
     {
         varOb.setOb(ob);
