@@ -27,25 +27,25 @@
 
 class CostFunction3D: public CostFunction
 {
-	
+
 public:
 	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref); 
+    void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
-	
+
 protected:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
-	real Basis(const int& m, const real& x, const int& M,const real& xmin, 
+	real Basis(const int& m, const real& x, const int& M,const real& xmin,
 			   const real& DX, const real& DXrecip, const int& derivative,
-			   const int& BL, const int& BR, const real& lambda = 0);	
-	real BasisBC(real b, const int& m, const real& x, const int& M,const real& xmin, 
+			   const int& BL, const int& BR, const real& lambda = 0);
+	real BasisBC(real b, const int& m, const real& x, const int& M,const real& xmin,
 			   const real& DX, const real& DXrecip, const int& derivative,
-			   const int& BL, const int& BR, const real& lambda = 0);	
+			   const int& BL, const int& BR, const real& lambda = 0);
 	void fillBasisLookup();
 	bool filterArray(real* array, const int& arrLength);
 	bool setupSplines();
@@ -61,7 +61,7 @@ protected:
 	void SCtransform(const real* Astate, real* Cstate);
 	void SCtranspose(const real* Cstate, real* Astate);
 	void FFtransform(const real* Astate, real* Cstate);
-	
+
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	void adjustInternalDomain(int increment);
@@ -101,10 +101,10 @@ protected:
     int derivative[4][3];
 	real constHeight;
 	real mcWeight;
-    int iMaxWavenumber, jMaxWavenumber;
-    double *iFFTin, *jFFTin;
-    fftw_complex *iFFTout, *jFFTout;
-    fftw_plan iForward, jForward, iBackward, jBackward;
+    int iMaxWavenumber, jMaxWavenumber, kMaxWavenumber;
+    double *iFFTin, *jFFTin, *kFFTin;
+    fftw_complex *iFFTout, *jFFTout, *kFFTout;
+    fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
     
 	int basisappx;
 	real* basis0;
@@ -112,7 +112,7 @@ protected:
 	const QHash<QString, QString>* configHash;
 	QHash<QString, int> bcHash;
     QHash<int, int> rankHash;
-    
+
 	enum BoundaryConditionTypes {
         RX = -1,
 		R0 = 0,
@@ -131,15 +131,15 @@ protected:
 		PARTIAL = 1,
 		FULL = 2
 	};
-	
+
 	real iFilterScale,jFilterScale, kFilterScale;
 	RecursiveFilter* iFilter;
 	RecursiveFilter* jFilter;
 	RecursiveFilter* kFilter;
-	
+
     ReferenceState* refstate;
     QDir outputPath;
-	
+
 };
 
 #endif
