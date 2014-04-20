@@ -1576,7 +1576,10 @@ int VarDriver3D::loadBackgroundObs()
         bgZ = heightm/1000.;
         bgRadius = sqrt(bgX*bgX + bgY*bgY);
         bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
-        if (bgTheta < 0) bgTheta += 360.0;
+        if (configHash.value("allow_negative_angles") != "true") {
+          if (bgTheta < 0) bgTheta += 360.0;
+        }
+
         // Make sure the ob is in the Interpolation domain
         if (runMode == XYZ) {
             if ((bgX < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgX > (imax+iincr+(iROI*iincr*maxGridDist))) or
