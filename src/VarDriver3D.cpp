@@ -37,13 +37,13 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 {
 	// Run a 3D vortex background field
 	cout << "Initializing SAMURAI 3D" << endl;
-	
+
 	// Parse the XML configuration file
 	if (!parseXMLconfig(configuration)) return false;
-	
+
 	// Validate the 3D specific parameters
 	if (!validateXMLconfig()) return false;
-    
+
     // Validate the run geometry
     if (configHash.value("mode") == "XYZ") {
         runMode = XYZ;
@@ -53,23 +53,23 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
         cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
         return false;
     }
-    
+
 	// Define the grid dimensions
 	imin = configHash.value("i_min").toFloat();
 	imax = configHash.value("i_max").toFloat();
 	iincr = configHash.value("i_incr").toFloat();
 	idim = (int)((imax - imin)/iincr) + 1;
-	
+
 	jmin = configHash.value("j_min").toFloat();
 	jmax = configHash.value("j_max").toFloat();
 	jincr = configHash.value("j_incr").toFloat();
 	jdim = (int)((jmax - jmin)/jincr) + 1;
-	
+
 	kmin = configHash.value("k_min").toFloat();
 	kmax = configHash.value("k_max").toFloat();
 	kincr = configHash.value("k_incr").toFloat();
 	kdim = (int)((kmax - kmin)/kincr) + 1;
-    
+
 	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
 	if (idim < 4) {
 		cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
@@ -78,12 +78,12 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	if (jdim < 4) {
 		cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
 		return false;
-	}	
+	}
 	if (kdim < 4) {
 		cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
 		return false;
 	}
-	
+
 	// Define the sizes of the arrays we are passing to the cost function
 	cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
 	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
@@ -94,15 +94,15 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
 	cout << "Physical (mish) State size = " << uStateSize << "\n";
 	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
-	
+
 	// Load the BG into a empty vector
 	bgU = new real[uStateSize];
 	bgWeights = new real[uStateSize];
 	for (int i=0; i < uStateSize; i++) {
 		bgU[i] = 0.0;
 		bgWeights[i] = 0.0;
-	}		
-	
+	}
+
 	/* Set the data path */
 	dataPath.setPath(configHash.value("data_directory"));
 	if (dataPath.exists()) {
@@ -112,17 +112,17 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		cout << "Can't find data directory: " << configHash.value("data_directory").toStdString() << endl;
 		return false;
 	}
-	
+
 	/* Check to make sure the output path exists */
 	QDir outputPath(configHash.value("output_directory"));
 	if (!outputPath.exists()) {
 		cout << "Can't find output directory: " << configHash.value("output_directory").toStdString() << endl;
 		return false;
 	}
-	
+
 	// Define the Reference state
 	QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
-    refstate = new ReferenceState(refSounding);	
+    refstate = new ReferenceState(refSounding);
 	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
 	for (real k = kmin; k < kmax+kincr; k+= kincr) {
 		cout << "                   " << k << "\t";
@@ -134,12 +134,12 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		cout << "\n";
 	}
 	cout << setprecision(9);
-	
+
 	// Read in the Frame centers
 	// Ideally, create a time-based spline from limited center fixes here
 	// but just load 1 second centers into vector for now
 	readFrameCenters();
-	
+
 	// Get the reference center
 	QTime reftime = QTime::fromString(configHash.value("ref_time"), "hh:mm:ss");
 	QString refstring = reftime.toString();
@@ -163,11 +163,11 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		cout << "Error finding reference time, please check date and time in XML file\n";
 		return false;
 	}
-	
+
 	/* Set the maximum number of iterations to the multipass reduction factor
      Multiple outer loops will reduce the cutoff wavelengths and background error variance */
 	maxIter = configHash.value("num_iterations").toInt();
-    		
+
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	QString loadBG = configHash.value("load_background");
 	int numbgObs = 0;
@@ -178,7 +178,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 			return false;
 		}
 	}
-	
+
 	/* Optionally adjust the interpolated background to satisfy mass continuity
 	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
 	 the background estimates as "observations" */
@@ -189,7 +189,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 			return false;
 		}
 	}
-	
+
 	// Read in the observations, process them into weights and positions
 	// Either preprocess from raw observations or load an already processed Observations.in file
 	QString preprocess = configHash.value("preprocess_obs");
@@ -204,10 +204,10 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 			return false;
 		}
 	}
-	
+
 	// We are done with the bgWeights, so free up that memory
-	delete[] bgWeights;	
-	
+	delete[] bgWeights;
+
 	if (obVector.size() == 0) {
 		// No observations so quit
 		cout << "No observations loaded, unable to perform analysis.\n";
@@ -215,7 +215,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	} else {
 		cout << "Number of New Observations: " << obVector.size() << endl;
 	}
-	
+
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
 			obCost3D = new CostFunctionXYP(obVector.size(), bStateSize);
@@ -226,7 +226,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
         obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
     }
 	obCost3D->initialize(&configHash, bgU, obs, refstate);
-	
+
 	// If we got here, then everything probably went OK!
 	return true;
 }
@@ -244,13 +244,13 @@ bool VarDriver3D::run()
 		obCost3D->minimize();
 		obCost3D->updateBG();
 		iter++;
-		
+
 		// Optionally update the analysis parameters for an additional iteration
 		updateAnalysisParams(iter);
-	}	
-	
+	}
+
 	return true;
-	
+
 }
 
 /* Clean up all that allocated memory */
@@ -270,13 +270,13 @@ bool VarDriver3D::finalize()
 
 bool VarDriver3D::preProcessMetObs()
 {
-	
+
 	vector<real> rhoP;
-    
+
 	// Geographic functions
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	real referenceLon = configHash.value("ref_lon").toFloat();
-	
+
     // Find the zero C line using Newton's method
     real zeroClevel = 273.15;
     real height = 5000;
@@ -284,7 +284,7 @@ bool VarDriver3D::preProcessMetObs()
     int iter = 0;
     while ((fabs(tmin) > 0.1) and (iter < 5000)) {
         real t = refstate->getReferenceVariable(ReferenceVariable::tempref, height) - zeroClevel;
-        real tprime = (refstate->getReferenceVariable(ReferenceVariable::tempref, height+500.) 
+        real tprime = (refstate->getReferenceVariable(ReferenceVariable::tempref, height+500.)
                        - refstate->getReferenceVariable(ReferenceVariable::tempref, height-500.))/1000.;
         if (tprime != 0) {
             height = height - t/tprime;
@@ -293,9 +293,9 @@ bool VarDriver3D::preProcessMetObs()
         iter++;
     }
     zeroClevel = height;
-    cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl; 
-    
-	QStringList filenames = dataPath.entryList();	
+    cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl;
+
+	QStringList filenames = dataPath.entryList();
 	int processedFiles = 0;
 	QList<MetObs>* metData = new QList<MetObs>;
 	cout << "Found " << filenames.size() << " data files to read..." << endl;
@@ -315,7 +315,7 @@ bool VarDriver3D::preProcessMetObs()
 		}
 		cout << "Processing " << file.toAscii().data() << " of type " << suffix.toAscii().data() << endl;
 		QFile metFile(dataPath.filePath(file));
-		
+
 		// Read different types of files
 		switch (dataSuffix.value(suffix)) {
 			case (frd):
@@ -399,21 +399,21 @@ bool VarDriver3D::preProcessMetObs()
 				cout << "Unknown data type, skipping..." << endl;
 				continue;
 		}
-		
+
 		processedFiles++;
-		
+
 		// Process the metObs into Observations
 		QDateTime startTime = frameVector.front().getTime();
 		QDateTime endTime = frameVector.back().getTime();
 		int prevobs = obVector.size();
 		for (int i = 0; i < metData->size(); ++i) {
-			
+
 			// Make sure the ob is within the time limits
 			MetObs metOb = metData->at(i);
 			QDateTime obTime = metOb.getTime();
 			QString obstring = obTime.toString(Qt::ISODate);
 			QString tcstart = startTime.toString(Qt::ISODate);
-			QString tcend = endTime.toString(Qt::ISODate);		
+			QString tcend = endTime.toString(Qt::ISODate);
 			if ((obTime < startTime) or (obTime > endTime)) continue;
 			int fi = startTime.secsTo(obTime);
 			if ((fi < 0) or (fi > (int)frameVector.size())) {
@@ -422,7 +422,7 @@ bool VarDriver3D::preProcessMetObs()
 			}
 			real Um = frameVector[fi].getUmean();
 			real Vm = frameVector[fi].getVmean();
-            
+
 			// Get the X, Y & Z
 			real tcX, tcY, metX, metY;
 			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
@@ -433,14 +433,16 @@ bool VarDriver3D::preProcessMetObs()
 			real obZ = heightm/1000.;
 			real obRadius = sqrt(obX*obX + obY*obY);
             real obTheta = 180.0 * atan2(obY, obX) / Pi;
-            if (obTheta < 0) obTheta += 360.0;
-            
+            if (configHash.value("allow_negative_angles") != "true") {
+              if (obTheta < 0) obTheta += 360.0;
+            }
+
 			// Make sure the ob is in the domain
             if (runMode == XYZ) {
                 if ((obX < imin) or (obX > imax) or
                     (obY < jmin) or (obY > jmax) or
                     (obZ < kmin) or (obZ > kmax))
-                    continue;                
+                    continue;
             } else if (runMode == RTZ) {
                 if ((obRadius < imin) or (obRadius > imax) or
                     (obTheta < jmin) or (obTheta > jmax) or
@@ -456,19 +458,19 @@ bool VarDriver3D::preProcessMetObs()
 			varOb.setTheta(obTheta);
 			varOb.setAltitude(obZ);
 			varOb.setTime(obTime.toTime_t());
-			
-			// Reference states			
+
+			// Reference states
 			real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
 			real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
 			real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-			
+
 			// Initialize the weights
             for (unsigned int var = 0; var < numVars; ++var) {
                 for (unsigned int d = 0; d < numDerivatives; ++d) {
                     varOb.setWeight(0.0, var, d);
                 }
             }
-            real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd; 
+            real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
             switch (metOb.getObType()) {
                 case (MetObs::dropsonde):
                     varOb.setType(MetObs::dropsonde);
@@ -479,7 +481,7 @@ bool VarDriver3D::preProcessMetObs()
                     rhoa = metOb.getAirDensity();
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
-                    
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
                     if ((u != -999) and (rho != -999)) {
@@ -495,18 +497,18 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("dropsonde_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         if (runMode == XYZ) {
                             rhov = rho*(v - Vm);
                         } else if (runMode == RTZ) {
                             rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
-                        }    
+                        }
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("dropsonde_rhov_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 1);
-                        
+
                     }
                     if ((w != -999) and (rho != -999)) {
                         // rho w 1.5 m/s error
@@ -542,9 +544,9 @@ bool VarDriver3D::preProcessMetObs()
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 5);
                     }
-                    
+
                     break;
-                    
+
                 case (MetObs::flightlevel):
                     varOb.setType(MetObs::flightlevel);
                     u = metOb.getCartesianUwind();
@@ -554,10 +556,10 @@ bool VarDriver3D::preProcessMetObs()
                     rhoa = metOb.getAirDensity();
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
-                    
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
-                    if ((u != -999) and (rho != -999)) {						
+                    if ((u != -999) and (rho != -999)) {
                         // rho u 1 m/s error
                         varOb.setWeight(1., 0);
                         if (runMode == XYZ) {
@@ -569,7 +571,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("flightlevel_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         if (runMode == XYZ) {
                             rhov = rho*(v - Vm);
@@ -615,9 +617,9 @@ bool VarDriver3D::preProcessMetObs()
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 5);
                     }
-                    
+
                     break;
-                    
+
                 case (MetObs::insitu):
                     varOb.setType(MetObs::insitu);
                     u = metOb.getCartesianUwind();
@@ -627,7 +629,7 @@ bool VarDriver3D::preProcessMetObs()
                     rhoa = metOb.getAirDensity();
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
-                    
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
                     if ((u != -999) and (rho != -999)) {
@@ -643,7 +645,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("insitu_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         if (runMode == XYZ) {
                             rhov = rho*(v - Vm);
@@ -654,7 +656,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("insitu_rhov_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 1);
-                        
+
                     }
                     if ((w != -999) and (rho != -999)) {
                         // rho w 1.5 m/s error
@@ -690,9 +692,9 @@ bool VarDriver3D::preProcessMetObs()
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 5);
                     }
-                    
+
                     break;
-                    
+
                 case (MetObs::mtp):
                     varOb.setType(MetObs::mtp);
                     rhoa = metOb.getDryDensity(); // Pressure/density is from dry air only?
@@ -713,7 +715,7 @@ bool VarDriver3D::preProcessMetObs()
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 5);
                     }
-                    
+
                     break;
 
                 case (MetObs::sfmr):
@@ -728,7 +730,7 @@ bool VarDriver3D::preProcessMetObs()
                     varOb.setError(configHash.value("sfmr_windspeed_error").toFloat());
                     obVector.push_back(varOb);
                     break;
-                    
+
                 case (MetObs::qscat):
                     varOb.setType(MetObs::qscat);
                     u = metOb.getCartesianUwind();
@@ -747,7 +749,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("qscat_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
                         if (runMode == XYZ) {
@@ -758,15 +760,15 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("qscat_rhov_error").toFloat());
                         obVector.push_back(varOb);
-                        varOb.setWeight(0., 1);						
+                        varOb.setWeight(0., 1);
                     }
                     break;
-                    
+
                 case (MetObs::ascat):
                     varOb.setType(MetObs::ascat);
                     u = metOb.getCartesianUwind();
                     v = metOb.getCartesianVwind();
-                    if (u != -999) {						
+                    if (u != -999) {
                         // rho u 1 m/s error
                         // Multiply by rho later from grid values
                         varOb.setWeight(1., 0);
@@ -780,7 +782,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("ascat_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
                         if (runMode == XYZ) {
@@ -791,10 +793,10 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("ascat_rhov_error").toFloat());
                         obVector.push_back(varOb);
-                        varOb.setWeight(0., 1);						
+                        varOb.setWeight(0., 1);
                     }
                     break;
-                    
+
                 case (MetObs::AMV):
                     varOb.setType(MetObs::AMV);
                     u = metOb.getCartesianUwind();
@@ -813,7 +815,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("amv_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         // Multiply by rho later from grid values
                         if (runMode == XYZ) {
@@ -824,10 +826,10 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setOb(rhov);
                         varOb.setError(configHash.value("amv_rhov_error").toFloat());
                         obVector.push_back(varOb);
-                        varOb.setWeight(0., 1);						
+                        varOb.setWeight(0., 1);
                     }
                     break;
-                    
+
                 case (MetObs::lidar):
                 {
                     varOb.setType(MetObs::lidar);
@@ -843,36 +845,36 @@ bool VarDriver3D::preProcessMetObs()
                         vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
                     }
                     real wWgt = sin(el);
-                    
+
                     // Fall speed is assumed zero since we are dealing with aerosols
                     real db = metOb.getReflectivity();
                     real vr = metOb.getRadialVelocity();
-                    real w_term = 0.0;  
+                    real w_term = 0.0;
                     real Vdopp = vr - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
-                    
+
                     varOb.setWeight(uWgt, 0);
                     varOb.setWeight(vWgt, 1);
                     varOb.setWeight(wWgt, 2);
-                    
+
                     // Set the error according to the spectrum width and power
-                    real DopplerError = metOb.getSpectrumWidth()*configHash.value("lidar_sw_error").toFloat() 
+                    real DopplerError = metOb.getSpectrumWidth()*configHash.value("lidar_sw_error").toFloat()
                     + log(configHash.value("lidar_power_error").toFloat()/db);
-                    if (DopplerError < configHash.value("lidar_min_error").toFloat()) 
+                    if (DopplerError < configHash.value("lidar_min_error").toFloat())
                         DopplerError = configHash.value("lidar_min_error").toFloat();
                     varOb.setError(DopplerError);
                     varOb.setOb(Vdopp);
                     obVector.push_back(varOb);
-                    varOb.setWeight(0., 0);	
-                    varOb.setWeight(0., 1);	
+                    varOb.setWeight(0., 0);
+                    varOb.setWeight(0., 1);
                     varOb.setWeight(0., 2);
-                    
+
                     break;
-                }	
+                }
                 case (MetObs::radar):
                 {
                     varOb.setType(MetObs::radar);
-					
-                    // Geometry terms                    
+
+                    // Geometry terms
                     real az = metOb.getAzimuth()*Pi/180.;
                     real el = metOb.getElevation()*Pi/180.;
                     real uWgt, vWgt;
@@ -886,33 +888,33 @@ bool VarDriver3D::preProcessMetObs()
                     real wWgt = sin(el);
                     // Restrict to horizontal component only
                     if (configHash.value("horizontal_radar_appx") == "true") wWgt = 0;
-                    
+
                     // Fall speed
                     real Z = metOb.getReflectivity();
                     real H = metOb.getAltitude();
                     real ZZ=pow(10.0,(Z*0.1));
                     real melting_zone = 1000 * configHash.value("melting_zone_width").toFloat();
-                    real hlow= zeroClevel; 
+                    real hlow= zeroClevel;
                     real hhi= hlow + melting_zone;
-                    
-                    /* density correction term (rhoo/rho)*0.45 
+
+                    /* density correction term (rhoo/rho)*0.45
                      0.45 density correction from Beard (1985, JOAT pp 468-471) */
                     real rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, H);
                     real rhosfc = refstate->getReferenceVariable(ReferenceVariable::rhoref, 0.);
                     real DCOR = pow((rhosfc/rho),(real)0.45);
-                    
-                    // The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s) 
+
+                    // The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s)
                     real VTS=-DCOR * (0.817*pow(ZZ,(real)0.063));
-                    
+
                     // The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
                     real VTR=-DCOR * (2.6*pow(ZZ,(real).107));
-                    
+
                     /* Test if height is in the transition region between SNOW and RAIN
                      defined as hlow in km < H < hhi in km
                      if in the transition region do a linear weight of VTR and VTS */
                     real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
                     real rain_dbz = configHash.value("rain_dbz").toFloat();
-                    if ((Z > mixed_dbz) and 
+                    if ((Z > mixed_dbz) and
                         (Z <= rain_dbz)) {
                         real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
                         real WEIGHTS=1.-WEIGHTR;
@@ -920,37 +922,37 @@ bool VarDriver3D::preProcessMetObs()
                     } else if (Z > rain_dbz) {
                         VTS=VTR;
                     }
-                    real w_term=VTR*(hhi-H)/melting_zone + VTS*(H-hlow)/melting_zone;  
-                    if (H < hlow) w_term=VTR; 
+                    real w_term=VTR*(hhi-H)/melting_zone + VTS*(H-hlow)/melting_zone;
+                    if (H < hlow) w_term=VTR;
                     if (H > hhi) w_term=VTS;
                     real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
-                    
+
                     varOb.setWeight(uWgt, 0);
                     varOb.setWeight(vWgt, 1);
                     varOb.setWeight(wWgt, 2);
-                    
+
                     /* Theoretically, rhoPrime could be included as a prognostic variable here...
                      However, adding another unknown without an extra equation makes the problem even more underdetermined
                      so assume it is small and ignore it
                      real rhopWgt = -Vdopp;
                      varOb.setWeight(rhopWgt, 5); */
-                    
+
                     // Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
                     real DopplerError = metOb.getSpectrumWidth()*configHash.value("radar_sw_error").toFloat()
                     + fabs(wWgt)*configHash.value("radar_fallspeed_error").toFloat();
-                    if (DopplerError < configHash.value("radar_min_error").toFloat()) 
+                    if (DopplerError < configHash.value("radar_min_error").toFloat())
                         DopplerError = configHash.value("radar_min_error").toFloat();
                     varOb.setError(DopplerError);
                     varOb.setOb(Vdopp);
-					
+
                     real maxel = configHash.value("max_radar_elevation").toFloat();
 					if (!maxel) maxel = 90.0;
                     if (fabs(metOb.getElevation() < maxel)) obVector.push_back(varOb);
-					                    
-                    varOb.setWeight(0., 0);	
-                    varOb.setWeight(0., 1);	
+
+                    varOb.setWeight(0., 0);
+                    varOb.setWeight(0., 1);
                     varOb.setWeight(0., 2);
-                    
+
                     // Reflectivity observations
                     QString gridref = configHash.value("qr_variable");
                     real qr = 0.;
@@ -961,7 +963,7 @@ bool VarDriver3D::preProcessMetObs()
                         real icemass = pow(ZZ/670.,(real)0.5587);
                         real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
                         real rain_dbz = configHash.value("rain_dbz").toFloat();
-                        if ((Z > mixed_dbz) and 
+                        if ((Z > mixed_dbz) and
                             (Z <= rain_dbz)) {
                             real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
                             real WEIGHTS=1.-WEIGHTR;
@@ -969,18 +971,18 @@ bool VarDriver3D::preProcessMetObs()
                         } else if (Z > 30) {
                             icemass=rainmass;
                         }
-                        
+
                         real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
                         if (H < hlow) precipmass = rainmass;
                         if (H > hhi) precipmass = icemass;
                         qr = refstate->bhypTransform(precipmass/rhoBar);
-                        
+
                         //Include an observation of this quantity in the variational synthesis
 						varOb.setOb(qr);
 						varOb.setWeight(1., 6);
 						varOb.setError(1.0);
 						obVector.push_back(varOb);
-                        
+
                     } else if (gridref == "dbz") {
 						qr = ZZ;
                         /* Include an observation of this quantity in the variational synthesis
@@ -988,15 +990,15 @@ bool VarDriver3D::preProcessMetObs()
                          varOb.setWeight(1., 6);
                          varOb.setError(1.0);
                          obVector.push_back(varOb); */
-                        
+
                     }
-                    
+
                     // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
                     real iROI = configHash.value("i_reflectivity_roi").toFloat() / iincr;
 					real jROI = configHash.value("j_reflectivity_roi").toFloat() / jincr;
 					real kROI = configHash.value("k_reflectivity_roi").toFloat() / kincr;
                     real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
-                    for (int ki = 0; ki < (kdim-1); ki++) {	
+                    for (int ki = 0; ki < (kdim-1); ki++) {
                         for (int kmu = -1; kmu <= 1; kmu += 2) {
                             real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
                             if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
@@ -1019,7 +1021,7 @@ bool VarDriver3D::preProcessMetObs()
 												real dTheta = fabs(jPos-obTheta);
 												if (dTheta > 360.) dTheta -= 360.;
                                                 if (dTheta > jincr*jROI*2.) continue;
-                                                rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);                                                
+                                                rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
                                             }
                                             // Add one extra index to account for buffer zone in analysis
                                             int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1039,10 +1041,10 @@ bool VarDriver3D::preProcessMetObs()
                             }
                         }
                     }
-                    
+
                     break;
-                }	
-                
+                }
+
                 case(MetObs::mesonet):
                 {
                     varOb.setType(MetObs::mesonet);
@@ -1053,7 +1055,7 @@ bool VarDriver3D::preProcessMetObs()
                     rhoa = metOb.getAirDensity();
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
-                    
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
                     if ((u != -999) and (rho != -999)) {
@@ -1069,7 +1071,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("mesonet_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         if (runMode == XYZ) {
                             rhov = rho*(v - Vm);
@@ -1080,7 +1082,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("mesonet_rhov_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 1);
-                        
+
                     }
                     if ((w != -999) and (rho != -999)) {
                         // rho w 1.5 m/s error
@@ -1118,7 +1120,7 @@ bool VarDriver3D::preProcessMetObs()
                     }
                     break;
                 }
-                    
+
                 case(MetObs::aeri):
                 {
                     varOb.setType(MetObs::aeri);
@@ -1129,7 +1131,7 @@ bool VarDriver3D::preProcessMetObs()
                     rhoa = metOb.getAirDensity();
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
-                    
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
                     if ((u != -999) and (rho != -999)) {
@@ -1145,7 +1147,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("aeri_rhou_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 0);
-                        
+
                         varOb.setWeight(1., 1);
                         if (runMode == XYZ) {
                             rhov = rho*(v - Vm);
@@ -1156,7 +1158,7 @@ bool VarDriver3D::preProcessMetObs()
                         varOb.setError(configHash.value("aeri_rhov_error").toFloat());
                         obVector.push_back(varOb);
                         varOb.setWeight(0., 1);
-                        
+
                     }
                     if ((w != -999) and (rho != -999)) {
                         // rho w 1.5 m/s error
@@ -1195,7 +1197,7 @@ bool VarDriver3D::preProcessMetObs()
                     break;
                 }
             }
-            
+
         }
 		int newobs = obVector.size() - prevobs;
 		if (metData->size() > 0) {
@@ -1205,12 +1207,12 @@ bool VarDriver3D::preProcessMetObs()
 		}
         cout << obVector.size() << " total observations." << endl;
     }
-    
+
     delete metData;
-    
+
     // Finish reflectivity interpolation
     Observation varOb;
-    varOb.setTime(configHash.value("ref_time").toInt());	
+    varOb.setTime(configHash.value("ref_time").toInt());
     real pseudow_weight = configHash.value("dbz_pseudow_weight").toFloat();
     real mc_weight = configHash.value("mc_weight").toFloat();
     // Initialize the weights
@@ -1225,13 +1227,13 @@ bool VarDriver3D::preProcessMetObs()
             for (int imu = -ihalf; imu <= ihalf; imu++) {
                 real i = imin + iincr * (iIndex + (gausspoint * imu + 0.5*ihalf));
                 if (i > ((idim-1)*iincr + imin)) continue;
-                
+
                 for (int jIndex = -1; jIndex < jdim; jIndex++) {
                     for (int jhalf =0; jhalf <= 1; jhalf++) {
                         for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
                             real j = jmin + jincr * (jIndex + (gausspoint * jmu + 0.5*jhalf));
-                            if (j > ((jdim-1)*jincr + jmin)) continue;	
-                            
+                            if (j > ((jdim-1)*jincr + jmin)) continue;
+
                             real maxrefHeight = -1;
                             for (int kIndex = -1; kIndex < kdim; kIndex++) {
                                 for (int khalf =0; khalf <= 1; khalf++) {
@@ -1239,7 +1241,7 @@ bool VarDriver3D::preProcessMetObs()
                                         real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
                                         if (k > ((kdim-1)*kincr + kmin)) continue;
                                         // On the mish
-                                        if (ihalf and jhalf and khalf and 
+                                        if (ihalf and jhalf and khalf and
                                             (imu != 0) and (jmu != 0) and (kmu != 0)){
                                             int bgI = (iIndex+1)*2 + (imu+1)/2;
                                             int bgJ = (jIndex+1)*2 + (jmu+1)/2;
@@ -1266,7 +1268,7 @@ bool VarDriver3D::preProcessMetObs()
 													int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
 													bgU[bKzero + 6] = bgU[bKone + 6] = bgU[bIndex + 6];
 												} */
-												
+
                                             }
                                             if (bgU[bIndex +6] > 0) {
                                                 maxrefHeight = k;
@@ -1319,7 +1321,7 @@ bool VarDriver3D::preProcessMetObs()
                                     varOb.setAltitude(maxrefHeight);
                                     obVector.push_back(varOb);
                                 }
-                                
+
                                 // Set a lower boundary condition for W
                                 // Ideally use a terrain map here, but just use Z=0 for now
                                 if (pseudow_weight > 0.0) {
@@ -1336,7 +1338,7 @@ bool VarDriver3D::preProcessMetObs()
         }
     }
     cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
-    
+
     // Write the Obs to a summary text file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ofstream obstream(obFilename.toAscii().data());
@@ -1355,7 +1357,7 @@ bool VarDriver3D::preProcessMetObs()
      *os++ = "Weight 5";
      *os++ = "Weight 6";
      obstream << endl; */
-    
+
     ostream_iterator<real> od(obstream, "\t ");
     ostream_iterator<int> oi(obstream, "\t ");
     for (int i=0; i < obVector.size(); i++) {
@@ -1374,7 +1376,7 @@ bool VarDriver3D::preProcessMetObs()
             *od++ = ob.getRadius();
             *od++ = ob.getTheta();
         }
-        *od++ = ob.getAltitude();		
+        *od++ = ob.getAltitude();
         *oi++ = ob.getType();
         *oi++ = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
@@ -1382,9 +1384,9 @@ bool VarDriver3D::preProcessMetObs()
                 *od++ = ob.getWeight(var, d);
             }
         }
-        obstream << endl;	
+        obstream << endl;
     }
-    
+
     // Load the observations into a vector
     obs = new real[obVector.size()*(7+numVars*numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
@@ -1413,8 +1415,8 @@ bool VarDriver3D::preProcessMetObs()
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }
-    }	
-    
+    }
+
     // All done preprocessing
     if (!processedFiles) {
         cout << "No files processed, nothing to do :(" << endl;
@@ -1422,7 +1424,7 @@ bool VarDriver3D::preProcessMetObs()
     } else {
         cout << "Finished preprocessing " << processedFiles << " files." << endl;
     }
-    
+
     return true;
 }
 
@@ -1430,14 +1432,14 @@ bool VarDriver3D::preProcessMetObs()
 
 bool VarDriver3D::loadMetObs()
 {
-    
+
     Observation varOb;
     real wgt[numVars][4];
     real iPos, jPos, kPos, ob, error;
     int type;
     int time;
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
-    
+
     // Open and read the file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ifstream obstream(obFilename.toAscii().data());
@@ -1469,7 +1471,7 @@ bool VarDriver3D::loadMetObs()
         }
         obVector.push_back(varOb);
     }
-    
+
     // Load the observations into the vector
     obs = new real[obVector.size()*(7+numVars*numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
@@ -1497,9 +1499,9 @@ bool VarDriver3D::loadMetObs()
                 int wgt_index = n + (7*(d+1)) + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
-        }        
-    }	
-    
+        }
+    }
+
     return true;
 }
 
@@ -1510,18 +1512,18 @@ int VarDriver3D::loadBackgroundObs()
     // Turn Debug on if there are problems with the vertical spline interpolation,
     // Eventually this should be replaced with the internal spline code
     // SplineD::Debug(1);
-    
+
     // Geographic functions
     GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
     real referenceLon = configHash.value("ref_lon").toFloat();
-    
+
     QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
     //SplineD* bgSpline;
     int time;
     QString bgTimestring, tcstart, tcend;
     real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
     real bgX, bgY, bgRadius, bgTheta;
-	real bgZ = -32768.; 
+	real bgZ = -32768.;
     // backgroundroi is in km, ROI is gridpoints
     real iROI = configHash.value("i_background_roi").toFloat() / iincr;
 	real jROI = configHash.value("j_background_roi").toFloat() / jincr;
@@ -1539,31 +1541,31 @@ int VarDriver3D::loadBackgroundObs()
     }
     cout << "Loading background onto Gaussian mish with " << iROI << " grid length radius of influence in i direction" << endl;
     cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
-	
+
     while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr)
     {
-        
+
         // Process the metObs into Observations
         QDateTime startTime = frameVector.front().getTime();
         QDateTime endTime = frameVector.back().getTime();
-        
+
         // Make sure the bg is within the time limits
         QDateTime bgTime;
         bgTime.setTimeSpec(Qt::UTC);
         bgTime.setTime_t(time);
         bgTimestring = bgTime.toString(Qt::ISODate);
         tcstart = startTime.toString(Qt::ISODate);
-        tcend = endTime.toString(Qt::ISODate);		
+        tcend = endTime.toString(Qt::ISODate);
         if ((bgTime < startTime) or (bgTime > endTime)) continue;
         int tci = startTime.secsTo(bgTime);
         if ((tci < 0) or (tci > (int)frameVector.size())) {
             cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
             continue;
         }
-        
+
         real Um = frameVector[tci].getUmean();
         real Vm = frameVector[tci].getVmean();
-        
+
         // Get the X, Y & Z
         real tcX, tcY, metX, metY;
         tm.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
@@ -1591,12 +1593,12 @@ int VarDriver3D::loadBackgroundObs()
 			Um = cylUm;
 			Vm = cylVm;
         }
-        
-        // Reference states			
+
+        // Reference states
         real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
         real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
         real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-        
+
         real rho = rhoa + rhoa*qv/1000.;
         real rhou = rho*(u - Um);
         real rhov = rho*(v - Vm);
@@ -1611,7 +1613,7 @@ int VarDriver3D::loadBackgroundObs()
 	}
         // We assume here that the background precipitation field is always zero
         // real qr = 0.;
-		
+
         if (runMode == XYZ) {
             bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
         } else if (runMode == RTZ) {
@@ -1645,7 +1647,7 @@ int VarDriver3D::loadBackgroundObs()
                 return -1;
             }
 
-            
+
             // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
             for (int ki = -1; ki < (kdim); ki++) {
@@ -1679,7 +1681,7 @@ int VarDriver3D::loadBackgroundObs()
 										real dTheta = fabs(jPos-bgTheta);
 										if (dTheta > 360.) dTheta -= 360.;
 										if (dTheta > jincr*jROI*2.) continue;
-                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);                                                
+                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);
                                     }
                                     // Add one extra index to account for buffer zone in analysis
                                     int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1717,7 +1719,7 @@ int VarDriver3D::loadBackgroundObs()
                                             bgU[bIndex +5] += weight*rBG.front();
                                             bgU[bIndex +6] += weight*zBG.front();
                                             bgWeights[bIndex] += weight;
-                                        }											
+                                        }
                                     }
                                 }
                             }
@@ -1726,7 +1728,7 @@ int VarDriver3D::loadBackgroundObs()
                 }
                 delete bgSpline;
             }
-            
+
             logheights.clear();
             uBG.clear();
             vBG.clear();
@@ -1735,7 +1737,7 @@ int VarDriver3D::loadBackgroundObs()
             qBG.clear();
             rBG.clear();
             zBG.clear();
-			
+
             logheights.push_back(log(bgZ));
             uBG.push_back(rhou);
             vBG.push_back(rhov);
@@ -1743,10 +1745,10 @@ int VarDriver3D::loadBackgroundObs()
             tBG.push_back(tprime);
             qBG.push_back(qvprime);
             rBG.push_back(rhoprime);
-            zBG.push_back(qr);			
+            zBG.push_back(qr);
         }
-    }				
-    
+    }
+
     if (!logheights.size()) {
         // Error reading in the background field
         cout << "No background estimates read in. Please check the time and location of your background field.\n";
@@ -1754,9 +1756,9 @@ int VarDriver3D::loadBackgroundObs()
         cout << "Background time: " << bgTimestring.toStdString() << "\n";
         return -1;
     }
-    
+
     // Solve for the last spline
-    
+
     // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
     for (int ki = -1; ki < (kdim); ki++) {
@@ -1791,7 +1793,7 @@ int VarDriver3D::loadBackgroundObs()
 								real dTheta = fabs(jPos-bgTheta);
 								if (dTheta > 360.) dTheta -= 360.;
 								if (dTheta > jincr*jROI*2.) continue;
-                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta;                                                
+                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta;
                             }
                             // Add one extra index to account for buffer zone in analysis
                             int bgI = (ii+1)*2 + (imu+1)/2;
@@ -1829,7 +1831,7 @@ int VarDriver3D::loadBackgroundObs()
                                     bgU[bIndex +5] += weight*rBG.front();
                                     bgU[bIndex +6] += weight*zBG.front();
                                     bgWeights[bIndex] += weight;
-                                }								
+                                }
                             }
                         }
                     }
@@ -1838,7 +1840,7 @@ int VarDriver3D::loadBackgroundObs()
         }
         delete bgSpline;
     }
-    
+
     logheights.clear();
     uBG.clear();
     vBG.clear();
@@ -1846,13 +1848,13 @@ int VarDriver3D::loadBackgroundObs()
     tBG.clear();
     qBG.clear();
     rBG.clear();
-    zBG.clear(); 
-    
+    zBG.clear();
+
     int numbgObs = bgIn.size()*7/11;
 	QVector<int> emptybg;
     if (numbgObs > 0) {
         // Check interpolation
-        for (int ki = -1; ki < (kdim); ki++) {	
+        for (int ki = -1; ki < (kdim); ki++) {
             for (int kmu = -1; kmu <= 1; kmu += 2) {
                 real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
                 for (int ii = -1; ii < (idim); ii++) {
@@ -1888,7 +1890,7 @@ int VarDriver3D::loadBackgroundObs()
                 }
             }
         }
-		
+
 		// Attempt to fill holes
 		if (emptybg.size() > 0) {
 			int neighbors[6];
@@ -1925,13 +1927,13 @@ int VarDriver3D::loadBackgroundObs()
 					exit(-1);
 				}
 			}
-		}		
+		}
     } else {
         cout << "No background observations loaded" << endl;
         return 0;
     }
-    
-    cout << numbgObs << " background observations loaded" << endl;	
+
+    cout << numbgObs << " background observations loaded" << endl;
     return numbgObs;
 }
 
@@ -1947,14 +1949,14 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	}
     bgObs = new real[numbgObs*(7+numVars*numDerivatives)];
     for (unsigned int m=0; m < numbgObs*(7+numVars*numDerivatives); m++) bgObs[m] = 0.;
-    
+
     int p = 0;
     real obX, obY, obRadius, obTheta;
 	obX = obY = obRadius = obTheta = -32768.;
     for (int m=0; m < bgIn.size(); m+=11) {
         if (runMode == XYZ) {
             obX = bgIn[m];
-            obY = bgIn[m+1];            
+            obY = bgIn[m+1];
         } else if (runMode == RTZ) {
             obRadius = bgIn[m];
             obTheta = bgIn[m+1];
@@ -1996,16 +1998,16 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
             bgObs[p+7+n] = 1.;
             p += (7+numVars*numDerivatives);
         }
-    }	
-    
+    }
+
 	// Add mass continuity constraint
 	if (configHash.value("mc_weight").toFloat() > 0) {
 	    for (int iIndex = -1; iIndex < idim; iIndex++) {
 		    real i = imin + iincr * iIndex;
-	        if (i > ((idim-1)*iincr + imin)) continue;       
+	        if (i > ((idim-1)*iincr + imin)) continue;
 	        for (int jIndex = -1; jIndex < jdim; jIndex++) {
 		        real j = jmin + jincr * jIndex;
-	            if (j > ((jdim-1)*jincr + jmin)) continue;	
+	            if (j > ((jdim-1)*jincr + jmin)) continue;
 				for (int kIndex = -1; kIndex < kdim; kIndex++) {
 		            real k = kmin + kincr * kIndex;
 	                if (k > ((kdim-1)*kincr + kmin)) continue;
@@ -2020,7 +2022,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	                if (runMode == XYZ) {
 						bgObs[p+(7*(1+1))] = 1.0;
 						bgObs[p+(7*(2+1))+1] = 1.0;
-						bgObs[p+(7*(3+1))+2] = 1.0;					
+						bgObs[p+(7*(3+1))+2] = 1.0;
 	                } else if (runMode == RTZ) {
 						if (i > 0) {
 							real rInverse = 180.0/(i*Pi);
@@ -2035,25 +2037,25 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 			}
 		}
 	}
-	
+
 	// Store and set the background errors
 	QString bgError[7];
 	bgError[0] = configHash.value("bg_rhou_error");
 	bgError[1] = configHash.value("bg_rhov_error");
 	bgError[2] = configHash.value("bg_rhow_error");
 	bgError[3] = configHash.value("bg_tempk_error");
-	bgError[4] = configHash.value("bg_qv_error");	
+	bgError[4] = configHash.value("bg_qv_error");
 	bgError[5] = configHash.value("bg_rhoa_error");
-	bgError[6] = configHash.value("bg_qr_error");	
+	bgError[6] = configHash.value("bg_qr_error");
 	QString output_mish = configHash.value("output_mish");
-	
+
 	configHash["bg_rhou_error"] = "10.0";
 	configHash["bg_rhov_error"] = "10.0";
 	configHash["bg_rhow_error"] = "10.0";
 	configHash["bg_tempk_error"] = "10.0";
 	configHash["bg_qv_error"] = "10.0";
 	configHash["bg_rhoa_error"] = "10.0";
-	configHash["bg_qr_error"] = "10.0";	
+	configHash["bg_qr_error"] = "10.0";
 	configHash["output_mish"] = "true";
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
@@ -2071,14 +2073,14 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     int bgIter = 1;
     bgCost3D->initState(bgIter);
     bgCost3D->minimize();
-    
+
     // Increment the variables
     bgCost3D->updateBG();
     bgCost3D->finalize();
-    
+
     delete bgCost3D;
     delete[] bgObs;
-    
+
 	// Reset the background errors
 	configHash["bg_rhou_error"] = bgError[0];
 	configHash["bg_rhov_error"] = bgError[1];
@@ -2086,9 +2088,9 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_tempk_error"] = bgError[3];
 	configHash["bg_qv_error"] = bgError[4];
 	configHash["bg_rhoa_error"] = bgError[5];
-	configHash["bg_qr_error"] = bgError[6];	
+	configHash["bg_qr_error"] = bgError[6];
 	configHash["output_mish"] = output_mish;
-	
+
     return true;
 }
 
@@ -2099,63 +2101,63 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
 {
     QString iter;
     iter.setNum(iteration);
-    
+
     QString key = "bg_rhou_error_" + iter;
     QString val = configHash.value(key);
     configHash.insert("bg_rhou_error", val);
-    
+
     key = "bg_rhov_error_" + iter;
     val = configHash.value(key);
     configHash.insert("bg_rhov_error", val);
-    
+
     key = "bg_rhow_error_" + iter;
     val = configHash.value(key);
     configHash.insert("bg_rhow_error", val);
-    
+
     key = "bg_tempk_error_" + iter;
     val = configHash.value(key);
     configHash.insert("bg_tempk_error", val);
-    
+
     key = "bg_qv_error_" + iter;
     val = configHash.value(key);
     configHash.insert("bg_qv_error", val);
-    
+
     key = "bg_rhoa_error_" + iter;
     val = configHash.value(key);
     configHash.insert("bg_rhoa_error", val);
-    
+
     key = "bg_qr_error_" + iter;
     val = configHash.value(key);
-    configHash.insert("bg_qr_error", val);	
-    
+    configHash.insert("bg_qr_error", val);
+
     key = "mc_weight_" + iter;
     val = configHash.value(key);
     configHash.insert("mc_weight", val);
-    
+
     key = "i_filter_length_" + iter;
     val = configHash.value(key);
     configHash.insert("i_filter_length", val);
-    
+
     key = "j_filter_length_" + iter;
     val = configHash.value(key);
     configHash.insert("j_filter_length", val);
-    
+
     key = "k_filter_length_" + iter;
     val = configHash.value(key);
     configHash.insert("k_filter_length", val);
-    
+
     key = "i_spline_cutoff_" + iter;
     val = configHash.value(key);
     configHash.insert("i_spline_cutoff", val);
-    
+
     key = "j_spline_cutoff_" + iter;
     val = configHash.value(key);
     configHash.insert("j_spline_cutoff", val);
-    
+
     key = "k_spline_cutoff_" + iter;
     val = configHash.value(key);
     configHash.insert("k_spline_cutoff", val);
-    
+
 }
 
 /* This routine validates that all required parameters are present
@@ -2163,19 +2165,19 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
 
 bool VarDriver3D::validateXMLconfig()
 {
-    
+
     // Validate the hash -- multiple passes are not validated currently
     QStringList configKeys;
     configKeys << "mc_weight" << "i_min" << "i_max" << "i_incr" <<
     "j_min" << "j_max" << "j_incr" <<
     "k_min" << "k_max" << "k_incr" <<
-    "i_filter_length" << "j_filter_length" << "k_filter_length" << 
+    "i_filter_length" << "j_filter_length" << "k_filter_length" <<
     "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff" <<
-    "i_max_wavenumber" << "j_max_wavenumber" << "k_max_wavenumber" <<    
+    "i_max_wavenumber" << "j_max_wavenumber" << "k_max_wavenumber" <<
     "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL" << "k_rhou_bcR" <<
     "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR" << "k_rhov_bcL" << "k_rhov_bcR" <<
     "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL" << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" <<
-    "i_tempk_bcL" << "i_tempk_bcR" << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" <<    
+    "i_tempk_bcL" << "i_tempk_bcR" << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" <<
     "i_qv_bcL" << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" <<
     "i_rhoa_bcL" << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR" <<
     "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR" <<
@@ -2187,7 +2189,4 @@ bool VarDriver3D::validateXMLconfig()
         }
     }
     return true;
-}	
-
-
-
+}
