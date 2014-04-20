@@ -1149,18 +1149,18 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
             real* iPad = NULL;
             real* jPad = NULL;
             real* kPad = NULL;
-            if (iBCL[var] == PERIODIC) {
+      //if (iBCL[var] == PERIODIC) {
                 iPad = new real[iDim*3];
 				//for (int iIndex = 0; iIndex < iDim*3; iIndex++) iPad[iIndex] = 0.;
-            }
-			if (jBCL[var] == PERIODIC) {
+      //}
+			//if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
 				//for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
-            }
-      if (kBCL[var] == PERIODIC) {
+      //}
+      //if (kBCL[var] == PERIODIC) {
           kPad = new real[kDim*3];
           //for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
-      }
+      //}
 
 			for (int iIndex = 0; iIndex < iDim; iIndex++) {
 				for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1180,7 +1180,15 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                       kTemp[kIndex] = kPad[kIndex+kDim];
                   }
               } else {
-                  kFilter->filterArray(kTemp, kDim);
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kPad[kIndex] = kTemp[0];
+                    kPad[kIndex+kDim] = kTemp[kIndex];
+                    kPad[kIndex+kDim*2] = kTemp[kDim-1];
+                }
+                kFilter->filterArray(kPad, kDim*3);
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kTemp[kIndex] = kPad[kIndex+kDim];
+                }
               }
           }
 					for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1207,7 +1215,15 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                                 jTemp[jIndex] = jPad[jIndex+jDim];
                             }
                         } else {
-                            jFilter->filterArray(jTemp, jDim);
+                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                              jPad[jIndex] = jTemp[0];
+                              jPad[jIndex+jDim] = jTemp[jIndex];
+                              jPad[jIndex+jDim*2] = jTemp[jDim-1];
+                          }
+                          jFilter->filterArray(jPad, jDim*3);
+                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                              jTemp[jIndex] = jPad[jIndex+jDim];
+                          }
                         }
                     }
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1234,7 +1250,15 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                                 iTemp[iIndex] = iPad[iIndex+iDim];
                             }
                         } else {
-                            iFilter->filterArray(iTemp, iDim);
+                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                              iPad[iIndex] = iTemp[0];
+                              iPad[iIndex+iDim] = iTemp[iIndex];
+                              iPad[iIndex+iDim*2] = iTemp[iDim-1];
+                          }
+                          iFilter->filterArray(iPad, iDim*3);
+                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                              iTemp[iIndex] = iPad[iIndex+iDim];
+                          }
                         }
                     }
                     for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1304,15 +1328,15 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-            if (iBCL[var] == PERIODIC) {
+            //if (iBCL[var] == PERIODIC) {
                 delete[] iPad;
-            }
-			if (jBCL[var] == PERIODIC) {
+            //}
+			//if (jBCL[var] == PERIODIC) {
                 delete[] jPad;
-            }
-      if (kBCL[var] == PERIODIC) {
+      //      }
+      //if (kBCL[var] == PERIODIC) {
           delete[] kPad;
-      }
+      //}
 		}
 	}
 }
@@ -1339,15 +1363,15 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
       real* iPad = NULL;
       real* jPad = NULL;
       real* kPad = NULL;
-      if (iBCL[var] == PERIODIC) {
+      //if (iBCL[var] == PERIODIC) {
           iPad = new real[iDim*3];
-      }
-			if (jBCL[var] == PERIODIC) {
+      //}
+			//if (jBCL[var] == PERIODIC) {
           jPad = new real[jDim*3];
-      }
-      if (kBCL[var] == PERIODIC) {
+      //}
+      //if (kBCL[var] == PERIODIC) {
           kPad = new real[kDim*3];
-      }
+      //}
       if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
         for (int kIndex = 0; kIndex < kDim; kIndex++) {
           for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1427,7 +1451,15 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                                 iTemp[iIndex] = iPad[iIndex+iDim];
                             }
                         } else {
-                            iFilter->filterArray(iTemp, iDim);
+                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                              iPad[iIndex] = iTemp[0];
+                              iPad[iIndex+iDim] = iTemp[iIndex];
+                              iPad[iIndex+iDim*2] = iTemp[iDim-1];
+                          }
+                          iFilter->filterArray(iPad, iDim*3);
+                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                              iTemp[iIndex] = iPad[iIndex+iDim];
+                          }
                         }
                     }
 					for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1454,7 +1486,15 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                                 jTemp[jIndex] = jPad[jIndex+jDim];
                             }
                         } else {
-                            jFilter->filterArray(jTemp, jDim);
+                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                              jPad[jIndex] = jTemp[0];
+                              jPad[jIndex+jDim] = jTemp[jIndex];
+                              jPad[jIndex+jDim*2] = jTemp[jDim-1];
+                          }
+                          jFilter->filterArray(jPad, jDim*3);
+                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                              jTemp[jIndex] = jPad[jIndex+jDim];
+                          }
                         }
                     }
 					for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1481,7 +1521,15 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                       kTemp[kIndex] = kPad[kIndex+kDim];
                   }
               } else {
-                  kFilter->filterArray(kTemp, kDim);
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kPad[kIndex] = kTemp[0];
+                    kPad[kIndex+kDim] = kTemp[kIndex];
+                    kPad[kIndex+kDim*2] = kTemp[kDim-1];
+                }
+                kFilter->filterArray(kPad, kDim*3);
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kTemp[kIndex] = kPad[kIndex+kDim];
+                }
               }
           }
           for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1492,15 +1540,15 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 			delete[] iTemp;
 			delete[] jTemp;
 			delete[] kTemp;
-      if (iBCL[var] == PERIODIC) {
+      //if (iBCL[var] == PERIODIC) {
         delete[] iPad;
-      }
-			if (jBCL[var] == PERIODIC) {
+      //}
+			//if (jBCL[var] == PERIODIC) {
         delete[] jPad;
-      }
-      if (kBCL[var] == PERIODIC) {
+      //}
+      //if (kBCL[var] == PERIODIC) {
         delete[] kPad;
-      }
+      //}
 
 		}
 	}
