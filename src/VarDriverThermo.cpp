@@ -221,10 +221,15 @@ bool VarDriverThermo::initialize(const QDomElement& configuration)
 
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;	   
-	   
-	obCost3D = new CostFunctionThermo(obVector.size(), bStateSize);
-	obCost3D->initialize(&configHash, bgU, obs, refstate);
-	
+
+    if (runMode == XYZ) {
+        obCost3D = new CostFunctionThermoXYZ(obVector.size(), bStateSize);
+    } else if (runMode == RTZ) {
+        obCost3D = new CostFunctionThermoRTZ(obVector.size(), bStateSize);
+    }
+    obCost3D->initialize(&configHash, bgU, obs, refstate);
+
+
 	// If we got here, then everything probably went OK!
 	return true;
 }

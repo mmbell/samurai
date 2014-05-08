@@ -33,7 +33,7 @@ public:
 	void initState(const int iteration);
 	
 protected:
-	bool outputAnalysis(const QString& suffix, real* Astate);
+    virtual bool outputAnalysis(const QString& suffix, real* Astate) = 0;
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 

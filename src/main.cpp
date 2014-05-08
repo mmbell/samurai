@@ -3,7 +3,7 @@
 //#include "VarDriverRZ.h"
 //#include "VarDriverXY.h"
 //#include "VarDriverVAR.h"
-//#include "VarDriver3D.h"
+#include "VarDriver3D.h"
 #include "VarDriverThermo.h"
 #include <iostream>
 #include <QtCore>
