@@ -16,17 +16,25 @@
 
 NetCDF::NetCDF() :c_p(1005.7), g(9.81), f(0.448432045656147e-05), pi(3.14159265358979323846)
  {
-	NDIMS = 4;
+  NDIMS = 4;
 	NALT = 33;
-	NX = 51;      // NRADIUS or NLON
-	NY = 51;      // NTHETA or NLAT
+	NRADIUS = 73;
+	NTHETA = 73;
 	NREC = 0;
-	NC_ERR = 2;
-  std::cout << "Constructor \n";
-}
+	NC_ERR = 2;  
+	}
 
 NetCDF::~NetCDF() {
 }
+
+double NetCDF::get_dimensions() 
+{
+    return NDIMS;
+  }
+
+
+
+
 
 
 

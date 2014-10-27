@@ -20,6 +20,8 @@
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include "NetCDF.h"
+#include "NetCDF_RTZ.h"
+#include "NetCDF_XYZ.h"
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -40,13 +42,15 @@ public:
 	bool initialize(const QDomElement& configuration);
 	bool run();
 	bool finalize();
+  bool testing(QList<Observation>* obVector);
+  bool testing_rtz(QList<Observation>* obVector);
+
 	
 private:
    int test;
    CostFunctionThermo* obCost3D;
-   bool loadMetData(QString& metFile, QList<MetObs>* metObVector);
    bool loadObservations(QString& metFile, QList<Observation>* obVector);
-   NetCDF ncFile;
+   NetCDF* ncFile;
    QList<Observation> obVector;
    
    real* obs;

@@ -206,7 +206,7 @@ void CostFunctionThermo::initState(const int iteration)
 	outputMish = configHash->value("output_mish").toInt();
 	
 	// Mass continuity weight
-	mcWeight = configHash->value("mc_weight").toFloat();
+  mcWeight = configHash->value("mc_weight").toFloat();
 	cout << "Mass continuity weight set to " << mcWeight << endl;
 	
 	if (iteration == 1) {

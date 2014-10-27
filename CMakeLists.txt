@@ -1,13 +1,13 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
-set ( CMAKE_BUILD_TYPE Release )
-set ( HDF5_INCLUDE_DIR "/home/ed/local/include/" )
-set ( HDF5_LIBRARY "/home/ed/local/lib/libhdf5.so" "/home/ed/local/lib/libhdf5_hl.so" "/home/ed/local/lib/libz.so" )
-set ( NETCDF_LIBRARY "/home/ed/local/lib/libnetcdf.so")
-set ( NETCDF_INCLUDE_DIR "/home/ed/local/include/" )
-set ( NETCDF_CPP_LIBRARY "/home/ed/local/lib/libnetcdf_c++.dylib")
-set ( NETCDF_CPP_INCLUDE_DIR "/home/ed/local/include/" )
-#set ( CMAKE_CXX_COMPILER "g++-4.2" )
+set ( CMAKE_BUILD_TYPE Debug )
+#set ( HDF5_INCLUDE_DIR "/home/ed/local/include/" )
+#set ( HDF5_LIBRARY "/home/ed/local/lib/libhdf5.so" "/home/ed/local/lib/libhdf5_hl.so" "/home/ed/local/lib/libz.so" )
+#set ( NETCDF_LIBRARY "/home/ed/local/lib/libnetcdf.so")
+#set ( NETCDF_INCLUDE_DIR "/home/ed/local/include/" )
+#set ( NETCDF_CPP_LIBRARY "/home/ed/local/lib/libnetcdf_c++.dylib")
+#set ( NETCDF_CPP_INCLUDE_DIR "/home/ed/local/include/" )
+set ( CMAKE_CXX_COMPILER "g++-4.2" )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 add_definitions ( -Wall )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -77,6 +77,8 @@ src/ReferenceState.h
         src/precision.h
         src/FrameCenter.h
     src/NetCDF.h
+    src/NetCDF_RTZ.h
+    src/NetCDF_XYZ.h
 )
 
 set ( samurai_SRCS
@@ -102,6 +104,8 @@ src/ReferenceState.cpp
 src/Dorade.cpp
         src/FrameCenter.cpp
     src/NetCDF.cpp
+    src/NetCDF_RTZ.cpp
+    src/NetCDF_XYZ.cpp
 
 src/mac_debug.xcconfig
 src/mac_release.xcconfig

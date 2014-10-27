@@ -19,44 +19,20 @@ class NetCDF
 
 public:
 	NetCDF();
-	~NetCDF();
+	virtual ~NetCDF();
 	
-	int readNetCDF(const char* filename);
-	double getValue(const int &i,const int &j,const int &k,const QString &varName);	
-	double getDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der);
-	double calc_A(const int &i,const int &j,const int &k);
-	double calc_B(const int &i,const int &j,const int &k);
-	double calc_C(const int &i,const int &j,const int &k);
-	double calc_D(const int &i,const int &j,const int &k);
+	virtual int readNetCDF(const char* filename)=0;
+	virtual double getValue(const int &i,const int &j,const int &k,const QString &varName)=0;	
+	virtual double getDerivative(const int &i,const int &j,const int &k, const QString &var, const int &der)=0;
+	virtual double calc_A(const int &i,const int &j,const int &k)=0;
+	virtual double calc_B(const int &i,const int &j,const int &k)=0;
+	virtual double calc_C(const int &i,const int &j,const int &k)=0;
+	virtual double calc_D(const int &i,const int &j,const int &k)=0;
 
 	
-private:
-	int NDIMS, NALT, NRADIUS, NTHETA, NREC, NC_ERR;
 
-    float* radius;
-	float* theta;
-	float* altitude;	
-	float* u;
-	float* v;
-	float* w;
-	float* dudr;
-	float* dvdr;
-	float* dwdr;
-	float* dudt;
-	float* dvdt;
-	float* dwdt;
-	float* dudz;
-	float* dvdz;
-	float* dwdz;
-	float* rhoa;
-	float* pibar;
-	float* thetarhobar;
-	float* pip;
-	float* thetarhop;
-	float* vbar;
-	float* vp;
-	
-	QString varName;
+protected:
+	int NDIMS, NALT, NX, NY, NREC, NC_ERR;
 		
 	const float c_p;
 	const float g;
