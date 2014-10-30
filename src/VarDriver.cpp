@@ -578,7 +578,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	Dorade swpfile(metFile.fileName());
 	
 	// Use a Transverse Mercator projection to map the radar gates to the grid
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
 	QString radardbz = configHash.value("radar_dbz");
 	QString radarvel = configHash.value("radar_vel");
@@ -891,7 +891,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 	
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	QTextStream in(&metFile);
 	// Skip two lines
 	in.readLine(); in.readLine();

@@ -51,7 +51,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	real latReference = configHash->value("ref_lat").toFloat();
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
 	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
 	real minLat, minLon;
@@ -1338,7 +1338,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
 	real refX, refY;
 
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
 	real minLat, minLon;
 	if (latlonIncr > 0) {
