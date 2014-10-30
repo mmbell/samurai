@@ -44,7 +44,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	pMax = pMax - int(pMax)%int(DP) + DP;
 	pMin = pMin - int(pMin)%int(DP);
 	pDim = (pMax - pMin)/DP + 2;
-
+  bool goodpressure = true;
     int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
@@ -171,15 +171,20 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 									real press = airpress + vp;
 									real p = press-pLevel;
 
-                                    real pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhodz-rhoadz)*temp)*461./100.;
+									real pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
 									if (pdz != 0) {
 										height = height - p/pdz; // pdz = hPa/km
 										peps = p;
 									}
 									iter++;
 								}
-							 	if (fabs(peps) > 0.02) {
+							 	if ((fabs(peps) > 0.02) or (height < 0)) {
 								  std::cout << "Unable to find pressure " << pLevel << " at " << i << ", " << j << "\n";
+									// Underground?
+									goodpressure = false;
+									height = kMin;
+								} else {
+									goodpressure = true;
 								}
 								real k = height;
 								if ((k < kMin) or(k > ((kDim-1)*DK + kMin))) continue;
@@ -420,9 +425,9 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 
 
 								QString refmask = configHash->value("mask_reflectivity");
-								if (refmask != "None") {
+								if ((refmask != "None") or (goodpressure == false)) {
 									real refthreshold = refmask.toFloat();
-									if (qr < refthreshold) {
+									if ((qr < refthreshold) or (goodpressure == false)) {
 										u = -999.;
 										v = -999.;
 										w = -999.;
