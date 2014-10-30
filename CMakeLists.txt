@@ -1,6 +1,7 @@
 project(samurai)
 cmake_minimum_required ( VERSION 2.6 )
 #set ( CMAKE_BUILD_TYPE Debug )
+#set ( CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4" )
 set ( CMAKE_BUILD_TYPE Release )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 #set ( CMAKE_CXX_COMPILER "g++-4.2" )
