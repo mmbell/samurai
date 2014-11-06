@@ -393,6 +393,10 @@ bool VarDriver3D::preProcessMetObs()
                 if (!read_aeri(metFile, metData))
 					cout << "Error reading aeri file" << endl;
 				break;
+				case(rad):
+						if (!read_rad(metFile, metData))
+				cout << "Error reading rad file" << endl;
+				break;
 			case (cen):
 				continue;
 			default:
