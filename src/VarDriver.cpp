@@ -22,7 +22,7 @@ VarDriver::VarDriver()
 {
 	// Constant for all drivers
 	Pi = acos(-1);
-	
+
 	// Set up the datatype hash
 	dataSuffix["cen"] = cen;
 	dataSuffix["frd"] = frd;
@@ -75,18 +75,18 @@ bool VarDriver::readFrameCenters()
 			break;
 		}
 	}
-	
+
 	// Open the file
 	QFile centerFile(dataPath.filePath(centerFilename));
 	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		std::cout << "Unable to open centerfile " << centerFilename.toAscii().data() << std::endl;
 		return false;
 	}
-	
+
 	// Get the date from the filename
-	QString datestr = centerFilename.left(8);	
+	QString datestr = centerFilename.left(8);
 	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
-	
+
 	// Read the centers
 	QTextStream in(&centerFile);
 	while (!in.atEnd()) {
@@ -118,7 +118,7 @@ bool VarDriver::readFrameCenters()
 		FrameCenter center(datetime, lat, lon, Um, Vm);
 		frameVector.push_back(center);
 	}
-	
+
 	return true;
 }
 
@@ -182,7 +182,7 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
 	QDateTime datetime;
@@ -207,22 +207,22 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 			QStringList lineparts = line.split(QRegExp("\\s+"));
 			int msec = lineparts[1].toInt()*1000;
 			ob.setTime(datetime.addMSecs(msec));
-			if (lineparts[11].toFloat() != 999.) { 
+			if (lineparts[11].toFloat() != 999.) {
 				ob.setLon(lineparts[11].toFloat());
 			} else {
 				ob.setLon(-999.);
 			}
-			if (lineparts[12].toFloat() != 999.) { 
+			if (lineparts[12].toFloat() != 999.) {
 				ob.setLat(lineparts[12].toFloat());
 			} else {
 				ob.setLat(-999.);
 			}
-			if (lineparts[15].toFloat() != 99999.0) { 
+			if (lineparts[15].toFloat() != 99999.0) {
 				ob.setAltitude(lineparts[15].toFloat());
 			} else {
 				ob.setAltitude(99999.0);
 			}
-			if (lineparts[2].toFloat() != 9999.0) { 
+			if (lineparts[2].toFloat() != 9999.0) {
 				ob.setPressure(lineparts[2].toFloat());
 			} else {
 				ob.setPressure(9999.0);
@@ -267,7 +267,7 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
 	QDateTime datetime;
@@ -293,22 +293,22 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
 			QStringList lineparts = line.split(QRegExp("\\s+"));
 			int sec = (int)lineparts[1].toFloat();
 			ob.setTime(datetime.addSecs(sec));
-			if (lineparts[15].toFloat() != -999.) { 
+			if (lineparts[15].toFloat() != -999.) {
 				ob.setLon(lineparts[15].toFloat());
 			} else {
 				ob.setLon(-999.);
 			}
-			if (lineparts[16].toFloat() != -999.) { 
+			if (lineparts[16].toFloat() != -999.) {
 				ob.setLat(lineparts[16].toFloat());
 			} else {
 				ob.setLat(-999.);
 			}
-			if (lineparts[14].toFloat() != -999.0) { 
+			if (lineparts[14].toFloat() != -999.0) {
 				ob.setAltitude(lineparts[14].toFloat());
 			} else {
 				ob.setAltitude(-999.);
 			}
-			if (lineparts[5].toFloat() != -999.0) { 
+			if (lineparts[5].toFloat() != -999.0) {
 				ob.setPressure(lineparts[5].toFloat());
 			} else {
 				ob.setPressure(-999.0);
@@ -352,7 +352,7 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
 	QDateTime datetime;
@@ -378,22 +378,22 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 			QStringList lineparts = line.split(QRegExp("\\s+"));
 			int sec = (int)lineparts[1].toFloat();
 			ob.setTime(datetime.addSecs(sec));
-			if (lineparts[15].toFloat() != -999.) { 
+			if (lineparts[15].toFloat() != -999.) {
 				ob.setLon(lineparts[15].toFloat());
 			} else {
 				ob.setLon(-999.);
 			}
-			if (lineparts[16].toFloat() != -999.) { 
+			if (lineparts[16].toFloat() != -999.) {
 				ob.setLat(lineparts[16].toFloat());
 			} else {
 				ob.setLat(-999.);
 			}
-			if (lineparts[14].toFloat() != -999.0) { 
+			if (lineparts[14].toFloat() != -999.0) {
 				ob.setAltitude(lineparts[14].toFloat());
 			} else {
 				ob.setAltitude(-999.);
 			}
-			if (lineparts[5].toFloat() != -999.0) { 
+			if (lineparts[5].toFloat() != -999.0) {
 				ob.setPressure(lineparts[5].toFloat());
 			} else {
 				ob.setPressure(-999.0);
@@ -428,20 +428,20 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads a 1 sec flight level data file similar to the format provided by NOAA/HRD
  Columns are:
-  TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     SurfP    VtWnd     
+  TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     SurfP    VtWnd
  Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 
 bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
 	QFileInfo info(metFile);
 	QString fileName = info.fileName();
 	aircraft = fileName.indexOf(QRegExp("HINUE"));
-	datestr = fileName.left(8);	
+	datestr = fileName.left(8);
 	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	MetObs ob;
 	while (!in.atEnd()) {
@@ -472,7 +472,7 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		ob.setLat(lineparts[1].toFloat());
-		
+
 		// Note that the longitude can sometimes be given in degrees West, which jacks up the typically negative decimal representation for US locations;
 		ob.setLon(lineparts[2].toFloat());
 		ob.setAltitude(lineparts[7].toFloat());
@@ -487,7 +487,7 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setDewpoint(-999.);
 		}
-		if (lineparts[10].toFloat() >= 0) {	
+		if (lineparts[10].toFloat() >= 0) {
 			ob.setWindDirection(lineparts[9].toFloat());
 			ob.setWindSpeed(lineparts[10].toFloat());
 		}
@@ -499,8 +499,8 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 	}
 
 	metFile.close();
-	return true;	
-	
+	return true;
+
 }
 
 /* This routine reads a 10 sec flight level data file from the data provided by the USAF Hurricane Hunters */
@@ -510,13 +510,13 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, aircraft;
 	QFileInfo info(metFile);
 	QString fileName = info.fileName();
 	aircraft = fileName.indexOf(QRegExp("HINUE"));
-	datestr = fileName.left(8);	
+	datestr = fileName.left(8);
 	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	QDate date;
 	MetObs ob;
@@ -539,18 +539,18 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 			}
 		} else {
 			date = startDate;
-		}		
+		}
 		QTime time = QTime::fromString(timestr, "HH:mm:ss");
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);
-		
+
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		real lat = lineparts[12].toFloat();
 		ob.setLat(lat);
 		real lon = lineparts[13].toFloat();
 		ob.setLon(lon);
 		ob.setAltitude(lineparts[16].toFloat());
-		
+
 		// Calculate pressure from palt using HRD formula
 		real press = lineparts[5].toFloat();
 		//real press =  1013.25*pow((1-palt/44331.),(1/.190263));
@@ -563,20 +563,20 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::flightlevel);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;	
+	return true;
 }
 
 /* This routine reads a Dorade Sweepfile
-	This does not correctly read 'pure' Dorade files due to big-endian representation in that format, 
+	This does not correctly read 'pure' Dorade files due to big-endian representation in that format,
 	so it needs a byte swap which has not been implemented yet*/
 
 bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 {
 
 	Dorade swpfile(metFile.fileName());
-	
+
 	// Use a Transverse Mercator projection to map the radar gates to the grid
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
@@ -593,11 +593,11 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
 		real radarLat = swpfile.getRadarLat(i);
 		real radarLon = swpfile.getRadarLon(i);
-		real radarAlt = swpfile.getRadarAlt(i);		
+		real radarAlt = swpfile.getRadarAlt(i);
 		real az = swpfile.getAzimuth(i);
 		real el = swpfile.getElevation(i);
 		float* refdata = swpfile.getReflectivity(i);
-		float* veldata = swpfile.getRadialVelocity(i);	
+		float* veldata = swpfile.getRadialVelocity(i);
 		float* swdata = swpfile.getSpectrumWidth(i);
 		QDateTime rayTime = swpfile.getRayTime(i);
 		float* gatesp = swpfile.getGateSpacing();
@@ -631,16 +631,16 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				vr = vr/count;
 				sw = sw/count;
 				real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
-				real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+				real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
 				real rEarth = 6371000.0;
-				
+
 				// Take into account curvature of the earth for the height of the radar beam
 				real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 				real radarX, radarY, gateLat, gateLon;
 				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
 				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 				real gateAlt = relZ + radarAlt*1000;
-				
+
 				ob.setObType(MetObs::radar);
 				ob.setLat(gateLat);
 				ob.setLon(gateLon);
@@ -652,15 +652,15 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				ob.setSpectrumWidth(sw);
 				ob.setTime(rayTime);
 				metObVector->push_back(ob);
-				/* cout << rayTime.toString(Qt::ISODate).toStdString() << "\t" 
-				<< gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
+				/* cout << rayTime.toString(Qt::ISODate).toStdString() << "\t"
+				<< gateLat << "\t" << gateLon << "\t" << gateAlt << "\t"
 				<< az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; */
 			}
 		}
 	}
-	
+
 	return true;
-	
+
 }
 
 
@@ -671,7 +671,7 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr;
 	QDateTime datetime;
@@ -701,9 +701,9 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::sfmr);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
+	return true;
 
 }
 
@@ -711,10 +711,10 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString year,jd,timestr;
 	MetObs ob;
@@ -724,7 +724,7 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 		QDateTime datetime;
 		ob.setStationName("qscat");
 		year = line.mid(56,4);
-		jd = line.mid(61,3); 
+		jd = line.mid(61,3);
 		QDate date(year.toInt(),1,1);
 		date = date.addDays(jd.toInt()-1);
 		timestr = line.mid(65,12);
@@ -748,20 +748,20 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::qscat);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
-	
+	return true;
+
 }
 
 /* This routine reads an ASCII dump of the ASCAT data, see code for columns*/
 
 bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	MetObs ob;
 	QString unixtime = in.readLine();
@@ -781,20 +781,20 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::ascat);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
-	
+	return true;
+
 }
 
 /* This routine reads an ASCII dump of the Quikscat data for NOPP, see code for columns*/
 
 bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	MetObs ob;
 	QDate startDate;
@@ -815,17 +815,17 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setLat(lineparts[0].toFloat());
 		ob.setLon(lineparts[1].toFloat());
 		int secs = (int)lineparts[2].toFloat();
-		ob.setTime(datetime.addSecs(secs));		
+		ob.setTime(datetime.addSecs(secs));
 		ob.setAltitude(10.0);
 		ob.setWindSpeed(lineparts[3].toFloat());
 		ob.setWindDirection(lineparts[4].toFloat());
 		ob.setObType(MetObs::qscat);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
-	
+	return true;
+
 }
 
 /* This routine reads the CIMSS atmospheric motion vector files.
@@ -834,10 +834,10 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	MetObs ob;
 	QDateTime datetime;
@@ -863,7 +863,7 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 		int iter = 0;
 		while ((fabs(pmin) > 1.) and (iter < 5000)) {
 			real p = refstate->getReferenceVariable(ReferenceVariable::pressref, height)-presslevel;
-			real pprime = (refstate->getReferenceVariable(ReferenceVariable::pressref, height+500.) 
+			real pprime = (refstate->getReferenceVariable(ReferenceVariable::pressref, height+500.)
                            - refstate->getReferenceVariable(ReferenceVariable::pressref, height-500.))/1000.;
 			if (pprime != 0) {
 				height = height - p/pprime;
@@ -877,20 +877,20 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::AMV);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
-	
+	return true;
+
 }
 
 /* This routine reads the LOS Doppler Wind Lidar data from TPARC, see code for columns*/
 
 bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	QTextStream in(&metFile);
 	// Skip two lines
@@ -921,7 +921,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 			// Lidar data is sufficiently sparse compared to radar data to include it all for now
 			// Could implement some data thinning here
 			int stride = 1;
-		
+
 			for (int n=0; n < lineparts[10].toInt(); n+=stride) {
 				MetObs ob;
 				int offset = n*5;
@@ -947,7 +947,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					vr = vr/count;
 					sw = sw/count;
 					real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
-					real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);					
+					real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
 					real rEarth = 6371000.0;
 					// Take into account curvature of the earth
 					real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
@@ -966,16 +966,16 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					ob.setSpectrumWidth(sw);
 					ob.setTime(datetime);
 					metObVector->push_back(ob);
-					/*cout << datetime.toString(Qt::ISODate).toStdString() << "\t" 
-					 << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t" 
+					/*cout << datetime.toString(Qt::ISODate).toStdString() << "\t"
+					 << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t"
 					 << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; */
 				}
 			}
 		}
 	}
-	
+
 	return true;
-	
+
 }
 
 /* This routine reads a generic insitu format suitable for many different observation types
@@ -984,13 +984,13 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, platform;
 	QDateTime datetime;
 	QFileInfo info(metFile);
 	QString fileName = info.fileName();
-	datestr = fileName.left(8);	
+	datestr = fileName.left(8);
 	QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
 	// Get the platform name
 	platform = fileName;
@@ -1020,7 +1020,7 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 		QTime time = QTime::fromString(timestr, "HHmmss");
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);
-		
+
 		QStringList lineparts = line.split(QRegExp("\\s+"));
 		if ((lineparts[1].toFloat() != -32768) or (lineparts[1].toFloat() != -32767)) {
 			ob.setLat(lineparts[1].toFloat());
@@ -1056,7 +1056,7 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setDewpoint(-999.0);
 		}
-		if (lineparts[8].toFloat() >= 0) {	
+		if (lineparts[8].toFloat() >= 0) {
 			ob.setWindDirection(lineparts[7].toFloat());
 			ob.setWindSpeed(lineparts[8].toFloat());
 		} else {
@@ -1071,16 +1071,16 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::insitu);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;	
+	return true;
 }
 
 bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
 {
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	QString datestr, timestr, platform;
 	QDateTime datetime;
@@ -1138,12 +1138,12 @@ bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
             metObVector->push_back(ob);
         }
 	}
-	
+
 	metFile.close();
 	return true;
 }
 
-/* This routine parses the supplied XML configuration 
+/* This routine parses the supplied XML configuration
  and validates parameters that are common to all drivers
  Mode specific configs are validated in those drivers */
 
@@ -1151,7 +1151,7 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 {
 
 	cout << "Parsing configuration file...\n";
-	
+
 	// Parse the nodes to a hash
 	QDomNodeList nodeList = config.childNodes();
 	for (int i = 0; i < nodeList.count(); i++) {
@@ -1176,11 +1176,11 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 			}
 		}
 	}
-	
+
 	// Validate the hash -- multiple passes are not validated currently
 	QStringList configKeys;
 	configKeys << "ref_state" << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
-	"qr_variable" << "i_background_roi" << "j_background_roi" << 
+	"qr_variable" << "i_background_roi" << "j_background_roi" <<
 	"i_reflectivity_roi" << "j_reflectivity_roi" << "k_reflectivity_roi" <<
 	"load_background" << "adjust_background" <<
 	"radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" <<
@@ -1188,35 +1188,35 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
     "melting_zone_width" << "mixed_phase_dbz" << "rain_dbz" <<
 	"num_iterations" << "output_mish" << "output_txt" << "output_qc" <<
     "output_netcdf" << "output_asi" << "preprocess_obs" << "mask_reflectivity" <<
-    "dropsonde_rhou_error" << "dropsonde_rhov_error" << "dropsonde_rhow_error" << 
+    "dropsonde_rhou_error" << "dropsonde_rhov_error" << "dropsonde_rhow_error" <<
     "dropsonde_tempk_error" << "dropsonde_qv_error" << "dropsonde_rhoa_error" <<
-    "flightlevel_rhou_error" << "flightlevel_rhov_error" << "flightlevel_rhow_error" << 
+    "flightlevel_rhou_error" << "flightlevel_rhov_error" << "flightlevel_rhow_error" <<
     "flightlevel_tempk_error" << "flightlevel_qv_error" << "flightlevel_rhoa_error" <<
-    "insitu_rhou_error" << "insitu_rhov_error" << "insitu_rhow_error" << 
+    "insitu_rhou_error" << "insitu_rhov_error" << "insitu_rhow_error" <<
     "insitu_tempk_error" << "insitu_qv_error" << "insitu_rhoa_error" <<
     "sfmr_windspeed_error" << "qscat_rhou_error" << "qscat_rhov_error" <<
     "ascat_rhou_error" << "ascat_rhov_error" << "amv_rhou_error" << "amv_rhov_error" <<
     "lidar_sw_error" << "lidar_power_error" << "lidar_min_error" <<
     "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error" <<
-    "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" << 
+    "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" <<
     "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error";
 	for (int i = 0; i < configKeys.count(); i++) {
 		if (!configHash.contains(configKeys.at(i))) {
 			cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
 			return false;
-		} 
+		}
 	}
 	return true;
-	
+
 }
 
 bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 {
 	NcError err(NcError::verbose_nonfatal);
-	
+
 	// Read the file.
 	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
-	
+
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())
 		return false;
@@ -1247,8 +1247,8 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
         return false;
     if (!(pressVar = dataFile.get_var("stationPressure")))
         return false;
-    
-    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC], 
+
+    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC],
         dewp[NREC], wdir[NREC], wspd[NREC], press[NREC];
     if (!latVar->get(lat, NREC))
         return false;
@@ -1292,8 +1292,8 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
         QDateTime datetime;
         datetime = QDateTime::fromTime_t(obtime[rec]);
         ob.setTime(datetime.toUTC());
-        
-        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) { 
+
+        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) {
 			ob.setTemperature(temp[rec]);
 		} else {
 			ob.setTemperature(-999.0);
@@ -1318,32 +1318,32 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setPressure(-999.0);
 		}
-        
+
         ob.setObType(MetObs::mesonet);
 		metObVector->push_back(ob);
     }
-    
+
     return true;
-    
+
 }
 
 bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 {
 	NcError err(NcError::verbose_nonfatal);
-	
+
 	// Read the file.
 	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
-	
+
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())
 		return false;
-    
+
     // Get the number of records
     NcDim* recnum;
     if (!(recnum = dataFile.get_dim("time")))
         return false;
     int NREC = recnum->size();
-    
+
     NcVar *latVar, *lonVar, *altVar, *timeVar, *tempVar,
     *rhVar, *wdirVar, *wspdVar, *pressVar;
     if (!(latVar = dataFile.get_var("lat")))
@@ -1364,8 +1364,8 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
         return false;
     if (!(pressVar = dataFile.get_var("pres")))
         return false;
-    
-    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC], 
+
+    real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC],
         rh[NREC], wdir[NREC], wspd[NREC], press[NREC];
     if (!latVar->get(lat, NREC))
         return false;
@@ -1411,13 +1411,13 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setAltitude(-999.0);
 		}
-        
+
         QTime time(startTime);
         time.addSecs(obtime[rec]);
         datetime = QDateTime(startDate, time, Qt::UTC);
         ob.setTime(datetime);
-                
-        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) { 
+
+        if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) {
 			ob.setTemperature(temp[rec]+273.15);
 		} else {
 			ob.setTemperature(-999.0);
@@ -1442,23 +1442,23 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setPressure(-999.0);
 		}
-        
+
         ob.setObType(MetObs::dropsonde);
 		metObVector->push_back(ob);
     }
-    
+
     return true;
-    
+
 }
 
 /* This routine reads the qcf composite data format*/
 
 bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
 {
-	
+
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
-	
+
 	QTextStream in(&metFile);
 	MetObs ob;
 	QDate startDate;
@@ -1495,23 +1495,23 @@ bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
 		ob.setObType(MetObs::mesonet);
 		metObVector->push_back(ob);
 	}
-	
+
 	metFile.close();
-	return true;		
-	
+	return true;
+
 }
 
 bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 {
 	NcError err(NcError::verbose_nonfatal);
-	
+
 	// Read the file.
 	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
-	
+
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())
 		return false;
-    
+
     // Get the number of records
     NcDim* recnum;
     if (!(recnum = dataFile.get_dim("time")))
@@ -1523,7 +1523,7 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
     if (!(pres_level = dataFile.get_dim("pres_level")))
         return false;
     int NLVL = pres_level->size();
-    
+
     NcVar *latVar, *lonVar, *altVarBase, *altVar, *timeVarBase, *timeVar,
     *tempVar, *dewpVar, *pressVar;
     if (!(latVar = dataFile.get_var("lat")))
@@ -1544,8 +1544,8 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
         return false;
     if (!(pressVar = dataFile.get_var("pressure")))
         return false;
-    
-    real lat, lon, altBase, basetime, alt[NREC][NLVL], obtime[NREC], temp[NREC][NLVL], 
+
+    real lat, lon, altBase, basetime, alt[NREC][NLVL], obtime[NREC], temp[NREC][NLVL],
     dewp[NREC][NLVL], press[NREC][NLVL];
     if (!latVar->get(&lat, 1))
         return false;
@@ -1556,7 +1556,7 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
     if (!timeVarBase->get(&basetime, 1))
         return false;
     if (!altVar->get(&alt[0][0], NREC, NLVL))
-        return false;    
+        return false;
     if (!timeVar->get(&obtime[0], NREC, NLVL))
         return false;
     if (!tempVar->get(&temp[0][0], NREC, NLVL))
@@ -1567,7 +1567,7 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
         return false;
 
     QDateTime datetime;
-    
+
 	// Get the platform name
 	MetObs ob;
     QStringList fileparts = metFile.fileName().split("_");
@@ -1589,14 +1589,14 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setAltitude(-999.0);
 		}
-        
+
         datetime = QDateTime::fromTime_t(basetime);
         QString obstring = datetime.toString(Qt::ISODate);
         QDateTime obdatetime = datetime.addSecs(obtime[rec]).toUTC();
         obstring = obdatetime.toString(Qt::ISODate);
         ob.setTime(obdatetime);
-        
-        if ((temp[rec][p] != -9999.0) and (temp[rec][p] < 1.0e32)) { 
+
+        if ((temp[rec][p] != -9999.0) and (temp[rec][p] < 1.0e32)) {
 			ob.setTemperature(temp[rec][p]);
 		} else {
             //cout << temp[rec][p] << "\n";
@@ -1612,12 +1612,12 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 		} else {
 			ob.setPressure(-999.0);
 		}
-        
+
         ob.setObType(MetObs::aeri);
 		metObVector->push_back(ob);
         }
     }
-    
+
     return true;
-    
+
 }

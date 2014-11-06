@@ -37,7 +37,7 @@ public:
 	virtual bool finalize() = 0;
 
 protected:
-	
+
 	real CoriolisF;
 	real Pi;
 	unsigned int numVars;
@@ -49,7 +49,7 @@ protected:
 	vector<FrameCenter> frameVector;
 	QDomDocument domDoc;
 	QHash<QString, QString> configHash;
-	ReferenceState* refstate;    
+	ReferenceState* refstate;
 	// Data Processing
 	QHash<QString, int> dataSuffix;
 	QDir dataPath;
