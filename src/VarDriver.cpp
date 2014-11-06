@@ -611,25 +611,44 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				stride = (int)(range*beamwidth/gatelength);
 				if (stride < minstride) stride = minstride;
 			}
-			real dz = 0;
-			real vr = 0;
-			real sw = 0;
-			real count = 0;
+			real dz = 0.0;
+			real vr = 0.0;
+			real sw = 0.0;
+			int dzcount = 0;
+			int vrcount = 0;
+			int swcount = 0;
 			for (int g=n; g<(n+stride); g++) {
-				if (veldata[g] == -32768) continue;
-				if (refdata[g] == -32768) continue;
-				if (swdata[g] == -32768) continue;
 				if (gatesp[g] <= 0) continue;
-				dz += pow(10.0,(refdata[g]*0.1));
-				vr += veldata[g];
-				sw += swdata[g];
-				count++;
+				if (veldata[g] != -32768) {
+					vr += veldata[g];
+					vrcount++;
+				}
+				if (refdata[g] == -32768) {
+					dz += pow(10.0,(refdata[g]*0.1));
+					dzcount++;
+				}
+				if (swdata[g] == -32768) {
+					sw += swdata[g];
+					swcount++;
+				}
 			}
-			if (count > 0) {
-				dz = dz/count;
+			if (dzcount > 0) {
+				dz = dz/float(dzcount);
 				dz = 10*log10(dz);
-				vr = vr/count;
-				sw = sw/count;
+			} else {
+				dz = -999.0;
+			}
+			if (vrcount > 0) {
+				vr = vr/float(vrcount);
+			} else {
+				vr = -999.0;
+			}
+			if (swcount > 0) {
+				sw = sw/float(swcount);
+			} else {
+				sw = -999.0;
+			}
+			if ((vel != -999.0) || (dz != 999.0) || (sw != 999)) {
 				real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
 				real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
 				real rEarth = 6371000.0;
