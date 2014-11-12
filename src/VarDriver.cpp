@@ -1680,16 +1680,28 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 			real radarX, radarY, gateLat, gateLon;
 			tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
 			tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
-			real gateAlt = relZ + radarAlt*1000;
+			real gateAlt = relZ + radarAlt;
 
 			ob.setLat(gateLat);
 			ob.setLon(gateLon);
 			ob.setAltitude(gateAlt);
 			ob.setAzimuth(az);
 			ob.setElevation(el);
-			ob.setRadialVelocity(lineparts[7].toFloat());
-			ob.setReflectivity(lineparts[8].toFloat());
-			ob.setSpectrumWidth(lineparts[9].toFloat());
+			if(lineparts[7].toFloat() != -32768.0) {
+				ob.setReflectivity(lineparts[7].toFloat());
+			} else {
+				ob.setReflectivity(-999.0);
+			}
+			if(lineparts[8].toFloat() != -32768.0) {
+				ob.setRadialVelocity(lineparts[8].toFloat());
+			} else {
+				ob.setRadialVelocity(-999.0);
+			}
+			if(lineparts[9].toFloat() != -32768.0) {
+				ob.setSpectrumWidth(lineparts[9].toFloat());
+			} else {
+				ob.setSpectrumWidth(-999.0);
+			}
 			ob.setObType(MetObs::radar);
 			metObVector->push_back(ob);
 		}
