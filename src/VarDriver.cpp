@@ -624,11 +624,11 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 					vr += veldata[g];
 					vrcount++;
 				}
-				if (refdata[g] == -32768) {
+				if (refdata[g] != -32768) {
 					dz += pow(10.0,(refdata[g]*0.1));
 					dzcount++;
 				}
-				if (swdata[g] == -32768) {
+				if (swdata[g] != -32768) {
 					sw += swdata[g];
 					swcount++;
 				}
@@ -649,7 +649,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 			} else {
 				sw = -999.0;
 			}
-			if ((vr != -999.0) || (dz != 999.0) || (sw != 999)) {
+			if ((vr != -999.0) || (dz != -999.0)) {
 				real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
 				real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
 				real rEarth = 6371000.0;
