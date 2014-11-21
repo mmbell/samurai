@@ -899,7 +899,7 @@ bool VarDriver3D::preProcessMetObs()
 										real ZZ = -999.0;
 										if (Z > -999.0) {
 											real H = metOb.getAltitude();
-											real ZZ=pow(10.0,(Z*0.1));
+											ZZ=pow(10.0,(Z*0.1));
 											real melting_zone = 1000 * configHash.value("melting_zone_width").toFloat();
 											real hlow= zeroClevel;
 											real hhi= hlow + melting_zone;
