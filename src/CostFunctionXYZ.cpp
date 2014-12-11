@@ -159,6 +159,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										}
 
 										// Save mish values for future iterations
+										QString gridref = configHash->value("qr_variable");
 										if ((imu != 0) and (jmu != 0) and (kmu != 0)) {
 			                                int uJ = jIndex*2 + (jmu+1)/2;
 			                                int uI = iIndex*2 + (imu+1)/2;
@@ -171,7 +172,13 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 											bgFields[uIndex + 3] = tprime;
 											bgFields[uIndex + 4] = qvprime;
 											bgFields[uIndex + 5] = rhoprime;
-											bgFields[uIndex + 6] = qrprime;
+											if (gridref == "dbz") {
+												real dbZ = qrprime*10. - 35.;
+												real ZZ = pow(10.0,(dbZ*0.1));
+												bgFields[uIndex + 6] = ZZ;
+											} else {
+												bgFields[uIndex + 6] = qrprime;
+											}
 										}
 
 										// Output it
@@ -184,7 +191,6 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 										qvdz = 2.0*(qbardz + qvdz);
 
 										real qr;
-										QString gridref = configHash->value("qr_variable");
 										if (gridref == "dbz") {
 											qr = qrprime*10. - 35.;
 											if (qr < -35.) {
