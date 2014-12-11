@@ -20,10 +20,10 @@
     <preprocess_obs>true</preprocess_obs>
     <num_iterations>1</num_iterations>
     <output_mish>false</output_mish>
-    <output_txt>true</output_txt>
+    <output_txt>false</output_txt>
     <output_qc>true</output_qc>
     <output_netcdf>true</output_netcdf>
-    <output_asi>true</output_asi>
+    <output_asi>false</output_asi>
   </operation>
   <background>
     <ref_state>dunion_mt.snd</ref_state>
@@ -164,6 +164,6 @@
     <radar_min_error>1.0</radar_min_error>
   </observation_errors>
   <options>
-    <spline_approximation>0</spline_approximation>
+    <spline_approximation>2</spline_approximation>
   </options>
 </samurai>
