@@ -6,11 +6,11 @@ use POSIX;
 #
 
 # Modify the following variables
-$tclat = 18.0;
-$tclon = 150.456451;
-$time = 1221350400;
-$tcu = -4.0;
-$tcv = 0.0;
+$tclat = 31.8;
+$tclon = -78.7;
+$time = 1404388800;
+$tcu = 1.0;
+$tcv = 3.8;
 
 ## Datasets (Input files)
 if ($#ARGV < 0) {
@@ -49,23 +49,26 @@ for($y=1;$y<=$maxy-1;$y++) {
 	- 0.09455 * cos(3.0 * $latrad) + 0.00012 * cos(5.0 * $latrad);
       $lat = $tclat + $ydist/$fac_lat;
       $lon = $tclon + $xdist/$fac_lon;
-      #@fields = qw(X Y Z rhoE u v w vort div qv' rho' T' P' h' udx udy udz vdx vdy vdz wdx wdy wdz rhowdz MC);
-      #                      0 1 2 3 4    5   6   7    8  9  10 11  12  13  14  15  16  17  18  19  20     21
-      $u = $fielddata[$x][$y][$z][1]+$tcu;
-      $v = $fielddata[$x][$y][$z][2]+$tcv;
-      $w = $fielddata[$x][$y][$z][3];
-      $qvprime = $fielddata[$x][$y][$z][6];
-      $rhoaprime = $fielddata[$x][$y][$z][7];
-      $tprime = $fielddata[$x][$y][$z][8];
+      ## Old version:(X Y Z rhoE u v w vort div qv' rho' T' P' h' udx udy udz vdx vdy vdz wdx wdy wdz rhowdz MC);
+      #                   0 1 2 3    4   5  6   7 8 9     10      11       12  13  14  15  16  17  18  19  20  21     22 23
+      #             X Y Z u v w Vort Div qv rho T P Theta Theta_e Theta_es udx udy udz vdx vdy vdz wdx wdy wdz rhowdz MC dBZ
+      $u = $fielddata[$x][$y][$z][0]+$tcu;
+      $v = $fielddata[$x][$y][$z][1]+$tcv;
+      $w = $fielddata[$x][$y][$z][2];
+      $qv = $fielddata[$x][$y][$z][5];
+      $rho = $fielddata[$x][$y][$z][6];
+      $temp = $fielddata[$x][$y][$z][7];
       $alt = $heightkm * 1000;
       if ($alt == 0) { $alt = 10; }
-      $rhobar = getReferenceVariable(1, $alt);
-      $rhoa = $rhobar + $rhoaprime/100.;
-      $qbar = bhypInvTransform(getReferenceVariable(0, $alt));
-      $qv = $qbar + $qvprime;
-      if ($qv < 0) { $qv = 0; }
-      $temp = $tprime + getReferenceVariable(4, $alt);
-      printf OUT ("%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", $time, $lat, $lon, $alt, $u, $v, $w, $temp, $qv, $rhoa);
+      $rhoa = $rho - $rho*$qv/1000;
+      if ($qv < 0) { $qv = 1.0e-17; }
+      $dbz = $fielddata[$x][$y][$z][23];
+      if ($dbz < -35.0) {
+         $linearz = pow(10.0,-3.5);
+      } else { 
+         $linearz = pow(10.0,($dbz/10.0));
+      }
+      printf OUT ("%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", $time, $lat, $lon, $alt, $u, $v, $w, $temp, $qv, $rhoa, $linearz);
     }
   }
 }
@@ -108,7 +111,7 @@ sub read_dotout {
 	  }
 	}
       }
-      for $f (3 .. 24) {
+      for $f (3 .. 26) {
 	$fielddata[$x][$y][$z][$f-3] = $line[$f];
       }
     }
