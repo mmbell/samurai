@@ -201,13 +201,11 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 										real u = rhou / rho;
 										real w = rhow / rho;
 										real wspd = sqrt(u*u + v*v);
-										real KE = 0.5*rho*(v*v + u*u + w*w);
 										real temp = tBar + tprime;
 										real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
 										tdz = tbardz + tdz;
 
 										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-										real rhoE = rho*h + KE;
 										real airpress = temp*rhoa*287./100.;
 										real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
 														  + 1.673952e-5 * temp*temp + 2.433502 * log(temp));
@@ -321,7 +319,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
                                                 qvdr = -999.; qvdt = -999.; qvdz = -999.;
                                                 pdr = -999.; pdt = -999.; pdz = -999.;
                                                 rhodr = -999.; rhodt = -999.; rhodz = -999.;
-												rhoE = -999.; dewp = -999.;
+												dewp = -999.;
 												theta = -999.; thetae = -999.; thetaes = -999.;
 											}
 										}
@@ -360,7 +358,7 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											qvdr = -999.; qvdt = -999.; qvdz = -999.;
 											pdr = -999.; pdt = -999.; pdz = -999.;
 											rhodr = -999.; rhodt = -999.; rhodz = -999.;
-											rhoE = -999.; dewp = -999.;
+											dewp = -999.;
 											theta = -999.; thetae = -999.; thetaes = -999.;
 										}
 

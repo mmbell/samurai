@@ -308,13 +308,11 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 								real u = rhou / rho;
 								real w = rhow / rho;
 								real wspd = sqrt(u*u + v*v);
-								real KE = 0.5*rho*(v*v + u*u + w*w);
 								real temp = tBar + tprime;
 								real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
 								tdz = tbardz + tdz;
 
 								real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-								real rhoE = rho*h + KE;
 								real airpress = temp*rhoa*287./100.;
 								//real tempc = temp - 273.15;
 								//real satvp = 6.112 * exp((17.67 * tempc)/(243.5 + tempc));
@@ -460,7 +458,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
                                         qvdx = -999.; qvdy = -999.; qvdz = -999.;
                                         pdx = -999.; pdy = -999.; pdz = -999.;
                                         rhodx = -999.; rhody = -999.; rhodz = -999.;
-										rhoE = -999.; dewp = -999.;
+										dewp = -999.;
 										theta = -999.; thetae = -999.; thetaes = -999.;
 									}
 								}

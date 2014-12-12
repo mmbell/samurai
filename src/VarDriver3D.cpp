@@ -2109,6 +2109,29 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_qr_error"] = bgError[6];
 	configHash["output_mish"] = output_mish;
 
+	// Convert the dBZ back to Z for further processing
+	if (configHash.value("qr_variable") == "dbz") {
+		for (int ki = -1; ki < (kdim); ki++) {
+			for (int kmu = -1; kmu <= 1; kmu += 2) {
+				for (int ii = -1; ii < (idim); ii++) {
+					for (int imu = -1; imu <= 1; imu += 2) {
+						for (int ji = -1; ji < (jdim); ji++) {
+							for (int jmu = -1; jmu <= 1; jmu += 2) {
+								int bgI = (ii+1)*2 + (imu+1)/2;
+								int bgJ = (ji+1)*2 + (jmu+1)/2;
+								int bgK = (ki+1)*2 + (kmu+1)/2;
+								int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+								real dbZ = bgU[bIndex +6]*10. - 35.;
+								real ZZ = pow(10.0,(dbZ*0.1));
+								bgU[bIndex +6] = ZZ;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
     return true;
 }
 
