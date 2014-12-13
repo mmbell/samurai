@@ -1776,6 +1776,10 @@ int VarDriver3D::loadBackgroundObs()
     }
 
     // Solve for the last spline
+		if (logheights.size() == 1) {
+			cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+			return -1;
+		}
 
     // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
@@ -1869,7 +1873,7 @@ int VarDriver3D::loadBackgroundObs()
     zBG.clear();
 
     int numbgObs = bgIn.size()*7/11;
-	QVector<int> emptybg;
+		QVector<int> emptybg;
     if (numbgObs > 0) {
         // Check interpolation
         for (int ki = -1; ki < (kdim); ki++) {
@@ -1888,17 +1892,21 @@ int VarDriver3D::loadBackgroundObs()
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
-										if ((var == 6) and (configHash.value("qr_variable") == "dbz")) {
-										if (bgU[bIndex +6] > 0) {
-											real dbzavg = 10* log10(bgU[bIndex +6]);
-											bgU[bIndex +6] = (dbzavg+35.)*0.1;
-										} else {
-											bgU[bIndex +6] = 0.0;
-										}
-										}
+																				if ((var == 6) and (configHash.value("qr_variable") == "dbz")) {
+																					if (bgU[bIndex +6] > 0) {
+																						real dbzavg = 10* log10(bgU[bIndex +6]);
+																						bgU[bIndex +6] = (dbzavg+35.)*0.1;
+																					} else {
+																						bgU[bIndex +6] = 1.0e-10;
+																					}
+																				}
                                     } else {
-										emptybg.push_back(bIndex);
-										cout << "Empty background mish at " << iPos << ", " << jPos << ", " << kPos << endl;
+																			emptybg.push_back(bIndex);
+																			if (emptybg.size() < 15) {
+																				cout << "Empty background mish for variable " << var << " at " << iPos << ", " << jPos << ", " << kPos << endl;
+																			} else if (emptybg.size() == 15) {
+																				cout << "Too many empty mish points, will no longer report.\n";
+																			}
                                     }
                                 }
                                 //bgWeights[bIndex] = 0.;
@@ -1914,8 +1922,8 @@ int VarDriver3D::loadBackgroundObs()
 			int neighbors[6];
 			real avg[numVars];
 			int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
-			for (unsigned int var = 0; var < numVars; var++) avg[var] = 0.0;
 			for (int i=0; i < emptybg.size(); i++) {
+				for (unsigned int var = 0; var < numVars; var++) avg[var] = 0.0;
 				// Check the neighbors
 				int bIndex = emptybg[i];
 				neighbors[0] = bIndex + numVars*(idim+1)*2*(jdim+1)*2;
@@ -1940,9 +1948,13 @@ int VarDriver3D::loadBackgroundObs()
 						bgU[bIndex + var] = avg[var]/count;
 					}
 				} else {
-					cout << "Too large a hole in the background field!\n";
-					cout << "Please check your background file or ROI values.\n";
-					exit(-1);
+					if (configHash.value("allow_background_missing_values") != "true") {
+						cout << "Too large a hole in the background field!\n";
+						cout << "Please check your background file or ROI values.\n";
+						cout << "If you want to allow missing (zero) values, add the following line to <options>:\n";
+						cout << "<allow_background_missing_values>true</allow_background_missing_values>\n";
+						exit(-1);
+					}
 				}
 			}
 		}
