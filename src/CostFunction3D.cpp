@@ -339,13 +339,18 @@ void CostFunction3D::initState(const int iteration)
 			bgStdDev[n] = 1.0;
 		}
 
-		// SB Transform on the original bg fields
-		SBtransform(bgFields, stateB);
+		if (configHash->value("load_bg_coefficients") == "true") {
+			for (int n = 0; n < nState; n++) {
+				stateA[n] = bgFields[n];
+			}
+		} else {
+			// SB Transform on the original bg fields
+			SBtransform(bgFields, stateB);
 
-		// SA transform = bg B's -> bg A's
-		SAtransform(stateB, stateA);
-
-		FFtransform(stateA, bgState);
+			// SA transform = bg B's -> bg A's
+			SAtransform(stateB, stateA);
+		}
+			FFtransform(stateA, bgState);
 
 	}
 

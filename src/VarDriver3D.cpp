@@ -168,6 +168,17 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
      Multiple outer loops will reduce the cutoff wavelengths and background error variance */
 	maxIter = configHash.value("num_iterations").toInt();
 
+	/* Optionally load a set of background coefficients directly */
+	QString loadBGcoeffs = configHash.value("load_bg_coefficients");
+	int numbgCoeffs = 0;
+	if (loadBGcoeffs == "true") {
+		numbgCoeffs = loadBackgroundCoeffs();
+		if (numbgCoeffs != bStateSize) {
+			cout << "Error loading background coefficients\n";
+			return false;
+		}
+	}
+
 	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
 	QString loadBG = configHash.value("load_background");
 	int numbgObs = 0;
@@ -2242,4 +2253,34 @@ bool VarDriver3D::validateXMLconfig()
         }
     }
     return true;
+}
+
+int VarDriver3D::loadBackgroundCoeffs()
+{
+	// Load a set of coefficients directly for the same grid
+	cout << "Loading previous coefficients from samurai_Coefficients.in" << endl;
+
+	QFile bgFile(dataPath.filePath("samurai_Coefficients.in"));
+	if (!bgFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return 0;
+
+	int numbgCoeffs = 0;
+	QTextStream in(&bgFile);
+	while (!in.atEnd()) {
+		QString line = in.readLine();
+		if (line.contains("Variable")) {
+			continue;
+		} else {
+			QStringList lineparts = line.split(QRegExp("\\s+"));
+			int var = lineparts[0].toInt();
+			int iIndex = lineparts[1].toInt();
+			int jIndex = lineparts[2].toInt();
+			int kIndex = lineparts[3].toInt();
+			int bIndex = numVars*(idim+2)*(jdim+2)*kIndex + numVars*(idim+2)*jIndex +numVars*iIndex + var;
+			bgU[bIndex] = lineparts[5].toFloat();
+			numbgCoeffs++;
+		}
+	}
+	cout << numbgCoeffs << " background coeffients loaded" << endl;
+	return numbgCoeffs;
 }
