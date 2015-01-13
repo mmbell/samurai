@@ -1315,7 +1315,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
                     for (int jIndex = 0; jIndex < jDim; jIndex++) {
                         for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                            iFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                            iFFTin[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
                         }
                         fftw_execute(iForward);
                         for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
@@ -1381,7 +1381,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
         for (int kIndex = 0; kIndex < kDim; kIndex++) {
           for (int jIndex = 0; jIndex < jDim; jIndex++) {
             for (int iIndex = 0; iIndex < iDim; iIndex++) {
-              iFFTin[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+              iFFTin[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
             }
             fftw_execute(iForward);
             for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
@@ -2412,7 +2412,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
             for (int kIndex = 0; kIndex < kDim; kIndex++) {
                 for (int jIndex = 0; jIndex < jDim; jIndex++) {
                     for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                        iFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                        iFFTin[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
                     }
                     fftw_execute(iForward);
                     for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
