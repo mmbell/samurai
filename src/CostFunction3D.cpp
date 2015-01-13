@@ -1324,7 +1324,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                         }
                         fftw_execute(iBackward);
                         for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex]/iDim;
+                            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[iIndex]/iDim;
                         }
                     }
 				}
@@ -1390,7 +1390,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
             }
             fftw_execute(iBackward);
             for (int iIndex = 0; iIndex < iDim; iIndex++) {
-              Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[jIndex]/iDim;
+              Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[iIndex]/iDim;
             }
           }
         }
