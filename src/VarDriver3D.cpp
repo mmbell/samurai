@@ -1471,7 +1471,7 @@ bool VarDriver3D::loadMetObs()
     ifstream obstream(obFilename.toAscii().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
-			>> wgt[1][0] >> wgt[1][1] >> wgt[2][2] >> wgt[3][3]
+			>> wgt[1][0] >> wgt[1][1] >> wgt[1][2] >> wgt[1][3]
    			>> wgt[2][0] >> wgt[2][1] >> wgt[2][2] >> wgt[2][3]
   			>> wgt[3][0] >> wgt[3][1] >> wgt[3][2] >> wgt[3][3]
    			>> wgt[4][0] >> wgt[4][1] >> wgt[4][2] >> wgt[4][3]
