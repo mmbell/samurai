@@ -17,18 +17,18 @@
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
 CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
-	: CostFunction(numObs, stateSize)
+    : CostFunction(numObs, stateSize)
 {
-	// Set up the boundary condition hash
-	bcHash["R0"] = R0;
-	bcHash["R1T0"] = R1T0;
-	bcHash["R1T1"] = R1T1;
-	bcHash["R1T2"] = R1T2;
-	bcHash["R1T10"] = R1T10;
-	bcHash["R2T10"] = R2T10;
-	bcHash["R2T20"] = R2T20;
-	bcHash["R3"] = R3;
-	bcHash["PERIODIC"] = PERIODIC;
+    // Set up the boundary condition hash
+    bcHash["R0"] = R0;
+    bcHash["R1T0"] = R1T0;
+    bcHash["R1T1"] = R1T1;
+    bcHash["R1T2"] = R1T2;
+    bcHash["R1T10"] = R1T10;
+    bcHash["R2T10"] = R2T10;
+    bcHash["R2T20"] = R2T20;
+    bcHash["R3"] = R3;
+    bcHash["PERIODIC"] = PERIODIC;
 
     rankHash[R0] = 0;
     rankHash[R1T0] = 1;
@@ -56,8 +56,8 @@ CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
     derivative[3][1] = 0;
     derivative[3][2] = 1;
 
-	// Use the full basis unless otherwise specified
-	basisappx = 0;
+    // Use the full basis unless otherwise specified
+    basisappx = 0;
 
 }
 
@@ -68,29 +68,29 @@ CostFunction3D::~CostFunction3D()
 void CostFunction3D::finalize()
 {
 
-	delete iFilter;
-	delete jFilter;
-	delete kFilter;
-	delete[] currState;
-	delete[] currGradient;
-	delete[] tempState;
-	delete[] tempGradient;
-	delete[] xt;
-	delete[] df;
-	delete[] CTHTd;
-	delete[] stateU;
-	delete[] obsVector;
-	delete[] HCq;
-	delete[] innovation;
-	delete[] bgState;
-	delete[] bgStdDev;
-	delete[] stateA;
-	delete[] stateB;
-	delete[] stateC;
-	if (basisappx > 0) {
-		delete[] basis0;
-		delete[] basis1;
-	}
+    delete iFilter;
+    delete jFilter;
+    delete kFilter;
+    delete[] currState;
+    delete[] currGradient;
+    delete[] tempState;
+    delete[] tempGradient;
+    delete[] xt;
+    delete[] df;
+    delete[] CTHTd;
+    delete[] stateU;
+    delete[] obsVector;
+    delete[] HCq;
+    delete[] innovation;
+    delete[] bgState;
+    delete[] bgStdDev;
+    delete[] stateA;
+    delete[] stateB;
+    delete[] stateC;
+    if (basisappx > 0) {
+        delete[] basis0;
+        delete[] basis1;
+    }
     for (int var = 0; var < varDim; ++var) {
         delete[] iGamma[var];
         delete[] jGamma[var];
@@ -116,114 +116,114 @@ void CostFunction3D::finalize()
 void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
 {
 
-	// Initialize number of variables
-	varDim = 7;
+    // Initialize number of variables
+    varDim = 7;
     derivDim = 4;
-	configHash = config;
+    configHash = config;
 
-	/* Set the output path */
-	outputPath.setPath(configHash->value("output_directory"));
+    /* Set the output path */
+    outputPath.setPath(configHash->value("output_directory"));
 
-	// Horizontal boundary conditions
-	iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
+    // Horizontal boundary conditions
+    iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
     iBCR[0] = bcHash.value(configHash->value("i_rhou_bcR"));
-	iBCL[1] = bcHash.value(configHash->value("i_rhov_bcL"));
+    iBCL[1] = bcHash.value(configHash->value("i_rhov_bcL"));
     iBCR[1] = bcHash.value(configHash->value("i_rhov_bcR"));
-	iBCL[2] = bcHash.value(configHash->value("i_rhow_bcL"));
+    iBCL[2] = bcHash.value(configHash->value("i_rhow_bcL"));
     iBCR[2] = bcHash.value(configHash->value("i_rhow_bcR"));
-	iBCL[3] = bcHash.value(configHash->value("i_tempk_bcL"));
+    iBCL[3] = bcHash.value(configHash->value("i_tempk_bcL"));
     iBCR[3] = bcHash.value(configHash->value("i_tempk_bcR"));
-	iBCL[4] = bcHash.value(configHash->value("i_qv_bcL"));
+    iBCL[4] = bcHash.value(configHash->value("i_qv_bcL"));
     iBCR[4] = bcHash.value(configHash->value("i_qv_bcR"));
-	iBCL[5] = bcHash.value(configHash->value("i_rhoa_bcL"));
+    iBCL[5] = bcHash.value(configHash->value("i_rhoa_bcL"));
     iBCR[5] = bcHash.value(configHash->value("i_rhoa_bcR"));
-	iBCL[6] = bcHash.value(configHash->value("i_qr_bcL"));
+    iBCL[6] = bcHash.value(configHash->value("i_qr_bcL"));
     iBCR[6] = bcHash.value(configHash->value("i_qr_bcR"));
 
     jBCL[0] = bcHash.value(configHash->value("j_rhou_bcL"));
     jBCR[0] = bcHash.value(configHash->value("j_rhou_bcR"));
-	jBCL[1] = bcHash.value(configHash->value("j_rhov_bcL"));
+    jBCL[1] = bcHash.value(configHash->value("j_rhov_bcL"));
     jBCR[1] = bcHash.value(configHash->value("j_rhov_bcR"));
-	jBCL[2] = bcHash.value(configHash->value("j_rhow_bcL"));
+    jBCL[2] = bcHash.value(configHash->value("j_rhow_bcL"));
     jBCR[2] = bcHash.value(configHash->value("j_rhow_bcR"));
-	jBCL[3] = bcHash.value(configHash->value("j_tempk_bcL"));
+    jBCL[3] = bcHash.value(configHash->value("j_tempk_bcL"));
     jBCR[3] = bcHash.value(configHash->value("j_tempk_bcR"));
-	jBCL[4] = bcHash.value(configHash->value("j_qv_bcL"));
+    jBCL[4] = bcHash.value(configHash->value("j_qv_bcL"));
     jBCR[4] = bcHash.value(configHash->value("j_qv_bcR"));
-	jBCL[5] = bcHash.value(configHash->value("j_rhoa_bcL"));
+    jBCL[5] = bcHash.value(configHash->value("j_rhoa_bcL"));
     jBCR[5] = bcHash.value(configHash->value("j_rhoa_bcR"));
-	jBCL[6] = bcHash.value(configHash->value("j_qr_bcL"));
+    jBCL[6] = bcHash.value(configHash->value("j_qr_bcL"));
     jBCR[6] = bcHash.value(configHash->value("j_qr_bcR"));
 
     kBCL[0] = bcHash.value(configHash->value("k_rhou_bcL"));
     kBCR[0] = bcHash.value(configHash->value("k_rhou_bcR"));
-	kBCL[1] = bcHash.value(configHash->value("k_rhov_bcL"));
+    kBCL[1] = bcHash.value(configHash->value("k_rhov_bcL"));
     kBCR[1] = bcHash.value(configHash->value("k_rhov_bcR"));
-	kBCL[2] = bcHash.value(configHash->value("k_rhow_bcL"));
+    kBCL[2] = bcHash.value(configHash->value("k_rhow_bcL"));
     kBCR[2] = bcHash.value(configHash->value("k_rhow_bcR"));
-	kBCL[3] = bcHash.value(configHash->value("k_tempk_bcL"));
+    kBCL[3] = bcHash.value(configHash->value("k_tempk_bcL"));
     kBCR[3] = bcHash.value(configHash->value("k_tempk_bcR"));
-	kBCL[4] = bcHash.value(configHash->value("k_qv_bcL"));
+    kBCL[4] = bcHash.value(configHash->value("k_qv_bcL"));
     kBCR[4] = bcHash.value(configHash->value("k_qv_bcR"));
-	kBCL[5] = bcHash.value(configHash->value("k_rhoa_bcL"));
+    kBCL[5] = bcHash.value(configHash->value("k_rhoa_bcL"));
     kBCR[5] = bcHash.value(configHash->value("k_rhoa_bcR"));
-	kBCL[6] = bcHash.value(configHash->value("k_qr_bcL"));
+    kBCL[6] = bcHash.value(configHash->value("k_qr_bcL"));
     kBCR[6] = bcHash.value(configHash->value("k_qr_bcR"));
 
-	// Define the Reference state
+    // Define the Reference state
     refstate = ref;
 
-	// Assign local object pointers
-	bgFields = bgU;
-	rawObs = obs;
-	iMin = configHash->value("i_min").toFloat();
-	iMax = configHash->value("i_max").toFloat();
-	DI = configHash->value("i_incr").toFloat();
-	iDim = (int)((iMax - iMin)/DI) + 1;
-	jMin = configHash->value("j_min").toFloat();
-	jMax = configHash->value("j_max").toFloat();
-	DJ = configHash->value("j_incr").toFloat();
-	jDim = (int)((jMax - jMin)/DJ) + 1;
-	kMin = configHash->value("k_min").toFloat();
-	kMax = configHash->value("k_max").toFloat();
-	DK = configHash->value("k_incr").toFloat();
-	kDim = (int)((kMax - kMin)/DK) + 1;
+    // Assign local object pointers
+    bgFields = bgU;
+    rawObs = obs;
+    iMin = configHash->value("i_min").toFloat();
+    iMax = configHash->value("i_max").toFloat();
+    DI = configHash->value("i_incr").toFloat();
+    iDim = (int)((iMax - iMin)/DI) + 1;
+    jMin = configHash->value("j_min").toFloat();
+    jMax = configHash->value("j_max").toFloat();
+    DJ = configHash->value("j_incr").toFloat();
+    jDim = (int)((jMax - jMin)/DJ) + 1;
+    kMin = configHash->value("k_min").toFloat();
+    kMax = configHash->value("k_max").toFloat();
+    DK = configHash->value("k_incr").toFloat();
+    kDim = (int)((kMax - kMin)/DK) + 1;
 
-	DIrecip = 1./DI;
-	DJrecip = 1./DJ;
-	DKrecip = 1./DK;
+    DIrecip = 1./DI;
+    DJrecip = 1./DJ;
+    DKrecip = 1./DK;
 
-	// Adjust the internal, variable domain to include boundaries
-	adjustInternalDomain(1);
+    // Adjust the internal, variable domain to include boundaries
+    adjustInternalDomain(1);
 
-	// Define nodes with internal domain
-	int nodes = iDim*jDim*kDim;
+    // Define nodes with internal domain
+    int nodes = iDim*jDim*kDim;
 
-	// Set up the initial recursive filter
-	iFilter = new RecursiveFilter(4);
-	jFilter = new RecursiveFilter(4);
-	kFilter = new RecursiveFilter(4);
+    // Set up the initial recursive filter
+    iFilter = new RecursiveFilter(4);
+    jFilter = new RecursiveFilter(4);
+    kFilter = new RecursiveFilter(4);
 
-	// Allocate memory for the needed arrays
-	// These are common to all CostFunctions
-	currState = new real[nState];
-	currGradient = new real[nState];
-	tempState = new real[nState];
-	tempGradient = new real[nState];
-	xt = new real[nState];
-	df = new real[nState];
+    // Allocate memory for the needed arrays
+    // These are common to all CostFunctions
+    currState = new real[nState];
+    currGradient = new real[nState];
+    tempState = new real[nState];
+    tempGradient = new real[nState];
+    xt = new real[nState];
+    df = new real[nState];
 
-	// These are local to this one
-	CTHTd = new real[nState];
-	stateU = new real[nState];
-	obsVector = new real[mObs*(7+varDim*derivDim)];
-	HCq = new real[mObs+nodes];
-	innovation = new real[mObs+nodes];
-	bgState = new real[nState];
-	bgStdDev = new real[nState];
-	stateA = new real[nState];
-	stateB = new real[nState];
-	stateC = new real[nState];
+    // These are local to this one
+    CTHTd = new real[nState];
+    stateU = new real[nState];
+    obsVector = new real[mObs*(7+varDim*derivDim)];
+    HCq = new real[mObs+nodes];
+    innovation = new real[mObs+nodes];
+    bgState = new real[nState];
+    bgStdDev = new real[nState];
+    stateA = new real[nState];
+    stateB = new real[nState];
+    stateC = new real[nState];
 
     if (iBCL[0] == PERIODIC) {
         iLDim = iDim-2;
@@ -256,13 +256,13 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
         kGamma[var] = new real[kRank[var]*kDim];
 
     }
-	// Precalculate the basis functions for lookup table option
-	basisappx = configHash->value("spline_approximation").toInt();
-	if (basisappx > 0) {
-		basis0 = new real[2000000];
-		basis1 = new real[2000000];
-		fillBasisLookup();
-	}
+    // Precalculate the basis functions for lookup table option
+    basisappx = configHash->value("spline_approximation").toInt();
+    if (basisappx > 0) {
+        basis0 = new real[2000000];
+        basis1 = new real[2000000];
+        fillBasisLookup();
+    }
 
     // Initialize the Fourier transforms
     iFFTin = (double*) fftw_malloc(sizeof(double) * iDim);
@@ -285,172 +285,172 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 void CostFunction3D::initState(const int iteration)
 {
 
-	// Clear the state vector
-	cout << "Initializing state vector..." << endl;
-	for (int n = 0; n < nState; n++) {
-		currState[n] = 0.0;
-		currGradient[n] = 0.0;
-		tempState[n] = 0.0;
-		tempGradient[n] = 0.0;
-		xt[n] = 0.0;
-		df[n] = 0.0;
-		stateA[n] = 0.0;
-		stateB[n] = 0.0;
-		stateC[n] = 0.0;
-	}
+    // Clear the state vector
+    cout << "Initializing state vector..." << endl;
+    for (int n = 0; n < nState; n++) {
+        currState[n] = 0.0;
+        currGradient[n] = 0.0;
+        tempState[n] = 0.0;
+        tempGradient[n] = 0.0;
+        xt[n] = 0.0;
+        df[n] = 0.0;
+        stateA[n] = 0.0;
+        stateB[n] = 0.0;
+        stateC[n] = 0.0;
+    }
 
-	// Initialize background errors and filter scales
-	bgError[0] = configHash->value("bg_rhou_error").toFloat();
-	bgError[1] = configHash->value("bg_rhov_error").toFloat();
-	bgError[2] = configHash->value("bg_rhow_error").toFloat();
-	bgError[3] = configHash->value("bg_tempk_error").toFloat();
-	bgError[4] = configHash->value("bg_qv_error").toFloat();
-	bgError[5] = configHash->value("bg_rhoa_error").toFloat();
-	bgError[6] = configHash->value("bg_qr_error").toFloat();
+    // Initialize background errors and filter scales
+    bgError[0] = configHash->value("bg_rhou_error").toFloat();
+    bgError[1] = configHash->value("bg_rhov_error").toFloat();
+    bgError[2] = configHash->value("bg_rhow_error").toFloat();
+    bgError[3] = configHash->value("bg_tempk_error").toFloat();
+    bgError[4] = configHash->value("bg_qv_error").toFloat();
+    bgError[5] = configHash->value("bg_rhoa_error").toFloat();
+    bgError[6] = configHash->value("bg_qr_error").toFloat();
 
-	// Set up the recursive filter
-	iFilterScale = configHash->value("i_filter_length").toFloat();
-	jFilterScale = configHash->value("j_filter_length").toFloat();
-	kFilterScale = configHash->value("k_filter_length").toFloat();
-	iFilter->setFilterLengthScale(iFilterScale);
-	jFilter->setFilterLengthScale(jFilterScale);
-	kFilter->setFilterLengthScale(kFilterScale);
+    // Set up the recursive filter
+    iFilterScale = configHash->value("i_filter_length").toFloat();
+    jFilterScale = configHash->value("j_filter_length").toFloat();
+    kFilterScale = configHash->value("k_filter_length").toFloat();
+    iFilter->setFilterLengthScale(iFilterScale);
+    jFilter->setFilterLengthScale(jFilterScale);
+    kFilter->setFilterLengthScale(kFilterScale);
 
-	// Set up the spline matrices
-	setupSplines();
+    // Set up the spline matrices
+    setupSplines();
 
-	// Flag whether or not to print the subgrid information
-	if (configHash->value("output_mish") == "true") {
-		outputMish = 1;
-	} else {
-		outputMish = 0;
-	}
+    // Flag whether or not to print the subgrid information
+    if (configHash->value("output_mish") == "true") {
+        outputMish = 1;
+    } else {
+        outputMish = 0;
+    }
 
-	// Mass continuity weight
-	mcWeight = configHash->value("mc_weight").toFloat();
-	cout << "Mass continuity weight set to " << mcWeight << endl;
+    // Mass continuity weight
+    mcWeight = configHash->value("mc_weight").toFloat();
+    cout << "Mass continuity weight set to " << mcWeight << endl;
 
-	if (iteration == 1) {
-		cout << "Initializing background..." << endl;
-		// Set up the background state
-		for (int n = 0; n < nState; n++) {
-			bgState[n] = 0.0;
-			// Initialize the std. dev. to 1 for the initial SC transform
-			bgStdDev[n] = 1.0;
-		}
+    if (iteration == 1) {
+        cout << "Initializing background..." << endl;
+        // Set up the background state
+        for (int n = 0; n < nState; n++) {
+            bgState[n] = 0.0;
+            // Initialize the std. dev. to 1 for the initial SC transform
+            bgStdDev[n] = 1.0;
+        }
 
-		if (configHash->value("load_bg_coefficients") == "true") {
-			for (int n = 0; n < nState; n++) {
-				stateA[n] = bgFields[n];
-			}
-		} else {
-			// SB Transform on the original bg fields
-			SBtransform(bgFields, stateB);
+        if (configHash->value("load_bg_coefficients") == "true") {
+            for (int n = 0; n < nState; n++) {
+                stateA[n] = bgFields[n];
+            }
+        } else {
+            // SB Transform on the original bg fields
+            SBtransform(bgFields, stateB);
 
-			// SA transform = bg B's -> bg A's
-			SAtransform(stateB, stateA);
-		}
-			FFtransform(stateA, bgState);
+            // SA transform = bg B's -> bg A's
+            SAtransform(stateB, stateA);
+        }
+            FFtransform(stateA, bgState);
 
-	}
+    }
 
-	for (int var = 0; var < varDim; var++) {
-		// Using a constant bg error variance for now, but this could be variable across the nodes
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-					bgStdDev[bIndex] = bgError[var];
-				}
-			}
-		}
-	}
+    for (int var = 0; var < varDim; var++) {
+        // Using a constant bg error variance for now, but this could be variable across the nodes
+        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                    bgStdDev[bIndex] = bgError[var];
+                }
+            }
+        }
+    }
 
-	// Compute and display the variable BG errors and RMS of values
-	for (int var = 0; var < varDim; var++) {
-		real varScale = 0;
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-					varScale += bgState[bIndex] * bgState[bIndex];
-				}
-			}
-		}
-		varScale = sqrt(varScale/(iDim*jDim*kDim));
-		if (varScale) {
-			real errPct = 100*bgError[var]/varScale;
-			cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
-			<< " ( " << errPct << " %)" << endl;
-		} else {
-			cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
-			<< " ( Infinite! %)" << endl;
-		}
-	}
+    // Compute and display the variable BG errors and RMS of values
+    for (int var = 0; var < varDim; var++) {
+        real varScale = 0;
+        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                    varScale += bgState[bIndex] * bgState[bIndex];
+                }
+            }
+        }
+        varScale = sqrt(varScale/(iDim*jDim*kDim));
+        if (varScale) {
+            real errPct = 100*bgError[var]/varScale;
+            cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
+            << " ( " << errPct << " %)" << endl;
+        } else {
+            cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
+            << " ( Infinite! %)" << endl;
+        }
+    }
 
-	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
-	obAdjustments();
+    // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
+    obAdjustments();
 
-	// d = y - HXb
-	calcInnovation();
+    // d = y - HXb
+    calcInnovation();
 
-	// Output the original background field
-	outputAnalysis("background", bgState);
+    // Output the original background field
+    outputAnalysis("background", bgState);
 
-	cout << "Beginning analysis...\n";
+    cout << "Beginning analysis...\n";
 
-	// HTd
-	calcHTranspose(innovation, stateC);
+    // HTd
+    calcHTranspose(innovation, stateC);
 
-	SCtranspose(stateC, stateA);
+    SCtranspose(stateC, stateA);
 
-	// S^T (Inverse SA transform) yield B's, put it in the tempState
-	SAtranspose(stateA, CTHTd);
+    // S^T (Inverse SA transform) yield B's, put it in the tempState
+    SAtranspose(stateA, CTHTd);
 
 }
 
 real CostFunction3D::funcValue(real* state)
 {
 
-	real qIP, obIP;
-	qIP = 0.;
-	obIP = 0.;
+    real qIP, obIP;
+    qIP = 0.;
+    obIP = 0.;
 
-	updateHCq(state);
+    updateHCq(state);
 
-	// Compute inner product of state vector
-	//#pragma omp parallel for reduction(+:qIP)
-	for (int n = 0; n < nState; n++) {
-		qIP += state[n]*state[n];
-	}
+    // Compute inner product of state vector
+    //#pragma omp parallel for reduction(+:qIP)
+    for (int n = 0; n < nState; n++) {
+        qIP += state[n]*state[n];
+    }
 
-	// Subtract d from HCq to yield mObs length vector and compute inner product
-	//#pragma omp parallel for reduction(+:obIP)
-	for (int m = 0; m < mObs; m++) {
+    // Subtract d from HCq to yield mObs length vector and compute inner product
+    //#pragma omp parallel for reduction(+:obIP)
+    for (int m = 0; m < mObs; m++) {
         int obIndex = m*(7+varDim*derivDim) + 1;
-		obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-	}
+        obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+    }
 
-	real J = 0.5*(qIP + obIP);
-	return J;
+    real J = 0.5*(qIP + obIP);
+    return J;
 
 }
 
 void CostFunction3D::funcGradient(real* state, real* gradient)
 {
 
-	updateHCq(state);
+    updateHCq(state);
 
-	// HTHCq
-	calcHTranspose(HCq, stateC);
+    // HTHCq
+    calcHTranspose(HCq, stateC);
 
-	SCtranspose(stateC, stateA);
+    SCtranspose(stateC, stateA);
 
-	SAtranspose(stateA, stateB);
+    SAtranspose(stateA, stateB);
 
-	for (int n = 0; n < nState; n++) {
-		gradient[n] = state[n] + stateB[n] - CTHTd[n];
-	}
+    for (int n = 0; n < nState; n++) {
+        gradient[n] = state[n] + stateB[n] - CTHTd[n];
+    }
 
 
 }
@@ -458,25 +458,25 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 void CostFunction3D::updateHCq(real* state)
 {
 
-	// S (SA transform) yield A's, put it in the tempState
-	SAtransform(state, stateA);
+    // S (SA transform) yield A's, put it in the tempState
+    SAtransform(state, stateA);
 
-	SCtransform(stateA, stateC);
+    SCtransform(stateA, stateC);
 
-	// H
-	#pragma omp parallel for
-	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
-		real i = obsVector[mi+2];
-		real j = obsVector[mi+3];
-		real k = obsVector[mi+4];
-		real tempsum = 0;
-		int ii = (int)((i - iMin)*DIrecip);
-		int jj = (int)((j - jMin)*DJrecip);
-		int kk = (int)((k - kMin)*DKrecip);
-		real ibasis = 0;
-		real jbasis = 0;
-		real kbasis = 0;
+    // H
+    #pragma omp parallel for
+    for (int m = 0; m < mObs; m++) {
+        int mi = m*(7+varDim*derivDim);
+        real i = obsVector[mi+2];
+        real j = obsVector[mi+3];
+        real k = obsVector[mi+4];
+        real tempsum = 0;
+        int ii = (int)((i - iMin)*DIrecip);
+        int jj = (int)((j - jMin)*DJrecip);
+        int kk = (int)((k - kMin)*DKrecip);
+        real ibasis = 0;
+        real jbasis = 0;
+        real kbasis = 0;
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
@@ -506,65 +506,65 @@ void CostFunction3D::updateHCq(real* state)
                     }
                 }
             }
-		}
-		HCq[m] = tempsum;
-	}
+        }
+        HCq[m] = tempsum;
+    }
 
 }
 
 void CostFunction3D::updateBG()
 {
 
-	// S (SA transform) yield A's
-	SAtransform(currState, stateA);
+    // S (SA transform) yield A's
+    SAtransform(currState, stateA);
 
-	SCtransform(stateA, stateC);
+    SCtransform(stateA, stateC);
 
-	outputAnalysis("increment", stateC);
+    outputAnalysis("increment", stateC);
 
-	// In BG update we are directly summing C + A
-	QString cFilename = outputPath.absoluteFilePath("samurai_Coefficients.out");
-	ofstream cstream(cFilename.toAscii().data());
-	cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
-	for (int var = 0; var < varDim; var++) {
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
-					int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-					cstream << bgState[bgIndex] << "\t";
-					bgState[bgIndex] += stateC[bgIndex];
-					cstream << bgState[bgIndex] << "\t";
-					cstream << stateC[bgIndex] << endl;
-				}
-			}
-		}
-	}
+    // In BG update we are directly summing C + A
+    QString cFilename = outputPath.absoluteFilePath("samurai_Coefficients.out");
+    ofstream cstream(cFilename.toAscii().data());
+    cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
+    for (int var = 0; var < varDim; var++) {
+        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
+                    int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                    cstream << bgState[bgIndex] << "\t";
+                    bgState[bgIndex] += stateC[bgIndex];
+                    cstream << bgState[bgIndex] << "\t";
+                    cstream << stateC[bgIndex] << endl;
+                }
+            }
+        }
+    }
 
-	outputAnalysis("analysis", bgState);
+    outputAnalysis("analysis", bgState);
 
 }
 
 void CostFunction3D::calcInnovation()
 {
-	// Initialize and fill the innovation vector
-	cout << "Initializing innovation vector..." << endl;
-	for (int m = 0; m < mObs; m++) {
-		HCq[m] = 0.0;
-		innovation[m] = obsVector[m*(7+varDim*derivDim)];
-	}
+    // Initialize and fill the innovation vector
+    cout << "Initializing innovation vector..." << endl;
+    for (int m = 0; m < mObs; m++) {
+        HCq[m] = 0.0;
+        innovation[m] = obsVector[m*(7+varDim*derivDim)];
+    }
 
-	real innovationRMS = 0.;
-	#pragma omp parallel for reduction(+:innovationRMS)
-	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
-		real i = obsVector[mi+2];
-		real j = obsVector[mi+3];
-		real k = obsVector[mi+4];
-		real tempsum = 0;
-		int ii = (int)((i - iMin)*DIrecip);
-		int jj = (int)((j - jMin)*DJrecip);
-		int kk = (int)((k - kMin)*DKrecip);
+    real innovationRMS = 0.;
+    #pragma omp parallel for reduction(+:innovationRMS)
+    for (int m = 0; m < mObs; m++) {
+        int mi = m*(7+varDim*derivDim);
+        real i = obsVector[mi+2];
+        real j = obsVector[mi+3];
+        real k = obsVector[mi+4];
+        real tempsum = 0;
+        int ii = (int)((i - iMin)*DIrecip);
+        int jj = (int)((j - jMin)*DJrecip);
+        int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
@@ -594,38 +594,38 @@ void CostFunction3D::calcInnovation()
                 }
             }
         }
-		innovation[m] -= tempsum;
-		innovationRMS += (innovation[m]*innovation[m]);
-	}
+        innovation[m] -= tempsum;
+        innovationRMS += (innovation[m]*innovation[m]);
+    }
 
-	if (mObs) innovationRMS /= mObs;
-	innovationRMS = sqrt(innovationRMS);
-	cout << "Innovation RMS : " << innovationRMS << endl;
+    if (mObs) innovationRMS /= mObs;
+    innovationRMS = sqrt(innovationRMS);
+    cout << "Innovation RMS : " << innovationRMS << endl;
 
 }
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
 
-	// Clear the Astate
-	for (int n = 0; n < nState; n++) {
-		Astate[n] = 0.;
-	}
+    // Clear the Astate
+    for (int n = 0; n < nState; n++) {
+        Astate[n] = 0.;
+    }
 
-	// Calculate H Transpose
-	//#pragma omp parallel for
-	for (int m = 0; m < mObs; m++) {
-		// Sum over obs this time
-		// Multiply state by H weights
-		int mi = m*(7+varDim*derivDim);
-		real i = obsVector[mi+2];
-		int ii = (int)((i - iMin)*DIrecip);
+    // Calculate H Transpose
+    //#pragma omp parallel for
+    for (int m = 0; m < mObs; m++) {
+        // Sum over obs this time
+        // Multiply state by H weights
+        int mi = m*(7+varDim*derivDim);
+        real i = obsVector[mi+2];
+        int ii = (int)((i - iMin)*DIrecip);
 
-		real j = obsVector[mi+3];
-		int jj = (int)((j - jMin)*DJrecip);
+        real j = obsVector[mi+3];
+        int jj = (int)((j - jMin)*DJrecip);
 
-		real k = obsVector[mi+4];
-		int kk = (int)((k - kMin)*DKrecip);
+        real k = obsVector[mi+4];
+        int kk = (int)((k - kMin)*DKrecip);
         for (int var = 0; var < varDim; var++) {
             for (int d = 0; d < derivDim; d++) {
                 int wgt_index = mi + (7*(d+1)) + var;
@@ -659,25 +659,25 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
                 }
             }
         }
-	}
+    }
 
 }
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
 
-	//#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
-		int l;
-		real* kB = new real[kDim];
-		real* x = new real[kDim];
+    //#pragma omp parallel for
+    for (int var = 0; var < varDim; var++) {
+        int l;
+        real* kB = new real[kDim];
+        real* x = new real[kDim];
         real* b = new real[kRank[var]];
         real* a = new real[kDim];
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < kRank[var]; m++) {
                     b[m] = 0;
@@ -687,22 +687,22 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     //std::cout << m << " " << b[m] << "\n";
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int k = 0; k < kRank[var]; k++) {
-					for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
-						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
-							sum -= kL[var][k*kLDim-l]*x[k+l];
-					}
-					x[k] = sum/kL[var][k*kLDim];
-				}
-				for (int k=kRank[var]-1;k>=0;k--) {
-					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
-						if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
-							sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
-					}
-					x[k] = sum/kL[var][k*kLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int k = 0; k < kRank[var]; k++) {
+                    for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
+                        if ((k+l >= 0) and ((k*kLDim-l) >= 0))
+                            sum -= kL[var][k*kLDim-l]*x[k+l];
+                    }
+                    x[k] = sum/kL[var][k*kLDim];
+                }
+                for (int k=kRank[var]-1;k>=0;k--) {
+                    for (sum=x[k], l=1;l<=(kLDim-1);l++) {
+                        if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
+                            sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
+                    }
+                    x[k] = sum/kL[var][k*kLDim];
+                }
 
                 // Multiply by gammaT
                 for (int k = 0; k < kDim; k++) {
@@ -713,25 +713,25 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     //std::cout << k << " " << a[k] << "\n";
                 }
 
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex];
-				}
-			}
-		}
-		delete[] kB;
-		delete[] b;
-		delete[] x;
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex];
+                }
+            }
+        }
+        delete[] kB;
+        delete[] b;
+        delete[] x;
         delete[] a;
 
-		real* jB = new real[jDim];
-		x = new real[jDim];
+        real* jB = new real[jDim];
+        x = new real[jDim];
         b = new real[jRank[var]];
         a = new real[jDim];
-		for (int kIndex = 0; kIndex < kDim; kIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jB[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int kIndex = 0; kIndex < kDim; kIndex++) {
+            for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    jB[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < jRank[var]; m++) {
                     b[m] = 0;
@@ -740,22 +740,22 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     }
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int j = 0; j < jRank[var]; j++) {
-					for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
-						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
-							sum -= jL[var][j*jLDim-l]*x[j+l];
-					}
-					x[j] = sum/jL[var][j*jLDim];
-				}
-				for (int j=jRank[var]-1;j>=0;j--) {
-					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
-						if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
-							sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
-					}
-					x[j] = sum/jL[var][j*jLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int j = 0; j < jRank[var]; j++) {
+                    for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
+                        if ((j+l >= 0) and ((j*jLDim-l) >= 0))
+                            sum -= jL[var][j*jLDim-l]*x[j+l];
+                    }
+                    x[j] = sum/jL[var][j*jLDim];
+                }
+                for (int j=jRank[var]-1;j>=0;j--) {
+                    for (sum=x[j], l=1;l<=(jLDim-1);l++) {
+                        if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
+                            sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
+                    }
+                    x[j] = sum/jL[var][j*jLDim];
+                }
 
                 // Multiply by gammaT
                 for (int j = 0; j < jDim; j++) {
@@ -764,25 +764,25 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                         a[j] += jGamma[var][jDim*m + j]*x[m];
                     }
                 }
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex];
-				}
-			}
-		}
-		delete[] jB;
-		delete[] x;
-		delete[] b;
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex];
+                }
+            }
+        }
+        delete[] jB;
+        delete[] x;
+        delete[] b;
         delete[] a;
 
-		real* iB = new real[iDim];
-		x = new real[iDim];
+        real* iB = new real[iDim];
+        x = new real[iDim];
         b = new real[iRank[var]];
         a = new real[iDim];
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < iRank[var]; m++) {
                     b[m] = 0;
@@ -791,22 +791,22 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     }
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int i = 0; i < iRank[var]; i++) {
-					for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
-						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
-							sum -= iL[var][i*iLDim-l]*x[i+l];
-					}
-					x[i] = sum/iL[var][i*iLDim];
-				}
-				for (int i=iRank[var]-1;i>=0;i--) {
-					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
-						if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
-							sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
-					}
-					x[i] = sum/iL[var][i*iLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int i = 0; i < iRank[var]; i++) {
+                    for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
+                        if ((i+l >= 0) and ((i*iLDim-l) >= 0))
+                            sum -= iL[var][i*iLDim-l]*x[i+l];
+                    }
+                    x[i] = sum/iL[var][i*iLDim];
+                }
+                for (int i=iRank[var]-1;i>=0;i--) {
+                    for (sum=x[i], l=1;l<=(iLDim-1);l++) {
+                        if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
+                            sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
+                    }
+                    x[i] = sum/iL[var][i*iLDim];
+                }
 
                 // Multiply by gammaT
                 for (int i = 0; i < iDim; i++) {
@@ -816,36 +816,36 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
                     }
                 }
 
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex];
-				}
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex];
+                }
 
-			}
-		}
-		delete[] iB;
-		delete[] x;
-		delete[] b;
+            }
+        }
+        delete[] iB;
+        delete[] x;
+        delete[] b;
         delete[] a;
-	}
+    }
 
-	return true;
+    return true;
 }
 
 bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 {
 
-	//#pragma omp parallel for
-	for (int var = 0; var < varDim; var++) {
-		int l;
+    //#pragma omp parallel for
+    for (int var = 0; var < varDim; var++) {
+        int l;
         real* iB = new real[iDim];
-		real* x = new real[iDim];
+        real* x = new real[iDim];
         real* b = new real[iRank[var]];
         real* a = new real[iDim];
-		for (int jIndex = 0; jIndex < jDim; jIndex++) {
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int jIndex = 0; jIndex < jDim; jIndex++) {
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < iRank[var]; m++) {
                     b[m] = 0;
@@ -854,22 +854,22 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                     }
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int i = 0; i < iRank[var]; i++) {
-					for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
-						if ((i+l >= 0) and ((i*iLDim-l) >= 0))
-							sum -= iL[var][i*iLDim-l]*x[i+l];
-					}
-					x[i] = sum/iL[var][i*iLDim];
-				}
-				for (int i=iRank[var]-1;i>=0;i--) {
-					for (sum=x[i], l=1;l<=(iLDim-1);l++) {
-						if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
-							sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
-					}
-					x[i] = sum/iL[var][i*iLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int i = 0; i < iRank[var]; i++) {
+                    for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
+                        if ((i+l >= 0) and ((i*iLDim-l) >= 0))
+                            sum -= iL[var][i*iLDim-l]*x[i+l];
+                    }
+                    x[i] = sum/iL[var][i*iLDim];
+                }
+                for (int i=iRank[var]-1;i>=0;i--) {
+                    for (sum=x[i], l=1;l<=(iLDim-1);l++) {
+                        if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
+                            sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
+                    }
+                    x[i] = sum/iL[var][i*iLDim];
+                }
 
                 // Multiply by gammaT
                 for (int i = 0; i < iDim; i++) {
@@ -879,26 +879,26 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                     }
                 }
 
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex];
-				}
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex];
+                }
 
-			}
-		}
-		delete[] iB;
-		delete[] x;
-		delete[] b;
+            }
+        }
+        delete[] iB;
+        delete[] x;
+        delete[] b;
         delete[] a;
 
-		real* jB = new real[jDim];
-		x = new real[jDim];
+        real* jB = new real[jDim];
+        x = new real[jDim];
         b = new real[jRank[var]];
         a = new real[jDim];
-		for (int kIndex = 0; kIndex < kDim; kIndex++) {
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					jB[jIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int kIndex = 0; kIndex < kDim; kIndex++) {
+            for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    jB[jIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < jRank[var]; m++) {
                     b[m] = 0;
@@ -907,22 +907,22 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                     }
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int j = 0; j < jRank[var]; j++) {
-					for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
-						if ((j+l >= 0) and ((j*jLDim-l) >= 0))
-							sum -= jL[var][j*jLDim-l]*x[j+l];
-					}
-					x[j] = sum/jL[var][j*jLDim];
-				}
-				for (int j=jRank[var]-1;j>=0;j--) {
-					for (sum=x[j], l=1;l<=(jLDim-1);l++) {
-						if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
-							sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
-					}
-					x[j] = sum/jL[var][j*jLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int j = 0; j < jRank[var]; j++) {
+                    for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
+                        if ((j+l >= 0) and ((j*jLDim-l) >= 0))
+                            sum -= jL[var][j*jLDim-l]*x[j+l];
+                    }
+                    x[j] = sum/jL[var][j*jLDim];
+                }
+                for (int j=jRank[var]-1;j>=0;j--) {
+                    for (sum=x[j], l=1;l<=(jLDim-1);l++) {
+                        if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
+                            sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
+                    }
+                    x[j] = sum/jL[var][j*jLDim];
+                }
 
                 // Multiply by gammaT
                 for (int j = 0; j < jDim; j++) {
@@ -931,25 +931,25 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                         a[j] += jGamma[var][jDim*m + j]*x[m];
                     }
                 }
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex];
-				}
-			}
-		}
-		delete[] jB;
-		delete[] x;
-		delete[] b;
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex];
+                }
+            }
+        }
+        delete[] jB;
+        delete[] x;
+        delete[] b;
         delete[] a;
 
         real* kB = new real[kDim];
-		x = new real[kDim];
+        x = new real[kDim];
         b = new real[kRank[var]];
         a = new real[kDim];
-		for (int iIndex = 0; iIndex < iDim; iIndex++) {
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-				}
+        for (int iIndex = 0; iIndex < iDim; iIndex++) {
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    kB[kIndex] = Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
+                }
                 // Multiply by gamma
                 for (int m = 0; m < kRank[var]; m++) {
                     b[m] = 0;
@@ -959,22 +959,22 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                     //std::cout << m << " " << b[m] << "\n";
                 }
 
-				// Solve for A's using compact storage
-				real sum = 0;
-				for (int k = 0; k < kRank[var]; k++) {
-					for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
-						if ((k+l >= 0) and ((k*kLDim-l) >= 0))
-							sum -= kL[var][k*kLDim-l]*x[k+l];
-					}
-					x[k] = sum/kL[var][k*kLDim];
-				}
-				for (int k=kRank[var]-1;k>=0;k--) {
-					for (sum=x[k], l=1;l<=(kLDim-1);l++) {
-						if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
-							sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
-					}
-					x[k] = sum/kL[var][k*kLDim];
-				}
+                // Solve for A's using compact storage
+                real sum = 0;
+                for (int k = 0; k < kRank[var]; k++) {
+                    for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
+                        if ((k+l >= 0) and ((k*kLDim-l) >= 0))
+                            sum -= kL[var][k*kLDim-l]*x[k+l];
+                    }
+                    x[k] = sum/kL[var][k*kLDim];
+                }
+                for (int k=kRank[var]-1;k>=0;k--) {
+                    for (sum=x[k], l=1;l<=(kLDim-1);l++) {
+                        if ((k+l < kRank[var]) and (((k+l)*kLDim+l) < kRank[var]*kLDim))
+                            sum -= kL[var][(k+l)*kLDim+l]*x[k+l];
+                    }
+                    x[k] = sum/kL[var][k*kLDim];
+                }
 
                 // Multiply by gammaT
                 for (int k = 0; k < kDim; k++) {
@@ -985,28 +985,28 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
                     //std::cout << k << " " << a[k] << "\n";
                 }
 
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex];
-				}
-			}
-		}
-		delete[] kB;
-		delete[] b;
-		delete[] x;
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    Bstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[kIndex];
+                }
+            }
+        }
+        delete[] kB;
+        delete[] b;
+        delete[] x;
         delete[] a;
 
-	}
+    }
 
-	return true;
+    return true;
 }
 
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
-	// Clear the Bstate
-	for (int n = 0; n < nState; n++) {
-		Bstate[n] = 0.;
-	}
-	real gausspoint = 0.5*sqrt(1./3.);
+    // Clear the Bstate
+    for (int n = 0; n < nState; n++) {
+        Bstate[n] = 0.;
+    }
+    real gausspoint = 0.5*sqrt(1./3.);
 
 //#pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
@@ -1048,34 +1048,34 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
                                             int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
                                             int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 
-											int ui = uIndex + var;
-											if (Ustate[ui] == 0) continue;
-											int bi = bIndex + var;
-											//#pragma omp atomic
-											Bstate[bi] += Ustate[ui] * ijkbasis;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                                            int ui = uIndex + var;
+                                            if (Ustate[ui] == 0) continue;
+                                            int bi = bIndex + var;
+                                            //#pragma omp atomic
+                                            Bstate[bi] += Ustate[ui] * ijkbasis;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
 void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 {
 
-	// Clear the Ustate
-	for (int n = 0; n < nState; n++) {
-		Ustate[n] = 0;
-	}
-	real gausspoint = 0.5*sqrt(1./3.);
+    // Clear the Ustate
+    for (int n = 0; n < nState; n++) {
+        Ustate[n] = 0;
+    }
+    real gausspoint = 0.5*sqrt(1./3.);
 
-	//#pragma omp parallel for
+    //#pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
         for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
             for (int imu = -1; imu <= 1; imu += 2) {
@@ -1115,63 +1115,63 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
                                             int uK = kIndex*2 + (kmu+1)/2;
                                             int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
 
-											int bi = bIndex + var;
-											if (Bstate[bi] == 0) continue;
+                                            int bi = bIndex + var;
+                                            if (Bstate[bi] == 0) continue;
 
-											int ui = uIndex + var;
-											//#pragma omp atomic
-											Ustate[ui] += Bstate[bi] * ijkbasis;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+                                            int ui = uIndex + var;
+                                            //#pragma omp atomic
+                                            Ustate[ui] += Bstate[bi] * ijkbasis;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 {
-	// Disable recursive filter if less than 1
-	if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-		#pragma omp parallel for
-		for (int n = 0; n < nState; n++) {
-			Cstate[n]= Astate[n] * bgStdDev[n];
-		}
-	} else {
-		// Isotropic Recursive filter, no anisotropic "triad" working yet
+    // Disable recursive filter if less than 1
+    if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
+        #pragma omp parallel for
+        for (int n = 0; n < nState; n++) {
+            Cstate[n]= Astate[n] * bgStdDev[n];
+        }
+    } else {
+        // Isotropic Recursive filter, no anisotropic "triad" working yet
               //#pragma omp parallel for
-		for (int var = 0; var < varDim; var++) {
+        for (int var = 0; var < varDim; var++) {
 
-			//FK
-			// These are local for parallelization
-			real* iTemp = new real[iDim];
-			real* jTemp = new real[jDim];
-			real* kTemp = new real[kDim];
+            //FK
+            // These are local for parallelization
+            real* iTemp = new real[iDim];
+            real* jTemp = new real[jDim];
+            real* kTemp = new real[kDim];
             real* iPad = NULL;
             real* jPad = NULL;
             real* kPad = NULL;
       //if (iBCL[var] == PERIODIC) {
                 iPad = new real[iDim*3];
-				//for (int iIndex = 0; iIndex < iDim*3; iIndex++) iPad[iIndex] = 0.;
+                //for (int iIndex = 0; iIndex < iDim*3; iIndex++) iPad[iIndex] = 0.;
       //}
-			//if (jBCL[var] == PERIODIC) {
+            //if (jBCL[var] == PERIODIC) {
                 jPad = new real[jDim*3];
-				//for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
+                //for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
       //}
       //if (kBCL[var] == PERIODIC) {
           kPad = new real[kDim*3];
           //for (int jIndex = 0; jIndex < jDim*3; jIndex++) jPad[jIndex] = 0.;
       //}
 
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-					}
+            for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                        kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
           if (kFilterScale > 0) {
               if (kBCL[var] == PERIODIC) {
                   // Pad the array to account for periodicity
@@ -1196,17 +1196,17 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                 }
               }
           }
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
-					}
-				}
-			}
-			//FJ
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					for (int jIndex = 0; jIndex < jDim; jIndex++) {
-						jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-					}
+                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                        Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
+                    }
+                }
+            }
+            //FJ
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
@@ -1231,17 +1231,17 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                           }
                         }
                     }
-					for (int jIndex = 0; jIndex < jDim; jIndex++) {
-						Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-					}
-				}
-			}
-			//FI
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					for (int iIndex = 0; iIndex < iDim; iIndex++) {
-						iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-					}
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+                    }
+                }
+            }
+            //FI
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
@@ -1267,12 +1267,12 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                         }
                     }
                     for (int iIndex = 0; iIndex < iDim; iIndex++) {
-						// D
-						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-						Cstate[cIndex] = iTemp[iIndex] * bgStdDev[cIndex];
-					}
-				}
-			}
+                        // D
+                        int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                        Cstate[cIndex] = iTemp[iIndex] * bgStdDev[cIndex];
+                    }
+                }
+            }
             // Enforce max wavenumber
             if ((kBCL[var] == PERIODIC) and (kMaxWavenumber >= 0)) {
               for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1327,51 +1327,51 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                             Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[iIndex]/iDim;
                         }
                     }
-				}
-			}
+                }
+            }
 
-			delete[] iTemp;
-			delete[] jTemp;
-			delete[] kTemp;
+            delete[] iTemp;
+            delete[] jTemp;
+            delete[] kTemp;
             //if (iBCL[var] == PERIODIC) {
                 delete[] iPad;
             //}
-			//if (jBCL[var] == PERIODIC) {
+            //if (jBCL[var] == PERIODIC) {
                 delete[] jPad;
       //      }
       //if (kBCL[var] == PERIODIC) {
           delete[] kPad;
       //}
-		}
-	}
+        }
+    }
 }
 
 void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 {
-	if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-		#pragma omp parallel for
-		for (int n = 0; n < nState; n++) {
-			Astate[n]= Cstate[n] * bgStdDev[n];
-		}
-	} else {
-		// Isotropic Recursive filter, no anisotropic "triad" working yet
+    if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
+        #pragma omp parallel for
+        for (int n = 0; n < nState; n++) {
+            Astate[n]= Cstate[n] * bgStdDev[n];
+        }
+    } else {
+        // Isotropic Recursive filter, no anisotropic "triad" working yet
         for (int n = 0; n < nState; n++) {
             Astate[n]= Cstate[n];
         }
         //_#pragma omp parallel for
-		for (int var = 0; var < varDim; var++) {
+        for (int var = 0; var < varDim; var++) {
 
-			// These are local for parallelization
-			real* iTemp = new real[iDim];
-			real* jTemp = new real[jDim];
-			real* kTemp = new real[kDim];
+            // These are local for parallelization
+            real* iTemp = new real[iDim];
+            real* jTemp = new real[jDim];
+            real* kTemp = new real[kDim];
       real* iPad = NULL;
       real* jPad = NULL;
       real* kPad = NULL;
       //if (iBCL[var] == PERIODIC) {
           iPad = new real[iDim*3];
       //}
-			//if (jBCL[var] == PERIODIC) {
+            //if (jBCL[var] == PERIODIC) {
           jPad = new real[jDim*3];
       //}
       //if (kBCL[var] == PERIODIC) {
@@ -1436,13 +1436,13 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
         }
       }
 
-			//FI & D
-			for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-					for (int iIndex = 0; iIndex < iDim; iIndex++) {
-						int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-						iTemp[iIndex] = Astate[cIndex] * bgStdDev[cIndex];
-					}
+            //FI & D
+            for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                        iTemp[iIndex] = Astate[cIndex] * bgStdDev[cIndex];
+                    }
                     if (iFilterScale > 0) {
                         if (iBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
@@ -1467,17 +1467,17 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                           }
                         }
                     }
-					for (int iIndex = 0; iIndex < iDim; iIndex++) {
-						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex];
-					}
-				}
-			}
-			//FJ
-			for (int kIndex = 0; kIndex < kDim; kIndex++) {
-				for (int iIndex = 0; iIndex < iDim; iIndex++) {
-					for (int jIndex = 0; jIndex < jDim; jIndex++) {
-						jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-					}
+                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex];
+                    }
+                }
+            }
+            //FJ
+            for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
                     if (jFilterScale > 0) {
                         if (jBCL[var] == PERIODIC) {
                             // Pad the array to account for periodicity
@@ -1502,17 +1502,17 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                           }
                         }
                     }
-					for (int jIndex = 0; jIndex < jDim; jIndex++) {
-						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-					}
-				}
-			}
-			//FK
-			for (int iIndex = 0; iIndex < iDim; iIndex++) {
-				for (int jIndex = 0; jIndex < jDim; jIndex++) {
-					for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-					}
+                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+                    }
+                }
+            }
+            //FK
+            for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                for (int jIndex = 0; jIndex < jDim; jIndex++) {
+                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
+                        kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+                    }
           if (kFilterScale > 0) {
               if (kBCL[var] == PERIODIC) {
                   // Pad the array to account for periodicity
@@ -1538,77 +1538,77 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
               }
           }
           for (int kIndex = 0; kIndex < kDim; kIndex++) {
-						Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
-					}
-				}
-			}
-			delete[] iTemp;
-			delete[] jTemp;
-			delete[] kTemp;
+                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
+                    }
+                }
+            }
+            delete[] iTemp;
+            delete[] jTemp;
+            delete[] kTemp;
       //if (iBCL[var] == PERIODIC) {
         delete[] iPad;
       //}
-			//if (jBCL[var] == PERIODIC) {
+            //if (jBCL[var] == PERIODIC) {
         delete[] jPad;
       //}
       //if (kBCL[var] == PERIODIC) {
         delete[] kPad;
       //}
 
-		}
-	}
+        }
+    }
 }
 
 bool CostFunction3D::setupSplines()
 {
 
-	// Do the spline via a Cholesky decomposition
-	// and manipulate the DC Filter
+    // Do the spline via a Cholesky decomposition
+    // and manipulate the DC Filter
     real Pi = acos(-1.);
 
-	real cutoff_wl = configHash->value("i_spline_cutoff").toFloat();
-	cout << "i Spline cutoff set to " << cutoff_wl << endl;
-	real eq = pow( (cutoff_wl/(2*Pi)) , 6);
+    real cutoff_wl = configHash->value("i_spline_cutoff").toFloat();
+    cout << "i Spline cutoff set to " << cutoff_wl << endl;
+    real eq = pow( (cutoff_wl/(2*Pi)) , 6);
     calcSplineCoefficients(iDim, eq, iBCL, iBCR, iMin, DI, DIrecip, iLDim, iL, iGamma);
 
-	cutoff_wl = configHash->value("j_spline_cutoff").toFloat();
-	cout << "j Spline cutoff set to " << cutoff_wl << endl;
-	eq = pow( (cutoff_wl/(2*Pi)) , 6);
-	calcSplineCoefficients(jDim, eq, jBCL, jBCR, jMin, DJ, DJrecip, jLDim, jL, jGamma);
+    cutoff_wl = configHash->value("j_spline_cutoff").toFloat();
+    cout << "j Spline cutoff set to " << cutoff_wl << endl;
+    eq = pow( (cutoff_wl/(2*Pi)) , 6);
+    calcSplineCoefficients(jDim, eq, jBCL, jBCR, jMin, DJ, DJrecip, jLDim, jL, jGamma);
 
-	cutoff_wl = configHash->value("k_spline_cutoff").toFloat();
-	cout << "k Spline cutoff set to " << cutoff_wl << endl;
-	eq = pow( (cutoff_wl/(2*Pi)) , 6);
+    cutoff_wl = configHash->value("k_spline_cutoff").toFloat();
+    cout << "k Spline cutoff set to " << cutoff_wl << endl;
+    eq = pow( (cutoff_wl/(2*Pi)) , 6);
     calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
 
-	return true;
+    return true;
 
 }
 
 
 void CostFunction3D::obAdjustments() {
 
-	// Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
-	for (int m = 0; m < mObs; m++) {
-		int mi = m*(7+varDim*derivDim);
-		for (int ob = 0; ob < (7+varDim*derivDim); ob++) {
-			obsVector[mi+ob] = rawObs[mi+ob];
-		}
-		real type = obsVector[mi+5];
-		if (type <= 1) continue;
+    // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
+    for (int m = 0; m < mObs; m++) {
+        int mi = m*(7+varDim*derivDim);
+        for (int ob = 0; ob < (7+varDim*derivDim); ob++) {
+            obsVector[mi+ob] = rawObs[mi+ob];
+        }
+        real type = obsVector[mi+5];
+        if (type <= 1) continue;
 
-		real i = obsVector[mi+2];
-		real j = obsVector[mi+3];
-		real k = obsVector[mi+4];
-		real rhoprime = 0.;
-		real qvprime = 0.;
+        real i = obsVector[mi+2];
+        real j = obsVector[mi+3];
+        real k = obsVector[mi+4];
+        real rhoprime = 0.;
+        real qvprime = 0.;
 
-		int ii = (int)((i - iMin)*DIrecip);
-		int jj = (int)((j - jMin)*DJrecip);
-		int kk = (int)((k - kMin)*DKrecip);
-		real ibasis = 0.;
-		real jbasis = 0.;
-		real kbasis = 0.;
+        int ii = (int)((i - iMin)*DIrecip);
+        int jj = (int)((j - jMin)*DJrecip);
+        int kk = (int)((k - kMin)*DKrecip);
+        real ibasis = 0.;
+        real jbasis = 0.;
+        real kbasis = 0.;
         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
             int iNode = iiNode;
             if ((iBCL[4] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
@@ -1624,130 +1624,130 @@ void CostFunction3D::obAdjustments() {
                     if ((kBCL[4] == PERIODIC) and (kNode < 1)) kNode = kDim-3;
                     if ((kBCR[4] == PERIODIC) and (kNode > (kDim-3))) kNode = kkNode - (kDim-3);
                     if ((kNode < 0) or (kNode >= kDim)) continue;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
-					qvprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * kbasis;
-					ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
-					jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
-					kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
-					rhoprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 5] * ibasis * jbasis * kbasis;
-				}
-			}
-		}
-		real heightm = 1000*k;
-		real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
-		real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
-		real qv = refstate->bhypInvTransform(qBar + qvprime);
-		real rhoa = rhoBar + rhoprime / 100;
-		real rhoBG = rhoa + rhoa*qv/1000.;
+                    ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
+                    jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
+                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
+                    qvprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * kbasis;
+                    ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
+                    jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
+                    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
+                    rhoprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 5] * ibasis * jbasis * kbasis;
+                }
+            }
+        }
+        real heightm = 1000*k;
+        real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+        real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+        real qv = refstate->bhypInvTransform(qBar + qvprime);
+        real rhoa = rhoBar + rhoprime / 100;
+        real rhoBG = rhoa + rhoa*qv/1000.;
 
-		// Adjust the relevant fields
-		if (type == MetObs::sfmr) {
-			obsVector[mi] *= rhoBG;
-			// Still need to think carefully about nonlinear SFMR operator in Cartesian space
-			//real wsBG = vBG*vBG; // + uBG*uBG;
-			//obsVector[mi+2] = 2.*vBG/wsBG;
-			//obsVector[mi+3] = 0.; //2.*uBG/wsBG;
-		}
-		if ((type == MetObs::radar) or (type == MetObs::qscat)
-			or (type == MetObs::ascat) or (type == MetObs::AMV)
-			or (type == MetObs::lidar)) {
-			obsVector[mi] *= rhoBG;
-		}
-	}
+        // Adjust the relevant fields
+        if (type == MetObs::sfmr) {
+            obsVector[mi] *= rhoBG;
+            // Still need to think carefully about nonlinear SFMR operator in Cartesian space
+            //real wsBG = vBG*vBG; // + uBG*uBG;
+            //obsVector[mi+2] = 2.*vBG/wsBG;
+            //obsVector[mi+3] = 0.; //2.*uBG/wsBG;
+        }
+        if ((type == MetObs::radar) or (type == MetObs::qscat)
+            or (type == MetObs::ascat) or (type == MetObs::AMV)
+            or (type == MetObs::lidar)) {
+            obsVector[mi] *= rhoBG;
+        }
+    }
 }
 
 void CostFunction3D::fillBasisLookup()
 {
 
-	real ONESIXTH = 1./6.;
-	for (int i=0; i < 2000000; i++) {
-		real z = 2.0 - real(i)/1000000.;
-		real b = (z*z*z) * ONESIXTH;
-		z -= 1.0;
-		if (z > 0)
-			b -= (z*z*z) * 4 * ONESIXTH;
-		basis0[i] = b;
+    real ONESIXTH = 1./6.;
+    for (int i=0; i < 2000000; i++) {
+        real z = 2.0 - real(i)/1000000.;
+        real b = (z*z*z) * ONESIXTH;
+        z -= 1.0;
+        if (z > 0)
+            b -= (z*z*z) * 4 * ONESIXTH;
+        basis0[i] = b;
 
-		z = 2.0 - real(i)/1000000.;
-		b = (z*z) * ONESIXTH;
-		z -= 1.0;
-		if (z > 0)
-			b -= (z*z) * 4 * ONESIXTH;
-		basis1[i] = b;
-	}
+        z = 2.0 - real(i)/1000000.;
+        b = (z*z) * ONESIXTH;
+        z -= 1.0;
+        if (z > 0)
+            b -= (z*z) * 4 * ONESIXTH;
+        basis1[i] = b;
+    }
 
 }
 
 real CostFunction3D::Basis(const int& m, const real& x, const int& M,const real& xmin,
-							const real& DX, const real& DXrecip, const int& derivative,
-							const int& BL, const int& BR, const real& lambda)
+                            const real& DX, const real& DXrecip, const int& derivative,
+                            const int& BL, const int& BR, const real& lambda)
 {
-	real b = 0;
-	real xm = xmin + (m * DX);
-	real delta = (x - xm) * DXrecip;
-	real z = fabs(delta);
-	real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
-	if (z < 2.0) {
-		switch (derivative) {
-			case 0:
-				if (basisappx == NONE) {
-					// Unapproximated
-					z = 2.0 - z;
-					b = (z*z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						b -= (z*z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					// Cheaper approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-				} else {
-					// Cheapest approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					b = basis0[z1];
-				}
-				break;
-			case 1:
-				if (basisappx == NONE) {
-					z = 2.0 - z;
-					b = (z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						b -= (z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+    real b = 0;
+    real xm = xmin + (m * DX);
+    real delta = (x - xm) * DXrecip;
+    real z = fabs(delta);
+    real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
+    if (z < 2.0) {
+        switch (derivative) {
+            case 0:
+                if (basisappx == NONE) {
+                    // Unapproximated
+                    z = 2.0 - z;
+                    b = (z*z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        b -= (z*z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    // Cheaper approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    b = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+                } else {
+                    // Cheapest approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    b = basis0[z1];
+                }
+                break;
+            case 1:
+                if (basisappx == NONE) {
+                    z = 2.0 - z;
+                    b = (z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        b -= (z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    b = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
 
-				} else {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					b = basis1[z1];
-				}
-				b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-				break;
-			case 2:
-				z = 2.0 - z;
-				b = z;
-				z -= 1.0;
-				if (z > 0)
-					b -= z * 4;
-				b *= DXrecip * DXrecip;
-				break;
-			case 3:
-				if (z > 1.0) {
-					b = 1;
-				} else if (z < 1.0) {
-					b = -3.;
-				}
-				b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-				break;
-		}
-	}
+                } else {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    b = basis1[z1];
+                }
+                b *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+                break;
+            case 2:
+                z = 2.0 - z;
+                b = z;
+                z -= 1.0;
+                if (z > 0)
+                    b -= z * 4;
+                b *= DXrecip * DXrecip;
+                break;
+            case 3:
+                if (z > 1.0) {
+                    b = 1;
+                } else if (z < 1.0) {
+                    b = -3.;
+                }
+                b *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+                break;
+        }
+    }
     if ((m > 2) and (m < M-2)) return b;
     // Add the boundary conditions if we get this far
     real bc = BasisBC(b, m, x, M, xmin, DX, DXrecip, derivative, BL, BR, lambda);
@@ -1758,318 +1758,318 @@ real CostFunction3D::BasisBC(real b, const int& m, const real& x, const int& M, 
                              const real& DX, const real& DXrecip, const int& derivative,
                              const int& BL, const int& BR, const real& lambda)
 {
-	real bmod = 0;
-	int node = -2;
-	real coeffmod = 0.;
-	real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
-	if (m == 0) {
-		// Left BC
-		switch (BL) {
+    real bmod = 0;
+    int node = -2;
+    real coeffmod = 0.;
+    real ONESIXTH = 1./6.; real FOURSIXTH = 4./6.;
+    if (m == 0) {
+        // Left BC
+        switch (BL) {
             case RX:
                 // Absolutely no boundary condition
                 return b;
-			case R0:
-				// No boundary condition, but buffered so use R1T2 on outer node
-				node = -1;
-				coeffmod = 2.;
-				break;
+            case R0:
+                // No boundary condition, but buffered so use R1T2 on outer node
+                node = -1;
+                coeffmod = 2.;
+                break;
         }
     } else if (m == 1) {
         switch (BL) {
             case RX:
                 // Absolutely no boundary condition
                 return b;
-			case R0:
-				// No boundary condition, but buffered so use R1T2 on outer node
-				node = -1;
-				coeffmod = -1.;
-				break;
-			case R1T0:
-				node = 0;
-				coeffmod = -4.;
-				break;
-			case R1T1:
-				node = 0;
-				coeffmod = 0.;
-				break;
-			case R1T2:
-				node = 0;
-				coeffmod = 2.;
-				break;
-			case R1T10:
-				node = 0;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case R2T10:
+            case R0:
+                // No boundary condition, but buffered so use R1T2 on outer node
+                node = -1;
+                coeffmod = -1.;
+                break;
+            case R1T0:
+                node = 0;
+                coeffmod = -4.;
+                break;
+            case R1T1:
+                node = 0;
+                coeffmod = 0.;
+                break;
+            case R1T2:
+                node = 0;
+                coeffmod = 2.;
+                break;
+            case R1T10:
+                node = 0;
+                coeffmod = -4./(3.*lambda + 1.);
+                break;
+            case R2T10:
                 return 0;
-			case R2T20:
+            case R2T20:
                 return 0;
-			case R3:
+            case R3:
                 return 0;
-			case PERIODIC:
-				node = M-1;
-				coeffmod = 1.;
-				break;
-		}
-	} else if (m == 2) {
-		// Left BC
-		switch (BL) {
+            case PERIODIC:
+                node = M-1;
+                coeffmod = 1.;
+                break;
+        }
+    } else if (m == 2) {
+        // Left BC
+        switch (BL) {
             case RX:
                 return b;
-			case R0:
+            case R0:
                 return b;
-			case R1T0:
-				node = 0;
-				coeffmod = -1.;
-				break;
-			case R1T1:
-				node = 0;
-				coeffmod = 1.;
-				break;
-			case R1T2:
-				node = 0;
-				coeffmod = -1.;
-				break;
-			case R1T10:
-				node = 0;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case R2T10:
-				node = 0;
+            case R1T0:
+                node = 0;
+                coeffmod = -1.;
+                break;
+            case R1T1:
+                node = 0;
+                coeffmod = 1.;
+                break;
+            case R1T2:
+                node = 0;
+                coeffmod = -1.;
+                break;
+            case R1T10:
+                node = 0;
+                coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+                break;
+            case R2T10:
+                node = 0;
                 coeffmod = 1.0;
-			case R2T20:
-				node = 0;
+            case R2T20:
+                node = 0;
                 coeffmod = -1.0;
-			case R3:
-				return 0;
-			case PERIODIC:
-				node = M;
-				coeffmod = 1.;
-				break;
-		}
-	} else if (m == M) {
-		// Right BC
-		switch (BR) {
+            case R3:
+                return 0;
+            case PERIODIC:
+                node = M;
+                coeffmod = 1.;
+                break;
+        }
+    } else if (m == M) {
+        // Right BC
+        switch (BR) {
             case RX:
                 return b;
-			case R0:
-				node = M+1;
-				coeffmod = 2.;
-				break;
+            case R0:
+                node = M+1;
+                coeffmod = 2.;
+                break;
         }
     } else if (m == (M-1)) {
         switch (BR) {
             case RX:
                 return b;
-			case R0:
-				node = M+1;
-				coeffmod = -1.;
-				break;
-			case R1T0:
-				node = M;
-				coeffmod = -4.;
-				break;
-			case R1T1:
-				node = M;
-				coeffmod = 0.;
-				break;
-			case R1T2:
-				node = M;
-				coeffmod = 2.;
-				break;
-			case R1T10:
-				node = M;
-				coeffmod = -4./(3.*lambda + 1.);
-				break;
-			case R2T10:
+            case R0:
+                node = M+1;
+                coeffmod = -1.;
+                break;
+            case R1T0:
+                node = M;
+                coeffmod = -4.;
+                break;
+            case R1T1:
+                node = M;
+                coeffmod = 0.;
+                break;
+            case R1T2:
+                node = M;
+                coeffmod = 2.;
+                break;
+            case R1T10:
+                node = M;
+                coeffmod = -4./(3.*lambda + 1.);
+                break;
+            case R2T10:
                 return 0;
-			case R2T20:
+            case R2T20:
                 return 0;
-			case R3:
-				return 0;
-			case PERIODIC:
+            case R3:
                 return 0;
-		}
-	} else if (m == (M-2)) {
-		// Right BC
-		switch (BR) {
+            case PERIODIC:
+                return 0;
+        }
+    } else if (m == (M-2)) {
+        // Right BC
+        switch (BR) {
             case RX:
                 return b;
-			case R0:
+            case R0:
                 return b;
-			case R1T0:
-				node = M;
-				coeffmod = -1.;
-				break;
-			case R1T1:
-				node = M;
-				coeffmod = 1.;
-				break;
-			case R1T2:
-				node = M;
-				coeffmod = -1.;
-				break;
-			case R1T10:
-				node = M;
-				coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
-				break;
-			case R2T10:
+            case R1T0:
                 node = M;
-				coeffmod = 1.;
-				break;
-			case R2T20:
+                coeffmod = -1.;
+                break;
+            case R1T1:
                 node = M;
-				coeffmod = -1.;
-				break;
-			case R3:
-				return 0;
-			case PERIODIC:
+                coeffmod = 1.;
+                break;
+            case R1T2:
+                node = M;
+                coeffmod = -1.;
+                break;
+            case R1T10:
+                node = M;
+                coeffmod = (3.*lambda - 1.)/(3.*lambda + 1.);
+                break;
+            case R2T10:
+                node = M;
+                coeffmod = 1.;
+                break;
+            case R2T20:
+                node = M;
+                coeffmod = -1.;
+                break;
+            case R3:
+                return 0;
+            case PERIODIC:
                 node = 0;
                 coeffmod = 1.;
                 break;
-		}
-	}
+        }
+    }
 
-	real xm = xmin + (node * DX);
-	real delta = (x - xm) * DXrecip;
-	real z = fabs(delta);
-	if (z < 2.0) {
-		switch (derivative) {
-			case 0:
-				if (basisappx == NONE) {
-					// Unapproximated
-					z = 2.0 - z;
-					bmod = (z*z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						bmod -= (z*z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					// Cheaper approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-				} else {
-					// Cheapest approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis0[z1];
-				}
-				break;
-			case 1:
-				if (basisappx == NONE) {
-					z = 2.0 - z;
-					bmod = (z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						bmod -= (z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+    real xm = xmin + (node * DX);
+    real delta = (x - xm) * DXrecip;
+    real z = fabs(delta);
+    if (z < 2.0) {
+        switch (derivative) {
+            case 0:
+                if (basisappx == NONE) {
+                    // Unapproximated
+                    z = 2.0 - z;
+                    bmod = (z*z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        bmod -= (z*z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    // Cheaper approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+                } else {
+                    // Cheapest approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis0[z1];
+                }
+                break;
+            case 1:
+                if (basisappx == NONE) {
+                    z = 2.0 - z;
+                    bmod = (z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        bmod -= (z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
 
-				} else {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis1[z1];
-				}
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-				break;
-			case 2:
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-				break;
-			case 3:
-				if (z > 1.0) {
-					bmod = 1;
-				} else if (z < 1.0) {
-					bmod = -3.;
-				}
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-				break;
-		}
-	}
-	b += coeffmod * bmod;
-
-	// R2 needs one more addition
-	if ((BL == R2T10) and (m == 2)) {
-		node = 1;
-		coeffmod = -0.5;
-	} else if ((BR == R2T10) and (m == M-2)) {
-		node = M-1;
-		coeffmod = -0.5;
-	} else {
-		return b;
-	}
-
-	xm = xmin + (node * DX);
-	delta = (x - xm) * DXrecip;
-	z = fabs(delta);
-	if (z < 2.0) {
-		switch (derivative) {
-			case 0:
-				if (basisappx == NONE) {
-					// Unapproximated
-					z = 2.0 - z;
-					bmod = (z*z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						bmod -= (z*z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					// Cheaper approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
-				} else {
-					// Cheapest approximation
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis0[z1];
-				}
-				break;
-			case 1:
-				if (basisappx == NONE) {
-					z = 2.0 - z;
-					bmod = (z*z) * ONESIXTH;
-					z -= 1.0;
-					if (z > 0)
-						bmod -= (z*z) * FOURSIXTH;
-				} else if (basisappx == PARTIAL) {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
-
-				} else {
-					real zi = z*1000000.;
-					int z1 = int(zi);
-					bmod = basis1[z1];
-				}
+                } else {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis1[z1];
+                }
                 bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
-				break;
-			case 2:
-				z = 2.0 - z;
-				bmod = z;
-				z -= 1.0;
-				if (z > 0)
-					bmod -= z * 4;
-				bmod *= DXrecip * DXrecip;
-				break;
-			case 3:
-				if (z > 1.0) {
-					bmod = 1;
-				} else if (z < 1.0) {
-					bmod = -3.;
-				}
-				bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
-				break;
-		}
-	}
-	b += coeffmod * bmod;
+                break;
+            case 2:
+                z = 2.0 - z;
+                bmod = z;
+                z -= 1.0;
+                if (z > 0)
+                    bmod -= z * 4;
+                bmod *= DXrecip * DXrecip;
+                break;
+            case 3:
+                if (z > 1.0) {
+                    bmod = 1;
+                } else if (z < 1.0) {
+                    bmod = -3.;
+                }
+                bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+                break;
+        }
+    }
+    b += coeffmod * bmod;
 
-	return b;
+    // R2 needs one more addition
+    if ((BL == R2T10) and (m == 2)) {
+        node = 1;
+        coeffmod = -0.5;
+    } else if ((BR == R2T10) and (m == M-2)) {
+        node = M-1;
+        coeffmod = -0.5;
+    } else {
+        return b;
+    }
+
+    xm = xmin + (node * DX);
+    delta = (x - xm) * DXrecip;
+    z = fabs(delta);
+    if (z < 2.0) {
+        switch (derivative) {
+            case 0:
+                if (basisappx == NONE) {
+                    // Unapproximated
+                    z = 2.0 - z;
+                    bmod = (z*z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        bmod -= (z*z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    // Cheaper approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis0[z1] + (basis0[z1+1]-basis0[z1])*(zi - z1);
+                } else {
+                    // Cheapest approximation
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis0[z1];
+                }
+                break;
+            case 1:
+                if (basisappx == NONE) {
+                    z = 2.0 - z;
+                    bmod = (z*z) * ONESIXTH;
+                    z -= 1.0;
+                    if (z > 0)
+                        bmod -= (z*z) * FOURSIXTH;
+                } else if (basisappx == PARTIAL) {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis1[z1] + (basis1[z1+1]-basis1[z1])*(zi - z1);
+
+                } else {
+                    real zi = z*1000000.;
+                    int z1 = int(zi);
+                    bmod = basis1[z1];
+                }
+                bmod *= ((delta > 0) ? -1.0 : 1.0) * 3.0 * DXrecip;
+                break;
+            case 2:
+                z = 2.0 - z;
+                bmod = z;
+                z -= 1.0;
+                if (z > 0)
+                    bmod -= z * 4;
+                bmod *= DXrecip * DXrecip;
+                break;
+            case 3:
+                if (z > 1.0) {
+                    bmod = 1;
+                } else if (z < 1.0) {
+                    bmod = -3.;
+                }
+                bmod *= ((delta > 0) ? -1.0 : 1.0) * DXrecip * DXrecip * DXrecip;
+                break;
+        }
+    }
+    b += coeffmod * bmod;
+
+    return b;
 
 }
 
@@ -2093,7 +2093,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                                             real* L[7], real* gamma[7])
 {
 
-	for (int var = 0; var < varDim; var++) {
+    for (int var = 0; var < varDim; var++) {
         int pDim = Dim;
         int mDim = Dim - rankHash[BCL[var]] - rankHash[BCR[var]];
         real pMin = xMin;
@@ -2133,15 +2133,15 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
             }
         }
 
-		for (int i = 0; i < mDim; i++) {
+        for (int i = 0; i < mDim; i++) {
             G[i] = new real[pDim];
-			for (int j = 0; j < mDim; j++) {
-				P[i][j] = 0;
-			}
+            for (int j = 0; j < mDim; j++) {
+                P[i][j] = 0;
+            }
             for (int j = 0; j < pDim; j++) {
                 G[i][j] = 0;
             }
-		}
+        }
         for (int i = 0; i < mDim; i++) {
             for (int j = 0; j < Dim; j++) {
                 gamma[var][Dim*i + j] = 0;
@@ -2220,57 +2220,57 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
             G[i][i+1] = 1;
         }
         for (int i = 0; i < mDim; i++) {
-			for (int j = 0; j < pDim; j++) {
+            for (int j = 0; j < pDim; j++) {
                 GT[j][i] = G[i][j];
                 //std::cout << G[i][j] << " ";
             } //std::cout << "\n";
         } //std::cout << "\n";
 
         /* for (int i = 0; i < pDim; i++) {
-			for (int j = 0; j < mDim; j++) {
+            for (int j = 0; j < mDim; j++) {
                 //std::cout << GT[i][j] << " ";
                 //std::cout << gamma[var][pDim*j + i] << " ";
             } //std::cout << "\n";
         } //std::cout << "\n"; */
 
-		//for (int Index = min(rankHash[BCL[var]],1); Index < max(pDim-1-rankHash[BCR[var]],pDim-2); Index++) {
+        //for (int Index = min(rankHash[BCL[var]],1); Index < max(pDim-1-rankHash[BCR[var]],pDim-2); Index++) {
         for (int Index = 1; Index < pDim-2; Index++) {
-			for (int mu = -1; mu <= 1; mu += 2) {
-				real i = pMin + DX * (Index + (0.5*sqrt(1./3.) * mu + 0.5));
-				int ii = (int)((i - pMin)*DXrecip);
+            for (int mu = -1; mu <= 1; mu += 2) {
+                real i = pMin + DX * (Index + (0.5*sqrt(1./3.) * mu + 0.5));
+                int ii = (int)((i - pMin)*DXrecip);
                 for (int Node = max(ii-1,0); Node <= min(ii+2,pDim-1); ++Node) {
-					real pm = Basis(Node, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
-					real qm = Basis(Node, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
-					real pn, qn;
-					PP[Node][Node] += 0.5 * ((pm * pm) + eq * (qm * qm));
-					if ((Node+1) < pDim) {
-						pn = Basis(Node+1, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
-						qn = Basis(Node+1, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
-						PP[Node][Node+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						PP[Node+1][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((Node+2) < pDim) {
-						pn = Basis(Node+2, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
-						qn = Basis(Node+2, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
-						PP[Node][Node+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						PP[Node+2][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-					if ((Node+3) < pDim) {
-						pn = Basis(Node+3, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
-						qn = Basis(Node+3, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
-						PP[Node][Node+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
-						PP[Node+3][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
-					}
-				}
-			}
-		}
+                    real pm = Basis(Node, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
+                    real qm = Basis(Node, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
+                    real pn, qn;
+                    PP[Node][Node] += 0.5 * ((pm * pm) + eq * (qm * qm));
+                    if ((Node+1) < pDim) {
+                        pn = Basis(Node+1, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
+                        qn = Basis(Node+1, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
+                        PP[Node][Node+1] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                        PP[Node+1][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                    }
+                    if ((Node+2) < pDim) {
+                        pn = Basis(Node+2, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
+                        qn = Basis(Node+2, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
+                        PP[Node][Node+2] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                        PP[Node+2][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                    }
+                    if ((Node+3) < pDim) {
+                        pn = Basis(Node+3, i, mDim-1, pMin, DX, DXrecip, 0, RX, RX);
+                        qn = Basis(Node+3, i, mDim-1, pMin, DX, DXrecip, 3, RX, RX);
+                        PP[Node][Node+3] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                        PP[Node+3][Node] += 0.5 * ((pm * pn) + eq * (qm * qn));
+                    }
+                }
+            }
+        }
 
         /* for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < pDim; j++) {
                 std::cout << PP[i][j] << " ";
             } std::cout << std::endl;
         }
-		std::cout << std::endl; */
+        std::cout << std::endl; */
 
         for (int i = 0; i < pDim; i++) {
             for (int j = 0; j < mDim; j++) {
@@ -2280,7 +2280,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                 }
             } //std::cout << std::endl;
         }
-		//std::cout << std::endl;
+        //std::cout << std::endl;
         for (int i = 0; i < mDim; i++) {
             for (int j = 0; j < mDim; j++) {
                 //std::cout << G[i][j] << " ";
@@ -2291,52 +2291,52 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                 //std::cout << P[i][j] << " ";
             } //std::cout << std::endl;
         }
-		//std::cout << std::endl;
+        //std::cout << std::endl;
 
 
-		/* for (int i = 0; i < mDim; i++) {
+        /* for (int i = 0; i < mDim; i++) {
             for (int j = 0; j < mDim; j++) {
                 std::cout << P[i][j] << " ";
             } std::cout << std::endl;
         }
-		std::cout << std::endl; */
+        std::cout << std::endl; */
 
-		// Cholesky decomp of P+Q
-		for (int i=0;i<mDim;i++) {
-			for (int j=i;j<mDim;j++) {
-				real sum=P[i][j];
-				for (int k=i-1;k>=0;k--) {
-					sum -= P[i][k]*P[j][k];
-				}
-				if (i == j) {
-					if (sum <= 0.0) {
-						std::cout << "cholesky failed at i,j sum\n";
+        // Cholesky decomp of P+Q
+        for (int i=0;i<mDim;i++) {
+            for (int j=i;j<mDim;j++) {
+                real sum=P[i][j];
+                for (int k=i-1;k>=0;k--) {
+                    sum -= P[i][k]*P[j][k];
+                }
+                if (i == j) {
+                    if (sum <= 0.0) {
+                        std::cout << "cholesky failed at i,j sum\n";
                         exit(1);
-						break;
-					} else {
-						p[i] = sqrt(sum);
-					}
-				} else {
-					P[j][i]=sum/p[i];
-					if (p[i] == 0.) {
-						std::cout << "Problem! " << i << "\t" << j << "\n";
+                        break;
+                    } else {
+                        p[i] = sqrt(sum);
+                    }
+                } else {
+                    P[j][i]=sum/p[i];
+                    if (p[i] == 0.) {
+                        std::cout << "Problem! " << i << "\t" << j << "\n";
                         exit(1);
-					}
-				}
-			}
-		}
+                    }
+                }
+            }
+        }
 
         // Reduced representation of decomposed P+Q
-		for (int i = 0; i < mDim; i++) {
-			L[var][i*LDim] = p[i];
+        for (int i = 0; i < mDim; i++) {
+            L[var][i*LDim] = p[i];
             //std::cout << L[var][i*LDim] << " ";
-			for (int n=1;n<LDim;n++) {
-				if ((i-n) >= 0) {
-					L[var][i*LDim+n] = P[i][i-n];
-				}
+            for (int n=1;n<LDim;n++) {
+                if ((i-n) >= 0) {
+                    L[var][i*LDim+n] = P[i][i-n];
+                }
                 //std::cout << L[var][i*LDim + n] << " ";
-			} //std::cout << endl;
-		} //std::cout << endl;
+            } //std::cout << endl;
+        } //std::cout << endl;
 
         // Free memory
         for (int i = 0; i < pDim; i++) {
@@ -2362,13 +2362,13 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 
 void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
-	// Copy to the new state in case no FFT is enforced
-	#pragma omp parallel for
-	for (int n = 0; n < nState; n++) {
-		Cstate[n]= Astate[n];
-	}
+    // Copy to the new state in case no FFT is enforced
+    #pragma omp parallel for
+    for (int n = 0; n < nState; n++) {
+        Cstate[n]= Astate[n];
+    }
 
-	for (int var = 0; var < varDim; var++) {
+    for (int var = 0; var < varDim; var++) {
     // Enforce max wavenumber
     if ((kBCL[var] == PERIODIC) and (kMaxWavenumber >= 0)) {
       for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -2406,8 +2406,8 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
                         Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex]/jDim;
                     }
                 }
-			}
-		}
+            }
+        }
         if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
             for (int kIndex = 0; kIndex < kDim; kIndex++) {
                 for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -2424,7 +2424,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
                         Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[iIndex]/iDim;
                     }
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 }
