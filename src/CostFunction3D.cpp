@@ -1186,9 +1186,9 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                   }
               } else {
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    kPad[kIndex] = kTemp[0];
+                    kPad[kIndex] = 0.0;
                     kPad[kIndex+kDim] = kTemp[kIndex];
-                    kPad[kIndex+kDim*2] = kTemp[kDim-1];
+                    kPad[kIndex+kDim*2] = 0.0;
                 }
                 kFilter->filterArray(kPad, kDim*3);
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1221,9 +1221,9 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                             }
                         } else {
                           for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                              jPad[jIndex] = jTemp[0];
+                              jPad[jIndex] = 0.0;
                               jPad[jIndex+jDim] = jTemp[jIndex];
-                              jPad[jIndex+jDim*2] = jTemp[jDim-1];
+                              jPad[jIndex+jDim*2] = 0.0;
                           }
                           jFilter->filterArray(jPad, jDim*3);
                           for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1256,9 +1256,9 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
                             }
                         } else {
                           for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                              iPad[iIndex] = iTemp[0];
+                              iPad[iIndex] = 0.0;
                               iPad[iIndex+iDim] = iTemp[iIndex];
-                              iPad[iIndex+iDim*2] = iTemp[iDim-1];
+                              iPad[iIndex+iDim*2] = 0.0;
                           }
                           iFilter->filterArray(iPad, iDim*3);
                           for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1457,9 +1457,9 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                             }
                         } else {
                           for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                              iPad[iIndex] = iTemp[0];
+                              iPad[iIndex] = 0.0;
                               iPad[iIndex+iDim] = iTemp[iIndex];
-                              iPad[iIndex+iDim*2] = iTemp[iDim-1];
+                              iPad[iIndex+iDim*2] = 0.0;
                           }
                           iFilter->filterArray(iPad, iDim*3);
                           for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -1492,9 +1492,9 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                             }
                         } else {
                           for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                              jPad[jIndex] = jTemp[0];
+                              jPad[jIndex] = 0.0;
                               jPad[jIndex+jDim] = jTemp[jIndex];
-                              jPad[jIndex+jDim*2] = jTemp[jDim-1];
+                              jPad[jIndex+jDim*2] = 0.0;
                           }
                           jFilter->filterArray(jPad, jDim*3);
                           for (int jIndex = 0; jIndex < jDim; jIndex++) {
@@ -1527,9 +1527,9 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
                   }
               } else {
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    kPad[kIndex] = kTemp[0];
+                    kPad[kIndex] = 0.0;
                     kPad[kIndex+kDim] = kTemp[kIndex];
-                    kPad[kIndex+kDim*2] = kTemp[kDim-1];
+                    kPad[kIndex+kDim*2] = 0.0;
                 }
                 kFilter->filterArray(kPad, kDim*3);
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
