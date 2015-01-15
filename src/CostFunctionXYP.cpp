@@ -117,18 +117,12 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 									int kk = (int)((height - kMin)*DKrecip);
                   for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
                       int kNode = kkNode;
-                      if ((kBCL[var] == PERIODIC) and (kNode < 1)) kNode = kDim-3;
-                      if ((kBCR[var] == PERIODIC) and (kNode > (kDim-3))) kNode = kkNode - (kDim-3);
                       if ((kNode < 0) or (kNode >= kDim)) continue;
                                         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                                             int iNode = iiNode;
-                                            if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
-                                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
                                             if ((iNode < 0) or (iNode >= iDim)) continue;
                                             for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                                                 int jNode = jjNode;
-                                                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
-                                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
                                                 if ((jNode < 0) or (jNode >= jDim)) continue;
 												ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 												jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
@@ -219,18 +213,12 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
                                 for (int var = 0; var < varDim; var++) {
                                   for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
                                       int kNode = kkNode;
-                                      if ((kBCL[var] == PERIODIC) and (kNode < 1)) kNode = kDim-3;
-                                      if ((kBCR[var] == PERIODIC) and (kNode > (kDim-3))) kNode = kkNode - (kDim-3);
                                       if ((kNode < 0) or (kNode >= kDim)) continue;
                                         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                                             int iNode = iiNode;
-                                            if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
-                                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
                                             if ((iNode < 0) or (iNode >= iDim)) continue;
                                             for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                                                 int jNode = jjNode;
-                                                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
-                                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
                                                 if ((jNode < 0) or (jNode >= jDim)) continue;
 												ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 												jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
@@ -593,21 +581,15 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
                     if (!obsVector[wgt_index]) continue;
                     for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
                         int kNode = kkNode;
-                        if ((kBCL[var] == PERIODIC) and (kNode < 1)) kNode = kDim-3;
-                        if ((kBCR[var] == PERIODIC) and (kNode > (kDim-3))) kNode = kkNode - (kDim-3);
                         if ((kNode < 0) or (kNode >= kDim)) continue;
                         kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
                         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
                             int iNode = iiNode;
-                            if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
-                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
                             if ((iNode < 0) or (iNode >= iDim)) continue;
                             ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
 
                             for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
                                 int jNode = jjNode;
-                                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
-                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
                                 if ((jNode < 0) or (jNode >= jDim)) continue;
                                 int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
                                 jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
