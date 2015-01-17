@@ -68,6 +68,8 @@ protected:
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                 const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
                                 real* L[7], real* gamma[7]);
+	void calcHmatrix();
+	void Htransform(const real* Cstate, real* Hstate);
 	bool outputMish;
 	int iDim, jDim, kDim;
     int iLDim, jLDim, kLDim;
@@ -105,7 +107,9 @@ protected:
     double *iFFTin, *jFFTin, *kFFTin;
     fftw_complex *iFFTout, *jFFTout, *kFFTout;
     fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
-    
+		real *H;
+		int *IH, *JH;
+
 	int basisappx;
 	real* basis0;
 	real* basis1;

@@ -87,6 +87,8 @@ void CostFunction3D::finalize()
     delete[] stateA;
     delete[] stateB;
     delete[] stateC;
+    delete[] H;
+    delete[] JH;
     if (basisappx > 0) {
         delete[] basis0;
         delete[] basis1;
@@ -393,6 +395,9 @@ void CostFunction3D::initState(const int iteration)
     // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
     obAdjustments();
 
+    // Calculate the H matrix operator
+    calcHmatrix();
+
     // d = y - HXb
     calcInnovation();
 
@@ -407,6 +412,8 @@ void CostFunction3D::initState(const int iteration)
     FFtransform(stateC, stateA);
     SAtranspose(stateA, stateB);
     SCtranspose(stateB, CTHTd);
+
+    //Htransform(stateB);
 }
 
 real CostFunction3D::funcValue(real* state)
@@ -464,47 +471,7 @@ void CostFunction3D::updateHCq(real* state)
     SCtransform(state, stateB);
     SAtransform(stateB, stateA);
     FFtransform(stateA, stateC);
-
-    // H
-    #pragma omp parallel for
-    for (int m = 0; m < mObs; m++) {
-        int mi = m*(7+varDim*derivDim);
-        real i = obsVector[mi+2];
-        real j = obsVector[mi+3];
-        real k = obsVector[mi+4];
-        real tempsum = 0;
-        int ii = (int)((i - iMin)*DIrecip);
-        int jj = (int)((j - jMin)*DJrecip);
-        int kk = (int)((k - kMin)*DKrecip);
-        real ibasis = 0;
-        real jbasis = 0;
-        real kbasis = 0;
-        for (int var = 0; var < varDim; var++) {
-            for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
-                if (!obsVector[wgt_index]) continue;
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
-                        jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
-                        for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                            int kNode = kkNode;
-                            if ((kNode < 0) or (kNode >= kDim)) continue;
-                            kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                            int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            real basis = ibasis * jbasis * kbasis;
-                            tempsum += stateC[cIndex + var] * basis * obsVector[wgt_index];
-                        }
-                    }
-                }
-            }
-        }
-        HCq[m] = tempsum;
-    }
+    Htransform(stateC, HCq);
 
 }
 
@@ -2265,4 +2232,94 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
             }
         }
     }
+}
+
+void CostFunction3D::calcHmatrix()
+{
+
+  std::cout << "Build H transform matrix...\n";
+
+  // Allocate memory for the sparse matrix
+  QList<real> Hbuild, JHbuild;
+  IH = new int[mObs+1];
+  real* Hrow = new real[nState];
+
+  // H
+  for (int m = 0; m < mObs; m++) {
+    for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
+    int mi = m*(7+varDim*derivDim);
+    real i = obsVector[mi+2];
+    real j = obsVector[mi+3];
+    real k = obsVector[mi+4];
+    int ii = (int)((i - iMin)*DIrecip);
+    int jj = (int)((j - jMin)*DJrecip);
+    int kk = (int)((k - kMin)*DKrecip);
+    real ibasis = 0;
+    real jbasis = 0;
+    real kbasis = 0;
+    for (int var = 0; var < varDim; var++) {
+      for (int d = 0; d < derivDim; d++) {
+        int wgt_index = mi + (7*(d+1)) + var;
+        if (!obsVector[wgt_index]) continue;
+        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+          int iNode = iiNode;
+          if ((iNode < 0) or (iNode >= iDim)) continue;
+          ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
+          for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+            int jNode = jjNode;
+            if ((jNode < 0) or (jNode >= jDim)) continue;
+            jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
+            for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+              int kNode = kkNode;
+              if ((kNode < 0) or (kNode >= kDim)) continue;
+              kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+              int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
+              real weight = ibasis * jbasis * kbasis * obsVector[wgt_index];
+              Hrow[cIndex] += weight;
+              //tempsum += stateC[cIndex + var] * basis * obsVector[wgt_index];
+            }
+          }
+        }
+      }
+    }
+    bool first = true;
+    for (int i = 0; i < nState; i++) {
+      if (Hrow[i] != 0.0) {
+        Hbuild.push_back(Hrow[i]);
+        JHbuild.push_back(i);
+        if (first) {
+          IH[m] = Hbuild.size()-1;
+          first = false;
+        }
+      }
+    }
+  }
+  int nonzeros = Hbuild.size();
+  IH[mObs] = nonzeros;
+  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << float(nonzeros)/float(nState) << " %\n";
+
+  H = new real[nonzeros];
+  JH = new int[nonzeros];
+  for (int i = 0; i < nonzeros; ++i) {
+    H[i] = Hbuild.at(i);
+    JH[i] = JHbuild.at(i);
+  }
+
+  delete[] Hrow;
+
+}
+
+void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
+{
+  // Multiply the state by the observation matrix
+  #pragma omp parallel for
+  for(int i=0; i<mObs; ++i) {
+    Hstate[i] = 0.0;
+    const int begin = IH[i];
+    const int end = IH[i + 1];
+    for(int j=begin; j<end; ++j) {
+      Hstate[i] += H[j] * Cstate[JH[j]];
+    }
+  }
+
 }
