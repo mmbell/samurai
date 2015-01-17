@@ -565,50 +565,19 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 
     // Clear the Astate
     for (int n = 0; n < nState; n++) {
-        Astate[n] = 0.;
+        Astate[n] = 0.0;
     }
 
     // Calculate H Transpose
     //#pragma omp parallel for
-    for (int m = 0; m < mObs; m++) {
-        // Sum over obs this time
-        // Multiply state by H weights
-        int mi = m*(7+varDim*derivDim);
-        real i = obsVector[mi+2];
-        int ii = (int)((i - iMin)*DIrecip);
-
-        real j = obsVector[mi+3];
-        int jj = (int)((j - jMin)*DJrecip);
-
-        real k = obsVector[mi+4];
-        int kk = (int)((k - kMin)*DKrecip);
-        for (int var = 0; var < varDim; var++) {
-            for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
-                if (!obsVector[wgt_index]) continue;
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
-                        real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
-                        for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                            int kNode = kkNode;
-                            if ((kNode < 0) or (kNode >= kDim)) continue;
-                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-
-                            int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            real invError = obsVector[mi+1];
-                            real qbasise = yhat[m] * ibasis * jbasis * kbasis * invError;
-                            //#pragma omp atomic
-                            Astate[aIndex + var] += qbasise * obsVector[wgt_index];
-                        }
-                    }
-                }
-            }
-        }
+    for(int m=0; m<mObs; ++m) {
+      int mi = m*(7+varDim*derivDim)+1;
+      const int begin = IH[m];
+      const int end = IH[m + 1];
+      for(int j=begin; j<end; ++j) {
+        //#pragma omp atomic
+        Astate[JH[j]] += H[j] * yhat[m] * obsVector[mi];
+      }
     }
 
 }
