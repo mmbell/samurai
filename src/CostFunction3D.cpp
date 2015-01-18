@@ -511,47 +511,17 @@ void CostFunction3D::calcInnovation()
 {
     // Initialize and fill the innovation vector
     cout << "Initializing innovation vector..." << endl;
-    for (int m = 0; m < mObs; m++) {
-        HCq[m] = 0.0;
-        innovation[m] = obsVector[m*(7+varDim*derivDim)];
-    }
+
+    Htransform(bgState, HCq);
 
     real innovationRMS = 0.;
+    
     #pragma omp parallel for reduction(+:innovationRMS)
     for (int m = 0; m < mObs; m++) {
-        int mi = m*(7+varDim*derivDim);
-        real i = obsVector[mi+2];
-        real j = obsVector[mi+3];
-        real k = obsVector[mi+4];
-        real tempsum = 0;
-        int ii = (int)((i - iMin)*DIrecip);
-        int jj = (int)((j - jMin)*DJrecip);
-        int kk = (int)((k - kMin)*DKrecip);
-        for (int var = 0; var < varDim; var++) {
-            for (int d = 0; d < derivDim; d++) {
-                int wgt_index = mi + (7*(d+1)) + var;
-                if (!obsVector[wgt_index]) continue;
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
-                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                        int jNode = jjNode;
-                        if ((jNode < 0) or (jNode >= jDim)) continue;
-                        real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
-                        for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                            int kNode = kkNode;
-                            if ((kNode < 0) or (kNode >= kDim)) continue;
-                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                            int stateIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                            tempsum += bgState[stateIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
-                        }
-                    }
-                }
-            }
-        }
-        innovation[m] -= tempsum;
-        innovationRMS += (innovation[m]*innovation[m]);
+      HCq[m] = 0.0;
+      innovation[m] = obsVector[m*(7+varDim*derivDim)] - HCq[m];
+      innovationRMS += (innovation[m]*innovation[m]);
+      HCq[m] = 0.0;
     }
 
     if (mObs) innovationRMS /= mObs;
