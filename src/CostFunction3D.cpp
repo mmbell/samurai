@@ -410,7 +410,7 @@ void CostFunction3D::initState(const int iteration)
     calcHTranspose(innovation, stateC);
 
     FFtransform(stateC, stateA);
-    SAtranspose(stateA, stateB);
+    SAtransform(stateA, stateB);
     SCtranspose(stateB, CTHTd);
 
     //Htransform(stateB);
@@ -450,12 +450,8 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 
     // HTHCq
     calcHTranspose(HCq, stateC);
-
-    //SCtranspose(stateC, stateA);
-
-    //SAtranspose(stateA, stateB);
     FFtransform(stateC, stateA);
-    SAtranspose(stateA, stateB);
+    SAtransform(stateA, stateB);
     SCtranspose(stateB, stateC);
 
     for (int n = 0; n < nState; n++) {
@@ -515,7 +511,7 @@ void CostFunction3D::calcInnovation()
     Htransform(bgState, HCq);
 
     real innovationRMS = 0.;
-    
+
     #pragma omp parallel for reduction(+:innovationRMS)
     for (int m = 0; m < mObs; m++) {
       HCq[m] = 0.0;
@@ -555,7 +551,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
 
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
         int l;
         real* kB = new real[kDim];
@@ -1364,6 +1360,14 @@ void CostFunction3D::obAdjustments() {
         real i = obsVector[mi+2];
         real j = obsVector[mi+3];
         real k = obsVector[mi+4];
+
+        // Double check to make sure obs are in the domain
+        if ((i < iMin) or (i > iMax)
+          or (j < jMin) or (j > jMax)
+          or (k < kMin) or (k > kMax)) {
+          cout << "Error! Observations are found outside the domain where the spline is undefined.\n";
+          cout << "This can only happen if you bypassed preprocessing -- check your samurai_Observations.in and re-run.\n";
+        }
         real rhoprime = 0.;
         real qvprime = 0.;
 
