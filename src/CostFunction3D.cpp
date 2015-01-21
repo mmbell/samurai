@@ -2085,16 +2085,19 @@ void CostFunction3D::calcHmatrix()
   std::cout << "Build H transform matrix...\n";
 
   // Allocate memory for the sparse matrix
-  QList<real> *Hbuild, *JHbuild;
-  Hbuild = new QList<real>[mObs];
-  JHbuild = new QList<real>[mObs];
+  real **Hbuild = new real*[mObs];
+  real **JHbuild = new real*[mObs];
+  for (int m = 0; m < mObs; m++) {
+    Hbuild[m] = new real[193];
+    JHbuild[m] = new real[193];
+  }
   IH = new int[mObs+1];
 
   // H
   #pragma omp parallel for
   for (int m = 0; m < mObs; m++) {
-    real* Hrow = new real[nState];
-    for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
+    //real* Hrow = new real[nState];
+    //for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
     int mi = m*(7+varDim*derivDim);
     real i = obsVector[mi+2];
     real j = obsVector[mi+3];
@@ -2105,6 +2108,7 @@ void CostFunction3D::calcHmatrix()
     real ibasis = 0;
     real jbasis = 0;
     real kbasis = 0;
+    int hi = 1;
     for (int var = 0; var < varDim; var++) {
       for (int d = 0; d < derivDim; d++) {
         int wgt_index = mi + (7*(d+1)) + var;
@@ -2113,35 +2117,39 @@ void CostFunction3D::calcHmatrix()
           int iNode = iiNode;
           if ((iNode < 0) or (iNode >= iDim)) continue;
           ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][0], iBCL[var], iBCR[var]);
+          if (!ibasis) continue;
           for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
             int jNode = jjNode;
             if ((jNode < 0) or (jNode >= jDim)) continue;
             jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][1], jBCL[var], jBCR[var]);
+            if (!jbasis) continue;
             for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
               int kNode = kkNode;
               if ((kNode < 0) or (kNode >= kDim)) continue;
               kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+              if (!kbasis) continue;
               int cIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
               real weight = ibasis * jbasis * kbasis * obsVector[wgt_index];
-              Hrow[cIndex] += weight;
-              //tempsum += stateC[cIndex + var] * basis * obsVector[wgt_index];
+              Hbuild[m][hi] = weight;
+              JHbuild[m][hi] = cIndex;
+              hi++;
+              //Hrow[cIndex] = weight;
             }
           }
         }
       }
     }
-    for (int i = 0; i < nState; i++) {
-      if (Hrow[i] != 0.0) {
-        Hbuild[m].push_back(Hrow[i]);
-        JHbuild[m].push_back(i);
-      }
+    Hbuild[m][0] = hi;
+    if (hi > 193) {
+      cout << "Overflow in H matrix calculation!" << hi << "\n";
     }
-    delete[] Hrow;
+    //delete[] Hrow;
+    //cout << "m:" << m << "\n";
   }
 
   int nonzeros = 0;
   for (int m = 0; m < mObs; m++) {
-    nonzeros += Hbuild[m].size();
+    nonzeros += Hbuild[m][0]-1;
   }
 
   IH[mObs] = nonzeros;
@@ -2153,13 +2161,18 @@ void CostFunction3D::calcHmatrix()
   int hi = 0;
   for (int m = 0; m < mObs; m++) {
     IH[m] = hi;
-    for (int n = 0; n < Hbuild[m].size(); n++) {
-      H[hi] = Hbuild[m].at(n);
-      JH[hi] = JHbuild[m].at(n);
+    for (int n = 1; n < Hbuild[m][0]; n++) {
+      H[hi] = Hbuild[m][n];
+      JH[hi] = JHbuild[m][n];
       hi++;
+      //cout << "hi:" << hi << "\n";
     }
   }
 
+  for (int m = 0; m < mObs; m++) {
+    delete[] Hbuild[m];
+    delete[] JHbuild[m];
+  }
   delete[] Hbuild;
   delete[] JHbuild;
 
