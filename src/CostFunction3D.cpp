@@ -2085,12 +2085,15 @@ void CostFunction3D::calcHmatrix()
   std::cout << "Build H transform matrix...\n";
 
   // Allocate memory for the sparse matrix
-  QList<real> Hbuild, JHbuild;
+  QList<real> *Hbuild, *JHbuild;
+  Hbuild = new QList<real>[mObs];
+  JHbuild = new QList<real>[mObs];
   IH = new int[mObs+1];
-  real* Hrow = new real[nState];
 
   // H
+  #pragma omp parallel for
   for (int m = 0; m < mObs; m++) {
+    real* Hrow = new real[nState];
     for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
     int mi = m*(7+varDim*derivDim);
     real i = obsVector[mi+2];
@@ -2127,30 +2130,38 @@ void CostFunction3D::calcHmatrix()
         }
       }
     }
-    bool first = true;
     for (int i = 0; i < nState; i++) {
       if (Hrow[i] != 0.0) {
-        Hbuild.push_back(Hrow[i]);
-        JHbuild.push_back(i);
-        if (first) {
-          IH[m] = Hbuild.size()-1;
-          first = false;
-        }
+        Hbuild[m].push_back(Hrow[i]);
+        JHbuild[m].push_back(i);
       }
     }
+    delete[] Hrow;
   }
-  int nonzeros = Hbuild.size();
+
+  int nonzeros = 0;
+  for (int m = 0; m < mObs; m++) {
+    nonzeros += Hbuild[m].size();
+  }
+
   IH[mObs] = nonzeros;
   std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << float(nonzeros)/float(mObs*nState) << " %\n";
 
   H = new real[nonzeros];
   JH = new int[nonzeros];
-  for (int i = 0; i < nonzeros; ++i) {
-    H[i] = Hbuild.at(i);
-    JH[i] = JHbuild.at(i);
+
+  int hi = 0;
+  for (int m = 0; m < mObs; m++) {
+    IH[m] = hi;
+    for (int n = 0; n < Hbuild[m].size(); n++) {
+      H[hi] = Hbuild[m].at(n);
+      JH[hi] = JHbuild[m].at(n);
+      hi++;
+    }
   }
 
-  delete[] Hrow;
+  delete[] Hbuild;
+  delete[] JHbuild;
 
 }
 
