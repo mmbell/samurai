@@ -89,6 +89,7 @@ void CostFunction3D::finalize()
     delete[] stateC;
     delete[] H;
     delete[] JH;
+    delete[] IH;
     if (basisappx > 0) {
         delete[] basis0;
         delete[] basis1;
@@ -2085,6 +2086,8 @@ void CostFunction3D::calcHmatrix()
   std::cout << "Build H transform matrix...\n";
 
   // Allocate memory for the sparse matrix
+  // 193 elements for columns assumes a maximum of 3 variables
+  // will be used in an observation.
   real **Hbuild = new real*[mObs];
   real **JHbuild = new real*[mObs];
   for (int m = 0; m < mObs; m++) {
@@ -2133,7 +2136,6 @@ void CostFunction3D::calcHmatrix()
               Hbuild[m][hi] = weight;
               JHbuild[m][hi] = cIndex;
               hi++;
-              //Hrow[cIndex] = weight;
             }
           }
         }
@@ -2143,8 +2145,6 @@ void CostFunction3D::calcHmatrix()
     if (hi > 193) {
       cout << "Overflow in H matrix calculation!" << hi << "\n";
     }
-    //delete[] Hrow;
-    //cout << "m:" << m << "\n";
   }
 
   int nonzeros = 0;
@@ -2153,7 +2153,7 @@ void CostFunction3D::calcHmatrix()
   }
 
   IH[mObs] = nonzeros;
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << float(nonzeros)/float(mObs*nState) << " %\n";
+  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
 
   H = new real[nonzeros];
   JH = new int[nonzeros];
@@ -2165,7 +2165,6 @@ void CostFunction3D::calcHmatrix()
       H[hi] = Hbuild[m][n];
       JH[hi] = JHbuild[m][n];
       hi++;
-      //cout << "hi:" << hi << "\n";
     }
   }
 
