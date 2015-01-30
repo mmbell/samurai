@@ -70,7 +70,7 @@ protected:
                                 real* L[7], real* gamma[7]);
 	void calcHmatrix();
 	void Htransform(const real* Cstate, real* Hstate);
-	bool outputMish;
+	bool mishFlag;
 	int iDim, jDim, kDim;
     int iLDim, jLDim, kLDim;
     int iRank[7], jRank[7], kRank[7];

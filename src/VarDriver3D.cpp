@@ -250,6 +250,11 @@ bool VarDriver3D::run()
 {
 	int iter=1;
 	while (iter <= maxIter) {
+		if (iter < maxIter) {
+			configHash["save_mish"] = "true";
+		} else {
+			configHash["save_mish"] = "false";
+		}
 		cout << "Outer Loop Iteration: " << iter << endl;
 		obCost3D->initState(iter);
 		obCost3D->minimize();
@@ -1301,7 +1306,11 @@ bool VarDriver3D::preProcessMetObs()
                                             }
                                         }
                                         // On the nodes for mass continuity
-                                        if (!ihalf and !jhalf and !khalf and (mc_weight > 0.0)){
+                                        if ((mc_weight > 0.0) and
+																					!ihalf and !jhalf and !khalf and
+																					 	(i >= imin) and (i <= imax) and
+																						(j >= jmin) and (j <= jmax) and
+																						(k >= kmin) and (k <= kmax)) {
                                             if (runMode == XYZ) {
                                                 varOb.setCartesianX(i);
                                                 varOb.setCartesianY(j);
@@ -2023,6 +2032,11 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 
         for (unsigned int n = 0; n < numVars; n++) {
             bgObs[p] = bgIn[m+4+n];
+						if ((n == 6) and (configHash.value("qr_variable") == "dbz")) {
+							// Convert to dBZ control variable
+							real dbzavg = 10* log10(bgIn[m+4+n]);
+							bgObs[p] = (dbzavg+35.)*0.1;
+						}
             // Error of background = 1
             bgObs[p+1] = 100.;
             if (runMode == XYZ) {
@@ -2088,7 +2102,6 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	bgError[4] = configHash.value("bg_qv_error");
 	bgError[5] = configHash.value("bg_rhoa_error");
 	bgError[6] = configHash.value("bg_qr_error");
-	QString output_mish = configHash.value("output_mish");
 
 	configHash["bg_rhou_error"] = "10.0";
 	configHash["bg_rhov_error"] = "10.0";
@@ -2097,7 +2110,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_qv_error"] = "10.0";
 	configHash["bg_rhoa_error"] = "10.0";
 	configHash["bg_qr_error"] = "10.0";
-	configHash["output_mish"] = "true";
+	configHash["save_mish"] = "true";
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
@@ -2130,7 +2143,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	configHash["bg_qv_error"] = bgError[4];
 	configHash["bg_rhoa_error"] = bgError[5];
 	configHash["bg_qr_error"] = bgError[6];
-	configHash["output_mish"] = output_mish;
+	configHash["save_mish"] = "false";
 
 	// Convert the dBZ back to Z for further processing
 	if (configHash.value("qr_variable") == "dbz") {

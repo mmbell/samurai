@@ -323,10 +323,11 @@ void CostFunction3D::initState(const int iteration)
     setupSplines();
 
     // Flag whether or not to print the subgrid information
-    if (configHash->value("output_mish") == "true") {
-        outputMish = 1;
+    if ((configHash->value("output_mish") == "true") or
+        (configHash->value("save_mish") == "true")) {
+        mishFlag = 1;
     } else {
-        outputMish = 0;
+        mishFlag = 0;
     }
 
     // Mass continuity weight
@@ -2153,7 +2154,7 @@ void CostFunction3D::calcHmatrix()
   }
 
   IH[mObs] = nonzeros;
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
 
   H = new real[nonzeros];
   JH = new int[nonzeros];

@@ -64,13 +64,13 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	}
 	for (int n = 0; n < analysisSize*analysisDim; n++) finalAnalysis[n] = -999.0;
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
-		for (int ihalf = 0; ihalf <= outputMish; ihalf++) {
+		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
 			for (int imu = -ihalf; imu <= ihalf; imu++) {
 				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
 				if (i > ((iDim-1)*DI + iMin)) continue;
 
 				for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
-					for (int jhalf =0; jhalf <=outputMish; jhalf++) {
+					for (int jhalf =0; jhalf <=mishFlag; jhalf++) {
 						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
 							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
 							if (j > ((jDim-1)*DJ + jMin)) continue;
@@ -273,6 +273,9 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 										}
 									}
 								}
+
+								if ((configHash->value("output_mish") == "false")
+										and (ihalf or jhalf)) continue;
 
 								// Output it
 								real rhoa = rhoBar + rhoprime / 100;
