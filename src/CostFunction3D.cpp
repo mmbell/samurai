@@ -510,13 +510,13 @@ void CostFunction3D::calcInnovation()
     // Initialize and fill the innovation vector
     cout << "Initializing innovation vector..." << endl;
 
+    // Use HCq to hold the transform, but C is not applied for the innovation
     Htransform(bgState, HCq);
 
     real innovationRMS = 0.;
 
     #pragma omp parallel for reduction(+:innovationRMS)
     for (int m = 0; m < mObs; m++) {
-      HCq[m] = 0.0;
       innovation[m] = obsVector[m*(7+varDim*derivDim)] - HCq[m];
       innovationRMS += (innovation[m]*innovation[m]);
       HCq[m] = 0.0;
@@ -2154,7 +2154,7 @@ void CostFunction3D::calcHmatrix()
   }
 
   IH[mObs] = nonzeros;
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+  //std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
 
   H = new real[nonzeros];
   JH = new int[nonzeros];
