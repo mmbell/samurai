@@ -14,7 +14,7 @@
  * supporting documentation.  UCAR makes no representations about the
  * suitability of this software for any purpose.  It is provided "as is"
  * without express or implied warranty.
- * 
+ *
  * Note from the author:
  *
  * Where possible, you are encouraged to follow the GNU General Public
@@ -102,7 +102,7 @@ template <class T> struct BSplineBaseP;
 	    *of++ = spline.evaluate (xi);
 	}
     }
- 
+
 @endverbatim
  *
  * In the usual usage, the BSplineBase can compute a reasonable number of
@@ -136,12 +136,12 @@ template <class T> struct BSplineBaseP;
  * the solution (or non-solution) of the spline.  Remember to check the
  * ok() method to detect when the spline solution has failed.
  *
- * The interface for the BSplineBase and BSpline templates is defined in 
+ * The interface for the BSplineBase and BSpline templates is defined in
  * the header file BSpline.h.  The implementation is defined in BSpline.cpp.
  * Source files which will instantiate the template should include the
  * implementation file and @em not the interface.  If the implementation
  * for a specific type will be linked from elsewhere, such as a
- * static library or Windows DLL, source files should only include the 
+ * static library or Windows DLL, source files should only include the
  * interface file.  On Windows, applications should link with the import
  * library BSpline.lib and make sure BSpline.dll is on the path.  The DLL
  * contains an implementation for BSpline<float> and BSpline<real>.
@@ -186,8 +186,8 @@ Copyright (c) 1998-2005
 University Corporation for Atmospheric Research, UCAR
 @endverbatim
  **/
-template <class T> 
-class BSPLINE_DLL_ BSplineBase  
+template <class T>
+class BSPLINE_DLL_ BSplineBase
 {
 public:
     // Datum type
@@ -198,7 +198,7 @@ public:
 
     /// Return a string describing the interface version.
     static const char *IfaceVersion();
-	
+
     /**
      * Call this class method with a value greater than zero to enable
      * debug messages, or with zero to disable messages.  Calling with
@@ -239,7 +239,7 @@ public:
      * same as for setDomain().  Call ok() to check whether domain
      * setup succeeded after construction.
      */
-    BSplineBase (const T *x, int nx, 
+    BSplineBase (const T *x, int nx,
 		 real wl, int bc_type = BC_ZERO_SECOND,
 		 int num_nodes = 0);
 
@@ -271,10 +271,10 @@ public:
      *
      * @see ok().
      */
-    bool setDomain (const T *x, int nx, real wl, 
+    bool setDomain (const T *x, int nx, real wl,
 		    int bc_type = BC_ZERO_SECOND,
 		    int num_nodes = 0);
-    bool setDomainGQ (const T *x, int nx, real wl, 
+    bool setDomainGQ (const T *x, int nx, real wl,
 					int bc_type = BC_ZERO_SECOND,
 					int num_nodes = 0);
     /**
@@ -293,7 +293,7 @@ public:
      */
     const T *nodes (int *nnodes);
 
-    /** 
+    /**
      * Return the number of nodes (one more than the number of intervals).
      */
     int nNodes () { return M+1; }
@@ -309,7 +309,7 @@ public:
     /// Maximum x value found.
     T Xmax () { return xmin + (M * DX); }
 
-    /** 
+    /**
      * Return the Alpha value for a given wavelength.  Note that this
      * depends on the current node interval length (DX).
      */
@@ -357,7 +357,7 @@ protected:
 	bool SetupGQ (int num_nodes = 0);
     void calculateQ ();
     real qDelta (int m1, int m2);
-    real Beta (int m);
+    real Beta (unsigned int m);
     void addP ();
 	void addPGQ ();
     bool factor ();
@@ -367,7 +367,7 @@ protected:
     static const real BoundaryConditions[9][4];
     static const real PI;
 	static const real ONESIXTH;
-	
+
     real Ratiod (int&, real &, real &);
 };
 
@@ -423,7 +423,7 @@ public:
 	 * A default, empty BSpline object
 	 */
 	BSpline ();
-	
+
     /**
      * Solve the spline curve for a new set of y values.  Returns false
      * if the solution fails.
@@ -446,12 +446,12 @@ public:
     const T *curve (int *nx = 0);
 
     /**
-     * Return the evaluation of the smoothed curve 
+     * Return the evaluation of the smoothed curve
      * at a particular @p x value.  If current state is not ok(), returns 0.
      */
     T evaluate (T x);
 
-    /** 
+    /**
      * Return the first derivative of the spline curve at the given @p x.
      * Returns zero if the current state is not ok().
      */
@@ -468,16 +468,16 @@ public:
      * state is not ok(), or @p n is out of range, the method returns zero.
      */
     bool setCoefficient (int n, T coeff);
-	
+
 	/* Return the basis or derivative evaluated at that node */
 	T getBasis(int n, T x);
 	T getDBasis(int n, T x);
-	
+
 	/* Return the nodal representation (b) on a Gaussian grid */
 	const T *getBGQ(const T *y);
-	
+
 	const T *getQfactored();
-	
+
     virtual ~BSpline();
 
     using BSplineBase<T>::Debug;

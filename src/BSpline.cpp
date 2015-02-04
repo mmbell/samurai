@@ -14,7 +14,7 @@
  * supporting documentation.  UCAR makes no representations about the
  * suitability of this software for any purpose.  It is provided "as is"
  * without express or implied warranty.
- * 
+ *
  * Note from the author:
  *
  * Where possible, you are encouraged to follow the GNU General Public
@@ -59,16 +59,16 @@
 class my
 {
 public:
-    template <class T> 
-    static inline 
-    T abs(const T t) { return (t < 0) ? -t : t; }
-	
     template <class T>
-    static inline 
+    static inline
+    T abs(const T t) { return (t < 0) ? -t : t; }
+
+    template <class T>
+    static inline
     const T& min (const T& a, const T& b) { return (a < b) ? a : b; }
 
     template <class T>
-    static inline 
+    static inline
     const T& max (const T& a, const T& b) { return (a > b) ? a : b; }
 };
 
@@ -93,7 +93,7 @@ public:
 	return A;
     }
 
-    inline Matrix & operator= (const Matrix &b) 
+    inline Matrix & operator= (const Matrix &b)
     {
 	return Copy (*this, b);
     }
@@ -111,10 +111,10 @@ public:
 // template classes.
 
 template <class T>
-struct BSplineBaseP 
+struct BSplineBaseP
 {
     typedef Matrix<T> MatrixT;
-    
+
     MatrixT Q;				// Holds P+Q and its factorization
 	T* q;
     std::vector<T> X;
@@ -122,11 +122,11 @@ struct BSplineBaseP
 };
 
 
-// For now, hardcoding type 1 boundary conditions, 
+// For now, hardcoding type 1 boundary conditions,
 // which constrains the derivative to zero at the endpoints.
 template <class T>
-const real BSplineBase<T>::BoundaryConditions[9][4] = 
-{ 
+const real BSplineBase<T>::BoundaryConditions[9][4] =
+{
     //	0		1		M-1		M
     {	-4,		-1,		-1,		-4 },
     {	0,		1,		1,		0 },
@@ -171,7 +171,7 @@ BSplineBase<T>::IfaceVersion()
     return (_BSPLINEBASE_IFACE_ID);
 }
 
-	
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -190,7 +190,7 @@ BSplineBase<T>::~BSplineBase()
 // the pointer.  But we use the compiler's default copy constructor for
 // constructing our BSplineBaseP.
 template <class T>
-BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) : 
+BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) :
     K(bb.K), BC(bb.BC), OK(bb.OK), base(new BSplineBaseP<T>(*bb.base))
 {
     xmin = bb.xmin;
@@ -206,7 +206,7 @@ BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) :
 
 template <class T>
 BSplineBase<T>::BSplineBase (const T *x, int nx, real wl, int bc,
-			     int num_nodes) : 
+			     int num_nodes) :
     K(3), OK(false), base(new BSplineBaseP<T>)
 {
 	int qSize = base->Q.num_rows()*base->Q.num_cols();
@@ -230,7 +230,7 @@ BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
     OK = false;
     waveLength = wl;
     BC = bc;
-		
+
     // Copy the x array into our storage.
     base->X.resize (nx);
     std::copy (x, x+nx, base->X.begin());
@@ -239,15 +239,15 @@ BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
     // The Setup() method determines the number and size of node intervals.
     if (Setup(num_nodes))
     {
-	if (Debug()) 
+	if (Debug())
 	{
 	    std::cerr << "Using M node intervals: " << M << " of length DX: "
 		      << DX << std::endl;
-	    std::cerr << "X min: " << xmin << " ; X max: " << xmax 
+	    std::cerr << "X min: " << xmin << " ; X max: " << xmax
 		      << std::endl;
-	    std::cerr << "Data points per interval: " << (float)NX/(float)M 
+	    std::cerr << "Data points per interval: " << (float)NX/(float)M
 		      << std::endl;
-	    std::cerr << "Nodes per wavelength: " 
+	    std::cerr << "Nodes per wavelength: "
 		      << (float)waveLength/(float)DX << std::endl;
 	    std::cerr << "Derivative constraint degree: " << K << std::endl;
 	}
@@ -268,7 +268,7 @@ BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
 	    std::cerr.width(5);
 	    std::cerr << base->Q << std::endl;
 	}
-	
+
 	if (Debug()) std::cerr << "Calculating P..." << std::endl;
 	addP ();
 	if (Debug())
@@ -282,7 +282,7 @@ BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
 	}
 
 	// Now perform the LU factorization on Q
-	if (Debug()) std::cerr << "Beginning LU factoring of P+Q..." 
+	if (Debug()) std::cerr << "Beginning LU factoring of P+Q..."
 			     << std::endl;
 	if (! factor ())
 	{
@@ -312,28 +312,28 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
     OK = false;
     waveLength = wl;
     BC = bc;
-	
+
     // Copy the x array into our storage.
     base->X.resize (nx);
     std::copy (x, x+nx, base->X.begin());
     NX = base->X.size();
-	
+
     // The Setup() method determines the number and size of node intervals.
     if (SetupGQ(num_nodes))
     {
-		if (Debug()) 
+		if (Debug())
 		{
 			std::cerr << "Using M node intervals: " << M << " of length DX: "
 			<< DX << std::endl;
-			std::cerr << "X min: " << xmin << " ; X max: " << xmax 
+			std::cerr << "X min: " << xmin << " ; X max: " << xmax
 			<< std::endl;
-			std::cerr << "Data points per interval: " << (float)NX/(float)M 
+			std::cerr << "Data points per interval: " << (float)NX/(float)M
 			<< std::endl;
-			std::cerr << "Nodes per wavelength: " 
+			std::cerr << "Nodes per wavelength: "
 			<< (float)waveLength/(float)DX << std::endl;
 			std::cerr << "Derivative constraint degree: " << K << std::endl;
 		}
-		
+
 		// Now we can calculate alpha and our Q matrix
 		alpha = AlphaGQ (waveLength);
 		if (Debug())
@@ -350,7 +350,7 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
 			std::cerr.width(5);
 			std::cerr << base->Q << std::endl;
 		}
-		
+
 		if (Debug()) std::cerr << "Calculating P..." << std::endl;
 		addPGQ ();
 		if (Debug())
@@ -362,9 +362,9 @@ BSplineBase<T>::setDomainGQ (const T *x, int nx, real wl, int bc,
 				std::cerr << base->Q;
 			}
 		}
-		
+
 		// Now perform the LU factorization on Q
-		if (Debug()) std::cerr << "Beginning LU factoring of P+Q..." 
+		if (Debug()) std::cerr << "Beginning LU factoring of P+Q..."
 			<< std::endl;
 		if (! factor ())
 		{
@@ -422,7 +422,7 @@ BSplineBase<T>::AlphaGQ (real wl)
  */
 template <class T>
 inline real
-BSplineBase<T>::Beta (int m)
+BSplineBase<T>::Beta (unsigned int m)
 {
     if (m > 1 && m < M-1)
 	return 0.0;
@@ -530,7 +530,7 @@ BSplineBase<T>::qDelta (int m1, int m2)
     // normalized basis functions
     // given a distance m nodes apart, qparts[K-1][m], 0 <= m <= 3
     // Each column is the integral over each unit domain, -2 to 2
-    static const real qparts[3][4][4] = 
+    static const real qparts[3][4][4] =
     {
 	{
 	    { 0.11250,   0.63750,   0.63750,   0.11250 },
@@ -549,7 +549,7 @@ BSplineBase<T>::qDelta (int m1, int m2)
 	    { 0.00000,  -6.75000, -20.25000,  -6.75000 },
 	    { 0.00000,   0.00000,   6.75000,   6.75000 },
 	    { 0.00000,   0.00000,   0.00000,  -2.25000 } */
-		
+
 		{ 1.00000,   9.00000,   9.00000,   1.00000 },
 	    { 0.00000,  -3.00000,  -9.00000,  -3.00000 },
 	    { 0.00000,   0.00000,   3.00000,   3.00000 },
@@ -675,7 +675,7 @@ BSplineBase<T>::addPGQ ()
     // Add directly to Q's elements
     Matrix<T> &P = base->Q;
     std::vector<T> &X = base->X;
-	
+
     // For each data point, sum the product of the nearest, non-zero Basis
     // nodes
     int mx, m, n, i;
@@ -684,7 +684,7 @@ BSplineBase<T>::addPGQ ()
 		// Which node does this put us in?
 		T &x = X[i];
 		mx = (int)((x - xmin) / DX);
-		
+
 		// Loop over the upper triangle of nonzero basis functions,
 		// and add in the products on each side of the diagonal.
 		for (m = my::max(0, mx-1); m <= my::min(M, mx+2); ++m)
@@ -708,7 +708,7 @@ BSplineBase<T>::addPGQ ()
 template <class T>
 bool
 BSplineBase<T>::factor ()
-{	
+{
     Matrix<T> &LU = base->Q;
 
     if (LU_factor_banded (LU, 3) != 0)
@@ -721,7 +721,7 @@ BSplineBase<T>::factor ()
     return true;
 }
 
-	
+
 
 template <class T>
 inline real
@@ -750,11 +750,11 @@ BSplineBase<T>::Ratiod (int &ni, real &deltax, real &ratiof)
 // implementation by James Franklin, NOAA/HRD.
 //
 template <class T>
-bool 
+bool
 BSplineBase<T>::Setup(int num_nodes)
 {
     std::vector<T> &X = base->X;
-	
+
     // Find the min and max of the x domain
     xmin = X[0];
     xmax = X[0];
@@ -800,7 +800,7 @@ BSplineBase<T>::Setup(int num_nodes)
 	real ratiod;	// Points per node interval
 
 	// Increase the number of node intervals until we reach the minimum
-	// number of intervals per cutoff wavelength, but only as long as 
+	// number of intervals per cutoff wavelength, but only as long as
 	// we can maintain at least one point per interval.
 	do {
 	    if (Ratiod (++ni, deltax, ratiof) < 1.0)
@@ -813,9 +813,9 @@ BSplineBase<T>::Setup(int num_nodes)
 	// maintain at least 2 points per node interval.  There's also no
 	// point to increasing the number of intervals if we already have
 	// 15 or more nodes per cutoff wavelength.
-	// 
+	//
 	do {
-	    if ((ratiod = Ratiod (++ni, deltax, ratiof)) < 1.0 || 
+	    if ((ratiod = Ratiod (++ni, deltax, ratiof)) < 1.0 ||
 		ratiof > 15.0)
 	    {
 		--ni;
@@ -829,21 +829,21 @@ BSplineBase<T>::Setup(int num_nodes)
     M = ni;
     DX = (xmax - xmin) / ni;
 	DXrecip = 1/DX;
-	
+
     return (true);
 }
 
 template <class T>
-bool 
+bool
 BSplineBase<T>::SetupGQ(int num_nodes)
 {
     std::vector<T> &X = base->X;
-	
+
     // Find the min and max of the x domain
 	float mu = 0.5 - 0.5*sqrt(1./3.);
     xmin = X[0]-mu;
     xmax = X[0]+mu;
-	
+
     int i;
     for (i = 1; i < NX; ++i)
     {
@@ -852,10 +852,10 @@ BSplineBase<T>::SetupGQ(int num_nodes)
 		else if ((X[i]+mu) > xmax)
 			xmax = X[i]+mu;
     }
-	
+
     int ni = 9;			// Number of node intervals (NX - 1)
     real deltax;
-	
+
     if (num_nodes >= 2)
     {
 		// We've been told explicitly the number of nodes to use.
@@ -880,27 +880,27 @@ BSplineBase<T>::SetupGQ(int num_nodes)
     {
 		// Minimum acceptable number of node intervals per cutoff wavelength.
 		static const real fmin = 2.0;
-		
+
 		real ratiof;	// Nodes per wavelength for current deltax
 		real ratiod;	// Points per node interval
-		
+
 		// Increase the number of node intervals until we reach the minimum
-		// number of intervals per cutoff wavelength, but only as long as 
+		// number of intervals per cutoff wavelength, but only as long as
 		// we can maintain at least one point per interval.
 		do {
 			if (Ratiod (++ni, deltax, ratiof) < 1.0)
 				return false;
 		}
 		while (ratiof < fmin);
-		
+
 		// Now increase the number of intervals until we have at least 4
 		// intervals per cutoff wavelength, but only as long as we can
 		// maintain at least 2 points per node interval.  There's also no
 		// point to increasing the number of intervals if we already have
 		// 15 or more nodes per cutoff wavelength.
-		// 
+		//
 		do {
-			if ((ratiod = Ratiod (++ni, deltax, ratiof)) < 1.0 || 
+			if ((ratiod = Ratiod (++ni, deltax, ratiof)) < 1.0 ||
 				ratiof > 15.0)
 			{
 				--ni;
@@ -909,12 +909,12 @@ BSplineBase<T>::SetupGQ(int num_nodes)
 		}
 		while (ratiof < 4 || ratiod > 2.0);
     }
-	
+
     // Store the calculations in our state
     M = ni;
     DX = (xmax - xmin) / ni;
 	DXrecip = 1/DX;
-	
+
     return (true);
 }
 
@@ -970,7 +970,7 @@ struct BSplineP
 
 
 /*
- * This BSpline constructor constructs and sets up a new base and 
+ * This BSpline constructor constructs and sets up a new base and
  * solves for the spline curve coeffiecients all at once.
  */
 template <class T>
@@ -1070,7 +1070,7 @@ BSpline<T>::solve (const T *y)
 	if (Debug() && M < 30)
 	{
 	    std::cerr << " a: " << A << std::endl;
-	    std::cerr << "LU factor of (P+Q) = " << std::endl 
+	    std::cerr << "LU factor of (P+Q) = " << std::endl
 		      << base->Q << std::endl;
 	}
     }
@@ -1086,20 +1086,20 @@ BSpline<T>::solveGQ (const T *y)
 {
     //if (! OK)
 	//	return false;
-	
+
     // Any previously calculated curve is now invalid.
     s->spline.clear ();
     OK = false;
-	
+
     // Given an array of data points over x and its precalculated
     // P+Q matrix, calculate the b vector and solve for the coefficients.
     std::vector<T> &B = s->A;
     std::vector<T> &A = s->A;
     A.clear ();
     A.resize (M+1);
-	
+
     if (Debug()) std::cerr << "Solving for B..." << std::endl;
-	
+
     // Find the mean of these data
     mean = 0.0;
     /* int i;
@@ -1110,7 +1110,7 @@ BSpline<T>::solveGQ (const T *y)
 	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
-	
+
     int mx, m, j;
     for (j = 0; j < NX; ++j)
     {
@@ -1124,13 +1124,13 @@ BSpline<T>::solveGQ (const T *y)
 			B[m] += yj * this->Basis (m, xj) * 0.5;
 		}
     }
-	
+
     if (Debug() && M < 100)
     {
 		std::cerr << "Solution a for (P+Q)a = b" << std::endl;
 		std::cerr << " b: " << B << std::endl;
     }
-	
+
     // Now solve for the A vector in place.
     if (LU_solve_banded (base->Q, A, 3) != 0)
     {
@@ -1144,7 +1144,7 @@ BSpline<T>::solveGQ (const T *y)
 		if (Debug() && M < 100)
 		{
 			std::cerr << " a: " << A << std::endl;
-			std::cerr << "LU factor of (P+Q) = " << std::endl 
+			std::cerr << "LU factor of (P+Q) = " << std::endl
 			<< base->Q << std::endl;
 		}
     }
@@ -1160,20 +1160,20 @@ BSpline<T>::solveBGQ (const T *b)
 {
     //if (! OK)
 	//	return false;
-	
+
     // Any previously calculated curve is now invalid.
     s->spline.clear ();
     OK = false;
-	
+
     // Given an array of data points over x and its precalculated
     // P+Q matrix, calculate the b vector and solve for the coefficients.
     std::vector<T> &B = s->A;
     std::vector<T> &A = s->A;
     A.clear ();
     A.resize (M+1);
-	
+
     if (Debug()) std::cerr << "Solving for B..." << std::endl;
-	
+
     // Find the mean of these data
     mean = 0.0;
     /* int i;
@@ -1184,18 +1184,18 @@ BSpline<T>::solveBGQ (const T *b)
 	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
-	
+
     int m;
 	for (m = 0; m < M+1; ++m) {
 		B[m] = b[m];
 	}
-	
+
     if (Debug() && M < 100)
     {
 		std::cerr << "Solution a for (P+Q)a = b" << std::endl;
 		std::cerr << " b: " << B << std::endl;
     }
-	
+
     // Now solve for the A vector in place.
     if (LU_solve_banded (base->Q, A, 3) != 0)
     {
@@ -1209,7 +1209,7 @@ BSpline<T>::solveBGQ (const T *b)
 		if (Debug() && M < 100)
 		{
 			std::cerr << " a: " << A << std::endl;
-			std::cerr << "LU factor of (P+Q) = " << std::endl 
+			std::cerr << "LU factor of (P+Q) = " << std::endl
 			<< base->Q << std::endl;
 		}
     }
@@ -1224,21 +1224,21 @@ const T*
 BSpline<T>::solveInverseGQ (const T *b)
 {
     if (! OK)
-		return false;
-	
+		return NULL;
+
     // Any previously calculated curve is now invalid.
     s->spline.clear ();
     OK = false;
-	
+
     // Given an array of data points over x and its precalculated
     // P+Q matrix, calculate the b vector and solve for the coefficients.
     std::vector<T> &B = s->A;
     std::vector<T> &A = s->A;
     A.clear ();
     A.resize (M+1);
-	
+
     if (Debug()) std::cerr << "Solving for B..." << std::endl;
-	
+
     // Find the mean of these data
     mean = 0.0;
     /* int i;
@@ -1249,19 +1249,19 @@ BSpline<T>::solveInverseGQ (const T *b)
 	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
-	
+
     int mx, m, j;
 	// y should have same dimension as nodes
 	for (m = 0; m < M+1; ++m) {
 		B[m] = b[m];
 	}
-	
+
     if (Debug() && M < 60)
     {
 		std::cerr << "Solution a for (P+Q)a = b" << std::endl;
 		std::cerr << " b: " << B << std::endl;
     }
-	
+
     // Now solve for the A vector in place.
     if (LU_solve_banded (base->Q, A, 3) != 0)
     {
@@ -1275,11 +1275,11 @@ BSpline<T>::solveInverseGQ (const T *b)
 		if (Debug() && M < 60)
 		{
 			std::cerr << " a: " << A << std::endl;
-			/* std::cerr << "LU factor of (P+Q) = " << std::endl 
+			/* std::cerr << "LU factor of (P+Q) = " << std::endl
 			<< base->Q << std::endl; */
 		}
     }
-	
+
 	// Now invert the SB transform
 	std::vector<T> &spline = s->spline;
 	for (j = 0; j < NX; ++j)
@@ -1295,7 +1295,7 @@ BSpline<T>::solveInverseGQ (const T *b)
 		// Put the results in the hidden spline vector
 		s->spline.push_back(y);
     }
-	
+
 	return &spline[0];
 }
 
@@ -1338,20 +1338,20 @@ const T *BSpline<T>::getBGQ (const T *y)
 {
 	//if (! OK)
 	//	return false;
-	
+
     // Any previously calculated curve is now invalid.
     s->spline.clear ();
     OK = false;
-	
+
     // Given an array of data points over x and its precalculated
     // P+Q matrix, calculate the b vector and solve for the coefficients.
     std::vector<T> &B = s->A;
     std::vector<T> &A = s->A;
     A.clear ();
     A.resize (M+1);
-	
+
     if (Debug()) std::cerr << "Solving for B..." << std::endl;
-	
+
     // Find the mean of these data
     mean = 0.0;
     /* int i;
@@ -1362,7 +1362,7 @@ const T *BSpline<T>::getBGQ (const T *y)
 	 mean = mean / (real)NX; */
     if (Debug())
 		std::cerr << "Mean for y: " << mean << std::endl;
-	
+
     int mx, m, j;
     for (j = 0; j < NX; ++j)
     {
@@ -1426,7 +1426,7 @@ T BSpline<T>::getDBasis (int n, T x)
 	return this->DBasis (n, x);
 }
 
-	
+
 template <class T>
 const T *BSpline<T>::curve (int *nx)
 {
