@@ -54,7 +54,8 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
 	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
-	real minLat, minLon;
+	real minLat = 0.0;
+	real minLon = 0.0;
 	if (latlonIncr > 0) {
 		real lat, lon;
 		real invIncr = (1.0/latlonIncr);
@@ -314,7 +315,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 								real press = airpress + vp;
 
 								real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
-								real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
+								//real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
 
 								real RoverCp = 0.2854*(1 - 0.00028*qv);
 								real theta = temp * pow((1000/press), RoverCp);
@@ -422,7 +423,6 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 										w = -999.;
 										wspd = -999.;
 										relhum = -999.;
-										hprime = -999.;
 										qvprime = -999.;
 										rhoprime = -999.;
 										tprime = -999.;
@@ -712,9 +712,9 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 
 	// Define the netCDF variables
-	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
+	NcVar *u, *v, *w, *wspd, *relhum, *press, *qvprime, *rhoprime, *tprime, *pprime;
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
-	NcVar *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
+	NcVar *rho, *pheight, *temp, *qv, *h, *qr, *absVorticity;
     NcVar *dudx, *dvdx, *dwdx, *dudy, *dvdy, *dwdy, *dudz, *dvdz, *dwdz;
 	NcVar *dtdx, *dqdx, *dpdx, *dtdy, *dqdy, *dpdy, *dtdz, *dqdz, *dpdz;
     NcVar *drhodx, *drhody, *drhodz;
@@ -735,7 +735,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim,
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(hprime = dataFile.add_var("P", ncFloat, timeDim,
+	if (!(press = dataFile.add_var("P", ncFloat, timeDim,
                                     lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(qvprime = dataFile.add_var("QVP", ncFloat, timeDim,
@@ -777,7 +777,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	if (!(rho = dataFile.add_var("RHOA", ncFloat, timeDim,
                                  lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (!(press = dataFile.add_var("Z", ncFloat, timeDim,
+	if (!(pheight = dataFile.add_var("Z", ncFloat, timeDim,
                                    lvlDim, latDim, lonDim)))
 		return NC_ERR;
 	if (!(temp = dataFile.add_var("T", ncFloat, timeDim,
@@ -891,7 +891,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("units", "percent"))
 		return NC_ERR;
-	if (!hprime->add_att("units", "hPa"))
+	if (!press->add_att("units", "hPa"))
 		return NC_ERR;
 	if (!qvprime->add_att("units", "g kg-1"))
 		return NC_ERR;
@@ -919,7 +919,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!rho->add_att("units", "kg m-3"))
 		return NC_ERR;
-	if (!press->add_att("units", "m"))
+	if (!pheight->add_att("units", "m"))
 		return NC_ERR;
 	if (!temp->add_att("units", "K"))
 		return NC_ERR;
@@ -1000,7 +1000,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("long_name", "relative humidity"))
 		return NC_ERR;
-	if (!hprime->add_att("long_name", "pressure"))
+	if (!press->add_att("long_name", "pressure"))
 		return NC_ERR;
 	if (!qvprime->add_att("long_name", "water vapor mixing ratio perturbation"))
 		return NC_ERR;
@@ -1028,7 +1028,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!rho->add_att("long_name", "density"))
 		return NC_ERR;
-	if (!press->add_att("long_name", "pressure height"))
+	if (!pheight->add_att("long_name", "pressure height"))
 		return NC_ERR;
 	if (!temp->add_att("long_name", "temperature"))
 		return NC_ERR;
@@ -1109,7 +1109,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!hprime->add_att("missing_value", -999.f))
+	if (!press->add_att("missing_value", -999.f))
 		return NC_ERR;
 	if (!qvprime->add_att("missing_value", -999.f))
 		return NC_ERR;
@@ -1137,7 +1137,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!rho->add_att("missing_value", -999.f))
 		return NC_ERR;
-	if (!press->add_att("missing_value", -999.f))
+	if (!pheight->add_att("missing_value", -999.f))
 		return NC_ERR;
 	if (!temp->add_att("missing_value", -999.f))
 		return NC_ERR;
@@ -1213,7 +1213,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!relhum->add_att("_FillValue", -999.f))
 		return NC_ERR;
-	if (!hprime->add_att("_FillValue", -999.f))
+	if (!press->add_att("_FillValue", -999.f))
 		return NC_ERR;
 	if (!qvprime->add_att("_FillValue", -999.f))
 		return NC_ERR;
@@ -1241,7 +1241,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!rho->add_att("_FillValue", -999.f))
 		return NC_ERR;
-	if (!press->add_att("_FillValue", -999.f))
+	if (!pheight->add_att("_FillValue", -999.f))
 		return NC_ERR;
 	if (!temp->add_att("_FillValue", -999.f))
 		return NC_ERR;
@@ -1323,7 +1323,8 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	tm.Forward(lonReference, latReference, lonReference, refX, refY);
-	real minLat, minLon;
+	real minLat = 0.0;
+	real minLon = 0.0;
 	if (latlonIncr > 0) {
 		real lat, lon;
 		real invIncr = (1.0/latlonIncr);
@@ -1399,7 +1400,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!relhum->put_rec(&finalAnalysis[iDim*jDim*pDim*4], rec))
 			return NC_ERR;
-		if (!hprime->put_rec(&finalAnalysis[iDim*jDim*pDim*5], rec))
+		if (!press->put_rec(&finalAnalysis[iDim*jDim*pDim*5], rec))
 			return NC_ERR;
 		if (!qvprime->put_rec(&finalAnalysis[iDim*jDim*pDim*6], rec))
 			return NC_ERR;
@@ -1427,7 +1428,7 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!rho->put_rec(&finalAnalysis[iDim*jDim*pDim*18], rec))
 			return NC_ERR;
-		if (!press->put_rec(&finalAnalysis[iDim*jDim*pDim*19], rec))
+		if (!pheight->put_rec(&finalAnalysis[iDim*jDim*pDim*19], rec))
 			return NC_ERR;
 		if (!temp->put_rec(&finalAnalysis[iDim*jDim*pDim*20], rec))
 			return NC_ERR;
