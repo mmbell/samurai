@@ -10,11 +10,12 @@
 #define REFSTATE_H
 
 #include "precision.h"
+#include "BSpline.h"
 #include <QString>
 
 class ReferenceState
 {
-    
+
 public:
     ReferenceState(const QString& config);
     ~ReferenceState();
@@ -23,14 +24,17 @@ public:
     real bhypInvTransform(const real& qvbhyp);
 
 private:
-    real qvbhypcoeff[5];
-	real rhoacoeff[5];
-	real dpdzcoeff[5];
-	real sfcpress;
+  typedef BSplineBase<real> SplineBase;
+  typedef BSpline<real> SplineD;
+
+  SplineD* thetaSpline;
+  SplineD* qvSpline;
+  SplineD* piSpline;
+
 };
 
 namespace ReferenceVariable {
-    
+
     enum variables {
         qvbhypref,
         rhoaref,
@@ -38,7 +42,7 @@ namespace ReferenceVariable {
         href,
         tempref,
         pressref
-    };	
+    };
 };
 
 #endif
