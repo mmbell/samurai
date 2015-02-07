@@ -128,10 +128,10 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 		qv = qvSpline->evaluate(logheight);
 		qv = bhypInvTransform(qv)/1000.0;
 		real temp = pi * theta;
-		real pressa = 1000.0 * pow(pi, (1005.7/287.04));
-		real rhoa = pressa*100.0/(temp*287.04);
+		real pressa = 100000.0 * pow(pi, (1005.7/287.04));
+		real rhoa = pressa/(temp*287.04);
 		real rho = rhoa + qv * rhoa;
-		real press = pressa + qv * pressa / 0.622;
+		real press = pressa * (1.0 + qv/0.622);
 		real h = 1005.7*temp + 9.81*heightm + 2.5e6*qv;
 		if (dz == 0) {
 			switch (refVariable) {
@@ -154,9 +154,9 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 			real dpidz = piSpline->slope(logheight)*invheight;
 			real dpdz = -rho * 9.81;
 			real dtdz = pi*dthetadz +theta*dpidz;
-			real dpadz = (dpdz - 622.0*pressa*qvdz)/(1.0 + 0.622*qv);
-			real drhoadz = (1.0/287.04)*(dpadz/temp - 100.0*pressa*dtdz/(temp*temp));
-			real drhodz = (1.0/287.04)*(dpdz/temp - 100.0*press*dtdz/(temp*temp));
+			real dpadz = (dpdz - 0.622*pressa*qvdz)/(1.0 + 0.622*qv);
+			real drhoadz = (1.0/287.04)*(dpadz/temp - pressa*dtdz/(temp*temp));
+			real drhodz = (1.0/287.04)*(dpdz/temp - press*dtdz/(temp*temp));
 			real dhdz = 1005.7*dtdz + 9.81 + 2.5e3*qvdz;
 			switch (refVariable) {
 					case rhoaref:
@@ -168,7 +168,7 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 					case tempref:
 						return dtdz;
 					case pressref:
-						return dpdz;
+						return dpadz;
 					default:
 						break;
 			}
