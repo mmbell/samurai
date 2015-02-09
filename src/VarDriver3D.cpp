@@ -2039,7 +2039,7 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 						}
             // Default error of background = 0.1
 						if (configHash.value("bg_obs_error").isEmpty() or
-								configHash.value("bg_obs_error").toFloat() <= 0.0)) {
+								(configHash.value("bg_obs_error").toFloat() <= 0.0)) {
 									bgObs[p+1] = 100.;
 						} else {
 							bgObs[p+1] = 1.0/configHash.value("bg_obs_error").toFloat();
