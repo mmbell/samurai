@@ -2037,8 +2037,13 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 							real dbzavg = 10* log10(bgIn[m+4+n]);
 							bgObs[p] = (dbzavg+35.)*0.1;
 						}
-            // Error of background = 1
-            bgObs[p+1] = 100.;
+            // Default error of background = 0.1
+						if (configHash.value("bg_obs_error").isEmpty() or
+								configHash.value("bg_obs_error").toFloat() <= 0.0)) {
+									bgObs[p+1] = 100.;
+						} else {
+							bgObs[p+1] = 1.0/configHash.value("bg_obs_error").toFloat();
+						}
             if (runMode == XYZ) {
                 bgObs[p+2] = obX;
                 bgObs[p+3] = obY;
