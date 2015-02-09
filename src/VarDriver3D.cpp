@@ -2103,13 +2103,20 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 	bgError[5] = configHash.value("bg_rhoa_error");
 	bgError[6] = configHash.value("bg_qr_error");
 
-	configHash["bg_rhou_error"] = "10.0";
-	configHash["bg_rhov_error"] = "10.0";
-	configHash["bg_rhow_error"] = "10.0";
-	configHash["bg_tempk_error"] = "10.0";
-	configHash["bg_qv_error"] = "10.0";
-	configHash["bg_rhoa_error"] = "10.0";
-	configHash["bg_qr_error"] = "10.0";
+	QString bg_interpolation_error = "1.0";
+	if (!configHash.value("bg_interpolation_error").isEmpty()) {
+		bg_interpolation_error = configHash.value("bg_interpolation_error");
+		cout << "Setting background interpolation error to " << bg_interpolation_error.toStdString() << "\n";
+	} else {
+		cout << "Using default background interpolation error of 1.0\n";
+	}
+	configHash["bg_rhou_error"] = bg_interpolation_error;
+	configHash["bg_rhov_error"] = bg_interpolation_error;
+	configHash["bg_rhow_error"] = bg_interpolation_error;
+	configHash["bg_tempk_error"] = bg_interpolation_error;
+	configHash["bg_qv_error"] = bg_interpolation_error;
+	configHash["bg_rhoa_error"] = bg_interpolation_error;
+	configHash["bg_qr_error"] = bg_interpolation_error;
 	configHash["save_mish"] = "true";
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
