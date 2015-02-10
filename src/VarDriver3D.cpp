@@ -1281,8 +1281,12 @@ bool VarDriver3D::preProcessMetObs()
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
 												if (configHash.value("qr_variable") == "dbz") {
-													real dbzavg = 10* log10(bgU[bIndex +6]);
-													bgU[bIndex +6] = (dbzavg+35.)*0.1;
+													if (bgU[bIndex +6] > 0) {
+														real dbzavg = 10* log10(bgU[bIndex +6]);
+														bgU[bIndex +6] = (dbzavg+35.)*0.1;
+													} else {
+														bgU[bIndex +6] = 0.0;
+													}
 												}
 												/* if (bgI == 2) {
 													int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
@@ -1912,14 +1916,6 @@ int VarDriver3D::loadBackgroundObs()
                                 for (unsigned int var = 0; var < numVars; var++) {
                                     if (bgWeights[bIndex] != 0) {
                                         bgU[bIndex +var] /= bgWeights[bIndex];
-																				if ((var == 6) and (configHash.value("qr_variable") == "dbz")) {
-																					if (bgU[bIndex +6] > 0) {
-																						real dbzavg = 10* log10(bgU[bIndex +6]);
-																						bgU[bIndex +6] = (dbzavg+35.)*0.1;
-																					} else {
-																						bgU[bIndex +6] = 1.0e-10;
-																					}
-																				}
                                     } else {
 																			emptybg.push_back(bIndex);
 																			if (emptybg.size() < 15) {
@@ -1929,7 +1925,7 @@ int VarDriver3D::loadBackgroundObs()
 																			}
                                     }
                                 }
-                                //bgWeights[bIndex] = 0.;
+                                bgWeights[bIndex] = 1.0;
                             }
                         }
                     }
@@ -1937,7 +1933,7 @@ int VarDriver3D::loadBackgroundObs()
             }
         }
 
-		// Attempt to fill holes
+		// Attempt to fill holes everywhere
 		if (emptybg.size() > 0) {
 			int neighbors[6];
 			real avg[numVars];
@@ -1991,6 +1987,32 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 {
     /* Set the minimum filter length to the background resolution, not the analysis resolution
      to avoid artifacts when running interpolating to small mesoscale grids */
+
+		// Convert the Z to dBZ for variational analysis
+		if (configHash.value("qr_variable") == "dbz") {
+			for (int ki = -1; ki < (kdim); ki++) {
+				for (int kmu = -1; kmu <= 1; kmu += 2) {
+					for (int ii = -1; ii < (idim); ii++) {
+						for (int imu = -1; imu <= 1; imu += 2) {
+							for (int ji = -1; ji < (jdim); ji++) {
+								for (int jmu = -1; jmu <= 1; jmu += 2) {
+									int bgI = (ii+1)*2 + (imu+1)/2;
+									int bgJ = (ji+1)*2 + (jmu+1)/2;
+									int bgK = (ki+1)*2 + (kmu+1)/2;
+									int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+									if (bgU[bIndex +6] > 0) {
+										real dbzavg = 10* log10(bgU[bIndex +6]);
+										bgU[bIndex +6] = (dbzavg+35.)*0.1;
+									} else {
+										bgU[bIndex +6] = 0.0;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
     // Load the observations into a vector
     int numbgObs = bgIn.size()*7/11;
