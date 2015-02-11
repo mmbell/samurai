@@ -289,6 +289,34 @@ bool VarDriver3D::preProcessMetObs()
 
 	vector<real> rhoP;
 
+	// Convert the bg dBZ back to Z for further processing with real radar data
+	if ((configHash.value("qr_variable") == "dbz") and
+		(configHash.value("load_background") == "true") and
+		(configHash.value("adjust_background") == "false")) {
+		for (int ki = -1; ki < (kdim); ki++) {
+			for (int kmu = -1; kmu <= 1; kmu += 2) {
+				for (int ii = -1; ii < (idim); ii++) {
+					for (int imu = -1; imu <= 1; imu += 2) {
+						for (int ji = -1; ji < (jdim); ji++) {
+							for (int jmu = -1; jmu <= 1; jmu += 2) {
+								int bgI = (ii+1)*2 + (imu+1)/2;
+								int bgJ = (ji+1)*2 + (jmu+1)/2;
+								int bgK = (ki+1)*2 + (kmu+1)/2;
+								int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+								real dBZ = bgU[bIndex +6]*10. - 35.;
+								real ZZ = pow(10.0,(dBZ*0.1));
+								bgU[bIndex +6] = ZZ;
+								bgWeights[bIndex] = 1.0;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+
 	// Geographic functions
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	real referenceLon = configHash.value("ref_lon").toFloat();
@@ -1257,20 +1285,15 @@ bool VarDriver3D::preProcessMetObs()
         for (int ihalf = 0; ihalf <= 1; ihalf++) {
             for (int imu = -ihalf; imu <= ihalf; imu++) {
                 real i = imin + iincr * (iIndex + (gausspoint * imu + 0.5*ihalf));
-                if (i > ((idim-1)*iincr + imin)) continue;
-
                 for (int jIndex = -1; jIndex < jdim; jIndex++) {
                     for (int jhalf =0; jhalf <= 1; jhalf++) {
                         for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
                             real j = jmin + jincr * (jIndex + (gausspoint * jmu + 0.5*jhalf));
-                            if (j > ((jdim-1)*jincr + jmin)) continue;
-
                             real maxrefHeight = -1;
                             for (int kIndex = -1; kIndex < kdim; kIndex++) {
                                 for (int khalf =0; khalf <= 1; khalf++) {
                                     for (int kmu = -khalf; kmu <= khalf; kmu++) {
                                         real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
-                                        if (k > ((kdim-1)*kincr + kmin)) continue;
                                         // On the mish
                                         if (ihalf and jhalf and khalf and
                                             (imu != 0) and (jmu != 0) and (kmu != 0)){
@@ -1280,33 +1303,17 @@ bool VarDriver3D::preProcessMetObs()
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
-												if (configHash.value("qr_variable") == "dbz") {
-													if (bgU[bIndex +6] > 0) {
-														real dbzavg = 10* log10(bgU[bIndex +6]);
-														bgU[bIndex +6] = (dbzavg+35.)*0.1;
-													} else {
-														bgU[bIndex +6] = 0.0;
-													}
-												}
-												/* if (bgI == 2) {
-													int bIzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ;
-													int bIone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars;
-													bgU[bIzero + 6] = bgU[bIone + 6] = bgU[bIndex + 6];
-												}
-												if (bgJ == 2) {
-													int bJzero = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*bgI;
-													int bJone = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2 +numVars*bgI;
-													bgU[bJzero + 6] = bgU[bJone + 6] = bgU[bIndex + 6];
-												}
-												if (bgK == 2) {
-													int bKzero = numVars*(idim+1)*2*bgJ +numVars*bgI;
-													int bKone = numVars*(idim+1)*2*(jdim+1)*2 + numVars*(idim+1)*2*bgJ +numVars*bgI;
-													bgU[bKzero + 6] = bgU[bKone + 6] = bgU[bIndex + 6];
-												} */
-
-                                            }
-                                            if (bgU[bIndex +6] > 0) {
-                                                maxrefHeight = k;
+																						}
+																						if (configHash.value("qr_variable") == "dbz") {
+																								if (bgU[bIndex +6] > 0) {
+																									real dbzavg = 10* log10(bgU[bIndex +6]);
+																									bgU[bIndex +6] = (dbzavg+35.)*0.1;
+																								} else {
+																									bgU[bIndex +6] = 0.0;
+																								}
+																								if (bgU[bIndex +6] > 3.5) {
+																										maxrefHeight = k;
+																								}
                                             }
                                         }
                                         // On the nodes for mass continuity
@@ -1925,7 +1932,14 @@ int VarDriver3D::loadBackgroundObs()
 																			}
                                     }
                                 }
-                                bgWeights[bIndex] = 1.0;
+																if (configHash.value("qr_variable") == "dbz") {
+																	if (bgU[bIndex +6] > 0) {
+																		real dbzavg = 10* log10(bgU[bIndex +6]);
+																		bgU[bIndex +6] = (dbzavg+35.)*0.1;
+																	} else {
+																		bgU[bIndex +6] = 0.0;
+																	}
+																}
                             }
                         }
                     }
@@ -1987,32 +2001,6 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
 {
     /* Set the minimum filter length to the background resolution, not the analysis resolution
      to avoid artifacts when running interpolating to small mesoscale grids */
-
-		// Convert the Z to dBZ for variational analysis
-		if (configHash.value("qr_variable") == "dbz") {
-			for (int ki = -1; ki < (kdim); ki++) {
-				for (int kmu = -1; kmu <= 1; kmu += 2) {
-					for (int ii = -1; ii < (idim); ii++) {
-						for (int imu = -1; imu <= 1; imu += 2) {
-							for (int ji = -1; ji < (jdim); ji++) {
-								for (int jmu = -1; jmu <= 1; jmu += 2) {
-									int bgI = (ii+1)*2 + (imu+1)/2;
-									int bgJ = (ji+1)*2 + (jmu+1)/2;
-									int bgK = (ki+1)*2 + (kmu+1)/2;
-									int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-									if (bgU[bIndex +6] > 0) {
-										real dbzavg = 10* log10(bgU[bIndex +6]);
-										bgU[bIndex +6] = (dbzavg+35.)*0.1;
-									} else {
-										bgU[bIndex +6] = 0.0;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 
     // Load the observations into a vector
     int numbgObs = bgIn.size()*7/11;
