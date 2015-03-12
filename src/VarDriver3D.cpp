@@ -1001,7 +1001,7 @@ bool VarDriver3D::preProcessMetObs()
 
                     real maxel = configHash.value("max_radar_elevation").toFloat();
 										if (!maxel) maxel = 90.0;
-                    if (fabs(metOb.getElevation() < maxel)) obVector.push_back(varOb);
+                    if (fabs(metOb.getElevation() <= maxel)) obVector.push_back(varOb);
 
                     varOb.setWeight(0., 0);
                     varOb.setWeight(0., 1);
