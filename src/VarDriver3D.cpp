@@ -2272,7 +2272,6 @@ bool VarDriver3D::validateXMLconfig()
     "k_min" << "k_max" << "k_incr" <<
     "i_filter_length" << "j_filter_length" << "k_filter_length" <<
     "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff" <<
-    "i_max_wavenumber" << "j_max_wavenumber" << "k_max_wavenumber" <<
     "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL" << "k_rhou_bcR" <<
     "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR" << "k_rhov_bcL" << "k_rhov_bcR" <<
     "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL" << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" <<

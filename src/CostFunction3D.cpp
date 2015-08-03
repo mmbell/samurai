@@ -280,9 +280,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
     kFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * kDim);
     kForward = fftw_plan_dft_r2c_1d(kDim, kFFTin, kFFTout, FFTW_MEASURE);
     kBackward = fftw_plan_dft_c2r_1d(kDim, kFFTout, kFFTin, FFTW_MEASURE);
-    iMaxWavenumber = configHash->value("i_max_wavenumber").toFloat();
-    jMaxWavenumber = configHash->value("j_max_wavenumber").toFloat();
-    kMaxWavenumber = configHash->value("k_max_wavenumber").toFloat();
+
 }
 
 void CostFunction3D::initState(const int iteration)
@@ -318,6 +316,56 @@ void CostFunction3D::initState(const int iteration)
     iFilter->setFilterLengthScale(iFilterScale);
     jFilter->setFilterLengthScale(jFilterScale);
     kFilter->setFilterLengthScale(kFilterScale);
+
+    // Set up the Fourier filter
+    for (int i = 0; i < 7; i++) {
+      iMaxWavenumber[i] = -1.0;
+      jMaxWavenumber[i] = -1.0;
+      kMaxWavenumber[i] = -1.0;
+    }
+    if (!configHash->value("i_max_wavenumber").isEmpty()) {
+      // Set all the variables to the same filter
+      for (int i = 0; i < 7; i++) {
+        iMaxWavenumber[i] = configHash->value("i_max_wavenumber").toFloat();
+      }
+    } else {
+      // Set Fourier filter for individual variables
+      iMaxWavenumber[0] = configHash->value("i_max_wavenumber_rhou").toFloat();
+      iMaxWavenumber[1] = configHash->value("i_max_wavenumber_rhov").toFloat();
+      iMaxWavenumber[2] = configHash->value("i_max_wavenumber_rhow").toFloat();
+      iMaxWavenumber[3] = configHash->value("i_max_wavenumber_tempk").toFloat();
+      iMaxWavenumber[4] = configHash->value("i_max_wavenumber_qv").toFloat();
+      iMaxWavenumber[5] = configHash->value("i_max_wavenumber_rhoa").toFloat();
+      iMaxWavenumber[6] = configHash->value("i_max_wavenumber_qr").toFloat();
+    }
+
+    if (!configHash->value("j_max_wavenumber").isEmpty()) {
+      for (int i = 0; i < 7; i++) {
+        jMaxWavenumber[i] = configHash->value("j_max_wavenumber").toFloat();
+      }
+    } else {
+      jMaxWavenumber[0] = configHash->value("j_max_wavenumber_rhou").toFloat();
+      jMaxWavenumber[1] = configHash->value("j_max_wavenumber_rhov").toFloat();
+      jMaxWavenumber[2] = configHash->value("j_max_wavenumber_rhow").toFloat();
+      jMaxWavenumber[3] = configHash->value("j_max_wavenumber_tempk").toFloat();
+      jMaxWavenumber[4] = configHash->value("j_max_wavenumber_qv").toFloat();
+      jMaxWavenumber[5] = configHash->value("j_max_wavenumber_rhoa").toFloat();
+      jMaxWavenumber[6] = configHash->value("j_max_wavenumber_qr").toFloat();
+    }
+
+    if (!configHash->value("k_max_wavenumber").isEmpty()) {
+      for (int i = 0; i < 7; i++) {
+        kMaxWavenumber[i] = configHash->value("k_max_wavenumber").toFloat();
+      }
+    } else {
+      kMaxWavenumber[0] = configHash->value("k_max_wavenumber_rhou").toFloat();
+      kMaxWavenumber[1] = configHash->value("k_max_wavenumber_rhov").toFloat();
+      kMaxWavenumber[2] = configHash->value("k_max_wavenumber_rhow").toFloat();
+      kMaxWavenumber[3] = configHash->value("k_max_wavenumber_tempk").toFloat();
+      kMaxWavenumber[4] = configHash->value("k_max_wavenumber_qv").toFloat();
+      kMaxWavenumber[5] = configHash->value("k_max_wavenumber_rhoa").toFloat();
+      kMaxWavenumber[6] = configHash->value("k_max_wavenumber_qr").toFloat();
+    }
 
     // Set up the spline matrices
     setupSplines();
@@ -2022,14 +2070,14 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 
     for (int var = 0; var < varDim; var++) {
     // Enforce max wavenumber
-    if ((kBCL[var] == PERIODIC) and (kMaxWavenumber >= 0)) {
+    if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) {
       for (int iIndex = 0; iIndex < iDim; iIndex++) {
         for (int jIndex = 0; jIndex < jDim; jIndex++) {
           for (int kIndex = 0; kIndex < kDim; kIndex++) {
             kFFTin[kIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
           }
           fftw_execute(kForward);
-          for (int kIndex = kMaxWavenumber+1; kIndex < (kDim/2)+1; kIndex++) {
+          for (int kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
             kFFTout[kIndex][0] = 0.0;
             kFFTout[kIndex][1] = 0.0;
           }
@@ -2042,14 +2090,14 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
     }
 
         // Enforce max wavenumber
-        if ((jBCL[var] == PERIODIC) and (jMaxWavenumber >= 0)) {
+        if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
             for (int kIndex = 0; kIndex < kDim; kIndex++) {
                 for (int iIndex = 0; iIndex < iDim; iIndex++) {
                     for (int jIndex = 0; jIndex < jDim; jIndex++) {
                         jFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
                     }
                     fftw_execute(jForward);
-                    for (int jIndex = jMaxWavenumber+1; jIndex < (jDim/2)+1; jIndex++) {
+                    for (int jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
                         jFFTout[jIndex][0] = 0.0;
                         jFFTout[jIndex][1] = 0.0;
                     }
@@ -2060,14 +2108,14 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
                 }
             }
         }
-        if ((iBCL[var] == PERIODIC) and (iMaxWavenumber >= 0)) {
+        if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) {
             for (int kIndex = 0; kIndex < kDim; kIndex++) {
                 for (int jIndex = 0; jIndex < jDim; jIndex++) {
                     for (int iIndex = 0; iIndex < iDim; iIndex++) {
                         iFFTin[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
                     }
                     fftw_execute(iForward);
-                    for (int iIndex = iMaxWavenumber+1; iIndex < (iDim/2)+1; iIndex++) {
+                    for (int iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
                         iFFTout[iIndex][0] = 0.0;
                         iFFTout[iIndex][1] = 0.0;
                     }

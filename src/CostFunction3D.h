@@ -103,7 +103,7 @@ protected:
     int derivative[4][3];
 	real constHeight;
 	real mcWeight;
-    int iMaxWavenumber, jMaxWavenumber, kMaxWavenumber;
+    int iMaxWavenumber[7], jMaxWavenumber[7], kMaxWavenumber[7];
     double *iFFTin, *jFFTin, *kFFTin;
     fftw_complex *iFFTout, *jFFTout, *kFFTout;
     fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
