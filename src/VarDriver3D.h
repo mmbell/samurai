@@ -67,6 +67,7 @@ private:
 	real* bgWeights;
 	real* obs;
 	real* bgObs;
+	real* radarGeo;
 	real imin, imax, jmin, jmax, kmin, kmax;
 	real iincr;
 	real jincr;

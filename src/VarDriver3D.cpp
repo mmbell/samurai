@@ -103,6 +103,13 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		bgWeights[i] = 0.0;
 	}
 
+	// Matrix for Doppler geometry variance
+	int dStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*9;
+	radarGeo = new real[dStateSize];
+	for (int i=0; i < dStateSize; i++) {
+		radarGeo[i] = 0.0;
+	}
+
 	/* Set the data path */
 	dataPath.setPath(configHash.value("data_directory"));
 	if (dataPath.exists()) {
@@ -218,6 +225,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 
 	// We are done with the bgWeights, so free up that memory
 	delete[] bgWeights;
+	delete[] radarGeo;
 
 	if (obVector.size() == 0) {
 		// No observations so quit
@@ -1087,12 +1095,24 @@ bool VarDriver3D::preProcessMetObs()
 																		int bgJ = (ji+1)*2 + (jmu+1)/2;
 																		int bgK = (ki+1)*2 + (kmu+1)/2;
 																		int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+																		int dIndex = 9*(idim+1)*2*(jdim+1)*2*bgK + 9*(idim+1)*2*bgJ +9*bgI;
 																		if (rSquare < Rsquare) {
 																			real weight = exp(-2.302585092994045*rSquare/Rsquare);
 																			//real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
 																			//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
 																			bgU[bIndex +6] += weight*qr;
 																			bgWeights[bIndex] += weight;
+
+																			// Save the radar geometry
+																			radarGeo[dIndex] += weight * uWgt * uWgt;
+																			radarGeo[dIndex + 1] += weight * vWgt * uWgt;
+																			radarGeo[dIndex + 2] += weight * vWgt * vWgt;
+																			radarGeo[dIndex + 3] += weight * wWgt * uWgt;
+																			radarGeo[dIndex + 4] += weight * wWgt * vWgt;
+																			radarGeo[dIndex + 5] += weight * wWgt * wWgt;
+																			radarGeo[dIndex + 6] += weight * Vdopp * uWgt;
+																			radarGeo[dIndex + 7] += weight * Vdopp * vWgt;
+																			radarGeo[dIndex + 8] += weight * Vdopp * wWgt;
 																		}
 																	}
 																}
@@ -1301,8 +1321,12 @@ bool VarDriver3D::preProcessMetObs()
                                             int bgJ = (jIndex+1)*2 + (jmu+1)/2;
                                             int bgK = (kIndex+1)*2 + (kmu+1)/2;
                                             int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+																						int dIndex = 9*(idim+1)*2*(jdim+1)*2*bgK + 9*(idim+1)*2*bgJ +9*bgI;
                                             if (bgWeights[bIndex] != 0) {
                                                 bgU[bIndex +6] /= bgWeights[bIndex];
+																								for (int r = 0; r < 9; r++) {
+																									radarGeo[dIndex + r] /= bgWeights[bIndex];
+																								}
 																						}
 																						if (configHash.value("qr_variable") == "dbz") {
 																								if (bgU[bIndex +6] > 0) {
@@ -1315,7 +1339,98 @@ bool VarDriver3D::preProcessMetObs()
 																										maxrefHeight = k;
 																								}
                                             }
-                                        }
+
+																						// Calculate the wind variance from Doppler geometry following CEDRIC
+																						if (bgWeights[bIndex] != 0) {
+																							real T1 = radarGeo[dIndex + 1]*radarGeo[dIndex + 4] - radarGeo[dIndex + 3]*radarGeo[dIndex + 2];
+																							real T2 = radarGeo[dIndex + 0]*radarGeo[dIndex + 4] - radarGeo[dIndex + 3]*radarGeo[dIndex + 1];
+																							real T3 = radarGeo[dIndex + 0]*radarGeo[dIndex + 2] - radarGeo[dIndex + 1]*radarGeo[dIndex + 1];
+																							real DT = 0.0;
+																							if (configHash.value("horizontal_radar_appx") == "true") {
+																								DT = T3;
+																							} else {
+																								DT = radarGeo[dIndex + 3]*T1 - radarGeo[dIndex + 4]*T2 + radarGeo[dIndex + 5]*T3;
+																							}
+																							real UA = 0.0;
+																							real VA = 0.0;
+																							real WA = 0.0;
+																							real U = 0.0;
+																							real V = 0.0;
+																							real W = 0.0;
+																							if (DT > 1.e-8) {
+																								// Determinant is OK
+																								real DTINV = 1.0/DT;
+																								real DIV = 0.0;
+																								DIV= DTINV/bgWeights[bIndex];
+
+																								real P1 = radarGeo[dIndex + 2]*radarGeo[dIndex + 5] - radarGeo[dIndex + 4]*radarGeo[dIndex + 4];
+																								real P2 = radarGeo[dIndex + 1]*radarGeo[dIndex + 5] - radarGeo[dIndex + 4]*radarGeo[dIndex + 3];
+																								real P3 = radarGeo[dIndex + 1]*radarGeo[dIndex + 4] - radarGeo[dIndex + 2]*radarGeo[dIndex + 3];
+																								real Q1 = radarGeo[dIndex + 3]*radarGeo[dIndex + 4] - radarGeo[dIndex + 1]*radarGeo[dIndex + 5];
+																								real Q2 = radarGeo[dIndex + 3]*radarGeo[dIndex + 3] - radarGeo[dIndex + 0]*radarGeo[dIndex + 5];
+																								real Q3 = radarGeo[dIndex + 1]*radarGeo[dIndex + 3] - radarGeo[dIndex + 0]*radarGeo[dIndex + 4];
+
+																								// Solve multi-Doppler equations
+																								if (configHash.value("horizontal_radar_appx") == "true") {
+																									U=(radarGeo[dIndex + 6]*radarGeo[dIndex + 2] - radarGeo[dIndex + 7]*radarGeo[dIndex + 1])*DTINV;
+																									V=(radarGeo[dIndex + 7]*radarGeo[dIndex + 1] - radarGeo[dIndex + 6]*radarGeo[dIndex + 1])*DTINV;
+																								} else {
+																									U=(radarGeo[dIndex + 6]*P1 - radarGeo[dIndex + 7]*P2 + radarGeo[dIndex + 8]*P3)*DTINV;
+																									V=(radarGeo[dIndex + 6]*Q1 - radarGeo[dIndex + 7]*Q2 + radarGeo[dIndex + 8]*Q3)*DTINV;
+																									W=(radarGeo[dIndex + 6]*T1 - radarGeo[dIndex + 7]*T2 + radarGeo[dIndex + 8]*T3)*DTINV;
+																								}
+																								bgU[bIndex] = U;
+																								bgU[bIndex + 1] = V;
+																								bgU[bIndex + 2] = W;
+
+																								if (configHash.value("calc_radar_variance") == "true") {
+																									real iROI = configHash.value("i_reflectivity_roi").toFloat() / iincr;
+																									real jROI = configHash.value("j_reflectivity_roi").toFloat() / jincr;
+																									real kROI = configHash.value("k_reflectivity_roi").toFloat() / kincr;
+																									real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+																									for (int m=0; m < obVector.size(); m++) {
+																										Observation ob = obVector.at(m);
+																										if (ob.getType() == 2) {
+																											real rSquare = 0.0;
+																											real iPos = i;
+																											real jPos = j;
+																											real kPos = k;
+																											real obZ = ob.getAltitude();
+																											if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+																											if (runMode == XYZ) {
+																												real obX = ob.getCartesianX();
+																												if (fabs(iPos-obX) > iincr*iROI*2.) continue;
+																												real obY = ob.getCartesianY();
+																												if (fabs(jPos-obY) > jincr*jROI*2.) continue;
+																												rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+																							        } else if (runMode == RTZ) {
+																							          real obRadius = ob.getRadius();
+																												if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
+																							          real obTheta = ob.getTheta();
+																												real dTheta = fabs(jPos-obTheta);
+																												if (dTheta > 360.) dTheta -= 360.;
+																												if (dTheta > jincr*jROI*2.) continue;
+																												rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
+																											}
+																											if (rSquare < Rsquare) {
+																												real weight = exp(-2.302585092994045*rSquare/Rsquare);
+																												UA=UA+pow((weight*DIV*(P1*ob.getWeight(0,0)-P2*ob.getWeight(1,0)+P3*ob.getWeight(2,0))),2);
+																												VA=VA+pow((weight*DIV*(Q1*ob.getWeight(0,0)-Q2*ob.getWeight(1,0)+Q3*ob.getWeight(2,0))),2);
+																												WA=WA+pow((weight*DIV*(T1*ob.getWeight(0,0)-T2*ob.getWeight(1,0)+T3*ob.getWeight(2,0))),2);
+																											}
+																										}
+																									}
+																									UA=sqrt(UA);
+																									VA=sqrt(VA);
+																									WA=sqrt(WA);
+																								}
+																							} else {
+																								UA=1.0e3;
+																								VA=1.0e3;
+																								WA=1.0e3;
+																							}
+																						}
+																					}
                                         // On the nodes for mass continuity
                                         if ((mc_weight > 0.0) and
 																					!ihalf and !jhalf and !khalf and
@@ -1329,15 +1444,15 @@ bool VarDriver3D::preProcessMetObs()
                                                 varOb.setWeight(1.0, 1, 2);
                                                 varOb.setWeight(1.0, 2, 3);
                                             } else if (runMode == RTZ) {
-												if (i > 0) {
-													varOb.setRadius(i);
-													varOb.setTheta(j);
-													real rInverse = 180.0/(i*Pi);
-													varOb.setWeight((1.0/i), 0, 0);
-													varOb.setWeight(1.0, 0, 1);
-													varOb.setWeight(rInverse, 1, 2);
-													varOb.setWeight(1.0, 2, 3);
-												}
+																								if (i > 0) {
+																									varOb.setRadius(i);
+																									varOb.setTheta(j);
+																									real rInverse = 180.0/(i*Pi);
+																									varOb.setWeight((1.0/i), 0, 0);
+																									varOb.setWeight(1.0, 0, 1);
+																									varOb.setWeight(rInverse, 1, 2);
+																									varOb.setWeight(1.0, 2, 3);
+																								}
                                             }
                                             varOb.setAltitude(k);
                                             varOb.setError(mc_weight);
