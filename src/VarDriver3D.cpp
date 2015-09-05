@@ -1429,6 +1429,9 @@ bool VarDriver3D::preProcessMetObs()
 																								VA=1.0e3;
 																								WA=1.0e3;
 																							}
+																							bgU[bIndex] = UA;
+																							bgU[bIndex + 1] = VA;
+																							bgU[bIndex + 2] = WA;
 																						}
 																					}
                                         // On the nodes for mass continuity
