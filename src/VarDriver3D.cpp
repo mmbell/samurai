@@ -473,6 +473,7 @@ bool VarDriver3D::preProcessMetObs()
 
 			// Get the X, Y & Z
 			real tcX, tcY, metX, metY;
+			if ((metOb.getLat() == -999) or (metOb.getLat() == -999)) continue;
 			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
 			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
 			real obX = (metX - tcX)/1000.;
