@@ -12,7 +12,7 @@
 #define PARM_UNIT_LEN 8
 #define THRESHOLD_FLD_LEN 8
 #define MAX_BEAMS 1300 
-#define MAX_GATES 1500
+#define MAX_GATES 2000
 #define MAX_KEYS 8
 #define SIGN16 0x8000
 # define SHORTS_TO_INTS(x) ((((x)-1)>>1)+1)

@@ -228,7 +228,11 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 											relhum = -999.;
 											thetaes = -999.;
 										}
-										if (relhum > 100.) relhum = 100.0;
+										if (relhum > 100.) {
+												relhum = 100.0;
+												vp = satvp;
+												qv = qvsat;
+										}
 										real dewp = -999.0;
 										if (vp != 0) {
 											dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
