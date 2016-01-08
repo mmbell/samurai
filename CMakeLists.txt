@@ -58,6 +58,7 @@ set ( samurai_HDRS
 	src/CostFunctionXYZ.h
 	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
+	src/CostFunctionCOAMPS.h
 	src/MetObs.h 
         src/Observation.h 
         src/RecursiveFilter.h 
@@ -79,6 +80,7 @@ set ( samurai_SRCS
 	src/CostFunctionXYZ.cpp
 	src/CostFunctionXYP.cpp
 	src/CostFunctionRTZ.cpp
+	src/CostFunctionCOAMPS.cpp
 	src/main.cpp
 	src/MetObs.cpp
 	src/Observation.cpp

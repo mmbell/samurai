@@ -23,7 +23,7 @@ private:
 	bool outputAnalysis(const QString& suffix, real* Astate);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
-	bool writeFlatfileconst QString& flatFileName);
+	bool writeFlatfile(const QString& flatFileName);
 };
 
 #endif
