@@ -190,10 +190,10 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 	bool start = false;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
-		if (line.startsWith("Launch Site Type")) {
+		if (line.startsWith("Release Site Type")) {
 			QStringList lineparts = line.split(":");
 			aircraft = lineparts[1].trimmed();
-		} else if (line.startsWith("GMT")) {
+		} else if (line.startsWith("UTC")) {
 			datestr = line.mid(35,12);
 			timestr = line.mid(49,8);
 			QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
@@ -206,8 +206,8 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 			MetObs ob;
 			ob.setStationName(aircraft);
 			QStringList lineparts = line.split(QRegExp("\\s+"));
-			int msec = lineparts[1].toInt()*1000;
-			ob.setTime(datetime.addMSecs(msec));
+			int sec = lineparts[1].toFloat();
+			ob.setTime(datetime.addSecs(sec));
 			if (lineparts[11].toFloat() != 999.) {
 				ob.setLon(lineparts[11].toFloat());
 			} else {
