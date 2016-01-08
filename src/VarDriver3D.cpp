@@ -44,15 +44,15 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	// Validate the 3D specific parameters
 	if (!validateXMLconfig()) return false;
 
-    // Validate the run geometry
-    if (configHash.value("mode") == "XYZ") {
-        runMode = XYZ;
-    } else if (configHash.value("mode") == "RTZ") {
-        runMode = RTZ;
+  // Validate the run geometry
+  if (configHash.value("mode") == "XYZ") {
+      runMode = XYZ;
+  } else if (configHash.value("mode") == "RTZ") {
+      runMode = RTZ;
 	} else {
-        cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
-        return false;
-    }
+      cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
+      return false;
+  }
 
 	// Define the grid dimensions
 	imin = configHash.value("i_min").toFloat();
@@ -227,15 +227,17 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 		cout << "Number of New Observations: " << obVector.size() << endl;
 	}
 
-    if (runMode == XYZ) {
+  if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
 			obCost3D = new CostFunctionXYP(obVector.size(), bStateSize);
+		} else if (configHash.value("output_COAMPS") == "true") {
+			obCost3D = new CostFunctionCOAMPS(obVector.size(), bStateSize);
 		} else {
 			obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
 		}
-    } else if (runMode == RTZ) {
-        obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
-    }
+  } else if (runMode == RTZ) {
+      obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
+  }
 	obCost3D->initialize(&configHash, bgU, obs, refstate);
 
 	// If we got here, then everything probably went OK!

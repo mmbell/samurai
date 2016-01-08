@@ -37,20 +37,18 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   }
 
   int analysisDim = 51;
-	int sDim = 42;
+	sDim = 42;
   int analysisSize = (iDim-2)*(jDim-2)*(sDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
 	real gausspoint = 0.5*sqrt(1./3.);
 
-	// Sigma height levels
-	const real sigma[40] = { 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
+	/* Sigma height levels
+	sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
 		16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
 		9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
 		3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
 		1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
-		55.0, 30.0, 10.0 };
-	const real ztop = 31885.0;
-	const real zsfc = 0.0;
+		55.0, 30.0, 10.0, 0.0 }; */
 
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
@@ -65,8 +63,8 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 							if (j > ((jDim-1)*DJ + jMin)) continue;
 
 							real tpw = 0;
-							for (int kIndex = 0; kIndex < 40; kIndex++) {
-								real k = (sigma[kIndex]*(ztop - zsfc)/ztop + zsfc)/1000.0;
+							for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
+								real k = (sigma[kIndex]*(sigma[0] - sigma[41])/sigma[0] + sigma[41])/1000.0;
 								real imu, jmu, kmu, ihalf, jhalf, khalf;
 								imu = jmu = kmu = ihalf = jhalf = khalf = 0.0;
 								if (k < kMin) continue;
@@ -350,7 +348,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 
 									// On the nodes
 									if (!ihalf and !jhalf and !khalf){
-										int fIndex = (iDim-2)*(jDim-2)*(kDim-2);
+										int fIndex = (iDim-2)*(jDim-2)*(sDim-2);
 										int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
 										finalAnalysis[fIndex * 0 + posIndex] = u;
 										finalAnalysis[fIndex * 1 + posIndex] = v;
@@ -505,26 +503,57 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
         }
 	}
 
+	// Write out COAMPS flatfiles
+	QString flatFileName = outFileName + "_uuwind_sig_029385";
+	writeFlatfile(flatFileName, 0);
+
+	flatFileName = outFileName + "_vvwind_sig_029385";
+	writeFlatfile(flatFileName, 1);
+
 	adjustInternalDomain(-1);
+	sDim -= 2;
 
 	// Write out to a netCDF file
 	if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
-    }
+		QString cdfFileName = outFileName + ".nc";
+		if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
+		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+	}
 	// Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
-    }
+	if (configHash->value("output_asi") == "true") {
+		QString asiFileName = outFileName + ".asi";
+		if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
+		cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+	}
+
 	// Set the domain back
 	adjustInternalDomain(1);
+	sDim += 2;
 
   // Free the memory for the analysis variables
   delete[] finalAnalysis;
 
+	return true;
+
+}
+
+bool CostFunctionCOAMPS::writeFlatfile(const QString& flatFileName, const int var)
+{
+	// Write out a binary file for use with COAMPS
+	QFile file(flatFileName);
+	file.open(QIODevice::WriteOnly);
+	QDataStream out(&file);
+
+	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
+		for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
+			for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+				int fIndex = (iDim-2)*(jDim-2)*(sDim-2);
+				int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
+				out << finalAnalysis[fIndex * var + posIndex];
+			}
+		}
+	}
+	file.close();
 	return true;
 
 }
@@ -548,7 +577,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!(latDim = dataFile.add_dim("latitude", jDim)))
 		return NC_ERR;
-	if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
+	if (!(lvlDim = dataFile.add_dim("altitude", sDim)))
 		return NC_ERR;
 	// Add an unlimited dimension...
 	if (!(timeDim = dataFile.add_dim("time")))
@@ -1183,7 +1212,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	// Write the coordinate variable data to the file.
 	real *lons = new real[iDim];
 	real *lats = new real[jDim];
-	real *levs = new real[kDim];
+	real *levs = new real[sDim];
     real *x = new real[iDim];
     real *y = new real[jDim];
 	int time[2];
@@ -1224,11 +1253,11 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	if (!yVar->put(y, jDim))
 		return NC_ERR;
 
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-		real k = kMin + DK * kIndex;
-		levs[kIndex] = k;
+	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
+		levs[kIndex-1] = (sigma[kIndex]*(sigma[0] - sigma[41])/sigma[0] + sigma[41])/1000.0;
 	}
-	if (!lvlVar->put(levs, kDim))
+
+	if (!lvlVar->put(levs, sDim))
 		return NC_ERR;
 
 	if (!timeVar->put(time, 1))
@@ -1239,105 +1268,105 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	{
 		if (!u->put_rec(&finalAnalysis[0], rec))
 			return NC_ERR;
-		if (!v->put_rec(&finalAnalysis[iDim*jDim*kDim*1], rec))
+		if (!v->put_rec(&finalAnalysis[iDim*jDim*sDim*1], rec))
 			return NC_ERR;
-		if (!w->put_rec(&finalAnalysis[iDim*jDim*kDim*2], rec))
+		if (!w->put_rec(&finalAnalysis[iDim*jDim*sDim*2], rec))
 			return NC_ERR;
-		if (!wspd->put_rec(&finalAnalysis[iDim*jDim*kDim*3], rec))
+		if (!wspd->put_rec(&finalAnalysis[iDim*jDim*sDim*3], rec))
 			return NC_ERR;
-		if (!relhum->put_rec(&finalAnalysis[iDim*jDim*kDim*4], rec))
+		if (!relhum->put_rec(&finalAnalysis[iDim*jDim*sDim*4], rec))
 			return NC_ERR;
-		if (!hprime->put_rec(&finalAnalysis[iDim*jDim*kDim*5], rec))
+		if (!hprime->put_rec(&finalAnalysis[iDim*jDim*sDim*5], rec))
 			return NC_ERR;
-		if (!qvprime->put_rec(&finalAnalysis[iDim*jDim*kDim*6], rec))
+		if (!qvprime->put_rec(&finalAnalysis[iDim*jDim*sDim*6], rec))
 			return NC_ERR;
-		if (!rhoprime->put_rec(&finalAnalysis[iDim*jDim*kDim*7], rec))
+		if (!rhoprime->put_rec(&finalAnalysis[iDim*jDim*sDim*7], rec))
 			return NC_ERR;
-		if (!tprime->put_rec(&finalAnalysis[iDim*jDim*kDim*8], rec))
+		if (!tprime->put_rec(&finalAnalysis[iDim*jDim*sDim*8], rec))
 			return NC_ERR;
-		if (!pprime->put_rec(&finalAnalysis[iDim*jDim*kDim*9], rec))
+		if (!pprime->put_rec(&finalAnalysis[iDim*jDim*sDim*9], rec))
 			return NC_ERR;
-		if (!vorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*10], rec))
+		if (!vorticity->put_rec(&finalAnalysis[iDim*jDim*sDim*10], rec))
 			return NC_ERR;
-		if (!divergence->put_rec(&finalAnalysis[iDim*jDim*kDim*11], rec))
+		if (!divergence->put_rec(&finalAnalysis[iDim*jDim*sDim*11], rec))
 			return NC_ERR;
-		if (!okuboweiss->put_rec(&finalAnalysis[iDim*jDim*kDim*12], rec))
+		if (!okuboweiss->put_rec(&finalAnalysis[iDim*jDim*sDim*12], rec))
 			return NC_ERR;
-		if (!strain->put_rec(&finalAnalysis[iDim*jDim*kDim*13], rec))
+		if (!strain->put_rec(&finalAnalysis[iDim*jDim*sDim*13], rec))
 			return NC_ERR;
-		if (!tpw->put_rec(&finalAnalysis[iDim*jDim*kDim*14], rec))
+		if (!tpw->put_rec(&finalAnalysis[iDim*jDim*sDim*14], rec))
 			return NC_ERR;
-		if (!rhou->put_rec(&finalAnalysis[iDim*jDim*kDim*15], rec))
+		if (!rhou->put_rec(&finalAnalysis[iDim*jDim*sDim*15], rec))
 			return NC_ERR;
-		if (!rhov->put_rec(&finalAnalysis[iDim*jDim*kDim*16], rec))
+		if (!rhov->put_rec(&finalAnalysis[iDim*jDim*sDim*16], rec))
 			return NC_ERR;
-		if (!rhow->put_rec(&finalAnalysis[iDim*jDim*kDim*17], rec))
+		if (!rhow->put_rec(&finalAnalysis[iDim*jDim*sDim*17], rec))
 			return NC_ERR;
-		if (!rho->put_rec(&finalAnalysis[iDim*jDim*kDim*18], rec))
+		if (!rho->put_rec(&finalAnalysis[iDim*jDim*sDim*18], rec))
 			return NC_ERR;
-		if (!press->put_rec(&finalAnalysis[iDim*jDim*kDim*19], rec))
+		if (!press->put_rec(&finalAnalysis[iDim*jDim*sDim*19], rec))
 			return NC_ERR;
-		if (!temp->put_rec(&finalAnalysis[iDim*jDim*kDim*20], rec))
+		if (!temp->put_rec(&finalAnalysis[iDim*jDim*sDim*20], rec))
 			return NC_ERR;
-		if (!qv->put_rec(&finalAnalysis[iDim*jDim*kDim*21], rec))
+		if (!qv->put_rec(&finalAnalysis[iDim*jDim*sDim*21], rec))
 			return NC_ERR;
-		if (!h->put_rec(&finalAnalysis[iDim*jDim*kDim*22], rec))
+		if (!h->put_rec(&finalAnalysis[iDim*jDim*sDim*22], rec))
 			return NC_ERR;
-		if (!qr->put_rec(&finalAnalysis[iDim*jDim*kDim*23], rec))
+		if (!qr->put_rec(&finalAnalysis[iDim*jDim*sDim*23], rec))
 			return NC_ERR;
-        if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec))
+        if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*sDim*24], rec))
 			return NC_ERR;
-		if (!dewp->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec))
+		if (!dewp->put_rec(&finalAnalysis[iDim*jDim*sDim*25], rec))
 			return NC_ERR;
-		if (!theta->put_rec(&finalAnalysis[iDim*jDim*kDim*26], rec))
+		if (!theta->put_rec(&finalAnalysis[iDim*jDim*sDim*26], rec))
 			return NC_ERR;
-		if (!thetae->put_rec(&finalAnalysis[iDim*jDim*kDim*27], rec))
+		if (!thetae->put_rec(&finalAnalysis[iDim*jDim*sDim*27], rec))
 			return NC_ERR;
-		if (!thetaes->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec))
+		if (!thetaes->put_rec(&finalAnalysis[iDim*jDim*sDim*28], rec))
 			return NC_ERR;
-        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec))
+        if (!dudx->put_rec(&finalAnalysis[iDim*jDim*sDim*29], rec))
 			return NC_ERR;
-		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec))
+		if (!dvdx->put_rec(&finalAnalysis[iDim*jDim*sDim*30], rec))
 			return NC_ERR;
-		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*kDim*31], rec))
+		if (!dwdx->put_rec(&finalAnalysis[iDim*jDim*sDim*31], rec))
 			return NC_ERR;
-		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*kDim*32], rec))
+		if (!dudy->put_rec(&finalAnalysis[iDim*jDim*sDim*32], rec))
 			return NC_ERR;
-		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*kDim*33], rec))
+		if (!dvdy->put_rec(&finalAnalysis[iDim*jDim*sDim*33], rec))
 			return NC_ERR;
-		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*kDim*34], rec))
+		if (!dwdy->put_rec(&finalAnalysis[iDim*jDim*sDim*34], rec))
 			return NC_ERR;
-		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*kDim*35], rec))
+		if (!dudz->put_rec(&finalAnalysis[iDim*jDim*sDim*35], rec))
 			return NC_ERR;
-		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*kDim*36], rec))
+		if (!dvdz->put_rec(&finalAnalysis[iDim*jDim*sDim*36], rec))
 			return NC_ERR;
-		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*kDim*37], rec))
+		if (!dwdz->put_rec(&finalAnalysis[iDim*jDim*sDim*37], rec))
 			return NC_ERR;
-		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*kDim*38], rec))
+		if (!dtdx->put_rec(&finalAnalysis[iDim*jDim*sDim*38], rec))
 			return NC_ERR;
-		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*kDim*39], rec))
+		if (!dtdy->put_rec(&finalAnalysis[iDim*jDim*sDim*39], rec))
 			return NC_ERR;
-		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*kDim*40], rec))
+		if (!dtdz->put_rec(&finalAnalysis[iDim*jDim*sDim*40], rec))
 			return NC_ERR;
-		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*kDim*41], rec))
+		if (!dqdx->put_rec(&finalAnalysis[iDim*jDim*sDim*41], rec))
 			return NC_ERR;
-		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*kDim*42], rec))
+		if (!dqdy->put_rec(&finalAnalysis[iDim*jDim*sDim*42], rec))
 			return NC_ERR;
-		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*kDim*43], rec))
+		if (!dqdz->put_rec(&finalAnalysis[iDim*jDim*sDim*43], rec))
 			return NC_ERR;
-		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*kDim*44], rec))
+		if (!dpdx->put_rec(&finalAnalysis[iDim*jDim*sDim*44], rec))
 			return NC_ERR;
-		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*kDim*45], rec))
+		if (!dpdy->put_rec(&finalAnalysis[iDim*jDim*sDim*45], rec))
 			return NC_ERR;
-		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*kDim*46], rec))
+		if (!dpdz->put_rec(&finalAnalysis[iDim*jDim*sDim*46], rec))
 			return NC_ERR;
-		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*kDim*47], rec))
+		if (!drhodx->put_rec(&finalAnalysis[iDim*jDim*sDim*47], rec))
 			return NC_ERR;
-		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*kDim*48], rec))
+		if (!drhody->put_rec(&finalAnalysis[iDim*jDim*sDim*48], rec))
 			return NC_ERR;
-		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*kDim*49], rec))
+		if (!drhodz->put_rec(&finalAnalysis[iDim*jDim*sDim*49], rec))
 			return NC_ERR;
-		if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*kDim*50], rec))
+		if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*sDim*50], rec))
 			return NC_ERR;
 
 	}
@@ -1423,7 +1452,7 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 	// Z Header
 	id[170] = (int)kMin*1000;
 	id[171] = (int)kMax*1000;
-	id[172] = (int)kDim;
+	id[172] = (int)sDim;
 	id[173] = int(DK * 1000);
 	id[174] = 3;
 

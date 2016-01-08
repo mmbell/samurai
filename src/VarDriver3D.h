@@ -16,6 +16,7 @@
 #include "CostFunctionXYZ.h"
 #include "CostFunctionXYP.h"
 #include "CostFunctionRTZ.h"
+#include "CostFunctionCOAMPS.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include <iostream>
