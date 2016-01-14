@@ -52,6 +52,25 @@ A few external libraries are required:
 
 [FFTW] (http://www.fftw.org/) is used for Fourier filtering in periodic domains
 
+### Notes for Mac OSX Yosemite and El Capitan
+
+[Homebrew] (http://brew.sh) can provide all of the libraries listed above to run SAMURAI on the Mac, but a few tweaks are required.
+
+NetCDF introduced new C++ bindings in later versions, and these are not compiled by default. To install a compatible netCDF version use:
+
+     $ brew install --with-cxx-compat --with-fortran netcdf
+
+The default Apple compiler (clang) does not support openMP and the CMake will fail. SAMURAI can run in serial mode but it is much slower. 
+A better option is to install GCC via Homebrew, but some recent versions (ie., 5.2) actually have problems with openMP as well. To fix this problem use:
+
+     $ brew install gcc --without-multilib
+
+You then need to force CMake to use the new compiler, either with the CMakelists.txt file, the command line option given above, or
+
+     $ export CXX="g++-5.2" 
+
+in the terminal will do the same thing.
+
 ## Running SAMURAI
 
 The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a subdirectory specified in the configuration. 
