@@ -42,13 +42,13 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 	finalAnalysis = new real[analysisSize*analysisDim];
 	real gausspoint = 0.5*sqrt(1./3.);
 
-	/* Sigma height levels
-	sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
+	// Sigma height levels
+	const real sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
 		16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
 		9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
 		3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
 		1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
-		55.0, 30.0, 10.0, 0.0 }; */
+		55.0, 30.0, 10.0, 0.0 };
 
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
@@ -1252,6 +1252,13 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 
 	if (!yVar->put(y, jDim))
 		return NC_ERR;
+
+        const real sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
+                16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
+                9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
+                3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
+                1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
+                55.0, 30.0, 10.0, 0.0 }; 
 
 	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
 		levs[kIndex-1] = (sigma[kIndex]*(sigma[0] - sigma[41])/sigma[0] + sigma[41])/1000.0;
