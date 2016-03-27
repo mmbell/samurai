@@ -2087,13 +2087,11 @@ void CostFunction3D::calcSBmatrix()
   std::cout << "Build SB transform matrix...\n";
 
   // Allocate memory for the sparse matrix
-  // 193 elements for columns assumes a maximum of 3 variables
-  // will be used in an observation.
   real **Bbuild = new real*[nState];
   real **JBbuild = new real*[nState];
   for (int n = 0; n < nState; n++) {
-    Bbuild[n] = new real[193];
-    JBbuild[n] = new real[193];
+    Bbuild[n] = new real[218];
+    JBbuild[n] = new real[218];
   }
   ISB = new int[nState+1];
 
@@ -2109,8 +2107,8 @@ void CostFunction3D::calcSBmatrix()
           int bi = 1;
           int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
 
-          for (int iIndex = iNode-2; iIndex < iNode+1; iIndex++) {
-            for (int imu = 1; imu <= 2; imu += 1) {
+          for (int iIndex = max(1,iNode-2); iIndex < min(iDim-1,iNode+1); iIndex++) {
+            for (int imu = 0; imu <= 1; imu += 1) {
               real i = iMin + DI * (iIndex + (0.5 * imu));
               if ((i < (iMin+DI)) or (i > (iDim-DI*2))) continue;
               real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
@@ -2119,9 +2117,9 @@ void CostFunction3D::calcSBmatrix()
               } else {
                 iweight = ONESIXTH * (4.0 - 3.0 * imu) * DI * ibasis;
               }
-              int uI = (iIndex-1)*2 + imu-1;
-              for (int jIndex = jNode-2; jIndex < jNode+1; jIndex++) {
-                for (int jmu = 1; jmu <= 2; jmu += 1) {
+              int uI = (iIndex-1)*2 + imu;
+              for (int jIndex = max(1,jNode-2); jIndex < min(jDim-1,jNode+1); jIndex++) {
+                for (int jmu = 0; jmu <= 1; jmu += 1) {
                   real j = jMin + DJ * (jIndex + (0.5 * jmu));
                   if ((j < (jMin+DJ)) or (j > (jDim-DJ*2))) continue;
                   real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
@@ -2130,9 +2128,9 @@ void CostFunction3D::calcSBmatrix()
                   } else {
                     jweight = ONESIXTH * (4.0 - 3.0 * jmu) * DJ * jbasis;
                   }
-                  int uJ = (jIndex-1)*2 + jmu-1;
-                  for (int kIndex = kNode-2; kIndex < kNode+1; kIndex++) {
-                    for (int kmu = 1; kmu <= 2; kmu += 1) {
+                  int uJ = (jIndex-1)*2 + jmu;
+                  for (int kIndex = max(1,kNode-2); kIndex < min(kDim-1,kNode+1); kIndex++) {
+                    for (int kmu = 0; kmu <= 1; kmu += 1) {
                       real k = kMin + DK * (kIndex + (0.5 * kmu));
                       if ((k < (kMin+DK)) or (k > (kDim-DK*2))) continue;
                       real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
@@ -2141,7 +2139,7 @@ void CostFunction3D::calcSBmatrix()
                       } else {
                         kweight = ONESIXTH * (4.0 - 3.0 * kmu) * DK * kbasis;
                       }
-                      int uK = (kIndex-1)*2 + kmu-1;
+                      int uK = (kIndex-1)*2 + kmu;
                       int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
                       //#pragma omp atomic
                       Bbuild[bIndex][bi] = iweight * jweight * kweight;
@@ -2154,7 +2152,7 @@ void CostFunction3D::calcSBmatrix()
             }
           }
           Bbuild[bIndex][0] = bi;
-          if (bi > 193) {
+          if (bi > 217) {
             cout << "Overflow in SB matrix calculation!" << bi << "\n";
           }
         }
