@@ -90,7 +90,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 
-	int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
+	int uStateSize = 8*(idim)*(jdim)*(kdim)*(numVars);
 	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
 	cout << "Physical (mish) State size = " << uStateSize << "\n";
 	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
@@ -1285,112 +1285,104 @@ bool VarDriver3D::preProcessMetObs()
         }
     }
     real gausspoint = 0.5*sqrt(1./3.);
-    for (int iIndex = -1; iIndex < idim; iIndex++) {
-        for (int ihalf = 0; ihalf <= 1; ihalf++) {
-            for (int imu = -ihalf; imu <= ihalf; imu++) {
-                real i = imin + iincr * (iIndex + (gausspoint * imu + 0.5*ihalf));
-                for (int jIndex = -1; jIndex < jdim; jIndex++) {
-                    for (int jhalf =0; jhalf <= 1; jhalf++) {
-                        for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-                            real j = jmin + jincr * (jIndex + (gausspoint * jmu + 0.5*jhalf));
-                            real maxrefHeight = -1;
-                            for (int kIndex = -1; kIndex < kdim; kIndex++) {
-                                for (int khalf =0; khalf <= 1; khalf++) {
-                                    for (int kmu = -khalf; kmu <= khalf; kmu++) {
-                                        real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
-                                        // On the mish
-                                        if (ihalf and jhalf and khalf and
-                                            (imu != 0) and (jmu != 0) and (kmu != 0)){
-                                            int bgI = (iIndex+1)*2 + (imu+1)/2;
-                                            int bgJ = (jIndex+1)*2 + (jmu+1)/2;
-                                            int bgK = (kIndex+1)*2 + (kmu+1)/2;
-                                            int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                                            if (bgWeights[bIndex] != 0) {
-                                                bgU[bIndex +6] /= bgWeights[bIndex];
-																						}
-																						if (configHash.value("qr_variable") == "dbz") {
-																								if (bgU[bIndex +6] > 0) {
-																									real dbzavg = 10* log10(bgU[bIndex +6]);
-																									bgU[bIndex +6] = (dbzavg+35.)*0.1;
-																								} else {
-																									bgU[bIndex +6] = 0.0;
-																								}
-																								if (bgU[bIndex +6] > 3.5) {
-																										maxrefHeight = k;
-																								}
-                                            }
-                                        }
-                                        // On the nodes for mass continuity
-                                        if ((mc_weight > 0.0) and
-																					!ihalf and !jhalf and !khalf and
-																					 	(i >= imin) and (i <= imax) and
-																						(j >= jmin) and (j <= jmax) and
-																						(k >= kmin) and (k <= kmax)) {
-                                            if (runMode == XYZ) {
-                                                varOb.setCartesianX(i);
-                                                varOb.setCartesianY(j);
-                                                varOb.setWeight(1.0, 0, 1);
-                                                varOb.setWeight(1.0, 1, 2);
-                                                varOb.setWeight(1.0, 2, 3);
-                                            } else if (runMode == RTZ) {
-												if (i > 0) {
-													varOb.setRadius(i);
-													varOb.setTheta(j);
-													real rInverse = 180.0/(i*Pi);
-													varOb.setWeight((1.0/i), 0, 0);
-													varOb.setWeight(1.0, 0, 1);
-													varOb.setWeight(rInverse, 1, 2);
-													varOb.setWeight(1.0, 2, 3);
-												}
-                                            }
-                                            varOb.setAltitude(k);
-                                            varOb.setError(mc_weight);
-                                            varOb.setOb(0.);
-                                            obVector.push_back(varOb);
-                                        }
-                                    }
-                                }
-                            }
-                            varOb.setWeight(0.0, 0, 1);
-                            varOb.setWeight(0.0, 1, 2);
-                            varOb.setWeight(0.0, 2, 3);
-                            varOb.setWeight(1., 2);
-                            if (runMode == XYZ) {
-                                varOb.setCartesianX(i);
-                                varOb.setCartesianY(j);
-                            } else if (runMode == RTZ) {
-                                varOb.setRadius(i);
-                                varOb.setTheta(j);
-                            }
-                            varOb.setError(pseudow_weight);
-                            varOb.setOb(0.);
-                            if (!ihalf and !jhalf){
-                                // Set an upper boundary condition for W
-                                if ((maxrefHeight > 0) and (maxrefHeight < kmax)
-                                    and (pseudow_weight > 0.0)) {
-                                    varOb.setAltitude(maxrefHeight);
-                                    obVector.push_back(varOb);
-                                }
+		for (int iIndex = 0; iIndex < idim; iIndex++) {
+			for (int imu = 0; imu <= 1; imu++) {
+				real i = imin + iincr * (iIndex + (0.5*imu));
+				for (int jIndex = 0; jIndex < jdim; jIndex++) {
+					for (int jmu =0; jmu <= 1; jmu++) {
+						real j = jmin + jincr * (jIndex + (0.5*jmu));
+						real maxrefHeight = -1;
+						for (int kIndex = 0; kIndex < kdim; kIndex++) {
+							for (int kmu =0; kmu <= 1; kmu++) {
+								real k = kmin + kincr * (kIndex + (0.5*kmu));
+								// On the mish
+								int bgI = iIndex*2 + imu;
+								int bgJ = jIndex*2 + jmu;
+								int bgK = kIndex*2 + kmu;
+								int bIndex = numVars*(idim)*2*(jdim)*2*bgK + numVars*(idim)*2*bgJ +numVars*bgI;
+								if (bgWeights[bIndex] != 0) {
+									bgU[bIndex +6] /= bgWeights[bIndex];
+								}
+								if (configHash.value("qr_variable") == "dbz") {
+									if (bgU[bIndex +6] > 0) {
+										real dbzavg = 10* log10(bgU[bIndex +6]);
+										bgU[bIndex +6] = (dbzavg+35.)*0.1;
+									} else {
+										bgU[bIndex +6] = 0.0;
+									}
+									if (bgU[bIndex +6] > 3.5) {
+										maxrefHeight = k;
+									}
+								}
+								if ((imu == 0) and (jmu == 0) and (kmu == 0)) {
+									// On the nodes for mass continuity
+									if ((mc_weight > 0.0) and
+									(i >= imin) and (i <= imax) and
+									(j >= jmin) and (j <= jmax) and
+									(k >= kmin) and (k <= kmax)) {
+										if (runMode == XYZ) {
+											varOb.setCartesianX(i);
+											varOb.setCartesianY(j);
+											varOb.setWeight(1.0, 0, 1);
+											varOb.setWeight(1.0, 1, 2);
+											varOb.setWeight(1.0, 2, 3);
+										} else if (runMode == RTZ) {
+											if (i > 0) {
+												varOb.setRadius(i);
+												varOb.setTheta(j);
+												real rInverse = 180.0/(i*Pi);
+												varOb.setWeight((1.0/i), 0, 0);
+												varOb.setWeight(1.0, 0, 1);
+												varOb.setWeight(rInverse, 1, 2);
+												varOb.setWeight(1.0, 2, 3);
+											}
+										}
+										varOb.setAltitude(k);
+										varOb.setError(mc_weight);
+										varOb.setOb(0.);
+										obVector.push_back(varOb);
+									}
+								}
+							}
+						}
+						varOb.setWeight(0.0, 0, 1);
+						varOb.setWeight(0.0, 1, 2);
+						varOb.setWeight(0.0, 2, 3);
+						varOb.setWeight(1., 2);
+						if (runMode == XYZ) {
+							varOb.setCartesianX(i);
+							varOb.setCartesianY(j);
+						} else if (runMode == RTZ) {
+							varOb.setRadius(i);
+							varOb.setTheta(j);
+						}
+						varOb.setError(pseudow_weight);
+						varOb.setOb(0.);
+						if (!imu and !jmu){
+							// Set an upper boundary condition for W
+							if ((maxrefHeight > 0) and (maxrefHeight < kmax)
+							and (pseudow_weight > 0.0)) {
+								varOb.setAltitude(maxrefHeight);
+								obVector.push_back(varOb);
+							}
 
-                                // Set a lower boundary condition for W
-                                // Ideally use a terrain map here, but just use Z=0 for now
-                                if (pseudow_weight > 0.0) {
-                                    varOb.setAltitude(0.0);
-                                    varOb.setError(pseudow_weight);
-                                    obVector.push_back(varOb);
-                                }
-                            }
-                            varOb.setWeight(0., 2);
-                        }
-                    }
-                }
-            }
-        }
-    }
+							// Set a lower boundary condition for W
+							// Ideally use a terrain map here, but just use Z=0 for now
+							if (pseudow_weight > 0.0) {
+								varOb.setAltitude(0.0);
+								varOb.setError(pseudow_weight);
+								obVector.push_back(varOb);
+							}
+						}
+						varOb.setWeight(0., 2);
+					}
+				}
+			}
+		}
     cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
     // Write the Obs to a summary text file
-	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
+		QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ofstream obstream(obFilename.toAscii().data());
     // Header messes up reload
     /*ostream_iterator<string> os(obstream, "\t ");

@@ -79,6 +79,7 @@ void CostFunction3D::finalize()
     delete[] df;
     delete[] CTHTd;
     delete[] stateU;
+    delete[] stateV;
     delete[] obsVector;
     delete[] HCq;
     delete[] innovation;
@@ -90,6 +91,12 @@ void CostFunction3D::finalize()
     delete[] H;
     delete[] JH;
     delete[] IH;
+    delete[] SB;
+    delete[] JSB;
+    delete[] ISB;
+    delete[] SI;
+    delete[] JSI;
+    delete[] ISI;
     if (basisappx > 0) {
         delete[] basis0;
         delete[] basis1;
@@ -218,12 +225,14 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 
     // These are local to this one
     CTHTd = new real[nState];
-    stateU = new real[nState];
+    uState = 8*(iDim-2)*(jDim-2)*(kDim-2)*varDim;
+    stateU = new real[uState];
+    stateV = new real[uState];
     obsVector = new real[mObs*(7+varDim*derivDim)];
     HCq = new real[mObs+nodes];
     innovation = new real[mObs+nodes];
     bgState = new real[nState];
-    bgStdDev = new real[nState];
+    bgStdDev = new real[uState];
     stateA = new real[nState];
     stateB = new real[nState];
     stateC = new real[nState];
@@ -387,9 +396,17 @@ void CostFunction3D::initState(const int iteration)
         // Set up the background state
         for (int n = 0; n < nState; n++) {
             bgState[n] = 0.0;
-            // Initialize the std. dev. to 1 for the initial SC transform
-            bgStdDev[n] = 1.0;
         }
+        for (int u = 0; u < uState; u++) {
+          // Initialize the std. dev. to 1 for the initial SC transform
+          bgStdDev[u] = 1.0;
+        }
+
+        // Precalculate the SB matrix
+        calcSBmatrix();
+
+        // Precalculate the SI matrix
+        calcSImatrix();
 
         if (configHash->value("load_bg_coefficients") == "true") {
             for (int n = 0; n < nState; n++) {
@@ -408,16 +425,33 @@ void CostFunction3D::initState(const int iteration)
 
     }
 
+    // Using a constant bg error variance for now, but this could be variable across the nodes
     for (int var = 0; var < varDim; var++) {
-        // Using a constant bg error variance for now, but this could be variable across the nodes
-        for (int iIndex = 0; iIndex < iDim; iIndex++) {
-            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-                    bgStdDev[bIndex] = bgError[var];
+      for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
+        for (int imu = 0; imu <= 1; imu++) {
+          real i = iMin + DI * (iIndex + (0.5 * imu));
+          if (i > ((iDim-1)*DI + iMin)) continue;
+          int uI = (iIndex-1)*2 + imu;
+
+          for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+            for (int jmu = 0; jmu <= 1; jmu++) {
+              real j = jMin + DJ * (jIndex + (0.5 * jmu));
+              if (j > ((jDim-1)*DJ + jMin)) continue;
+              int uJ = (jIndex-1)*2 + jmu;
+
+              for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
+                for (int kmu = 0; kmu <= 1; kmu++) {
+                  real k = kMin + DK * (kIndex + (0.5 * kmu));
+                  if (k > ((kDim-1)*DK + kMin)) continue;
+                  int uK = (kIndex-1)*2 + kmu;
+                  int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
+                  bgStdDev[uIndex] = bgError[var];
                 }
+              }
             }
+          }
         }
+      }
     }
 
     // Compute and display the variable BG errors and RMS of values
@@ -458,12 +492,12 @@ void CostFunction3D::initState(const int iteration)
 
     // HTd
     calcHTranspose(innovation, stateC);
-
     FFtransform(stateC, stateA);
-    SAtransform(stateA, stateB);
-    SCtransform(stateB, CTHTd);
+    SBtranspose(stateA, stateV);
+    SCtransform(stateV, stateU);
+    SItranspose(stateU, stateA);
+    SAtransform(stateA, CTHTd);
 
-    //Htransform(stateB);
 }
 
 real CostFunction3D::funcValue(real* state)
@@ -499,10 +533,12 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
     updateHCq(state);
 
     // HTHCq
-    calcHTranspose(HCq, stateC);
-    FFtransform(stateC, stateA);
-    SAtransform(stateA, stateB);
-    SCtransform(stateB, stateC);
+    calcHTranspose(HCq, stateB);
+    FFtransform(stateB, stateA);
+    SBtranspose(stateA, stateV);
+    SCtransform(stateV, stateU);
+    SItranspose(stateU, stateA);
+    SAtransform(stateA, stateC);
 
     for (int n = 0; n < nState; n++) {
         gradient[n] = state[n] + stateC[n] - CTHTd[n];
@@ -514,9 +550,11 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 void CostFunction3D::updateHCq(real* state)
 {
 
-    SCtransform(state, stateB);
-    SAtransform(stateB, stateA);
-    FFtransform(stateA, stateC);
+    SAtransform(state, stateA);
+    SItransform(stateA, stateU);
+    SCtransform(stateU, stateV);
+    SBtransform(stateV, stateB);
+    FFtransform(stateB, stateC);
     Htransform(stateC, HCq);
 
 }
@@ -525,9 +563,11 @@ void CostFunction3D::updateBG()
 {
 
     // S (SA transform) yield A's
-    SCtransform(currState, stateB);
-    SAtransform(stateB, stateA);
-    FFtransform(stateA, stateC);
+    SAtransform(currState, stateA);
+    SItransform(stateA, stateU);
+    SCtransform(stateU, stateV);
+    SBtransform(stateV, stateB);
+    FFtransform(stateB, stateC);
     outputAnalysis("increment", stateC);
 
     // In BG update we are directly summing C + A
@@ -578,7 +618,6 @@ void CostFunction3D::calcInnovation()
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
-
     // Clear the Astate
     for (int n = 0; n < nState; n++) {
         Astate[n] = 0.0;
@@ -595,7 +634,20 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
         Astate[JH[j]] += H[j] * yhat[m] * obsVector[mi];
       }
     }
+}
 
+void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
+{
+  // Multiply the state by the observation matrix
+  #pragma omp parallel for
+  for(int i=0; i<mObs; ++i) {
+    Hstate[i] = 0.0;
+    const int begin = IH[i];
+    const int end = IH[i + 1];
+    for(int j=begin; j<end; ++j) {
+      Hstate[i] += H[j] * Cstate[JH[j]];
+    }
+  }
 }
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
@@ -938,174 +990,128 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
-    // Clear the Bstate
-    for (int n = 0; n < nState; n++) {
-        Bstate[n] = 0.;
-    }
-    real gausspoint = 0.5*sqrt(1./3.);
 
-//#pragma omp parallel for
-    for (int var = 0; var < varDim; var++) {
-        for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
-            for (int imu = -1; imu <= 1; imu += 2) {
-                real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
-                int ii = (int)((i - iMin)*DIrecip);
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-                    int uI = iIndex*2 + (imu+1)/2;
-                    for (int jIndex = min(rankHash[jBCL[var]],1); jIndex < max(jDim-1-rankHash[jBCR[var]],jDim-2); jIndex++) {
-                        for (int jmu = -1; jmu <= 1; jmu += 2) {
-                            real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
-                            int jj = (int)((j - jMin)*DJrecip);
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-                                int uJ = jIndex*2 + (jmu+1)/2;
-                                real ijbasis = ibasis * jbasis;
-                                for (int kIndex = min(rankHash[kBCL[var]],1); kIndex < max(kDim-1-rankHash[kBCR[var]],kDim-2); kIndex++) {
-                                    for (int kmu = -1; kmu <= 1; kmu += 2) {
-                                        real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
-                                        int kk = (int)((k - kMin)*DKrecip);
-                                        for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                                            int kNode = kkNode;
-                                            if ((kNode < 0) or (kNode >= kDim)) continue;
-                                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-                                            real ijkbasis = 0.125 * ijbasis * kbasis;
-                                            int uK = kIndex*2 + (kmu+1)/2;
-                                            int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
-                                            int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-
-                                            int ui = uIndex + var;
-                                            if (Ustate[ui] == 0) continue;
-                                            int bi = bIndex + var;
-                                            //#pragma omp atomic
-                                            Bstate[bi] += Ustate[ui] * ijkbasis;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    // Multiply the state by the SB matrix
+    #pragma omp parallel for
+    for(int i=0; i<nState; ++i) {
+      Bstate[i] = 0.0;
+      const int begin = ISB[i];
+      const int end = ISB[i + 1];
+      for(int j=begin; j<end; ++j) {
+        Bstate[i] += SB[j] * Ustate[JSB[j]];
+      }
     }
+
 }
 
 
 void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 {
-
     // Clear the Ustate
-    for (int n = 0; n < nState; n++) {
-        Ustate[n] = 0;
+    for (int u = 0; u < uState; u++) {
+        Ustate[u] = 0;
     }
-    real gausspoint = 0.5*sqrt(1./3.);
 
+    // Calculate SB Transpose
     //#pragma omp parallel for
-    for (int var = 0; var < varDim; var++) {
-        for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
-            for (int imu = -1; imu <= 1; imu += 2) {
-                real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
-                int ii = (int)((i - iMin)*DIrecip);
-                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                    int iNode = iiNode;
-                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                    real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-                    int uI = iIndex*2 + (imu+1)/2;
-                    for (int jIndex = min(rankHash[jBCL[var]],1); jIndex < max(jDim-1-rankHash[jBCR[var]],jDim-2); jIndex++) {
-                        for (int jmu = -1; jmu <= 1; jmu += 2) {
-                            real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
-                            int jj = (int)((j - jMin)*DJrecip);
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-                                int uJ = jIndex*2 + (jmu+1)/2;
-                                real ijbasis = ibasis * jbasis;
-                                for (int kIndex = min(rankHash[kBCL[var]],1); kIndex < max(kDim-1-rankHash[kBCR[var]],kDim-2); kIndex++) {
-                                    for (int kmu = -1; kmu <= 1; kmu += 2) {
-                                        real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
-                                        int kk = (int)((k - kMin)*DKrecip);
-                                        for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                                            int kNode = kkNode;
-                                            if ((kNode < 0) or (kNode >= kDim)) continue;
-                                            real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-                                            real ijkbasis = 0.125 * ijbasis * kbasis;
-                                            int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                                            int uK = kIndex*2 + (kmu+1)/2;
-                                            int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
-
-                                            int bi = bIndex + var;
-                                            if (Bstate[bi] == 0) continue;
-
-                                            int ui = uIndex + var;
-                                            //#pragma omp atomic
-                                            Ustate[ui] += Bstate[bi] * ijkbasis;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    for(int n=0; n<nState; n++) {
+      const int begin = ISB[n];
+      const int end = ISB[n + 1];
+      for(int j=begin; j<end; ++j) {
+        //#pragma omp atomic
+        Ustate[JSB[j]] += SB[j] * Bstate[n];
+      }
     }
 }
 
-void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
+void CostFunction3D::SItransform(const real* Astate, real* Ustate)
 {
+  // Multiply the state by the observation matrix
+  #pragma omp parallel for
+  for(int i=0; i<uState; ++i) {
+    Ustate[i] = 0.0;
+    const int begin = ISI[i];
+    const int end = ISI[i + 1];
+    for(int j=begin; j<end; ++j) {
+      Ustate[i] += SI[j] * Astate[JSI[j]];
+    }
+  }
+}
+
+void CostFunction3D::SItranspose(const real* Ustate, real* Astate)
+{
+  // Clear the Astate
+  for (int n = 0; n < nState; n++) {
+      Astate[n] = 0.0;
+  }
+
+  // Calculate SI Transpose
+  //#pragma omp parallel for
+  for(int u=0; u<uState; u++) {
+    const int begin = ISI[u];
+    const int end = ISI[u + 1];
+    for(int j=begin; j<end; ++j) {
+      //#pragma omp atomic
+      Astate[JSI[j]] += SI[j] * Ustate[u];
+    }
+  }
+}
+
+void CostFunction3D::SCtransform(const real* Ustate, real* Vstate)
+{
+
+  // Set up temporary dimensions for U state
+  int uiDim = 2*(iDim-2);
+  int ujDim = 2*(jDim-2);
+  int ukDim = 2*(kDim-2);
+
     // Disable recursive filter if less than 1
     if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
         #pragma omp parallel for
-        for (int n = 0; n < nState; n++) {
-            Cstate[n]= Astate[n] * bgStdDev[n];
+        for (int u = 0; u < uState; u++) {
+            Vstate[u]= Ustate[u] * bgStdDev[u];
         }
     } else {
         // Isotropic Recursive filter, no anisotropic "triad" working yet
         #pragma omp parallel for
         for (int var = 0; var < varDim; var++) {
-            real* jTemp = new real[jDim];
-            real* iTemp = new real[iDim];
-            real* kTemp = new real[kDim];
-            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                        kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+            real* jTemp = new real[ujDim];
+            real* iTemp = new real[uiDim];
+            real* kTemp = new real[ukDim];
+            for (int iIndex = 0; iIndex < uiDim; iIndex++) {
+                for (int jIndex = 0; jIndex < ujDim; jIndex++) {
+                    for (int kIndex = 0; kIndex < ukDim; kIndex++) {
+                        kTemp[kIndex] = Ustate[varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex + varDim*iIndex + var];
                     }
-                    if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
-                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                        Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
+                    if (kFilterScale > 0) kFilter->filterArray(kTemp, ukDim);
+                    for (int kIndex = 0; kIndex < ukDim; kIndex++) {
+                        Vstate[varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
                     }
                 }
             }
             //FJ
-            for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                        jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+            for (int kIndex = 0; kIndex < ukDim; kIndex++) {
+                for (int iIndex = 0; iIndex < uiDim; iIndex++) {
+                    for (int jIndex = 0; jIndex < ujDim; jIndex++) {
+                        jTemp[jIndex] = Vstate[varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex + varDim*iIndex + var];
                     }
-                    if (jFilterScale > 0) jFilter->filterArray(jTemp, jDim);
-                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                        Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
+                    if (jFilterScale > 0) jFilter->filterArray(jTemp, ujDim);
+                    for (int jIndex = 0; jIndex < ujDim; jIndex++) {
+                        Vstate[varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
                     }
                 }
             }
             //FI
-            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                        iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+            for (int jIndex = 0; jIndex < ujDim; jIndex++) {
+                for (int kIndex = 0; kIndex < ukDim; kIndex++) {
+                    for (int iIndex = 0; iIndex < uiDim; iIndex++) {
+                        iTemp[iIndex] = Vstate[varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex + varDim*iIndex + var];
                     }
-                    if (iFilterScale > 0) iFilter->filterArray(iTemp, iDim);
-                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+                    if (iFilterScale > 0) iFilter->filterArray(iTemp, uiDim);
+                    for (int iIndex = 0; iIndex < uiDim; iIndex++) {
                         // D
-                        int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-                        Cstate[cIndex] = iTemp[iIndex] * bgStdDev[cIndex];
+                        int vIndex = varDim*uiDim*ujDim*kIndex + varDim*uiDim*jIndex +varDim*iIndex + var;
+                        Vstate[vIndex] = iTemp[iIndex] * bgStdDev[vIndex];
                     }
                 }
             }
@@ -1118,157 +1124,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 
 void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 {
-    if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-        #pragma omp parallel for
-        for (int n = 0; n < nState; n++) {
-            Astate[n]= Cstate[n] * bgStdDev[n];
-        }
-    } else {
-        // Isotropic Recursive filter, no anisotropic "triad" working yet
-        for (int n = 0; n < nState; n++) {
-            Astate[n]= Cstate[n];
-        }
-        //_#pragma omp parallel for
-        for (int var = 0; var < varDim; var++) {
-
-            // These are local for parallelization
-            real* iTemp = new real[iDim];
-            real* jTemp = new real[jDim];
-            real* kTemp = new real[kDim];
-      real* iPad = NULL;
-      real* jPad = NULL;
-      real* kPad = NULL;
-      //if (iBCL[var] == PERIODIC) {
-          iPad = new real[iDim*3];
-      //}
-            //if (jBCL[var] == PERIODIC) {
-          jPad = new real[jDim*3];
-      //}
-      //if (kBCL[var] == PERIODIC) {
-          kPad = new real[kDim*3];
-      //}
-
-            //FI & D
-            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                        int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-                        iTemp[iIndex] = Astate[cIndex] * bgStdDev[cIndex];
-                    }
-                    if (iFilterScale > 0) {
-                        if (iBCL[var] == PERIODIC) {
-                            // Pad the array to account for periodicity
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iPad[iIndex] = iTemp[iIndex];
-                                iPad[iIndex+iDim] = iTemp[iIndex];
-                                iPad[iIndex+iDim*2] = iTemp[iIndex];
-                            }
-                            iFilter->filterArray(iPad, iDim*3);
-                            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                                iTemp[iIndex] = iPad[iIndex+iDim];
-                            }
-                        } else {
-                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                              iPad[iIndex] = 0.0;
-                              iPad[iIndex+iDim] = iTemp[iIndex];
-                              iPad[iIndex+iDim*2] = 0.0;
-                          }
-                          iFilter->filterArray(iPad, iDim*3);
-                          for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                              iTemp[iIndex] = iPad[iIndex+iDim];
-                          }
-                        }
-                    }
-                    for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iTemp[iIndex];
-                    }
-                }
-            }
-            //FJ
-            for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                        jTemp[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-                    }
-                    if (jFilterScale > 0) {
-                        if (jBCL[var] == PERIODIC) {
-                            // Pad the array to account for periodicity
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jPad[jIndex] = jTemp[jIndex];
-                                jPad[jIndex+jDim] = jTemp[jIndex];
-                                jPad[jIndex+jDim*2] = jTemp[jIndex];
-                            }
-                            jFilter->filterArray(jPad, jDim*3);
-                            for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                                jTemp[jIndex] = jPad[jIndex+jDim];
-                            }
-                        } else {
-                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                              jPad[jIndex] = 0.0;
-                              jPad[jIndex+jDim] = jTemp[jIndex];
-                              jPad[jIndex+jDim*2] = 0.0;
-                          }
-                          jFilter->filterArray(jPad, jDim*3);
-                          for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                              jTemp[jIndex] = jPad[jIndex+jDim];
-                          }
-                        }
-                    }
-                    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-                    }
-                }
-            }
-            //FK
-            for (int iIndex = 0; iIndex < iDim; iIndex++) {
-                for (int jIndex = 0; jIndex < jDim; jIndex++) {
-                    for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                        kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-                    }
-          if (kFilterScale > 0) {
-              if (kBCL[var] == PERIODIC) {
-                  // Pad the array to account for periodicity
-                  for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                      kPad[kIndex] = kTemp[kIndex];
-                      kPad[kIndex+kDim] = kTemp[kIndex];
-                      kPad[kIndex+kDim*2] = kTemp[kIndex];
-                  }
-                  kFilter->filterArray(kPad, kDim*3);
-                  for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                      kTemp[kIndex] = kPad[kIndex+kDim];
-                  }
-              } else {
-                for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    kPad[kIndex] = 0.0;
-                    kPad[kIndex+kDim] = kTemp[kIndex];
-                    kPad[kIndex+kDim*2] = 0.0;
-                }
-                kFilter->filterArray(kPad, kDim*3);
-                for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    kTemp[kIndex] = kPad[kIndex+kDim];
-                }
-              }
-          }
-          for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                        Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
-                    }
-                }
-            }
-            delete[] iTemp;
-            delete[] jTemp;
-            delete[] kTemp;
-      //if (iBCL[var] == PERIODIC) {
-        delete[] iPad;
-      //}
-            //if (jBCL[var] == PERIODIC) {
-        delete[] jPad;
-      //}
-      //if (kBCL[var] == PERIODIC) {
-        delete[] kPad;
-      //}
-
-        }
-    }
 }
 
 bool CostFunction3D::setupSplines()
@@ -2226,17 +2081,224 @@ void CostFunction3D::calcHmatrix()
 
 }
 
-void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
+void CostFunction3D::calcSBmatrix()
 {
-  // Multiply the state by the observation matrix
-  #pragma omp parallel for
-  for(int i=0; i<mObs; ++i) {
-    Hstate[i] = 0.0;
-    const int begin = IH[i];
-    const int end = IH[i + 1];
-    for(int j=begin; j<end; ++j) {
-      Hstate[i] += H[j] * Cstate[JH[j]];
+
+  std::cout << "Build SB transform matrix...\n";
+
+  // Allocate memory for the sparse matrix
+  // 193 elements for columns assumes a maximum of 3 variables
+  // will be used in an observation.
+  real **Bbuild = new real*[nState];
+  real **JBbuild = new real*[nState];
+  for (int n = 0; n < nState; n++) {
+    Bbuild[n] = new real[193];
+    JBbuild[n] = new real[193];
+  }
+  ISB = new int[nState+1];
+
+  real iweight = 0;
+  real jweight = 0;
+  real kweight = 0;
+  real ONESIXTH = 1.0/6.0;
+//#pragma omp parallel for
+  for (int var = 0; var < varDim; var++) {
+    for (int iNode = 0; iNode < iDim; iNode++) {
+      for (int jNode = 0; jNode < jDim; jNode++) {
+        for (int kNode = 0; kNode < kDim; kNode++) {
+          int bi = 1;
+          int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
+
+          for (int iIndex = iNode-2; iIndex < iNode+1; iIndex++) {
+            for (int imu = 1; imu <= 2; imu += 1) {
+              real i = iMin + DI * (iIndex + (0.5 * imu));
+              if ((i < (iMin+DI)) or (i > (iDim-DI*2))) continue;
+              real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+              if (iNode%2 == 0) {
+                iweight = ONESIXTH * (1.0 + 3.0 * imu) * DI * ibasis;
+              } else {
+                iweight = ONESIXTH * (4.0 - 3.0 * imu) * DI * ibasis;
+              }
+              int uI = (iIndex-1)*2 + imu-1;
+              for (int jIndex = jNode-2; jIndex < jNode+1; jIndex++) {
+                for (int jmu = 1; jmu <= 2; jmu += 1) {
+                  real j = jMin + DJ * (jIndex + (0.5 * jmu));
+                  if ((j < (jMin+DJ)) or (j > (jDim-DJ*2))) continue;
+                  real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+                  if (jNode%2 == 0) {
+                    jweight = ONESIXTH * (1.0 + 3.0 * jmu) * DJ * jbasis;
+                  } else {
+                    jweight = ONESIXTH * (4.0 - 3.0 * jmu) * DJ * jbasis;
+                  }
+                  int uJ = (jIndex-1)*2 + jmu-1;
+                  for (int kIndex = kNode-2; kIndex < kNode+1; kIndex++) {
+                    for (int kmu = 1; kmu <= 2; kmu += 1) {
+                      real k = kMin + DK * (kIndex + (0.5 * kmu));
+                      if ((k < (kMin+DK)) or (k > (kDim-DK*2))) continue;
+                      real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+                      if (kNode%2 == 0) {
+                        kweight = ONESIXTH * (1.0 + 3.0 * kmu) * DK * kbasis;
+                      } else {
+                        kweight = ONESIXTH * (4.0 - 3.0 * kmu) * DK * kbasis;
+                      }
+                      int uK = (kIndex-1)*2 + kmu-1;
+                      int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
+                      //#pragma omp atomic
+                      Bbuild[bIndex][bi] = iweight * jweight * kweight;
+                      JBbuild[bIndex][bi] = uIndex;
+                      bi++;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          Bbuild[bIndex][0] = bi;
+          if (bi > 193) {
+            cout << "Overflow in SB matrix calculation!" << bi << "\n";
+          }
+        }
+      }
     }
   }
+
+  int nonzeros = 0;
+  for (int n = 0; n < nState; n++) {
+    nonzeros += Bbuild[n][0]-1;
+  }
+
+  ISB[nState] = nonzeros;
+  //std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+
+  SB = new real[nonzeros];
+  JSB = new int[nonzeros];
+
+  int bi = 0;
+  for (int n = 0; n < nState; n++) {
+    ISB[n] = bi;
+    for (int m = 1; m < Bbuild[n][0]; m++) {
+      SB[bi] = Bbuild[n][m];
+      JSB[bi] = JBbuild[n][m];
+      bi++;
+    }
+  }
+
+  for (int n = 0; n < nState; n++) {
+    delete[] Bbuild[n];
+    delete[] JBbuild[n];
+  }
+  delete[] Bbuild;
+  delete[] JBbuild;
+
+}
+
+void CostFunction3D::calcSImatrix()
+{
+
+  std::cout << "Build SI transform matrix...\n";
+
+  // Allocate memory for the sparse matrix
+  // 193 elements for columns assumes a maximum of 3 variables
+  // will be used in an observation.
+  real **Ibuild = new real*[uState];
+  real **JIbuild = new real*[uState];
+  for (int u = 0; u < uState; u++) {
+    Ibuild[u] = new real[193];
+    JIbuild[u] = new real[193];
+  }
+  ISI = new int[uState+1];
+
+  for (int var = 0; var < varDim; var++) {
+    for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
+      for (int imu = 0; imu <= 1; imu++) {
+        real i = iMin + DI * (iIndex + (0.5 * imu));
+        if (i > ((iDim-1)*DI + iMin)) continue;
+        int uI = (iIndex-1)*2 + imu;
+
+        for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+          for (int jmu = 0; jmu <= 1; jmu++) {
+            real j = jMin + DJ * (jIndex + (0.5 * jmu));
+            if (j > ((jDim-1)*DJ + jMin)) continue;
+            int uJ = (jIndex-1)*2 + jmu;
+
+            for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
+              for (int kmu = 0; kmu <= 1; kmu++) {
+                real k = kMin + DK * (kIndex + (0.5 * kmu));
+                if (k > ((kDim-1)*DK + kMin)) continue;
+                int uK = (kIndex-1)*2 + kmu;
+                int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
+                if (uIndex > uState) {
+                  cout << "Overflow in uIndex!" << uIndex << "\n";
+                }
+
+                int ii = (int)((i - iMin)*DIrecip);
+                int jj = (int)((j - jMin)*DJrecip);
+                int kk = (int)((k - kMin)*DKrecip);
+                real ibasis = 0.;
+                real jbasis = 0.;
+                real kbasis = 0.;
+                int si = 1;
+
+                for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+                  int kNode = kkNode;
+                  if ((kNode < 0) or (kNode >= kDim)) continue;
+                  for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+                    int iNode = iiNode;
+                    if ((iNode < 0) or (iNode >= iDim)) continue;
+                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+                      int jNode = jjNode;
+                      if ((jNode < 0) or (jNode >= jDim)) continue;
+                      ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+                      jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+                      kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+                      int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+                      real basis = ibasis * jbasis * kbasis;
+                      if (basis != 0) {
+                        Ibuild[uIndex][si] = basis;
+                        JIbuild[uIndex][si] = aIndex;
+                        si++;
+                      }
+                    }
+                  }
+                }
+                Ibuild[uIndex][0] = si;
+                if (si > 193) {
+                  cout << "Overflow in SI matrix calculation!" << si << "\n";
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  int nonzeros = 0;
+  for (int u = 0; u < uState; u++) {
+    nonzeros += Ibuild[u][0]-1;
+  }
+
+  ISI[uState] = nonzeros;
+  //std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+
+  SI = new real[nonzeros];
+  JSI = new int[nonzeros];
+
+  int sIndex = 0;
+  for (int u = 0; u < uState; u++) {
+    ISI[u] = sIndex;
+    for (int m = 1; m < Ibuild[u][0]; m++) {
+      SI[sIndex] = Ibuild[u][m];
+      JSI[sIndex] = JIbuild[u][m];
+      sIndex++;
+    }
+  }
+
+  for (int u = 0; u < uState; u++) {
+    delete[] Ibuild[u];
+    delete[] JIbuild[u];
+  }
+  delete[] Ibuild;
+  delete[] JIbuild;
 
 }
