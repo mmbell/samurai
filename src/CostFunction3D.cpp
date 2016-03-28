@@ -225,7 +225,10 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 
     // These are local to this one
     CTHTd = new real[nState];
-    uState = 8*(iDim-2)*(jDim-2)*(kDim-2)*varDim;
+    uiDim = (iDim-2)*2 - 1;
+    ujDim = (jDim-2)*2 - 1;
+    ukDim = (kDim-2)*2 - 1;
+    uState = uiDim*ujDim*ukDim*varDim;
     stateU = new real[uState];
     stateV = new real[uState];
     obsVector = new real[mObs*(7+varDim*derivDim)];
@@ -1059,11 +1062,6 @@ void CostFunction3D::SItranspose(const real* Ustate, real* Astate)
 
 void CostFunction3D::SCtransform(const real* Ustate, real* Vstate)
 {
-
-  // Set up temporary dimensions for U state
-  int uiDim = 2*(iDim-2);
-  int ujDim = 2*(jDim-2);
-  int ukDim = 2*(kDim-2);
 
     // Disable recursive filter if less than 1
     if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
@@ -2090,8 +2088,8 @@ void CostFunction3D::calcSBmatrix()
   real **Bbuild = new real*[nState];
   real **JBbuild = new real*[nState];
   for (int n = 0; n < nState; n++) {
-    Bbuild[n] = new real[218];
-    JBbuild[n] = new real[218];
+    Bbuild[n] = new real[514];
+    JBbuild[n] = new real[514];
   }
   ISB = new int[nState+1];
 
@@ -2107,10 +2105,10 @@ void CostFunction3D::calcSBmatrix()
           int bi = 1;
           int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + var;
 
-          for (int iIndex = max(1,iNode-2); iIndex < min(iDim-1,iNode+1); iIndex++) {
+          for (int iIndex = iNode-2; iIndex < iNode+2; iIndex++) {
             for (int imu = 0; imu <= 1; imu += 1) {
               real i = iMin + DI * (iIndex + (0.5 * imu));
-              if ((i < (iMin+DI)) or (i > (iDim-DI*2))) continue;
+              if ((i < (iMin+DI)) or (i > (iMin + (iDim-2)*DI))) continue;
               real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
               if (iNode%2 == 0) {
                 iweight = ONESIXTH * (1.0 + 3.0 * imu) * DI * ibasis;
@@ -2118,10 +2116,10 @@ void CostFunction3D::calcSBmatrix()
                 iweight = ONESIXTH * (4.0 - 3.0 * imu) * DI * ibasis;
               }
               int uI = (iIndex-1)*2 + imu;
-              for (int jIndex = max(1,jNode-2); jIndex < min(jDim-1,jNode+1); jIndex++) {
+              for (int jIndex = jNode-2; jIndex < jNode+2; jIndex++) {
                 for (int jmu = 0; jmu <= 1; jmu += 1) {
                   real j = jMin + DJ * (jIndex + (0.5 * jmu));
-                  if ((j < (jMin+DJ)) or (j > (jDim-DJ*2))) continue;
+                  if ((j < (jMin+DJ)) or (j > (jMin + (jDim-2)*DJ))) continue;
                   real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
                   if (jNode%2 == 0) {
                     jweight = ONESIXTH * (1.0 + 3.0 * jmu) * DJ * jbasis;
@@ -2129,10 +2127,10 @@ void CostFunction3D::calcSBmatrix()
                     jweight = ONESIXTH * (4.0 - 3.0 * jmu) * DJ * jbasis;
                   }
                   int uJ = (jIndex-1)*2 + jmu;
-                  for (int kIndex = max(1,kNode-2); kIndex < min(kDim-1,kNode+1); kIndex++) {
+                  for (int kIndex = kNode-2; kIndex < kNode+2; kIndex++) {
                     for (int kmu = 0; kmu <= 1; kmu += 1) {
                       real k = kMin + DK * (kIndex + (0.5 * kmu));
-                      if ((k < (kMin+DK)) or (k > (kDim-DK*2))) continue;
+                      if ((k < (kMin+DK)) or (k > (kMin + (kDim-2)*DK))) continue;
                       real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
                       if (kNode%2 == 0) {
                         kweight = ONESIXTH * (1.0 + 3.0 * kmu) * DK * kbasis;
@@ -2140,7 +2138,7 @@ void CostFunction3D::calcSBmatrix()
                         kweight = ONESIXTH * (4.0 - 3.0 * kmu) * DK * kbasis;
                       }
                       int uK = (kIndex-1)*2 + kmu;
-                      int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
+                      int uIndex = varDim*uiDim*ujDim*uK +varDim*uiDim*uJ +varDim*uI + var;
                       //#pragma omp atomic
                       Bbuild[bIndex][bi] = iweight * jweight * kweight;
                       JBbuild[bIndex][bi] = uIndex;
@@ -2152,7 +2150,7 @@ void CostFunction3D::calcSBmatrix()
             }
           }
           Bbuild[bIndex][0] = bi;
-          if (bi > 217) {
+          if (bi > 513) {
             cout << "Overflow in SB matrix calculation!" << bi << "\n";
           }
         }
@@ -2203,6 +2201,7 @@ void CostFunction3D::calcSImatrix()
   for (int u = 0; u < uState; u++) {
     Ibuild[u] = new real[193];
     JIbuild[u] = new real[193];
+    Ibuild[u][0] = -999.0;
   }
   ISI = new int[uState+1];
 
@@ -2210,22 +2209,22 @@ void CostFunction3D::calcSImatrix()
     for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
       for (int imu = 0; imu <= 1; imu++) {
         real i = iMin + DI * (iIndex + (0.5 * imu));
-        if (i > ((iDim-1)*DI + iMin)) continue;
+        if (i > (iMin + (iDim-2)*DI)) continue;
         int uI = (iIndex-1)*2 + imu;
 
         for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
           for (int jmu = 0; jmu <= 1; jmu++) {
             real j = jMin + DJ * (jIndex + (0.5 * jmu));
-            if (j > ((jDim-1)*DJ + jMin)) continue;
+            if (j > (jMin + (jDim-2)*DJ)) continue;
             int uJ = (jIndex-1)*2 + jmu;
 
             for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
               for (int kmu = 0; kmu <= 1; kmu++) {
                 real k = kMin + DK * (kIndex + (0.5 * kmu));
-                if (k > ((kDim-1)*DK + kMin)) continue;
+                if (k > (kMin + (kDim-2)*DK)) continue;
                 int uK = (kIndex-1)*2 + kmu;
-                int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
-                if (uIndex > uState) {
+                int uIndex = varDim*uiDim*ujDim*uK +varDim*uiDim*uJ +varDim*uI + var;
+                if (uIndex >= uState) {
                   cout << "Overflow in uIndex!" << uIndex << "\n";
                 }
 
@@ -2273,6 +2272,9 @@ void CostFunction3D::calcSImatrix()
 
   int nonzeros = 0;
   for (int u = 0; u < uState; u++) {
+    if (Ibuild[u][0] < 0) {
+      std::cout << "Undefined uIndex: " << u << "\n";
+    }
     nonzeros += Ibuild[u][0]-1;
   }
 

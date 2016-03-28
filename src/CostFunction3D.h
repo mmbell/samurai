@@ -77,6 +77,7 @@ protected:
 	bool mishFlag;
 	int uState;
 	int iDim, jDim, kDim;
+	int uiDim, ujDim, ukDim;
   int iLDim, jLDim, kLDim;
   int iRank[7], jRank[7], kRank[7];
 	real iMin, iMax, DI, DIrecip;

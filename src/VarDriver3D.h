@@ -74,12 +74,15 @@ private:
 	int idim;
 	int jdim;
 	int kdim;
-    int runMode;
+	int uidim;
+	int ujdim;
+	int ukdim;
+  int runMode;
 
-    enum RunModes {
-        XYZ,
-        RTZ
-    };
+  enum RunModes {
+      XYZ,
+      RTZ
+  };
 };
 
 #endif

@@ -90,7 +90,11 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
 	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 
-	int uStateSize = 8*(idim)*(jdim)*(kdim)*(numVars);
+	uidim = (idim*2) - 1;
+	ujdim = (jdim*2) - 1;
+	ukdim = (kdim*2) - 1;
+
+	int uStateSize = uidim*ujdim*ukdim*numVars;
 	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
 	cout << "Physical (mish) State size = " << uStateSize << "\n";
 	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
@@ -1284,7 +1288,6 @@ bool VarDriver3D::preProcessMetObs()
             varOb.setWeight(0.0, var, d);
         }
     }
-    real gausspoint = 0.5*sqrt(1./3.);
 		for (int iIndex = 0; iIndex < idim; iIndex++) {
 			for (int imu = 0; imu <= 1; imu++) {
 				real i = imin + iincr * (iIndex + (0.5*imu));
@@ -1299,7 +1302,7 @@ bool VarDriver3D::preProcessMetObs()
 								int bgI = iIndex*2 + imu;
 								int bgJ = jIndex*2 + jmu;
 								int bgK = kIndex*2 + kmu;
-								int bIndex = numVars*(idim)*2*(jdim)*2*bgK + numVars*(idim)*2*bgJ +numVars*bgI;
+								int bIndex = numVars*uidim*ujdim*bgK + numVars*uidim*bgJ +numVars*bgI;
 								if (bgWeights[bIndex] != 0) {
 									bgU[bIndex +6] /= bgWeights[bIndex];
 								}
