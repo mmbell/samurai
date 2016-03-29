@@ -433,21 +433,21 @@ void CostFunction3D::initState(const int iteration)
       for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
         for (int imu = 0; imu <= 1; imu++) {
           real i = iMin + DI * (iIndex + (0.5 * imu));
-          if (i > ((iDim-1)*DI + iMin)) continue;
+          if (i > ((iDim-2)*DI + iMin)) continue;
           int uI = (iIndex-1)*2 + imu;
 
           for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
             for (int jmu = 0; jmu <= 1; jmu++) {
               real j = jMin + DJ * (jIndex + (0.5 * jmu));
-              if (j > ((jDim-1)*DJ + jMin)) continue;
+              if (j > ((jDim-2)*DJ + jMin)) continue;
               int uJ = (jIndex-1)*2 + jmu;
 
               for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
                 for (int kmu = 0; kmu <= 1; kmu++) {
                   real k = kMin + DK * (kIndex + (0.5 * kmu));
-                  if (k > ((kDim-1)*DK + kMin)) continue;
+                  if (k > ((kDim-2)*DK + kMin)) continue;
                   int uK = (kIndex-1)*2 + kmu;
-                  int uIndex = varDim*(iDim-2)*2*(jDim-2)*2*uK +varDim*(iDim-2)*2*uJ +varDim*uI + var;
+                  int uIndex = varDim*uiDim*ujDim*uK +varDim*uiDim*uJ +varDim*uI + var;
                   bgStdDev[uIndex] = bgError[var];
                 }
               }

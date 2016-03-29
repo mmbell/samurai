@@ -28,14 +28,14 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 
 	cout << "Outputting " << suffix.toStdString() << "...\n";
 	// H --> to Mish for output
-    QString samuraiout = "samurai_XYP_" + suffix + ".out";
-    ofstream samuraistream;
-    if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
-        samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
-        samuraistream << "udx\tudy\tudp\tvdx\tvdy\tvdp\twdx\twdy\twdp\trhowdz\tMC residual\tdBZ\n";
-        samuraistream.precision(10);
-    }
+	QString samuraiout = "samurai_XYP_" + suffix + ".out";
+	ofstream samuraistream;
+	if (configHash->value("output_txt") == "true") {
+		samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
+		samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
+		samuraistream << "udx\tudy\tudp\tvdx\tvdy\tvdp\twdx\twdy\twdp\trhowdz\tMC residual\tdBZ\n";
+		samuraistream.precision(10);
+	}
 
 	// Find the relevant pressure levels
 	pMax = int(refstate->getReferenceVariable(ReferenceVariable::pressref, 1000.*(kMin + DK))/100.);
@@ -44,9 +44,9 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	pMax = pMax - int(pMax)%int(DP) + DP;
 	pMin = pMin - int(pMin)%int(DP);
 	pDim = (pMax - pMin)/DP + 2;
-  bool goodpressure = true;
-    int analysisDim = 51;
-    int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
+	bool goodpressure = true;
+	int analysisDim = 51;
+	int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
 	real latReference = configHash->value("ref_lat").toFloat();
 	real lonReference = configHash->value("ref_lon").toFloat();
@@ -65,475 +65,470 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	}
 	for (int n = 0; n < analysisSize*analysisDim; n++) finalAnalysis[n] = -999.0;
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
-		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
-			for (int imu = -ihalf; imu <= ihalf; imu++) {
-				real i = iMin + DI * (iIndex + (0.5*sqrt(1./3.) * imu + 0.5*ihalf));
-				if (i > ((iDim-1)*DI + iMin)) continue;
+		for (int imu = 0; imu <= 1; imu++) {
+			real i = iMin + DI * (iIndex + (0.5 * imu));
+			if (i > ((iDim-2)*DI + iMin)) continue;
 
-				for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
-					for (int jhalf =0; jhalf <=mishFlag; jhalf++) {
-						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-							real j = jMin + DJ * (jIndex + (0.5*sqrt(1./3.) * jmu + 0.5*jhalf));
-							if (j > ((jDim-1)*DJ + jMin)) continue;
+			for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+				for (int jmu = 0; jmu <= 1; jmu++) {
+					real j = jMin + DJ * (jIndex + (0.5 * jmu));
+					if (j > ((jDim-2)*DJ + jMin)) continue;
 
-							// Adjust to lat lon increments
-							if (latlonIncr > 0) {
-								real lat, lon;
-								lon = minLon + latlonIncr*iIndex;
-								lat = minLat + latlonIncr*jIndex;
-								tm.Forward(lonReference, lat, lon, i, j);
-								i = (i-refX)/1000.0;
-								if ((i < iMin) or (i > ((iDim-1)*DI + iMin))) continue;
-								j = (j-refY)/1000.0;
-								if ((j < jMin) or (j > ((jDim-1)*DJ + jMin))) continue;
+					// Adjust to lat lon increments
+					if (latlonIncr > 0) {
+						real lat, lon;
+						lon = minLon + latlonIncr*iIndex;
+						lat = minLat + latlonIncr*jIndex;
+						tm.Forward(lonReference, lat, lon, i, j);
+						i = (i-refX)/1000.0;
+						if ((i < iMin) or (i > ((iDim-1)*DI + iMin))) continue;
+						j = (j-refY)/1000.0;
+						if ((j < jMin) or (j > ((jDim-1)*DJ + jMin))) continue;
+					}
+					real tpw = 0;
+					int ii = (int)((i - iMin)*DIrecip);
+					int jj = (int)((j - jMin)*DJrecip);
+
+					for (int pIndex = 1; pIndex < pDim-1; pIndex++) {
+						real pLevel = pMin + DP * pIndex;
+						// Find the Z level
+						real height = kMin + DK * (kDim-1)/2; // Initial guess only
+						real peps = 1e34;
+						int iter = 0;
+						if (pIndex == pDim-2) {
+							// Last level is surface
+							pLevel = 2013.0;
+							height = 0.0;
+							peps = 0.0;
+						}
+
+						while ((fabs(peps) > 0.01) and (iter < 5000)) {
+							int var = 3;
+							real tprime = 0.0; real tdz = 0.0;
+							real qvprime = 0.0; real qvdz = 0.0;
+							real rhoaprime = 0.0; real rhoadz = 0.0;
+							real ibasis = 0.;
+							real jbasis = 0.;
+							real kbasis = 0.;
+							real kdbasis = 0.;
+							if (height > ((kDim-2)*DK + kMin)) height = (kDim-2)*DK + kMin;
+							if (height < (kMin + DK)) height = kMin + DK;
+							int kk = (int)((height - kMin)*DKrecip);
+							for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+								int kNode = kkNode;
+								if ((kNode < 0) or (kNode >= kDim)) continue;
+								for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+									int iNode = iiNode;
+									if ((iNode < 0) or (iNode >= iDim)) continue;
+									for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+										int jNode = jjNode;
+										if ((jNode < 0) or (jNode >= jDim)) continue;
+										ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+										jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+										kbasis = Basis(kNode, height, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+										kdbasis = Basis(kNode, height, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+										real basis3x = ibasis*jbasis*kbasis;
+										int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+										tprime += Astate[aIndex + 3] * basis3x;
+										tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
+										qvprime += Astate[aIndex + 4] * basis3x;
+										qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
+										rhoaprime += Astate[aIndex + 5] * basis3x; // This assumes BCs are same for T, qv & rhoa
+										rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
+									}
+								}
 							}
-							real tpw = 0;
-							int ii = (int)((i - iMin)*DIrecip);
-							int jj = (int)((j - jMin)*DJrecip);
+							real heightm = height*1000.0;
+							real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
+							real temp = tBar + tprime;
+							real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+							tdz = tbardz + tdz;
 
-							for (int pIndex = 1; pIndex < pDim-1; pIndex++) {
-								real pLevel = pMin + DP * pIndex;
-								// Find the Z level
-								real height = kMin + DK * (kDim-1)/2; // Initial guess only
-								real peps = 1e34;
-								int iter = 0;
-								if (pIndex == pDim-2) {
-									// Last level is surface
-									pLevel = 2013.0;
-									height = 0.0;
-									peps = 0.0;
-								}
+							real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+							real qv = refstate->bhypInvTransform(qBar + qvprime);
+							real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+							qvdz = 2.0*(qbardz + qvdz);
 
-								while ((fabs(peps) > 0.01) and (iter < 5000)) {
-									int var = 3;
-									real tprime = 0.0; real tdz = 0.0;
-									real qvprime = 0.0; real qvdz = 0.0;
-									real rhoaprime = 0.0; real rhoadz = 0.0;
-									real ibasis = 0.;
-									real jbasis = 0.;
-									real kbasis = 0.;
-									real kdbasis = 0.;
-									if (height > ((kDim-1)*DK + kMin)) height = (kDim-1)*DK + kMin;
-									if (height < (kMin + DK)) height = kMin + DK;
-									int kk = (int)((height - kMin)*DKrecip);
-                  for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                      int kNode = kkNode;
-                      if ((kNode < 0) or (kNode >= kDim)) continue;
-                                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                                            int iNode = iiNode;
-                                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                                int jNode = jjNode;
-                                                if ((jNode < 0) or (jNode >= jDim)) continue;
-												ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-												jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-												kbasis = Basis(kNode, height, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-												kdbasis = Basis(kNode, height, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
-												real basis3x = ibasis*jbasis*kbasis;
-												int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-												tprime += Astate[aIndex + 3] * basis3x;
-												tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
-												qvprime += Astate[aIndex + 4] * basis3x;
-												qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
-												rhoaprime += Astate[aIndex + 5] * basis3x; // This assumes BCs are same for T, qv & rhoa
-												rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
-											}
-										}
-									}
-									real heightm = height*1000.0;
-									real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-									real temp = tBar + tprime;
-									real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
-									tdz = tbardz + tdz;
+							real rhoaBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+							real rhoa = rhoaBar + rhoaprime / 100;
+							rhoadz /= 100.;
+							real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
+							real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
+							real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+							rhodz += rhobardz;
+							rhoadz += rhoabardz;
+							real rhoq = qv * rhoa / 1000.;
 
-									real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
-									real qv = refstate->bhypInvTransform(qBar + qvprime);
-									real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
-									qvdz = 2.0*(qbardz + qvdz);
+							real airpress = temp*rhoa*287./100.;
+							real vp = temp*rhoq*461./100.;
+							real press = airpress + vp;
+							real p = press-pLevel;
 
-									real rhoaBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
-									real rhoa = rhoaBar + rhoaprime / 100;
-									rhoadz /= 100.;
-									real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
-									real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
-									real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
-									rhodz += rhobardz;
-									rhoadz += rhoabardz;
-									real rhoq = qv * rhoa / 1000.;
+							real pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
+							if (pdz != 0) {
+								height = height - p/pdz; // pdz = hPa/km
+								peps = p;
+							}
+							iter++;
+						}
+						if ((fabs(peps) > 0.02) or (height < 0)) {
+							std::cout << "Unable to find pressure " << pLevel << " at " << i << ", " << j << "\n";
+							// Underground?
+							goodpressure = false;
+							height = kMin;
+						} else {
+							goodpressure = true;
+						}
+						real k = height;
+						if ((k < kMin) or(k > ((kDim-2)*DK + kMin))) continue;
 
-									real airpress = temp*rhoa*287./100.;
-									real vp = temp*rhoq*461./100.;
-									real press = airpress + vp;
-									real p = press-pLevel;
+						real heightm = 1000*k;
+						real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+						real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+						real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
-									real pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
-									if (pdz != 0) {
-										height = height - p/pdz; // pdz = hPa/km
-										peps = p;
-									}
-									iter++;
-								}
-							 	if ((fabs(peps) > 0.02) or (height < 0)) {
-								  std::cout << "Unable to find pressure " << pLevel << " at " << i << ", " << j << "\n";
-									// Underground?
-									goodpressure = false;
-									height = kMin;
-								} else {
-									goodpressure = true;
-								}
-								real k = height;
-								if ((k < kMin) or(k > ((kDim-1)*DK + kMin))) continue;
-
-								real heightm = 1000*k;
-								real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
-								real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
-								real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-
-								int ii = (int)((i - iMin)*DIrecip);
-								int jj = (int)((j - jMin)*DJrecip);
-								int kk = (int)((k - kMin)*DKrecip);
-								real ibasis = 0.;
-								real jbasis = 0.;
-								real kbasis = 0.;
-								real idbasis = 0.;
-								real jdbasis = 0.;
-								real kdbasis = 0.;
-								real rhov = 0.;
-								real rhou = 0.;
-								real rhow = 0.;
-								real rhovdx = 0.; real rhoudx = 0.; real rhowdx = 0.;
-								real rhovdy = 0.; real rhoudy = 0.; real rhowdy = 0.;
-								real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
-								real tprime = 0.; real tdx = 0.; real tdy = 0.; real tdz = 0.;
-								real rhoadx = 0.; real rhoady = 0.; real rhoadz = 0.;
-								real qvdx = 0.; real qvdy = 0.; real qvdz = 0.;
-                                real pdx = 0.; real pdy = 0.; real pdz = 0.;
-								real qvprime = 0.;
-								real rhoprime = 0.;
-								real qrprime = 0.;
-                                for (int var = 0; var < varDim; var++) {
-                                  for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                                      int kNode = kkNode;
-                                      if ((kNode < 0) or (kNode >= kDim)) continue;
-                                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                                            int iNode = iiNode;
-                                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                                int jNode = jjNode;
-                                                if ((jNode < 0) or (jNode >= jDim)) continue;
-												ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-												jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-												kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-												idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
-												jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
-												kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
-												real basis3x = ibasis*jbasis*kbasis;
-												int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-												switch (var) {
-													case 0:
-														rhou +=  Astate[aIndex] * basis3x;
-														rhoudx += Astate[aIndex] * idbasis * jbasis * kbasis;
-														rhoudy += Astate[aIndex] * ibasis * jdbasis * kbasis;
-														rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
-														break;
-													case 1:
-														rhov +=  Astate[aIndex + 1] * basis3x;
-														rhovdx += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
-														rhovdy += Astate[aIndex + 1] * ibasis * jdbasis * kbasis;
-														rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
-														break;
-													case 2:
-														rhow += Astate[aIndex + 2] * basis3x;
-														rhowdx += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
-														rhowdy += Astate[aIndex + 2] * ibasis * jdbasis * kbasis;
-														rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
-														break;
-													case 3:
-														tprime += Astate[aIndex + 3] * basis3x;
-                                                        tdx += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
-														tdy += Astate[aIndex + 3] * ibasis * jdbasis * kbasis;
-														tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
-														break;
-													case 4:
-														qvprime += Astate[aIndex + 4] * basis3x;
-														qvdx += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
-														qvdy += Astate[aIndex + 4] * ibasis * jdbasis * kbasis;
-														qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
-														break;
-													case 5:
-														rhoprime += Astate[aIndex + 5] * basis3x;
-														rhoadx += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
-														rhoady += Astate[aIndex + 5] * ibasis * jdbasis * kbasis;
-														rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
-														break;
-													case 6:
-														qrprime += Astate[aIndex + 6] * basis3x;
-														break;
-												}
-											}
+						int ii = (int)((i - iMin)*DIrecip);
+						int jj = (int)((j - jMin)*DJrecip);
+						int kk = (int)((k - kMin)*DKrecip);
+						real ibasis = 0.;
+						real jbasis = 0.;
+						real kbasis = 0.;
+						real idbasis = 0.;
+						real jdbasis = 0.;
+						real kdbasis = 0.;
+						real rhov = 0.;
+						real rhou = 0.;
+						real rhow = 0.;
+						real rhovdx = 0.; real rhoudx = 0.; real rhowdx = 0.;
+						real rhovdy = 0.; real rhoudy = 0.; real rhowdy = 0.;
+						real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
+						real tprime = 0.; real tdx = 0.; real tdy = 0.; real tdz = 0.;
+						real rhoadx = 0.; real rhoady = 0.; real rhoadz = 0.;
+						real qvdx = 0.; real qvdy = 0.; real qvdz = 0.;
+						real pdx = 0.; real pdy = 0.; real pdz = 0.;
+						real qvprime = 0.;
+						real rhoprime = 0.;
+						real qrprime = 0.;
+						for (int var = 0; var < varDim; var++) {
+							for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+								int kNode = kkNode;
+								if ((kNode < 0) or (kNode >= kDim)) continue;
+								for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+									int iNode = iiNode;
+									if ((iNode < 0) or (iNode >= iDim)) continue;
+									for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+										int jNode = jjNode;
+										if ((jNode < 0) or (jNode >= jDim)) continue;
+										ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+										jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+										kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+										idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
+										jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
+										kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+										real basis3x = ibasis*jbasis*kbasis;
+										int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+										switch (var) {
+											case 0:
+											rhou +=  Astate[aIndex] * basis3x;
+											rhoudx += Astate[aIndex] * idbasis * jbasis * kbasis;
+											rhoudy += Astate[aIndex] * ibasis * jdbasis * kbasis;
+											rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
+											break;
+											case 1:
+											rhov +=  Astate[aIndex + 1] * basis3x;
+											rhovdx += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
+											rhovdy += Astate[aIndex + 1] * ibasis * jdbasis * kbasis;
+											rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
+											break;
+											case 2:
+											rhow += Astate[aIndex + 2] * basis3x;
+											rhowdx += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
+											rhowdy += Astate[aIndex + 2] * ibasis * jdbasis * kbasis;
+											rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
+											break;
+											case 3:
+											tprime += Astate[aIndex + 3] * basis3x;
+											tdx += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
+											tdy += Astate[aIndex + 3] * ibasis * jdbasis * kbasis;
+											tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
+											break;
+											case 4:
+											qvprime += Astate[aIndex + 4] * basis3x;
+											qvdx += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
+											qvdy += Astate[aIndex + 4] * ibasis * jdbasis * kbasis;
+											qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
+											break;
+											case 5:
+											rhoprime += Astate[aIndex + 5] * basis3x;
+											rhoadx += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
+											rhoady += Astate[aIndex + 5] * ibasis * jdbasis * kbasis;
+											rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
+											break;
+											case 6:
+											qrprime += Astate[aIndex + 6] * basis3x;
+											break;
 										}
 									}
 								}
-
-								if ((configHash->value("output_mish") == "false")
-										and (ihalf or jhalf)) continue;
-
-								// Output it
-								real rhoa = rhoBar + rhoprime / 100;
-								real qv = refstate->bhypInvTransform(qBar + qvprime);
-								real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
-								qvdz = 2.0*(qbardz + qvdz);
-
-								real qr;
-								QString gridref = configHash->value("qr_variable");
-								if (gridref == "dbz") {
-									qr = qrprime*10. - 35.;
-									if (qr < -35.) {
-										qr = -999.;
-									}
-								} else {
-									qr = refstate->bhypInvTransform(qrprime);
-								}
-								real rhoq = qv * rhoa / 1000.;
-								real rho = rhoa + rhoq;
-								real v = rhov / rho;
-								real u = rhou / rho;
-								real w = rhow / rho;
-								real wspd = sqrt(u*u + v*v);
-								real temp = tBar + tprime;
-								real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
-								tdz = tbardz + tdz;
-
-								real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-								real airpress = temp*rhoa*287./100.;
-								//real tempc = temp - 273.15;
-								//real satvp = 6.112 * exp((17.67 * tempc)/(243.5 + tempc));
-								real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
-										+ 1.673952e-5 * temp*temp + 2.433502 * log(temp));
-								real vp = temp*rhoq*461./100.;
-								//real vp = airpress * qv / (622 + qv);
-								real press = airpress + vp;
-
-								real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
-								//real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
-
-								real RoverCp = 0.2854*(1 - 0.00028*qv);
-								real theta = temp * pow((1000/press), RoverCp);
-								real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
-								real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
-								real qvsat = 622 * satvp / airpress;
-								real relhum = -999.;
-								real thetaes = -999.;
-								if (satvp != 0) {
-									relhum = 100*vp/satvp;
-									lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
-									thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
-								} else {
-									relhum = -999.;
-									thetaes = -999.;
-								}
-								if (relhum > 100.) {
-										relhum = 100.0;
-										vp = satvp;
-										qv = qvsat;
-								}
-								real dewp = -999.0;
-								if (vp != 0) {
-									dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
-								}
-								// Calculate the kinematic derivatives
-								// rhoa derivatives divided by 100 to yield kg/m^-3/km
-								// qv derivatives multipled by 2 to account for hyperbolic transform
-								rhoadx /= 100.;
-								rhoady /= 100.;
-								rhoadz /= 100.;
-								real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/500.;
-								real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/500.;
-								real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
-								real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
-								rhodz += rhobardz;
-								real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
-								rhoadz += rhoabardz;
-
-								// Units 10-5
-								real udx = 100. * (rhoudx - u*rhodx) / rho;
-								real udy = 100. * (rhoudy - u*rhody) / rho;
-								real udz = 100. * (rhoudz - u*rhodz) / rho;
-
-								real vdx = 100. * (rhovdx - v*rhodx) / rho;
-								real vdy = 100. * (rhovdy - v*rhody) / rho;
-								real vdz = 100. * (rhovdz - v*rhodz) / rho;
-
-								real wdx = 100. * (rhowdx - w*rhodx) / rho;
-								real wdy = 100. * (rhowdy - w*rhody) / rho;
-								real wdz = 100. * (rhowdz - w*rhodz) / rho;
-
-                                // Thermodynamic derivatives
-                                pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.)*461./100.;
-                                pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.)*461./100.;
-                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.)*461./100.;
-
-								// Convert derivatives to pressure surfaces
-								udx = udx - pdx * udz / pdz;
-								udy = udy - pdy * udz / pdz;
-								udz = udz / pdz;
-
-								vdx = vdx - pdx * vdz / pdz;
-								vdy = vdy - pdy * vdz / pdz;
-								vdz = vdz / pdz;
-
-								wdx = wdx - pdx * wdz / pdz;
-								wdy = wdy - pdy * wdz / pdz;
-								wdz = wdz / pdz;
-								w = w * pdz / 1000.;
-
-								tdx = tdx - pdx * tdz / pdz;
-								tdy = tdy - pdy * tdz / pdz;
-								tdz = tdz / pdz;
-
-								qvdx = qvdx - pdx * qvdz / pdz;
-								qvdy = qvdy - pdy * qvdz / pdz;
-								qvdz = qvdz / pdz;
-
-								rhodx = rhodx - pdx * rhodz / pdz;
-								rhody = rhody - pdy * rhodz / pdz;
-								rhodz = rhodz / pdz;
-
-								pdx = 0.;
-								pdy = 0.;
-								pdz = 1./pdz;
-
-								// Vorticity units are 10-5
-								real vorticity = (vdx - udy);
-								real divergence = (udx + vdy);
-								real s1 = (udx - vdy);
-								real s2 = (vdx + udy);
-								real strain = sqrt(s1*s1 + s2*s2);
-								real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-								real mcresidual = rhoudx + rhovdy + rhowdz;
-
-                                // Add Coriolis parameter to relative vorticity
-                                real latReference = configHash->value("ref_lat").toFloat();
-                                real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
-                                real absVorticity = vorticity + Coriolisf;
-
-
-								QString refmask = configHash->value("mask_reflectivity");
-								if ((refmask != "None") or (goodpressure == false)) {
-									real refthreshold = refmask.toFloat();
-									if ((qr < refthreshold) or (goodpressure == false)) {
-										u = -999.;
-										v = -999.;
-										w = -999.;
-										wspd = -999.;
-										relhum = -999.;
-										qvprime = -999.;
-										rhoprime = -999.;
-										tprime = -999.;
-										pprime = -999.;
-										vorticity = -999.;
-                                        absVorticity = -999.;
-										divergence = -999.;
-										okuboweiss = -999.;
-										strain = -999.;
-										tpw = -999.;
-										rhou = -999.;
-										rhov = -999.;
-										rhow = -999.;
-										rho = -999.;
-										press = -999.;
-										temp = -999.;
-										qv = -999.;
-										h = -999.;
-										qr = -999.;
-										udx = -999.; udy = -999.; udz = -999.;
-										vdx = -999.; vdy = -999.; vdz = -999.;
-										wdx = -999.; wdy = -999.; wdz = -999.;
-                                        tdx = -999.; tdy = -999.; tdz = -999.;
-                                        qvdx = -999.; qvdy = -999.; qvdz = -999.;
-                                        pdx = -999.; pdy = -999.; pdz = -999.;
-                                        rhodx = -999.; rhody = -999.; rhodz = -999.;
-										dewp = -999.;
-										theta = -999.; thetae = -999.; thetaes = -999.;
-									}
-								}
-
-                                if (configHash->value("output_txt") == "true") {
-                                    samuraistream << scientific << i << "\t" << j << "\t"  << k
-                                    << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-                                    << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
-									<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
-                                    << udx << "\t" << udy << "\t" << udz << "\t"
-                                    << vdx << "\t" << vdy << "\t" << vdz << "\t"
-                                    << wdx << "\t" << wdy << "\t" << wdz << "\t"
-                                    << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
-								}
-
-								// Sum up the TPW in the vertical, top level is tpw
-								tpw += qv * rhoa * DP;
-
-								// On the nodes
-								if (!ihalf and !jhalf){
-                                    int fIndex = (iDim-2)*(jDim-2)*(pDim-2);
-									int posIndex = (iDim-2)*(jDim-2)*(pIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
-									finalAnalysis[fIndex * 0 + posIndex] = u;
-									finalAnalysis[fIndex * 1 + posIndex] = v;
-									finalAnalysis[fIndex * 2 + posIndex] = w;
-									finalAnalysis[fIndex * 3 + posIndex] = wspd;
-									finalAnalysis[fIndex * 4 + posIndex] = relhum;
-									finalAnalysis[fIndex * 5 + posIndex] = press;
-                                    if (qvprime != -999) {
-                                        finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
-                                    } else {
-                                        finalAnalysis[fIndex * 6 + posIndex] = -999;
-                                    }
-									finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
-									finalAnalysis[fIndex * 8 + posIndex] = tprime;
-									finalAnalysis[fIndex * 9 + posIndex] = pprime;
-									finalAnalysis[fIndex * 10 + posIndex] = vorticity;
-									finalAnalysis[fIndex * 11 + posIndex] = divergence;
-									finalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
-									finalAnalysis[fIndex * 13 + posIndex] = strain;
-									finalAnalysis[fIndex * 14 + posIndex] = tpw;
-									finalAnalysis[fIndex * 15 + posIndex] = rhou;
-									finalAnalysis[fIndex * 16 + posIndex] = rhov;
-									finalAnalysis[fIndex * 17 + posIndex] = rhow;
-									finalAnalysis[fIndex * 18 + posIndex] = rho;
-									finalAnalysis[fIndex * 19 + posIndex] = heightm;
-									finalAnalysis[fIndex * 20 + posIndex] = temp;
-									finalAnalysis[fIndex * 21 + posIndex] = qv;
-									finalAnalysis[fIndex * 22 + posIndex] = h;
-									finalAnalysis[fIndex * 23 + posIndex] = qr;
-                                    finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
-									finalAnalysis[fIndex * 25 + posIndex] = dewp;
-									finalAnalysis[fIndex * 26 + posIndex] = theta;
-									finalAnalysis[fIndex * 27 + posIndex] = thetae;
-									finalAnalysis[fIndex * 28 + posIndex] = thetaes;
-									finalAnalysis[fIndex * 29 + posIndex] = udx;
-									finalAnalysis[fIndex * 30 + posIndex] = vdx;
-									finalAnalysis[fIndex * 31 + posIndex] = wdx;
-									finalAnalysis[fIndex * 32 + posIndex] = udy;
-									finalAnalysis[fIndex * 33 + posIndex] = vdy;
-									finalAnalysis[fIndex * 34 + posIndex] = wdy;
-									finalAnalysis[fIndex * 35 + posIndex] = udz;
-									finalAnalysis[fIndex * 36 + posIndex] = vdz;
-									finalAnalysis[fIndex * 37 + posIndex] = wdz;
-                                    finalAnalysis[fIndex * 38 + posIndex] = tdx;
-									finalAnalysis[fIndex * 39 + posIndex] = tdy;
-									finalAnalysis[fIndex * 40 + posIndex] = tdz;
-									finalAnalysis[fIndex * 41 + posIndex] = qvdx;
-									finalAnalysis[fIndex * 42 + posIndex] = qvdy;
-									finalAnalysis[fIndex * 43 + posIndex] = qvdz;
-									finalAnalysis[fIndex * 44 + posIndex] = pdx;
-									finalAnalysis[fIndex * 45 + posIndex] = pdy;
-									finalAnalysis[fIndex * 46 + posIndex] = pdz;
-                                    finalAnalysis[fIndex * 47 + posIndex] = rhodx;
-									finalAnalysis[fIndex * 48 + posIndex] = rhody;
-									finalAnalysis[fIndex * 49 + posIndex] = rhodz;
-									finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
-								}
-
 							}
+						}
+
+						if ((configHash->value("output_mish") == "false")
+						and (imu or jmu)) continue;
+
+						// Output it
+						real rhoa = rhoBar + rhoprime / 100;
+						real qv = refstate->bhypInvTransform(qBar + qvprime);
+						real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+						qvdz = 2.0*(qbardz + qvdz);
+
+						real qr;
+						QString gridref = configHash->value("qr_variable");
+						if (gridref == "dbz") {
+							qr = qrprime*10. - 35.;
+							if (qr < -35.) {
+								qr = -999.;
+							}
+						} else {
+							qr = refstate->bhypInvTransform(qrprime);
+						}
+						real rhoq = qv * rhoa / 1000.;
+						real rho = rhoa + rhoq;
+						real v = rhov / rho;
+						real u = rhou / rho;
+						real w = rhow / rho;
+						real wspd = sqrt(u*u + v*v);
+						real temp = tBar + tprime;
+						real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+						tdz = tbardz + tdz;
+
+						real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
+						real airpress = temp*rhoa*287./100.;
+						//real tempc = temp - 273.15;
+						//real satvp = 6.112 * exp((17.67 * tempc)/(243.5 + tempc));
+						real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
+													+ 1.673952e-5 * temp*temp + 2.433502 * log(temp));
+						real vp = temp*rhoq*461./100.;
+						//real vp = airpress * qv / (622 + qv);
+						real press = airpress + vp;
+
+						real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
+						//real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
+
+						real RoverCp = 0.2854*(1 - 0.00028*qv);
+						real theta = temp * pow((1000/press), RoverCp);
+						real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
+						real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
+						real qvsat = 622 * satvp / airpress;
+						real relhum = -999.;
+						real thetaes = -999.;
+						if (satvp != 0) {
+							relhum = 100*vp/satvp;
+							lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
+							thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
+						} else {
+							relhum = -999.;
+							thetaes = -999.;
+						}
+						if (relhum > 100.) {
+							relhum = 100.0;
+							vp = satvp;
+							qv = qvsat;
+						}
+						real dewp = -999.0;
+						if (vp != 0) {
+							dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
+						}
+						// Calculate the kinematic derivatives
+						// rhoa derivatives divided by 100 to yield kg/m^-3/km
+						// qv derivatives multipled by 2 to account for hyperbolic transform
+						rhoadx /= 100.;
+						rhoady /= 100.;
+						rhoadz /= 100.;
+						real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/500.;
+						real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/500.;
+						real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/500.;
+						real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
+						rhodz += rhobardz;
+						real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+						rhoadz += rhoabardz;
+
+						// Units 10-5
+						real udx = 100. * (rhoudx - u*rhodx) / rho;
+						real udy = 100. * (rhoudy - u*rhody) / rho;
+						real udz = 100. * (rhoudz - u*rhodz) / rho;
+
+						real vdx = 100. * (rhovdx - v*rhodx) / rho;
+						real vdy = 100. * (rhovdy - v*rhody) / rho;
+						real vdz = 100. * (rhovdz - v*rhodz) / rho;
+
+						real wdx = 100. * (rhowdx - w*rhodx) / rho;
+						real wdy = 100. * (rhowdy - w*rhody) / rho;
+						real wdz = 100. * (rhowdz - w*rhodz) / rho;
+
+						// Thermodynamic derivatives
+						pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.)*461./100.;
+						pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.)*461./100.;
+						pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.)*461./100.;
+
+						// Convert derivatives to pressure surfaces
+						udx = udx - pdx * udz / pdz;
+						udy = udy - pdy * udz / pdz;
+						udz = udz / pdz;
+
+						vdx = vdx - pdx * vdz / pdz;
+						vdy = vdy - pdy * vdz / pdz;
+						vdz = vdz / pdz;
+
+						wdx = wdx - pdx * wdz / pdz;
+						wdy = wdy - pdy * wdz / pdz;
+						wdz = wdz / pdz;
+						w = w * pdz / 1000.;
+
+						tdx = tdx - pdx * tdz / pdz;
+						tdy = tdy - pdy * tdz / pdz;
+						tdz = tdz / pdz;
+
+						qvdx = qvdx - pdx * qvdz / pdz;
+						qvdy = qvdy - pdy * qvdz / pdz;
+						qvdz = qvdz / pdz;
+
+						rhodx = rhodx - pdx * rhodz / pdz;
+						rhody = rhody - pdy * rhodz / pdz;
+						rhodz = rhodz / pdz;
+
+						pdx = 0.;
+						pdy = 0.;
+						pdz = 1./pdz;
+
+						// Vorticity units are 10-5
+						real vorticity = (vdx - udy);
+						real divergence = (udx + vdy);
+						real s1 = (udx - vdy);
+						real s2 = (vdx + udy);
+						real strain = sqrt(s1*s1 + s2*s2);
+						real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+						real mcresidual = rhoudx + rhovdy + rhowdz;
+
+						// Add Coriolis parameter to relative vorticity
+						real latReference = configHash->value("ref_lat").toFloat();
+						real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
+						real absVorticity = vorticity + Coriolisf;
+
+
+						QString refmask = configHash->value("mask_reflectivity");
+						if ((refmask != "None") or (goodpressure == false)) {
+							real refthreshold = refmask.toFloat();
+							if ((qr < refthreshold) or (goodpressure == false)) {
+								u = -999.;
+								v = -999.;
+								w = -999.;
+								wspd = -999.;
+								relhum = -999.;
+								qvprime = -999.;
+								rhoprime = -999.;
+								tprime = -999.;
+								pprime = -999.;
+								vorticity = -999.;
+								absVorticity = -999.;
+								divergence = -999.;
+								okuboweiss = -999.;
+								strain = -999.;
+								tpw = -999.;
+								rhou = -999.;
+								rhov = -999.;
+								rhow = -999.;
+								rho = -999.;
+								press = -999.;
+								temp = -999.;
+								qv = -999.;
+								h = -999.;
+								qr = -999.;
+								udx = -999.; udy = -999.; udz = -999.;
+								vdx = -999.; vdy = -999.; vdz = -999.;
+								wdx = -999.; wdy = -999.; wdz = -999.;
+								tdx = -999.; tdy = -999.; tdz = -999.;
+								qvdx = -999.; qvdy = -999.; qvdz = -999.;
+								pdx = -999.; pdy = -999.; pdz = -999.;
+								rhodx = -999.; rhody = -999.; rhodz = -999.;
+								dewp = -999.;
+								theta = -999.; thetae = -999.; thetaes = -999.;
+							}
+						}
+
+						if (configHash->value("output_txt") == "true") {
+							samuraistream << scientific << i << "\t" << j << "\t"  << k
+							<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
+							<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
+							<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
+							<< udx << "\t" << udy << "\t" << udz << "\t"
+							<< vdx << "\t" << vdy << "\t" << vdz << "\t"
+							<< wdx << "\t" << wdy << "\t" << wdz << "\t"
+							<< rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
+						}
+
+						// Sum up the TPW in the vertical, top level is tpw
+						tpw += qv * rhoa * DP;
+
+						// On the nodes
+						if (!imu and !jmu){
+							int fIndex = (iDim-2)*(jDim-2)*(pDim-2);
+							int posIndex = (iDim-2)*(jDim-2)*(pIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
+							finalAnalysis[fIndex * 0 + posIndex] = u;
+							finalAnalysis[fIndex * 1 + posIndex] = v;
+							finalAnalysis[fIndex * 2 + posIndex] = w;
+							finalAnalysis[fIndex * 3 + posIndex] = wspd;
+							finalAnalysis[fIndex * 4 + posIndex] = relhum;
+							finalAnalysis[fIndex * 5 + posIndex] = press;
+							if (qvprime != -999) {
+								finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
+							} else {
+								finalAnalysis[fIndex * 6 + posIndex] = -999;
+							}
+							finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
+							finalAnalysis[fIndex * 8 + posIndex] = tprime;
+							finalAnalysis[fIndex * 9 + posIndex] = pprime;
+							finalAnalysis[fIndex * 10 + posIndex] = vorticity;
+							finalAnalysis[fIndex * 11 + posIndex] = divergence;
+							finalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
+							finalAnalysis[fIndex * 13 + posIndex] = strain;
+							finalAnalysis[fIndex * 14 + posIndex] = tpw;
+							finalAnalysis[fIndex * 15 + posIndex] = rhou;
+							finalAnalysis[fIndex * 16 + posIndex] = rhov;
+							finalAnalysis[fIndex * 17 + posIndex] = rhow;
+							finalAnalysis[fIndex * 18 + posIndex] = rho;
+							finalAnalysis[fIndex * 19 + posIndex] = heightm;
+							finalAnalysis[fIndex * 20 + posIndex] = temp;
+							finalAnalysis[fIndex * 21 + posIndex] = qv;
+							finalAnalysis[fIndex * 22 + posIndex] = h;
+							finalAnalysis[fIndex * 23 + posIndex] = qr;
+							finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
+							finalAnalysis[fIndex * 25 + posIndex] = dewp;
+							finalAnalysis[fIndex * 26 + posIndex] = theta;
+							finalAnalysis[fIndex * 27 + posIndex] = thetae;
+							finalAnalysis[fIndex * 28 + posIndex] = thetaes;
+							finalAnalysis[fIndex * 29 + posIndex] = udx;
+							finalAnalysis[fIndex * 30 + posIndex] = vdx;
+							finalAnalysis[fIndex * 31 + posIndex] = wdx;
+							finalAnalysis[fIndex * 32 + posIndex] = udy;
+							finalAnalysis[fIndex * 33 + posIndex] = vdy;
+							finalAnalysis[fIndex * 34 + posIndex] = wdy;
+							finalAnalysis[fIndex * 35 + posIndex] = udz;
+							finalAnalysis[fIndex * 36 + posIndex] = vdz;
+							finalAnalysis[fIndex * 37 + posIndex] = wdz;
+							finalAnalysis[fIndex * 38 + posIndex] = tdx;
+							finalAnalysis[fIndex * 39 + posIndex] = tdy;
+							finalAnalysis[fIndex * 40 + posIndex] = tdz;
+							finalAnalysis[fIndex * 41 + posIndex] = qvdx;
+							finalAnalysis[fIndex * 42 + posIndex] = qvdy;
+							finalAnalysis[fIndex * 43 + posIndex] = qvdz;
+							finalAnalysis[fIndex * 44 + posIndex] = pdx;
+							finalAnalysis[fIndex * 45 + posIndex] = pdy;
+							finalAnalysis[fIndex * 46 + posIndex] = pdz;
+							finalAnalysis[fIndex * 47 + posIndex] = rhodx;
+							finalAnalysis[fIndex * 48 + posIndex] = rhody;
+							finalAnalysis[fIndex * 49 + posIndex] = rhodz;
+							finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 						}
 					}
 				}
@@ -545,115 +540,115 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	QString outFileName = outputPath.absoluteFilePath(fileName);
 
 	// Write the Obs to a summary text file
-    if (configHash->value("output_qc") == "true") {
-        QString qcout = "samurai_QC_" + suffix + ".out";
+	if (configHash->value("output_qc") == "true") {
+		QString qcout = "samurai_QC_" + suffix + ".out";
 		QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toAscii().data());
-        ostream_iterator<string> os(qcstream, "\t ");
-        *os++ = "Observation";
-        *os++ = "Inverse Error";
-        *os++ = "X";
-        *os++ = "Y";
-        *os++ = "Z";
-        *os++ = "Type";
-        *os++ = "Time";
-        *os++ = "rhou";
-        *os++ = "rhov";
-        *os++ = "rhow";
-        *os++ = "T'";
-        *os++ = "qv'";
-        *os++ = "rhoa'";
-        *os++ = "qr";
-        *os++ = "Analysis";
-        *os++ = "Background";
-        qcstream << endl;
-        qcstream.precision(10);
+		ofstream qcstream(qcFileName.toAscii().data());
+		ostream_iterator<string> os(qcstream, "\t ");
+		*os++ = "Observation";
+		*os++ = "Inverse Error";
+		*os++ = "X";
+		*os++ = "Y";
+		*os++ = "Z";
+		*os++ = "Type";
+		*os++ = "Time";
+		*os++ = "rhou";
+		*os++ = "rhov";
+		*os++ = "rhow";
+		*os++ = "T'";
+		*os++ = "qv'";
+		*os++ = "rhoa'";
+		*os++ = "qr";
+		*os++ = "Analysis";
+		*os++ = "Background";
+		qcstream << endl;
+		qcstream.precision(10);
 
-        ostream_iterator<real> od(qcstream, "\t ");
-        for (int m = 0; m < mObs; m++) {
-            int mi = m*(7+varDim*derivDim);
-            real i = obsVector[mi+2];
-            real j = obsVector[mi+3];
-            real k = obsVector[mi+4];
-            real tempsum = 0;
-            int ii = (int)((i - iMin)*DIrecip);
-            int jj = (int)((j - jMin)*DJrecip);
-            int kk = (int)((k - kMin)*DKrecip);
-            real ibasis = 0;
-            real jbasis = 0;
-            real kbasis = 0;
-            for (int var = 0; var < varDim; var++) {
-                for (int d = 0; d < derivDim; d++) {
-                    int wgt_index = mi + (7*(d+1)) + var;
-                    if (!obsVector[wgt_index]) continue;
-                    for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                        int kNode = kkNode;
-                        if ((kNode < 0) or (kNode >= kDim)) continue;
-                        kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
+		ostream_iterator<real> od(qcstream, "\t ");
+		for (int m = 0; m < mObs; m++) {
+			int mi = m*(7+varDim*derivDim);
+			real i = obsVector[mi+2];
+			real j = obsVector[mi+3];
+			real k = obsVector[mi+4];
+			real tempsum = 0;
+			int ii = (int)((i - iMin)*DIrecip);
+			int jj = (int)((j - jMin)*DJrecip);
+			int kk = (int)((k - kMin)*DKrecip);
+			real ibasis = 0;
+			real jbasis = 0;
+			real kbasis = 0;
+			for (int var = 0; var < varDim; var++) {
+				for (int d = 0; d < derivDim; d++) {
+					int wgt_index = mi + (7*(d+1)) + var;
+					if (!obsVector[wgt_index]) continue;
+					for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+						int kNode = kkNode;
+						if ((kNode < 0) or (kNode >= kDim)) continue;
+						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+						for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+							int iNode = iiNode;
+							if ((iNode < 0) or (iNode >= iDim)) continue;
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
 
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                                jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
-                                tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
-                            }
-                        }
-                    }
-                }
-            }
-            for (int t=0; t < 6; t++) {
-                *od++ = obsVector[mi+t];
-            }
-            int unixtime = (int)obsVector[mi+6];
-            QDateTime obtime;
-            obtime.setTime_t(unixtime);
-            obtime.setTimeSpec(Qt::UTC);
-            QString timestring = obtime.toString("hh:mm:ss.zzz");
-            qcstream << timestring.toStdString() << "\t";
+							for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+								int jNode = jjNode;
+								if ((jNode < 0) or (jNode >= jDim)) continue;
+								int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
+								tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
+							}
+						}
+					}
+				}
+			}
+			for (int t=0; t < 6; t++) {
+				*od++ = obsVector[mi+t];
+			}
+			int unixtime = (int)obsVector[mi+6];
+			QDateTime obtime;
+			obtime.setTime_t(unixtime);
+			obtime.setTimeSpec(Qt::UTC);
+			QString timestring = obtime.toString("hh:mm:ss.zzz");
+			qcstream << timestring.toStdString() << "\t";
 
-            // Multiply the weight by the ob -- Observations.in has individual weights already
-            // Only non-derivative for now
-            for (int t=7; t<14; t++) {
-                *od++ = obsVector[mi+t] * obsVector[mi];
-            }
+			// Multiply the weight by the ob -- Observations.in has individual weights already
+			// Only non-derivative for now
+			for (int t=7; t<14; t++) {
+				*od++ = obsVector[mi+t] * obsVector[mi];
+			}
 
-            *od++ = tempsum;
-            *od++ = obsVector[mi]-innovation[m];
-            qcstream << endl;
+			*od++ = tempsum;
+			*od++ = obsVector[mi]-innovation[m];
+			qcstream << endl;
 
-        }
+		}
 	}
 
 	adjustInternalDomain(-1);
-    pMin += DP;
-    pMax -= DP;
-    pDim -= 2;
+	pMin += DP;
+	pMax -= DP;
+	pDim -= 2;
 
 	// Write out to a netCDF file
 	if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
-    }
+		QString cdfFileName = outFileName + ".nc";
+		if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
+		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+	}
 	// Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
-    }
+	if (configHash->value("output_asi") == "true") {
+		QString asiFileName = outFileName + ".asi";
+		if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
+		cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+	}
 	// Set the domain back
 	adjustInternalDomain(1);
-    pMin -= DP;
-    pMax += DP;
-    pDim += 2;
+	pMin -= DP;
+	pMax += DP;
+	pDim += 2;
 
-    // Free the memory for the analysis variables
-    delete[] finalAnalysis;
+	// Free the memory for the analysis variables
+	delete[] finalAnalysis;
 
 	return true;
 

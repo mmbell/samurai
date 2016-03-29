@@ -27,419 +27,410 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 
 	cout << "Outputting " << suffix.toStdString() << "...\n";
 	// H --> to Mish for output
-    QString samuraiout = "samurai_RTZ_" + suffix + ".out";
-    ofstream samuraistream;
-    if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
-        samuraistream << "R\tT\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
-        samuraistream << "udr\tudt\tudz\tvdr\tvdt\tvdz\twdr\twdt\twdz\trhowdz\tMC residual\tdBZ\n";
-        samuraistream.precision(10);
-    }
+	QString samuraiout = "samurai_RTZ_" + suffix + ".out";
+	ofstream samuraistream;
+	if (configHash->value("output_txt") == "true") {
+		samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
+		samuraistream << "R\tT\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
+		samuraistream << "udr\tudt\tudz\tvdr\tvdt\tvdz\twdr\twdt\twdz\trhowdz\tMC residual\tdBZ\n";
+		samuraistream.precision(10);
+	}
 
-    int analysisDim = 51;
-    int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
+	int analysisDim = 51;
+	int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
-	real gausspoint = 0.5*sqrt(1./3.);
-    real Pi = acos(-1.0);
+	real Pi = acos(-1.0);
 
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
-		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
-			for (int imu = -ihalf; imu <= ihalf; imu++) {
-				real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5*ihalf));
-                real r = i*1000;
-				if (i > ((iDim-1)*DI + iMin)) continue;
+		for (int imu = 0; imu <= 1; imu++) {
+			real i = iMin + DI * (iIndex + (0.5 * imu));
+			real r = i*1000;
+			if (i > ((iDim-2)*DI + iMin)) continue;
 
-				for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
-					for (int jhalf =0; jhalf <=mishFlag; jhalf++) {
-						for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-							real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5*jhalf));
-							if (j > ((jDim-1)*DJ + jMin)) continue;
+			for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+				for (int jmu = 0; jmu <= 1; jmu++) {
+					real j = jMin + DJ * (jIndex + (0.5 * jmu));
+					if (j > ((jDim-2)*DJ + jMin)) continue;
 
-							real tpw = 0;
+					real tpw = 0;
 
-							for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
-								for (int khalf =0; khalf <=mishFlag; khalf++) {
-									for (int kmu = -khalf; kmu <= khalf; kmu++) {
-										real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5*khalf));
-										if (k > ((kDim-1)*DK + kMin)) continue;
+					for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
+						for (int kmu = 0; kmu <= 1; kmu++) {
+							real k = kMin + DK * (kIndex + (0.5 * kmu));
+							if (k > ((kDim-2)*DK + kMin)) continue;
 
-										real heightm = 1000*k;
-										real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
-										real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
-										real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
+							real heightm = 1000*k;
+							real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+							real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+							real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
-										int ii = (int)((i - iMin)*DIrecip);
-										int jj = (int)((j - jMin)*DJrecip);
-										int kk = (int)((k - kMin)*DKrecip);
-										real ibasis = 0.;
-										real jbasis = 0.;
-										real kbasis = 0.;
-										real idbasis = 0.;
-										real jdbasis = 0.;
-										real kdbasis = 0.;
-										real rhov = 0.;
-										real rhou = 0.;
-										real rhow = 0.;
-										real rhovdr = 0.; real rhoudr = 0.; real rhowdr = 0.;
-										real rhovdt = 0.; real rhoudt = 0.; real rhowdt = 0.;
-										real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
-										real tprime = 0.; real tdr = 0.; real tdt = 0.; real tdz = 0.;
-										real rhoadr = 0.; real rhoadt = 0.; real rhoadz = 0.;
-										real qvdr = 0.; real qvdt = 0.; real qvdz = 0.;
-                                        real pdr = 0.; real pdt = 0.; real pdz = 0.;
-										real qvprime = 0.;
-										real rhoprime = 0.;
-										real qrprime = 0.;
-                                        for (int var = 0; var < varDim; var++) {
-                                          for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                                              int kNode = kkNode;
-                                              if ((kNode < 0) or (kNode >= kDim)) continue;
-                                                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                                                    int iNode = iiNode;
-                                                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                                                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                                        int jNode = jjNode;
-                                                        if ((jNode < 0) or (jNode >= jDim)) continue;
-														ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-														jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-														kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-														idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
-														jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
-														kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
-														real basis3x = ibasis*jbasis*kbasis;
-														int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-														switch (var) {
-															case 0:
-																rhou +=  Astate[aIndex] * basis3x;
-																rhoudr += Astate[aIndex] * idbasis * jbasis * kbasis;
-																rhoudt += 180 * Astate[aIndex] * ibasis * jdbasis * kbasis / (i * Pi);
-																rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
-																break;
-															case 1:
-																rhov +=  Astate[aIndex + 1] * basis3x;
-																rhovdr += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
-																rhovdt += 180 * Astate[aIndex + 1] * ibasis * jdbasis * kbasis / (i * Pi);
-																rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
-																break;
-															case 2:
-																rhow += Astate[aIndex + 2] * basis3x;
-																rhowdr += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
-																rhowdt += 180 * Astate[aIndex + 2] * ibasis * jdbasis * kbasis / (i * Pi);
-																rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
-																break;
-															case 3:
-																tprime += Astate[aIndex + 3] * basis3x;
-                                                                tdr += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
-																tdt += 180 * Astate[aIndex + 3] * ibasis * jdbasis * kbasis / (i * Pi);
-																tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
-																break;
-															case 4:
-																qvprime += Astate[aIndex + 4] * basis3x;
-																qvdr += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
-																qvdt += 180 * Astate[aIndex + 4] * ibasis * jdbasis * kbasis / (i * Pi);
-																qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
-																break;
-															case 5:
-																rhoprime += Astate[aIndex + 5] * basis3x;
-																rhoadr += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
-																rhoadt += 180 * Astate[aIndex + 5] * ibasis * jdbasis * kbasis / (i * Pi);
-																rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
-																break;
-															case 6:
-																qrprime += Astate[aIndex + 6] * basis3x;
-																break;
-														}
-													}
-												}
+							int ii = (int)((i - iMin)*DIrecip);
+							int jj = (int)((j - jMin)*DJrecip);
+							int kk = (int)((k - kMin)*DKrecip);
+							real ibasis = 0.;
+							real jbasis = 0.;
+							real kbasis = 0.;
+							real idbasis = 0.;
+							real jdbasis = 0.;
+							real kdbasis = 0.;
+							real rhov = 0.;
+							real rhou = 0.;
+							real rhow = 0.;
+							real rhovdr = 0.; real rhoudr = 0.; real rhowdr = 0.;
+							real rhovdt = 0.; real rhoudt = 0.; real rhowdt = 0.;
+							real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
+							real tprime = 0.; real tdr = 0.; real tdt = 0.; real tdz = 0.;
+							real rhoadr = 0.; real rhoadt = 0.; real rhoadz = 0.;
+							real qvdr = 0.; real qvdt = 0.; real qvdz = 0.;
+							real pdr = 0.; real pdt = 0.; real pdz = 0.;
+							real qvprime = 0.;
+							real rhoprime = 0.;
+							real qrprime = 0.;
+							for (int var = 0; var < varDim; var++) {
+								for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+									int kNode = kkNode;
+									if ((kNode < 0) or (kNode >= kDim)) continue;
+									for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+										int iNode = iiNode;
+										if ((iNode < 0) or (iNode >= iDim)) continue;
+										for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+											int jNode = jjNode;
+											if ((jNode < 0) or (jNode >= jDim)) continue;
+											ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+											jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+											kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+											idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
+											jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
+											kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+											real basis3x = ibasis*jbasis*kbasis;
+											int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+											switch (var) {
+												case 0:
+												rhou +=  Astate[aIndex] * basis3x;
+												rhoudr += Astate[aIndex] * idbasis * jbasis * kbasis;
+												rhoudt += 180 * Astate[aIndex] * ibasis * jdbasis * kbasis / (i * Pi);
+												rhoudz += Astate[aIndex] * ibasis * jbasis * kdbasis;
+												break;
+												case 1:
+												rhov +=  Astate[aIndex + 1] * basis3x;
+												rhovdr += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
+												rhovdt += 180 * Astate[aIndex + 1] * ibasis * jdbasis * kbasis / (i * Pi);
+												rhovdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
+												break;
+												case 2:
+												rhow += Astate[aIndex + 2] * basis3x;
+												rhowdr += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
+												rhowdt += 180 * Astate[aIndex + 2] * ibasis * jdbasis * kbasis / (i * Pi);
+												rhowdz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
+												break;
+												case 3:
+												tprime += Astate[aIndex + 3] * basis3x;
+												tdr += Astate[aIndex + 3] * idbasis * jbasis * kbasis;
+												tdt += 180 * Astate[aIndex + 3] * ibasis * jdbasis * kbasis / (i * Pi);
+												tdz += Astate[aIndex + 3] * ibasis * jbasis * kdbasis;
+												break;
+												case 4:
+												qvprime += Astate[aIndex + 4] * basis3x;
+												qvdr += Astate[aIndex + 4] * idbasis * jbasis * kbasis;
+												qvdt += 180 * Astate[aIndex + 4] * ibasis * jdbasis * kbasis / (i * Pi);
+												qvdz += Astate[aIndex + 4] * ibasis * jbasis * kdbasis;
+												break;
+												case 5:
+												rhoprime += Astate[aIndex + 5] * basis3x;
+												rhoadr += Astate[aIndex + 5] * idbasis * jbasis * kbasis;
+												rhoadt += 180 * Astate[aIndex + 5] * ibasis * jdbasis * kbasis / (i * Pi);
+												rhoadz += Astate[aIndex + 5] * ibasis * jbasis * kdbasis;
+												break;
+												case 6:
+												qrprime += Astate[aIndex + 6] * basis3x;
+												break;
 											}
-										}
-
-										// Save mish values for future iterations
-										if ((imu != 0) and (jmu != 0) and (kmu != 0)) {
-			                                int uJ = jIndex*2 + (jmu+1)/2;
-			                                int uI = iIndex*2 + (imu+1)/2;
-                                            int uK = kIndex*2 + (kmu+1)/2;
-                                            int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
-
-											bgFields[uIndex] = rhou;
-											bgFields[uIndex + 1] = rhov;
-											bgFields[uIndex + 2] = rhow;
-											bgFields[uIndex + 3] = tprime;
-											bgFields[uIndex + 4] = qvprime;
-											bgFields[uIndex + 5] = rhoprime;
-											bgFields[uIndex + 6] = qrprime;
-										}
-
-										if ((configHash->value("output_mish") == "false")
-												and (ihalf or jhalf or khalf)) continue;
-
-										// Output it
-										real rhoa = rhoBar + rhoprime / 100;
-										real qv = refstate->bhypInvTransform(qBar + qvprime);
-										real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
-										// qv derivatives multipled by 2 to account for hyperbolic transform
-										qvdr = 2.0*qvdr;
-										qvdt = 2.0*qvdt;
-										qvdz = 2.0*(qbardz + qvdz);
-
-										real qr;
-										QString gridref = configHash->value("qr_variable");
-										if (gridref == "dbz") {
-											qr = qrprime*10. - 35.;
-											if (qr < -35.) {
-												qr = -999.;
-											}
-										} else {
-											qr = refstate->bhypInvTransform(qrprime);
-										}
-										real rhoq = qv * rhoa / 1000.;
-										real rho = rhoa + rhoq;
-										real v = rhov / rho;
-										real u = rhou / rho;
-										real w = rhow / rho;
-										real wspd = sqrt(u*u + v*v);
-										real temp = tBar + tprime;
-										real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
-										tdz = tbardz + tdz;
-
-										real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-										real airpress = temp*rhoa*287./100.;
-										real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
-														  + 1.673952e-5 * temp*temp + 2.433502 * log(temp));
-										real vp = temp*rhoq*461./100.;
-										//real vp = airpress * qv / (622 + qv);
-										real press = airpress + vp;
-
-										real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
-										real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
-
-										real RoverCp = 0.2854*(1 - 0.00028*qv);
-										real theta = temp * pow((1000/press), RoverCp);
-										real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
-										real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
-										real qvsat = 622 * satvp / airpress;
-										real relhum = -999.;
-										real thetaes = -999.;
-										if (satvp != 0) {
-											relhum = 100*vp/satvp;
-											lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
-											thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
-										} else {
-											relhum = -999.;
-											thetaes = -999.;
-										}
-										if (relhum > 100.) {
-												relhum = 100.0;
-												vp = satvp;
-												qv = qvsat;
-										}
-										real dewp = -999.0;
-										if (vp != 0) {
-											dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
-										}
-
-										// Calculate the kinematic derivatives
-										// rhoa derivatives divided by 100
-										// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
-										rhoadr /= 100.;
-										rhoadt /= 100.;
-										rhoadz /= 100.;
-										real rhodr = rhoadr * (1. + qv/1000.) + rhoa * qvdr/1000.;
-										real rhodt = rhoadt * (1. + qv/1000.) + rhoa * qvdt/1000.;
-										real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/1000.;
-										real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
-										rhodz += rhobardz;
-										real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
-										rhoadz += rhoabardz;
-
-										// Units 10-5
-										real udr = 100. * (rhoudr - u*rhodr) / rho;
-										real udt = 100. * (rhoudt - u*rhodt) / rho;
-										real udz = 100. * (rhoudz - u*rhodz) / rho;
-
-										real vdr = 100. * (rhovdr - v*rhodr) / rho;
-										real vdt = 100. * (rhovdt - v*rhodt) / rho;
-										real vdz = 100. * (rhovdz - v*rhodz) / rho;
-
-										real wdr = 100. * (rhowdr - w*rhodr) / rho;
-										real wdt = 100. * (rhowdt - w*rhodt) / rho;
-										real wdz = 100. * (rhowdz - w*rhodz) / rho;
-
-										// Vorticity units are 10-5
-										real vorticity = 1.0e5 * (vdr * 1.0e-5 + v/r - udt * 1.0e-5);
-										real divergence = 1.0e5 * (udr * 1.0e-5 + u/r + vdt * 1.0e-5);
-										real s1 = 1.0e5 * (udr * 1.0e-5 + u/r - vdt * 1.0e-5);
-										real s2 = 1.0e5 * (vdr * 1.0e-5 + v/r + udt * 1.0e-5);
-										real strain = sqrt(s1*s1 + s2*s2);
-										real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
-										real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt * 1.0e-5 + rhowdz * 1.0e-5);
-
-                                        // Add Coriolis parameter to relative vorticity
-                                        real latReference = configHash->value("ref_lat").toFloat();
-                                        real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
-                                        real absVorticity = vorticity + Coriolisf;
-
-                                        // Thermodynamic derivatives
-		                                pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhoadr*qv + qvdr*rhoa)*temp/1000.0)*461./100.;
-		                                pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp/1000.0)*461./100.;
-		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
-
-										QString refmask = configHash->value("mask_reflectivity");
-										if (refmask != "None") {
-											real refthreshold = refmask.toFloat();
-											if (qr < refthreshold) {
-												u = -999.;
-												v = -999.;
-												w = -999.;
-												wspd = -999.;
-												relhum = -999.;
-												hprime = -999.;
-												qvprime = -999.;
-												rhoprime = -999.;
-												tprime = -999.;
-												pprime = -999.;
-												vorticity = -999.;
-                                                absVorticity = -999.;
-												divergence = -999.;
-												okuboweiss = -999.;
-												strain = -999.;
-												tpw = -999.;
-												rhou = -999.;
-												rhov = -999.;
-												rhow = -999.;
-												rho = -999.;
-												press = -999.;
-												temp = -999.;
-												qv = -999.;
-												h = -999.;
-												qr = -999.;
-												udr = -999.; udt = -999.; udz = -999.;
-												vdr = -999.; vdt = -999.; vdz = -999.;
-												wdr = -999.; wdt = -999.; wdz = -999.;
-                                                tdr = -999.; tdt = -999.; tdz = -999.;
-                                                qvdr = -999.; qvdt = -999.; qvdz = -999.;
-                                                pdr = -999.; pdt = -999.; pdz = -999.;
-                                                rhodr = -999.; rhodt = -999.; rhodz = -999.;
-												dewp = -999.;
-												theta = -999.; thetae = -999.; thetaes = -999.;
-											}
-										}
-
-										// Avoid singularity at origin
-										if (r==0) {
-											u = -999.;
-											v = -999.;
-											w = -999.;
-											wspd = -999.;
-											relhum = -999.;
-											hprime = -999.;
-											qvprime = -999.;
-											rhoprime = -999.;
-											tprime = -999.;
-											pprime = -999.;
-											vorticity = -999.;
-											absVorticity = -999.;
-											divergence = -999.;
-											okuboweiss = -999.;
-											strain = -999.;
-											tpw = -999.;
-											rhou = -999.;
-											rhov = -999.;
-											rhow = -999.;
-											rho = -999.;
-											press = -999.;
-											temp = -999.;
-											qv = -999.;
-											h = -999.;
-											qr = -999.;
-											udr = -999.; udt = -999.; udz = -999.;
-											vdr = -999.; vdt = -999.; vdz = -999.;
-											wdr = -999.; wdt = -999.; wdz = -999.;
-											tdr = -999.; tdt = -999.; tdz = -999.;
-											qvdr = -999.; qvdt = -999.; qvdz = -999.;
-											pdr = -999.; pdt = -999.; pdz = -999.;
-											rhodr = -999.; rhodt = -999.; rhodz = -999.;
-											dewp = -999.;
-											theta = -999.; thetae = -999.; thetaes = -999.;
-										}
-
-
-                                        if (configHash->value("output_txt") == "true") {
-                                            samuraistream << scientific << i << "\t" << j << "\t"  << k
-                                            << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-											<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
-											<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
-                                            << udr << "\t" << udt << "\t" << udz << "\t"
-                                            << vdr << "\t" << vdt << "\t" << vdz << "\t"
-                                            << wdr << "\t" << wdt << "\t" << wdz << "\t"
-                                            << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
-										}
-
-										// Sum up the TPW in the vertical, top level is tpw
-										tpw += qv * rhoa * DK;
-
-										// On the nodes
-										if (!ihalf and !jhalf and !khalf){
-											int fIndex = (iDim-2)*(jDim-2)*(kDim-2);
-											int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
-											finalAnalysis[fIndex * 0 + posIndex] = u;
-											finalAnalysis[fIndex * 1 + posIndex] = v;
-											finalAnalysis[fIndex * 2 + posIndex] = w;
-											finalAnalysis[fIndex * 3 + posIndex] = wspd;
-											finalAnalysis[fIndex * 4 + posIndex] = relhum;
-											finalAnalysis[fIndex * 5 + posIndex] = hprime;
-                                            if (qvprime != -999) {
-                                                finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
-                                            } else {
-                                                finalAnalysis[fIndex * 6 + posIndex] = -999;
-                                            }
-											finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
-											finalAnalysis[fIndex * 8 + posIndex] = tprime;
-											finalAnalysis[fIndex * 9 + posIndex] = pprime;
-											finalAnalysis[fIndex * 10 + posIndex] = vorticity;
-											finalAnalysis[fIndex * 11 + posIndex] = divergence;
-											finalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
-											finalAnalysis[fIndex * 13 + posIndex] = strain;
-											finalAnalysis[fIndex * 14 + posIndex] = tpw;
-											finalAnalysis[fIndex * 15 + posIndex] = rhou;
-											finalAnalysis[fIndex * 16 + posIndex] = rhov;
-											finalAnalysis[fIndex * 17 + posIndex] = rhow;
-											finalAnalysis[fIndex * 18 + posIndex] = rho;
-											finalAnalysis[fIndex * 19 + posIndex] = press;
-											finalAnalysis[fIndex * 20 + posIndex] = temp;
-											finalAnalysis[fIndex * 21 + posIndex] = qv;
-											finalAnalysis[fIndex * 22 + posIndex] = h;
-											finalAnalysis[fIndex * 23 + posIndex] = qr;
-                                            finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
-											finalAnalysis[fIndex * 25 + posIndex] = dewp;
-											finalAnalysis[fIndex * 26 + posIndex] = theta;
-											finalAnalysis[fIndex * 27 + posIndex] = thetae;
-											finalAnalysis[fIndex * 28 + posIndex] = thetaes;
-											finalAnalysis[fIndex * 29 + posIndex] = udr;
-											finalAnalysis[fIndex * 30 + posIndex] = vdr;
-											finalAnalysis[fIndex * 31 + posIndex] = wdr;
-											finalAnalysis[fIndex * 32 + posIndex] = udt;
-											finalAnalysis[fIndex * 33 + posIndex] = vdt;
-											finalAnalysis[fIndex * 34 + posIndex] = wdt;
-											finalAnalysis[fIndex * 35 + posIndex] = udz;
-											finalAnalysis[fIndex * 36 + posIndex] = vdz;
-											finalAnalysis[fIndex * 37 + posIndex] = wdz;
-                                            finalAnalysis[fIndex * 38 + posIndex] = tdr;
-											finalAnalysis[fIndex * 39 + posIndex] = tdt;
-											finalAnalysis[fIndex * 40 + posIndex] = tdz;
-											finalAnalysis[fIndex * 41 + posIndex] = qvdr;
-											finalAnalysis[fIndex * 42 + posIndex] = qvdt;
-											finalAnalysis[fIndex * 43 + posIndex] = qvdz;
-											finalAnalysis[fIndex * 44 + posIndex] = pdr;
-											finalAnalysis[fIndex * 45 + posIndex] = pdt;
-											finalAnalysis[fIndex * 46 + posIndex] = pdz;
-                                            finalAnalysis[fIndex * 47 + posIndex] = rhodr;
-											finalAnalysis[fIndex * 48 + posIndex] = rhodt;
-											finalAnalysis[fIndex * 49 + posIndex] = rhodz;
-											finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 										}
 									}
 								}
+							}
+
+							// Save mish values for future iterations
+							int uJ = (jIndex-1)*2 + jmu;
+							int uI = (iIndex-1)*2 + imu;
+							int uK = (kIndex-1)*2 + kmu;
+							int uIndex = varDim*uiDim*ujDim*uK +varDim*uiDim*uJ +varDim*uI;
+
+							bgFields[uIndex] = rhou;
+							bgFields[uIndex + 1] = rhov;
+							bgFields[uIndex + 2] = rhow;
+							bgFields[uIndex + 3] = tprime;
+							bgFields[uIndex + 4] = qvprime;
+							bgFields[uIndex + 5] = rhoprime;
+							bgFields[uIndex + 6] = qrprime;
+
+							if ((configHash->value("output_mish") == "false")
+							and (imu or jmu or kmu)) continue;
+
+							// Output it
+							real rhoa = rhoBar + rhoprime / 100;
+							real qv = refstate->bhypInvTransform(qBar + qvprime);
+							real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+							// qv derivatives multipled by 2 to account for hyperbolic transform
+							qvdr = 2.0*qvdr;
+							qvdt = 2.0*qvdt;
+							qvdz = 2.0*(qbardz + qvdz);
+
+							real qr;
+							QString gridref = configHash->value("qr_variable");
+							if (gridref == "dbz") {
+								qr = qrprime*10. - 35.;
+								if (qr < -35.) {
+									qr = -999.;
+								}
+							} else {
+								qr = refstate->bhypInvTransform(qrprime);
+							}
+							real rhoq = qv * rhoa / 1000.;
+							real rho = rhoa + rhoq;
+							real v = rhov / rho;
+							real u = rhou / rho;
+							real w = rhow / rho;
+							real wspd = sqrt(u*u + v*v);
+							real temp = tBar + tprime;
+							real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+							tdz = tbardz + tdz;
+
+							real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
+							real airpress = temp*rhoa*287./100.;
+							real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
+														+ 1.673952e-5 * temp*temp + 2.433502 * log(temp));
+							real vp = temp*rhoq*461./100.;
+							//real vp = airpress * qv / (622 + qv);
+							real press = airpress + vp;
+
+							real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
+							real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
+
+							real RoverCp = 0.2854*(1 - 0.00028*qv);
+							real theta = temp * pow((1000/press), RoverCp);
+							real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
+							real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
+							real qvsat = 622 * satvp / airpress;
+							real relhum = -999.;
+							real thetaes = -999.;
+							if (satvp != 0) {
+								relhum = 100*vp/satvp;
+								lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
+								thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
+							} else {
+								relhum = -999.;
+								thetaes = -999.;
+							}
+							if (relhum > 100.) {
+								relhum = 100.0;
+								vp = satvp;
+								qv = qvsat;
+							}
+							real dewp = -999.0;
+							if (vp != 0) {
+								dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
+							}
+
+							// Calculate the kinematic derivatives
+							// rhoa derivatives divided by 100
+							// qv derivatives multipled by 2 to account for hyperbolic transform, not exact but close enough
+							rhoadr /= 100.;
+							rhoadt /= 100.;
+							rhoadz /= 100.;
+							real rhodr = rhoadr * (1. + qv/1000.) + rhoa * qvdr/1000.;
+							real rhodt = rhoadt * (1. + qv/1000.) + rhoa * qvdt/1000.;
+							real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/1000.;
+							real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
+							rhodz += rhobardz;
+							real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
+							rhoadz += rhoabardz;
+
+							// Units 10-5
+							real udr = 100. * (rhoudr - u*rhodr) / rho;
+							real udt = 100. * (rhoudt - u*rhodt) / rho;
+							real udz = 100. * (rhoudz - u*rhodz) / rho;
+
+							real vdr = 100. * (rhovdr - v*rhodr) / rho;
+							real vdt = 100. * (rhovdt - v*rhodt) / rho;
+							real vdz = 100. * (rhovdz - v*rhodz) / rho;
+
+							real wdr = 100. * (rhowdr - w*rhodr) / rho;
+							real wdt = 100. * (rhowdt - w*rhodt) / rho;
+							real wdz = 100. * (rhowdz - w*rhodz) / rho;
+
+							// Vorticity units are 10-5
+							real vorticity = 1.0e5 * (vdr * 1.0e-5 + v/r - udt * 1.0e-5);
+							real divergence = 1.0e5 * (udr * 1.0e-5 + u/r + vdt * 1.0e-5);
+							real s1 = 1.0e5 * (udr * 1.0e-5 + u/r - vdt * 1.0e-5);
+							real s2 = 1.0e5 * (vdr * 1.0e-5 + v/r + udt * 1.0e-5);
+							real strain = sqrt(s1*s1 + s2*s2);
+							real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+							real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt * 1.0e-5 + rhowdz * 1.0e-5);
+
+							// Add Coriolis parameter to relative vorticity
+							real latReference = configHash->value("ref_lat").toFloat();
+							real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
+							real absVorticity = vorticity + Coriolisf;
+
+							// Thermodynamic derivatives
+							pdr = (tdr*rhoa + rhoadr*temp)*287./100. + (tdr*rhoq + (rhoadr*qv + qvdr*rhoa)*temp/1000.0)*461./100.;
+							pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp/1000.0)*461./100.;
+							pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
+
+							QString refmask = configHash->value("mask_reflectivity");
+							if (refmask != "None") {
+								real refthreshold = refmask.toFloat();
+								if (qr < refthreshold) {
+									u = -999.;
+									v = -999.;
+									w = -999.;
+									wspd = -999.;
+									relhum = -999.;
+									hprime = -999.;
+									qvprime = -999.;
+									rhoprime = -999.;
+									tprime = -999.;
+									pprime = -999.;
+									vorticity = -999.;
+									absVorticity = -999.;
+									divergence = -999.;
+									okuboweiss = -999.;
+									strain = -999.;
+									tpw = -999.;
+									rhou = -999.;
+									rhov = -999.;
+									rhow = -999.;
+									rho = -999.;
+									press = -999.;
+									temp = -999.;
+									qv = -999.;
+									h = -999.;
+									qr = -999.;
+									udr = -999.; udt = -999.; udz = -999.;
+									vdr = -999.; vdt = -999.; vdz = -999.;
+									wdr = -999.; wdt = -999.; wdz = -999.;
+									tdr = -999.; tdt = -999.; tdz = -999.;
+									qvdr = -999.; qvdt = -999.; qvdz = -999.;
+									pdr = -999.; pdt = -999.; pdz = -999.;
+									rhodr = -999.; rhodt = -999.; rhodz = -999.;
+									dewp = -999.;
+									theta = -999.; thetae = -999.; thetaes = -999.;
+								}
+							}
+
+							// Avoid singularity at origin
+							if (r==0) {
+								u = -999.;
+								v = -999.;
+								w = -999.;
+								wspd = -999.;
+								relhum = -999.;
+								hprime = -999.;
+								qvprime = -999.;
+								rhoprime = -999.;
+								tprime = -999.;
+								pprime = -999.;
+								vorticity = -999.;
+								absVorticity = -999.;
+								divergence = -999.;
+								okuboweiss = -999.;
+								strain = -999.;
+								tpw = -999.;
+								rhou = -999.;
+								rhov = -999.;
+								rhow = -999.;
+								rho = -999.;
+								press = -999.;
+								temp = -999.;
+								qv = -999.;
+								h = -999.;
+								qr = -999.;
+								udr = -999.; udt = -999.; udz = -999.;
+								vdr = -999.; vdt = -999.; vdz = -999.;
+								wdr = -999.; wdt = -999.; wdz = -999.;
+								tdr = -999.; tdt = -999.; tdz = -999.;
+								qvdr = -999.; qvdt = -999.; qvdz = -999.;
+								pdr = -999.; pdt = -999.; pdz = -999.;
+								rhodr = -999.; rhodt = -999.; rhodz = -999.;
+								dewp = -999.;
+								theta = -999.; thetae = -999.; thetaes = -999.;
+							}
+
+
+							if (configHash->value("output_txt") == "true") {
+								samuraistream << scientific << i << "\t" << j << "\t"  << k
+								<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
+								<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
+								<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
+								<< udr << "\t" << udt << "\t" << udz << "\t"
+								<< vdr << "\t" << vdt << "\t" << vdz << "\t"
+								<< wdr << "\t" << wdt << "\t" << wdz << "\t"
+								<< rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
+							}
+
+							// Sum up the TPW in the vertical, top level is tpw
+							tpw += qv * rhoa * DK;
+
+							// On the nodes
+							if (!imu and !jmu and !kmu){
+								int fIndex = (iDim-2)*(jDim-2)*(kDim-2);
+								int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
+								finalAnalysis[fIndex * 0 + posIndex] = u;
+								finalAnalysis[fIndex * 1 + posIndex] = v;
+								finalAnalysis[fIndex * 2 + posIndex] = w;
+								finalAnalysis[fIndex * 3 + posIndex] = wspd;
+								finalAnalysis[fIndex * 4 + posIndex] = relhum;
+								finalAnalysis[fIndex * 5 + posIndex] = hprime;
+								if (qvprime != -999) {
+									finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
+								} else {
+									finalAnalysis[fIndex * 6 + posIndex] = -999;
+								}
+								finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
+								finalAnalysis[fIndex * 8 + posIndex] = tprime;
+								finalAnalysis[fIndex * 9 + posIndex] = pprime;
+								finalAnalysis[fIndex * 10 + posIndex] = vorticity;
+								finalAnalysis[fIndex * 11 + posIndex] = divergence;
+								finalAnalysis[fIndex * 12 + posIndex] = okuboweiss;
+								finalAnalysis[fIndex * 13 + posIndex] = strain;
+								finalAnalysis[fIndex * 14 + posIndex] = tpw;
+								finalAnalysis[fIndex * 15 + posIndex] = rhou;
+								finalAnalysis[fIndex * 16 + posIndex] = rhov;
+								finalAnalysis[fIndex * 17 + posIndex] = rhow;
+								finalAnalysis[fIndex * 18 + posIndex] = rho;
+								finalAnalysis[fIndex * 19 + posIndex] = press;
+								finalAnalysis[fIndex * 20 + posIndex] = temp;
+								finalAnalysis[fIndex * 21 + posIndex] = qv;
+								finalAnalysis[fIndex * 22 + posIndex] = h;
+								finalAnalysis[fIndex * 23 + posIndex] = qr;
+								finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
+								finalAnalysis[fIndex * 25 + posIndex] = dewp;
+								finalAnalysis[fIndex * 26 + posIndex] = theta;
+								finalAnalysis[fIndex * 27 + posIndex] = thetae;
+								finalAnalysis[fIndex * 28 + posIndex] = thetaes;
+								finalAnalysis[fIndex * 29 + posIndex] = udr;
+								finalAnalysis[fIndex * 30 + posIndex] = vdr;
+								finalAnalysis[fIndex * 31 + posIndex] = wdr;
+								finalAnalysis[fIndex * 32 + posIndex] = udt;
+								finalAnalysis[fIndex * 33 + posIndex] = vdt;
+								finalAnalysis[fIndex * 34 + posIndex] = wdt;
+								finalAnalysis[fIndex * 35 + posIndex] = udz;
+								finalAnalysis[fIndex * 36 + posIndex] = vdz;
+								finalAnalysis[fIndex * 37 + posIndex] = wdz;
+								finalAnalysis[fIndex * 38 + posIndex] = tdr;
+								finalAnalysis[fIndex * 39 + posIndex] = tdt;
+								finalAnalysis[fIndex * 40 + posIndex] = tdz;
+								finalAnalysis[fIndex * 41 + posIndex] = qvdr;
+								finalAnalysis[fIndex * 42 + posIndex] = qvdt;
+								finalAnalysis[fIndex * 43 + posIndex] = qvdz;
+								finalAnalysis[fIndex * 44 + posIndex] = pdr;
+								finalAnalysis[fIndex * 45 + posIndex] = pdt;
+								finalAnalysis[fIndex * 46 + posIndex] = pdz;
+								finalAnalysis[fIndex * 47 + posIndex] = rhodr;
+								finalAnalysis[fIndex * 48 + posIndex] = rhodt;
+								finalAnalysis[fIndex * 49 + posIndex] = rhodz;
+								finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
 							}
 						}
 					}
@@ -452,108 +443,108 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 	QString outFileName = outputPath.absoluteFilePath(fileName);
 
 	// Write the Obs to a summary text file
-    if (configHash->value("output_qc") == "true") {
-        QString qcout = "samurai_QC_" + suffix + ".out";
+	if (configHash->value("output_qc") == "true") {
+		QString qcout = "samurai_QC_" + suffix + ".out";
 		QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toAscii().data());
-        ostream_iterator<string> os(qcstream, "\t ");
-        *os++ = "Observation";
-        *os++ = "Inverse Error";
-        *os++ = "R";
-        *os++ = "T";
-        *os++ = "Z";
-        *os++ = "Type";
-        *os++ = "Time";
-        *os++ = "rhou";
-        *os++ = "rhov";
-        *os++ = "rhow";
-        *os++ = "T'";
-        *os++ = "qv'";
-        *os++ = "rhoa'";
-        *os++ = "qr";
-        *os++ = "Analysis";
-        *os++ = "Background";
-        qcstream << endl;
-        qcstream.precision(10);
+		ofstream qcstream(qcFileName.toAscii().data());
+		ostream_iterator<string> os(qcstream, "\t ");
+		*os++ = "Observation";
+		*os++ = "Inverse Error";
+		*os++ = "R";
+		*os++ = "T";
+		*os++ = "Z";
+		*os++ = "Type";
+		*os++ = "Time";
+		*os++ = "rhou";
+		*os++ = "rhov";
+		*os++ = "rhow";
+		*os++ = "T'";
+		*os++ = "qv'";
+		*os++ = "rhoa'";
+		*os++ = "qr";
+		*os++ = "Analysis";
+		*os++ = "Background";
+		qcstream << endl;
+		qcstream.precision(10);
 
-        ostream_iterator<real> od(qcstream, "\t ");
-        for (int m = 0; m < mObs; m++) {
-            int mi = m*(7+varDim*derivDim);
-            real i = obsVector[mi+2];
-            real j = obsVector[mi+3];
-            real k = obsVector[mi+4];
-            real tempsum = 0;
-            int ii = (int)((i - iMin)*DIrecip);
-            int jj = (int)((j - jMin)*DJrecip);
-            int kk = (int)((k - kMin)*DKrecip);
-            real ibasis = 0;
-            real jbasis = 0;
-            real kbasis = 0;
-            for (int var = 0; var < varDim; var++) {
-                for (int d = 0; d < derivDim; d++) {
-                    int wgt_index = mi + (7*(d+1)) + var;
-                    if (!obsVector[wgt_index]) continue;
-                    for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-                        int kNode = kkNode;
-                        if ((kNode < 0) or (kNode >= kDim)) continue;
-                        kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
-                        for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                                jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
-                                tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
-                            }
-                        }
-                    }
-                }
-            }
-            for (int t=0; t < 6; t++) {
-                *od++ = obsVector[mi+t];
-            }
-            int unixtime = (int)obsVector[mi+6];
-            QDateTime obtime;
-            obtime.setTime_t(unixtime);
-            obtime.setTimeSpec(Qt::UTC);
-            QString timestring = obtime.toString("hh:mm:ss.zzz");
-            qcstream << timestring.toStdString() << "\t";
+		ostream_iterator<real> od(qcstream, "\t ");
+		for (int m = 0; m < mObs; m++) {
+			int mi = m*(7+varDim*derivDim);
+			real i = obsVector[mi+2];
+			real j = obsVector[mi+3];
+			real k = obsVector[mi+4];
+			real tempsum = 0;
+			int ii = (int)((i - iMin)*DIrecip);
+			int jj = (int)((j - jMin)*DJrecip);
+			int kk = (int)((k - kMin)*DKrecip);
+			real ibasis = 0;
+			real jbasis = 0;
+			real kbasis = 0;
+			for (int var = 0; var < varDim; var++) {
+				for (int d = 0; d < derivDim; d++) {
+					int wgt_index = mi + (7*(d+1)) + var;
+					if (!obsVector[wgt_index]) continue;
+					for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+						int kNode = kkNode;
+						if ((kNode < 0) or (kNode >= kDim)) continue;
+						kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+						for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+							int iNode = iiNode;
+							if ((iNode < 0) or (iNode >= iDim)) continue;
+							ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
+							for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+								int jNode = jjNode;
+								if ((jNode < 0) or (jNode >= jDim)) continue;
+								int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
+								tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
+							}
+						}
+					}
+				}
+			}
+			for (int t=0; t < 6; t++) {
+				*od++ = obsVector[mi+t];
+			}
+			int unixtime = (int)obsVector[mi+6];
+			QDateTime obtime;
+			obtime.setTime_t(unixtime);
+			obtime.setTimeSpec(Qt::UTC);
+			QString timestring = obtime.toString("hh:mm:ss.zzz");
+			qcstream << timestring.toStdString() << "\t";
 
-            // Multiply the weight by the ob -- Observations.in has individual weights alreadt
-            // Only non-derivative for now
-            for (int t=7; t<14; t++) {
-                *od++ = obsVector[mi+t] * obsVector[mi];
-            }
+			// Multiply the weight by the ob -- Observations.in has individual weights alreadt
+			// Only non-derivative for now
+			for (int t=7; t<14; t++) {
+				*od++ = obsVector[mi+t] * obsVector[mi];
+			}
 
-            *od++ = tempsum;
-            *od++ = obsVector[mi]-innovation[m];
-            qcstream << endl;
+			*od++ = tempsum;
+			*od++ = obsVector[mi]-innovation[m];
+			qcstream << endl;
 
-        }
+		}
 	}
 
 	adjustInternalDomain(-1);
 
 	// Write out to a netCDF file
 	if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
-    }
+		QString cdfFileName = outFileName + ".nc";
+		if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
+		cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+	}
 	// Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
-    }
+	if (configHash->value("output_asi") == "true") {
+		QString asiFileName = outFileName + ".asi";
+		if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
+		cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+	}
 	// Set the domain back
 	adjustInternalDomain(1);
 
-    // Free the memory for the analysis variables
-    delete[] finalAnalysis;
+	// Free the memory for the analysis variables
+	delete[] finalAnalysis;
 
 	return true;
 
@@ -591,7 +582,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!(latVar = dataFile.add_var("latitude", ncFloat, thetaDim)))
 		return NC_ERR; */
-    if (!(radVar = dataFile.add_var("radius", ncFloat, radDim)))
+  if (!(radVar = dataFile.add_var("radius", ncFloat, radDim)))
 		return NC_ERR;
 	if (!(thetaVar = dataFile.add_var("theta", ncFloat, thetaDim)))
 		return NC_ERR;
@@ -607,7 +598,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!lonVar->add_att("units", "degrees_east"))
 		return NC_ERR; */
-    if (!radVar->add_att("units", "km"))
+  if (!radVar->add_att("units", "km"))
 		return NC_ERR;
 	if (!thetaVar->add_att("units", "degrees"))
 		return NC_ERR;
@@ -620,9 +611,9 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
 	NcVar *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
-    NcVar *dudr, *dvdr, *dwdr, *dudt, *dvdt, *dwdt, *dudz, *dvdz, *dwdz;
+  NcVar *dudr, *dvdr, *dwdr, *dudt, *dvdt, *dwdt, *dudz, *dvdz, *dwdz;
 	NcVar *dtdr, *dqdr, *dpdr, *dtdt, *dqdt, *dpdt, *dtdz, *dqdz, *dpdz;
-    NcVar *drhodr, *drhodt, *drhodz;
+  NcVar *drhodr, *drhodt, *drhodz;
 	NcVar *dewp, *theta, *thetae, *thetaes, *mcresidual;
 
 	if (!(u = dataFile.add_var("U", ncFloat, timeDim,
@@ -694,16 +685,16 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	if (!(h = dataFile.add_var("H", ncFloat, timeDim,
                                lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
-        if (!(qr = dataFile.add_var("DBZ", ncFloat, timeDim,
+  if (configHash->value("qr_variable") == "dbz") {
+    	if (!(qr = dataFile.add_var("DBZ", ncFloat, timeDim,
                                     lvlDim, thetaDim, radDim)))
             return NC_ERR;
 	} else {
-        if (!(qr = dataFile.add_var("QR", ncFloat, timeDim,
+      if (!(qr = dataFile.add_var("QR", ncFloat, timeDim,
                                     lvlDim, thetaDim, radDim)))
             return NC_ERR;
     }
-    if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim,
+  if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim,
                                        lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dewp = dataFile.add_var("DEWPOINT", ncFloat, timeDim,
@@ -718,7 +709,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	if (!(thetaes = dataFile.add_var("THETAES", ncFloat, timeDim,
 									 lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (!(dudr = dataFile.add_var("DUDR", ncFloat, timeDim,
+  if (!(dudr = dataFile.add_var("DUDR", ncFloat, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(dvdr = dataFile.add_var("DVDR", ncFloat, timeDim,
@@ -772,7 +763,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	if (!(dpdz = dataFile.add_var("DPDZ", ncFloat, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (!(drhodr = dataFile.add_var("DRHODR", ncFloat, timeDim,
+  if (!(drhodr = dataFile.add_var("DRHODR", ncFloat, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 	if (!(drhodt = dataFile.add_var("DRHODT", ncFloat, timeDim,
@@ -832,14 +823,14 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("units", "kJ"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
-        if (!qr->add_att("units", "dBZ"))
-            return NC_ERR;
+  if (configHash->value("qr_variable") == "dbz") {
+    if (!qr->add_att("units", "dBZ"))
+        return NC_ERR;
     } else {
         if (!qr->add_att("units", "g kg-1"))
-            return NC_ERR;
+          return NC_ERR;
     }
-    if (!absVorticity->add_att("units", "10-5s-1"))
+  if (!absVorticity->add_att("units", "10-5s-1"))
 		return NC_ERR;
 	if (!dewp->add_att("units", "K"))
 		return NC_ERR;
@@ -867,7 +858,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dwdz->add_att("units", "10-5s-1"))
 		return NC_ERR;
-    if (!dtdr->add_att("units", "K km-1"))
+  if (!dtdr->add_att("units", "K km-1"))
 		return NC_ERR;
 	if (!dqdr->add_att("units", "g kg-1 km-1"))
 		return NC_ERR;
@@ -941,14 +932,14 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("long_name", "moist static energy"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
-        if (!qr->add_att("long_name", "radar reflectivity"))
-            return NC_ERR;
+  if (configHash->value("qr_variable") == "dbz") {
+    if (!qr->add_att("long_name", "radar reflectivity"))
+        return NC_ERR;
     } else {
         if (!qr->add_att("long_name", "precipitation mixing ratio"))
-            return NC_ERR;
+          return NC_ERR;
     }
-    if (!absVorticity->add_att("long_name", "absolute vertical vorticity"))
+  if (!absVorticity->add_att("long_name", "absolute vertical vorticity"))
 		return NC_ERR;
 	if (!dewp->add_att("long_name", "dewpoint temperature"))
 		return NC_ERR;
@@ -958,7 +949,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!thetaes->add_att("long_name", "saturation equivalent potential temperature"))
 		return NC_ERR;
-    if (!dudr->add_att("long_name", "wind gradient"))
+  if (!dudr->add_att("long_name", "wind gradient"))
 		return NC_ERR;
 	if (!dvdr->add_att("long_name", "wind gradient"))
 		return NC_ERR;
@@ -994,7 +985,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dpdz->add_att("long_name", "pressure gradient"))
 		return NC_ERR;
-    if (!drhodr->add_att("long_name", "density gradient"))
+  if (!drhodr->add_att("long_name", "density gradient"))
 		return NC_ERR;
 	if (!drhodt->add_att("long_name", "density gradient"))
 		return NC_ERR;
@@ -1062,7 +1053,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!thetaes->add_att("missing_value", -999.f))
 		return NC_ERR;
-    if (!dudr->add_att("missing_value", -999.f))
+  if (!dudr->add_att("missing_value", -999.f))
 		return NC_ERR;
 	if (!dvdr->add_att("missing_value", -999.f))
 		return NC_ERR;
@@ -1080,7 +1071,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!dwdz->add_att("missing_value", -999.f))
 		return NC_ERR;
-    if (!dtdr->add_att("missing_value", -999.f))
+  if (!dtdr->add_att("missing_value", -999.f))
 		return NC_ERR;
 	if (!dqdr->add_att("missing_value", -999.f))
 		return NC_ERR;
@@ -1166,7 +1157,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!thetaes->add_att("_FillValue", -999.f))
 		return NC_ERR;
-    if (!dudr->add_att("_FillValue", -999.f))
+  if (!dudr->add_att("_FillValue", -999.f))
 		return NC_ERR;
 	if (!dvdr->add_att("_FillValue", -999.f))
 		return NC_ERR;
@@ -1215,8 +1206,8 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	/* real *lons = new real[iDim];
 	real *lats = new real[jDim]; */
 	real *levs = new real[kDim];
-    real *radius = new real[iDim];
-    real *thetadeg = new real[jDim];
+  real *radius = new real[iDim];
+  real *thetadeg = new real[jDim];
 	int time[2];
 
 	// Reference time and position from center file
@@ -1319,7 +1310,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!qr->put_rec(&finalAnalysis[iDim*jDim*kDim*23], rec))
 			return NC_ERR;
-        if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec))
+    if (!absVorticity->put_rec(&finalAnalysis[iDim*jDim*kDim*24], rec))
 			return NC_ERR;
 		if (!dewp->put_rec(&finalAnalysis[iDim*jDim*kDim*25], rec))
 			return NC_ERR;
@@ -1329,7 +1320,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 			return NC_ERR;
 		if (!thetaes->put_rec(&finalAnalysis[iDim*jDim*kDim*28], rec))
 			return NC_ERR;
-        if (!dudr->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec))
+    if (!dudr->put_rec(&finalAnalysis[iDim*jDim*kDim*29], rec))
 			return NC_ERR;
 		if (!dvdr->put_rec(&finalAnalysis[iDim*jDim*kDim*30], rec))
 			return NC_ERR;
