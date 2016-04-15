@@ -16,7 +16,7 @@
 #include <QVector>
 #include <iomanip>
 #include "RecursiveFilter.h"
-#include <GeographicLib/TransverseMercatorExact.hpp>
+#include <GeographicLib/LambertConformalConic.hpp>
 
 // Constructor
 VarDriver3D::VarDriver3D()
@@ -320,7 +320,7 @@ bool VarDriver3D::preProcessMetObs()
 
 
 	// Geographic functions
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
 	real referenceLon = configHash.value("ref_lon").toFloat();
 
     // Find the zero C line using Newton's method
@@ -1566,7 +1566,7 @@ int VarDriver3D::loadBackgroundObs()
     // SplineD::Debug(1);
 
     // Geographic functions
-    GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+		GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
     real referenceLon = configHash.value("ref_lon").toFloat();
 
     QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;

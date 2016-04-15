@@ -14,7 +14,7 @@
 #include <QTextStream>
 #include <QDomDocument>
 #include <QDomNodeList>
-#include <GeographicLib/TransverseMercatorExact.hpp>
+#include <GeographicLib/LambertConformalConic.hpp>
 #include <netcdfcpp.h>
 
 // Constructor
@@ -578,8 +578,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 
 	Dorade swpfile(metFile.fileName());
 
-	// Use a Transverse Mercator projection to map the radar gates to the grid
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	// Use a Mercator projection to map the radar gates to the grid
+	GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
 
 	QString radardbz = configHash.value("radar_dbz");
 	QString radarvel = configHash.value("radar_vel");
@@ -911,7 +911,7 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+  GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
 	QTextStream in(&metFile);
 	// Skip two lines
 	in.readLine(); in.readLine();
@@ -1651,7 +1651,7 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 		return false;
 
 		// Use a Transverse Mercator projection to map the radar gates to the grid
-		GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+		GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
 
 		QTextStream in(&metFile);
 		MetObs ob;

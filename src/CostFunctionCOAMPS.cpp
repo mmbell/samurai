@@ -543,13 +543,15 @@ bool CostFunctionCOAMPS::writeFlatfile(const QString& flatFileName, const int va
 	QFile file(flatFileName);
 	file.open(QIODevice::WriteOnly);
 	QDataStream out(&file);
+	out.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
 	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
 		for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 			for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
 				int fIndex = (iDim-2)*(jDim-2)*(sDim-2);
 				int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
-				out << finalAnalysis[fIndex * var + posIndex];
+				float value = (float)finalAnalysis[fIndex * var + posIndex];
+				out << value;
 			}
 		}
 	}
@@ -1258,7 +1260,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
                 9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
                 3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
                 1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
-                55.0, 30.0, 10.0, 0.0 }; 
+                55.0, 30.0, 10.0, 0.0 };
 
 	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
 		levs[kIndex-1] = (sigma[kIndex]*(sigma[0] - sigma[41])/sigma[0] + sigma[41])/1000.0;
