@@ -546,8 +546,8 @@ bool CostFunctionCOAMPS::writeFlatfile(const QString& flatFileName, const int va
 	out.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
 	for (int kIndex = 1; kIndex < sDim-1; kIndex++) {
-		for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
-			for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+		for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+			for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 				int fIndex = (iDim-2)*(jDim-2)*(sDim-2);
 				int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
 				float value = (float)finalAnalysis[fIndex * var + posIndex];
