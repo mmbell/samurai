@@ -222,7 +222,7 @@ bool VarDriver3D::initialize(const QDomElement& configuration)
 	if (obVector.size() == 0) {
 		// No observations so quit
 		cout << "No observations loaded, unable to perform analysis.\n";
-		return false;
+		//return false;
 	} else {
 		cout << "Number of New Observations: " << obVector.size() << endl;
 	}
