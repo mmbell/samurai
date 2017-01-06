@@ -2259,7 +2259,7 @@ void CostFunction3D::calcSImatrix()
                   }
                 }
                 Ibuild[uIndex][0] = si;
-                if (si > 193) {
+                if (si > 192) {
                   cout << "Overflow in SI matrix calculation!" << si << "\n";
                 }
               }
