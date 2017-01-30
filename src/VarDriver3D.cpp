@@ -531,6 +531,19 @@ bool VarDriver3D::preProcessMetObs()
                     qv = metOb.getQv();
                     tempk = metOb.getTemperature();
 
+										// Fix for sondes with moisture problems
+										if (rho == -999) {
+											if (configHash.value("use_refq_for_rho") == "true") {
+												// Use the background moisture to correct the density
+												float qsat = metOb.getQvSaturation();
+												if (qsat != -999) {
+													float rh = qBar/qsat;
+													metOb.setRH(rh);
+													rho = metOb.getMoistDensity();
+												}
+											}
+										}
+
                     // Separate obs for each measurement
                     // rho v 1 m/s error
                     if ((u != -999) and (rho != -999)) {

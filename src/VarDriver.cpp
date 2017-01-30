@@ -1647,66 +1647,65 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 {
 
-	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
-		return false;
+	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
 
-		// Use a Transverse Mercator projection to map the radar gates to the grid
-		GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	// Use a Transverse Mercator projection to map the radar gates to the grid
+	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
-		QTextStream in(&metFile);
-		MetObs ob;
-		QDate startDate;
-		QDateTime datetime;
-		QString line;
-		while (!in.atEnd()) {
-			line = in.readLine();
-			QStringList lineparts = line.split(QRegExp(","));
-			QDate date = QDate::fromString(lineparts[0].mid(0,10), "yyyy-MM-dd");
-			QTime time = QTime::fromString(lineparts[0].mid(11,8), "HH:mm:ss");
-			datetime = QDateTime(date, time, Qt::UTC);
-			ob.setTime(datetime);
-			real radarLat = lineparts[1].toFloat();
-			real radarLon = lineparts[2].toFloat();
-			real radarAlt = lineparts[3].toFloat();
-			real az = lineparts[4].toFloat();
-			real el = lineparts[5].toFloat();
-			real range = lineparts[6].toFloat();
-			real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
-			real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
-			real rEarth = 6371000.0;
+	QTextStream in(&metFile);
+	MetObs ob;
+	QDate startDate;
+	QDateTime datetime;
+	QString line;
+	while (!in.atEnd()) {
+		line = in.readLine();
+		QStringList lineparts = line.split(QRegExp(","));
+		QDate date = QDate::fromString(lineparts[0].mid(0,10), "yyyy-MM-dd");
+		QTime time = QTime::fromString(lineparts[0].mid(11,8), "HH:mm:ss");
+		datetime = QDateTime(date, time, Qt::UTC);
+		ob.setTime(datetime);
+		real radarLat = lineparts[1].toFloat();
+		real radarLon = lineparts[2].toFloat();
+		real radarAlt = lineparts[3].toFloat();
+		real az = lineparts[4].toFloat();
+		real el = lineparts[5].toFloat();
+		real range = lineparts[6].toFloat();
+		real relX = range*sin(az*Pi/180.)*cos(el*Pi/180.);
+		real relY = range*cos(az*Pi/180.)*cos(el*Pi/180.);
+		real rEarth = 6371000.0;
 
-			// Take into account curvature of the earth for the height of the radar beam
-			real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
-			real radarX, radarY, gateLat, gateLon;
-			tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
-			tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
-			real gateAlt = relZ + radarAlt;
+		// Take into account curvature of the earth for the height of the radar beam
+		real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
+		real radarX, radarY, gateLat, gateLon;
+		tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+		tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+		real gateAlt = relZ + radarAlt;
 
-			ob.setLat(gateLat);
-			ob.setLon(gateLon);
-			ob.setAltitude(gateAlt);
-			ob.setAzimuth(az);
-			ob.setElevation(el);
-			if(lineparts[7].toFloat() != -32768.0) {
-				ob.setReflectivity(lineparts[7].toFloat());
-			} else {
-				ob.setReflectivity(-999.0);
-			}
-			if(lineparts[8].toFloat() != -32768.0) {
-				ob.setRadialVelocity(lineparts[8].toFloat());
-			} else {
-				ob.setRadialVelocity(-999.0);
-			}
-			if(lineparts[9].toFloat() != -32768.0) {
-				ob.setSpectrumWidth(lineparts[9].toFloat());
-			} else {
-				ob.setSpectrumWidth(-999.0);
-			}
-			ob.setObType(MetObs::radar);
-			metObVector->push_back(ob);
+		ob.setLat(gateLat);
+		ob.setLon(gateLon);
+		ob.setAltitude(gateAlt);
+		ob.setAzimuth(az);
+		ob.setElevation(el);
+		if(lineparts[7].toFloat() != -32768.0) {
+			ob.setReflectivity(lineparts[7].toFloat());
+		} else {
+			ob.setReflectivity(-999.0);
 		}
-
-		metFile.close();
-		return true;
-
+		if(lineparts[8].toFloat() != -32768.0) {
+			ob.setRadialVelocity(lineparts[8].toFloat());
+		} else {
+			ob.setRadialVelocity(-999.0);
+		}
+		if(lineparts[9].toFloat() != -32768.0) {
+			ob.setSpectrumWidth(lineparts[9].toFloat());
+		} else {
+			ob.setSpectrumWidth(-999.0);
+		}
+		ob.setObType(MetObs::radar);
+		metObVector->push_back(ob);
 	}
+
+	metFile.close();
+	return true;
+
+}
