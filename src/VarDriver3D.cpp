@@ -1346,24 +1346,26 @@ bool VarDriver3D::preProcessMetObs()
                                                 varOb.setWeight(1.0, 1, 2);
                                                 varOb.setWeight(1.0, 2, 3);
                                             } else if (runMode == RTZ) {
-												if (i > 0) {
-													varOb.setRadius(i);
-													varOb.setTheta(j);
-													real rInverse = 180.0/(i*Pi);
-													varOb.setWeight((1.0/i), 0, 0);
-													varOb.setWeight(1.0, 0, 1);
-													varOb.setWeight(rInverse, 1, 2);
-													varOb.setWeight(1.0, 2, 3);
-												}
+																								if (i > 0) {
+																									varOb.setRadius(i);
+																									varOb.setTheta(j);
+																									real rInverse = 180.0/(i*Pi);
+																									varOb.setWeight((1.0/i), 0, 0);
+																									varOb.setWeight(1.0, 0, 1);
+																									varOb.setWeight(rInverse, 1, 2);
+																									varOb.setWeight(1.0, 2, 3);
+																								}
                                             }
                                             varOb.setAltitude(k);
                                             varOb.setError(mc_weight);
                                             varOb.setOb(0.);
                                             obVector.push_back(varOb);
+
                                         }
                                     }
                                 }
                             }
+														varOb.setWeight(0.0, 0, 0);
                             varOb.setWeight(0.0, 0, 1);
                             varOb.setWeight(0.0, 1, 2);
                             varOb.setWeight(0.0, 2, 3);
@@ -1378,7 +1380,7 @@ bool VarDriver3D::preProcessMetObs()
                             varOb.setError(pseudow_weight);
                             varOb.setOb(0.);
                             if (!ihalf and !jhalf){
-                                // Set an upper boundary condition for W
+                                /* Set an upper boundary condition for W
                                 if ((maxrefHeight > 0) and (maxrefHeight < kmax)
                                     and (pseudow_weight > 0.0)) {
                                     varOb.setAltitude(maxrefHeight);
@@ -1391,7 +1393,7 @@ bool VarDriver3D::preProcessMetObs()
                                     varOb.setAltitude(0.0);
                                     varOb.setError(pseudow_weight);
                                     obVector.push_back(varOb);
-                                }
+                                } */
                             }
                             varOb.setWeight(0., 2);
                         }
@@ -1400,6 +1402,66 @@ bool VarDriver3D::preProcessMetObs()
             }
         }
     }
+		// Axisymmetric pseudow
+		for (unsigned int var = 0; var < numVars; ++var) {
+				for (unsigned int d = 0; d < numDerivatives; ++d) {
+						varOb.setWeight(0.0, var, d);
+				}
+		}
+		varOb.setWeight(1., 2);
+		varOb.setType(MetObs::pseudo);
+		for (int iIndex = -1; iIndex < idim; iIndex++) {
+			for (int ihalf = 0; ihalf <= 1; ihalf++) {
+				for (int imu = -ihalf; imu <= ihalf; imu++) {
+					real i = imin + iincr * (iIndex + (gausspoint * imu + 0.5*ihalf));
+					for (int kIndex = -1; kIndex < kdim; kIndex++) {
+						for (int khalf =0; khalf <= 1; khalf++) {
+							for (int kmu = -khalf; kmu <= khalf; kmu++) {
+								real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
+								real sumz = 0.0;
+								real countz = 0.0;
+								for (int jIndex = -1; jIndex < jdim; jIndex++) {
+									for (int jhalf =0; jhalf <= 1; jhalf++) {
+										for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
+											// On the mish
+											if (ihalf and jhalf and khalf and
+												(imu != 0) and (jmu != 0) and (kmu != 0)){
+													int bgI = (iIndex+1)*2 + (imu+1)/2;
+													int bgJ = (jIndex+1)*2 + (jmu+1)/2;
+													int bgK = (kIndex+1)*2 + (kmu+1)/2;
+													int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+													real dbz = 10.0*bgU[bIndex +6] - 35.0;
+													real linearz = pow(10.0,(dbz*0.1));
+													sumz = sumz + linearz;
+													countz++;
+												}
+											}
+										}
+									}
+									if (countz > 0.0) {
+										sumz = sumz / countz;
+									} else {
+										sumz = 1.1;
+									}
+									// Enforce a weak w=0 everywhere dBZ < -10
+									if ((pseudow_weight > 0.0) and (sumz < 1) and
+									(i >= imin) and (i <= imax) and
+									(k >= kmin) and (k <= kmax)) {
+										if (i > 0) {
+											varOb.setRadius(i);
+											varOb.setTheta(180.0);
+										}
+										varOb.setAltitude(k);
+										varOb.setError(pseudow_weight);
+										varOb.setOb(0.0);
+										obVector.push_back(varOb);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
     cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
     // Write the Obs to a summary text file

@@ -121,7 +121,8 @@ class MetObs
 			insitu,
             mtp,
             mesonet,
-            aeri
+            aeri,
+            pseudo
 		};
 		
 	protected:
