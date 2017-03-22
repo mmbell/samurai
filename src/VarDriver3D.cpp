@@ -348,7 +348,7 @@ bool VarDriver3D::preProcessMetObs()
 		QString file = filenames.at(i);
 		QStringList fileparts = file.split(".");
 		if (fileparts.isEmpty()) {
-			cout << "Unknown file! " << file.toAscii().data() << endl;
+			cout << "Unknown file! " << file.toLatin1().data() << endl;
 			continue;
 		}
 		QString suffix = fileparts.last();
@@ -357,7 +357,7 @@ bool VarDriver3D::preProcessMetObs()
 			// Switch it to suffix
 			suffix = "swp";
 		}
-		cout << "Processing " << file.toAscii().data() << " of type " << suffix.toAscii().data() << endl;
+		cout << "Processing " << file.toLatin1().data() << " of type " << suffix.toLatin1().data() << endl;
 		QFile metFile(dataPath.filePath(file));
 
 		// Read different types of files
@@ -1466,7 +1466,7 @@ bool VarDriver3D::preProcessMetObs()
 
     // Write the Obs to a summary text file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-    ofstream obstream(obFilename.toAscii().data());
+    ofstream obstream(obFilename.toLatin1().data());
     // Header messes up reload
     /*ostream_iterator<string> os(obstream, "\t ");
      *os++ = "Type";
@@ -1567,7 +1567,7 @@ bool VarDriver3D::loadMetObs()
 
     // Open and read the file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-    ifstream obstream(obFilename.toAscii().data());
+    ifstream obstream(obFilename.toLatin1().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
 			>> wgt[1][0] >> wgt[1][1] >> wgt[1][2] >> wgt[1][3]
@@ -1659,7 +1659,7 @@ int VarDriver3D::loadBackgroundObs()
     }
     real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
 	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
-    ifstream bgstream(bgFilename.toAscii().data());
+    ifstream bgstream(bgFilename.toLatin1().data());
     if (!bgstream.good()) {
         cout << "Error opening samurai_Background.in for reading.\n";
         exit(1);
