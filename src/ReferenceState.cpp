@@ -20,33 +20,33 @@ ReferenceState::ReferenceState(const QString& config)
 	real sfcpress;
 	std::ifstream refstream(config.toAscii().data());
 	//QFile refFile(config);
-	//if(!refFile.open(QIODevice::ReadOnly)) {
+	//if(!refFile.open(QIODevice::ReadOnly) {
 	if (!refstream.good()) {
 		std::cout << "Can't open Reference State file for reading, using default..." << std::endl;
 		sfcpress = 1014.80;
-		altitude.push_back(log(10.0)); theta.push_back(298.6949); qv.push_back(bhypTransform(18.63960));
-		altitude.push_back(log(124.0)); theta.push_back(299.6500); qv.push_back(bhypTransform(18.58188));
-		altitude.push_back(log(810.0)); theta.push_back(301.688); qv.push_back(bhypTransform(15.30626));
-		altitude.push_back(log(1541.0)); theta.push_back(304.5541); qv.push_back(bhypTransform(11.98349));
-		altitude.push_back(log(3178.0)); theta.push_back(312.2750); qv.push_back(bhypTransform(6.76311));
-		altitude.push_back(log(4437.0)); theta.push_back(317.8749); qv.push_back(bhypTransform(4.15019));
-		altitude.push_back(log(5887.0)); theta.push_back(324.8602); qv.push_back(bhypTransform(2.42535));
-		altitude.push_back(log(7596.0)); theta.push_back(332.5846); qv.push_back(bhypTransform(1.11535));
-		altitude.push_back(log(9690.0)); theta.push_back(339.6121); qv.push_back(bhypTransform(0.32924));
-		altitude.push_back(log(10949.0)); theta.push_back(342.8986); qv.push_back(bhypTransform(0.13712));
-		altitude.push_back(log(12418.0)); theta.push_back(346.4510); qv.push_back(bhypTransform(0.04282));
-		altitude.push_back(log(14203.0)); theta.push_back(353.9290); qv.push_back(bhypTransform(0.03));
-		altitude.push_back(log(16590.0)); theta.push_back(383.2672); qv.push_back(bhypTransform(0.03));
-		altitude.push_back(log(20726.0)); theta.push_back(494.1519); qv.push_back(bhypTransform(0.010));
-		altitude.push_back(log(40000.0)); theta.push_back(1010.8810); qv.push_back(bhypTransform(0.001));
+		altitude.push_back(0.0); theta.push_back(298.6949); qv.push_back(bhypTransform(18.63960));
+		altitude.push_back(0.124); theta.push_back(299.6500); qv.push_back(bhypTransform(18.58188));
+		altitude.push_back(0.810); theta.push_back(301.688); qv.push_back(bhypTransform(15.30626));
+		altitude.push_back(1.541); theta.push_back(304.5541); qv.push_back(bhypTransform(11.98349));
+		altitude.push_back(3.178); theta.push_back(312.2750); qv.push_back(bhypTransform(6.76311));
+		altitude.push_back(4.437); theta.push_back(317.8749); qv.push_back(bhypTransform(4.15019));
+		altitude.push_back(5.887); theta.push_back(324.8602); qv.push_back(bhypTransform(2.42535));
+		altitude.push_back(7.596); theta.push_back(332.5846); qv.push_back(bhypTransform(1.11535));
+		altitude.push_back(9.690); theta.push_back(339.6121); qv.push_back(bhypTransform(0.32924));
+		altitude.push_back(10.949); theta.push_back(342.8986); qv.push_back(bhypTransform(0.13712));
+		altitude.push_back(12.418); theta.push_back(346.4510); qv.push_back(bhypTransform(0.04282));
+		altitude.push_back(14.203); theta.push_back(353.9290); qv.push_back(bhypTransform(0.03));
+		altitude.push_back(16.590); theta.push_back(383.2672); qv.push_back(bhypTransform(0.03));
+		altitude.push_back(20.726); theta.push_back(494.1519); qv.push_back(bhypTransform(0.010));
+		//altitude.push_back(40.000); theta.push_back(1010.8810); qv.push_back(bhypTransform(0.001));
 	} else {
-		altitude.push_back(log(10.0));
+		altitude.push_back(0.0);
 		real altin, thetain, qvin, uin, vin;
 		refstream >> sfcpress >> thetain >> qvin;
 		theta.push_back(thetain);
-		qv.push_back(qvin);
+		qv.push_back(bhypTransform(qvin));
 		while (refstream >> altin >> thetain >> qvin >> uin >> vin) {
-			altitude.push_back(log(altin));
+			altitude.push_back(altin/1000.0);
 			theta.push_back(thetain);
 			qv.push_back(bhypTransform(qvin));
 		}
@@ -56,27 +56,27 @@ ReferenceState::ReferenceState(const QString& config)
 	if (altitude.size() == 1) {
 		std::cout << "Only one level found in reference spline setup. Please check reference file and re-run.\n";
 	}
-	thetaSpline = new SplineD(&altitude.front(), altitude.size(), theta.data(), 0, SplineBase::BC_ZERO_FIRST);
-	qvSpline = new SplineD(&altitude.front(), altitude.size(), qv.data(), 0, SplineBase::BC_ZERO_FIRST);
+	thetaSpline = new SplineD(&altitude.front(), altitude.size(), theta.data(), 2, SplineBase::BC_ZERO_FIRST);
+	qvSpline = new SplineD(&altitude.front(), altitude.size(), qv.data(), 2, SplineBase::BC_ZERO_FIRST);
 
 	// Integrate the hydrostatic equation
-	real finalalt = exp(altitude.last());
-	altitude.clear();
-
 	real gamma = 287.04/1005.7;
-	real qvsfc = bhypInvTransform(qv.first())/1000.0;
-	real pressa = sfcpress - sfcpress * (qvsfc / (qvsfc + 0.622));
-	real pisfc = pow((pressa/1000.0),gamma);
+	real reps = 461.5/287.04;
+	real pisfc = pow((sfcpress/1000.0),gamma);
 	pi.push_back(pisfc);
-	altitude.push_back(log(10.0));
-	for (float i = 11.0; i<= finalalt; i++) {
-		real height_u = log(i);
-		real height_d = log(i-1);
+	for (float i = 1; i< altitude.size(); i++) {
+		real height_u = altitude[i];
+		real height_d = altitude[i-1];
 		real theta_u = thetaSpline->evaluate(height_u);
 		real theta_d = thetaSpline->evaluate(height_d);
-		real newpi = pi.last() - 9.81/(1005.7 * 0.5*(theta_u + theta_d));
+		real qv_u = qvSpline->evaluate(height_u);
+		qv_u = bhypInvTransform(qv_u)/1000.0;
+		real qv_d = qvSpline->evaluate(height_d);
+		qv_d = bhypInvTransform(qv_d)/1000.0;
+		real thetav_u = theta_u * (1.0 + qv_u*reps)/(1.0+qv_u);
+		real thetav_d = theta_d * (1.0 + qv_d*reps)/(1.0+qv_d);
+		real newpi = pi.last() - 9.81*1000.0*(height_u - height_d)/(1005.7 * 0.5*(thetav_u + thetav_d));
 		pi.push_back(newpi);
-		altitude.push_back(height_u);
 	}
 	// Unclear why this needs a cutoff wavelength, guessing it has to do with very fine height increments
 	piSpline = new SplineD(&altitude.front(), altitude.size(), pi.data(), 2, SplineBase::BC_ZERO_SECOND);
@@ -102,37 +102,38 @@ ReferenceState::~ReferenceState()
 	pressref */
 real ReferenceState::getReferenceVariable(const int& refVariable, const real& heightm, const int& dz)
 {
-	real logheight = 0.0;
-	real invheight = 0.0;
+	real height = 0.0;
+	real invheightm = 0.0;
 	if (heightm < 10.0) {
-		logheight = log(10.0);
-		invheight = 0.10;
+		height = 0.01;
+		invheightm = 0.1;
 	} else {
-		logheight = log(heightm);
-		invheight = 1.0/heightm;
+		height = heightm/1000.0;
+		invheightm = 1.0/heightm;
 	}
 	if (refVariable == qvbhypref) {
 		real qvbhyp = 0.;
 		if (dz == 0) {
-			qvbhyp = qvSpline->evaluate(logheight);
+			qvbhyp = qvSpline->evaluate(height);
 		} else {
-			qvbhyp = qvSpline->slope(logheight)*invheight;
+			qvbhyp = qvSpline->slope(height)*invheightm/1000.0;
 		}
 		return qvbhyp;
 	} else {
 		real theta = 0.;
 		real pi = 0.;
 		real qv = 0.;
-		pi = piSpline->evaluate(logheight);
-		theta = thetaSpline->evaluate(logheight);
-		qv = qvSpline->evaluate(logheight);
+		pi = piSpline->evaluate(height);
+		theta = thetaSpline->evaluate(height);
+		qv = qvSpline->evaluate(height);
 		qv = bhypInvTransform(qv)/1000.0;
 		real temp = pi * theta;
-		real pressa = 100000.0 * pow(pi, (1005.7/287.04));
+		real press = 100000.0 * pow(pi, (1005.7/287.04));
+		real pressa = press - press * (qv / (qv + 0.622));
 		real rhoa = pressa/(temp*287.04);
 		real rho = rhoa + qv * rhoa;
-		real press = pressa * (1.0 + qv/0.622);
-		real h = 1005.7*temp + 9.81*heightm + 2.5e6*qv;
+		//real press = pressa * (1.0 + qv/0.622);
+		real h = 1005.7*temp + 9.81*height/1000.0 + 2.5e6*qv;
 		if (dz == 0) {
 			switch (refVariable) {
 					case rhoaref:
@@ -149,9 +150,9 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 						break;
 			}
 		} else {
-			real dthetadz = thetaSpline->slope(logheight)*invheight;
-			real qvdz = 0.002*qvSpline->slope(logheight)*invheight;
-			real dpidz = piSpline->slope(logheight)*invheight;
+			real dthetadz = thetaSpline->slope(height)/1000.0;
+			real qvdz = 0.002*qvSpline->slope(height)/1000.0;
+			real dpidz = piSpline->slope(height)/1000.0;
 			real dpdz = -rho * 9.81;
 			real dtdz = pi*dthetadz +theta*dpidz;
 			real dpadz = (dpdz - 0.622*pressa*qvdz)/(1.0 + 0.622*qv);
@@ -168,7 +169,7 @@ real ReferenceState::getReferenceVariable(const int& refVariable, const real& he
 					case tempref:
 						return dtdz;
 					case pressref:
-						return dpadz;
+						return dpdz;
 					default:
 						break;
 			}
