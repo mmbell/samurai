@@ -30,7 +30,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
     QString samuraiout = "samurai_XYZ_" + suffix + ".out";
     ofstream samuraistream;
     if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
+        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
         samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
         samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
@@ -414,7 +414,7 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
     if (configHash->value("output_qc") == "true") {
         QString qcout = "samurai_QC_" + suffix + ".out";
 		QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toAscii().data());
+        ofstream qcstream(qcFileName.toLatin1().data());
         ostream_iterator<string> os(qcstream, "\t ");
         *os++ = "Observation";
         *os++ = "Inverse Error";
@@ -525,7 +525,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 	int NC_ERR = 0;
 
 	// Create the file.
-	NcFile dataFile(netcdfFileName.toAscii(), NcFile::Replace);
+	NcFile dataFile(netcdfFileName.toLatin1(), NcFile::Replace);
 
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -1360,8 +1360,8 @@ bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
 	for(int n = 0; n < id[175]; n++) {
 		QString name_1 = fieldNames.at(n).left(1);
 		QString name_2 = fieldNames.at(n).mid(1,1);
-		int int_1 = *name_1.toAscii().data();
-		int int_2 = *name_2.toAscii().data();
+		int int_1 = *name_1.toLatin1().data();
+		int int_2 = *name_2.toLatin1().data();
 		id[176 + (5 * n)] = (int_1 * 256) + int_2;
 		id[177 + (5 * n)] = 8224;
 		id[178 + (5 * n)] = 8224;

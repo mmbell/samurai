@@ -18,7 +18,7 @@ ReferenceState::ReferenceState(const QString& config)
 {
 	QVector<real> altitude, theta, qv, pi;
 	real sfcpress;
-	std::ifstream refstream(config.toAscii().data());
+	std::ifstream refstream(config.toLatin1().data());
 	//QFile refFile(config);
 	//if(!refFile.open(QIODevice::ReadOnly)) {
 	if (!refstream.good()) {
