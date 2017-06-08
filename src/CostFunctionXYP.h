@@ -16,7 +16,7 @@ class CostFunctionXYP: public CostFunction3D
 {
 	
 public:
-	CostFunctionXYP(const int& numObs = 0, const int& stateSize = 0);
+  CostFunctionXYP(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYP();
 	
 private:

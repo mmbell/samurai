@@ -15,6 +15,7 @@
 #include <QDomDocument>
 #include <QDomNodeList>
 #include <GeographicLib/TransverseMercatorExact.hpp>
+#include <GeographicLib/LambertConformalConic.hpp>
 #include <netcdfcpp.h>
 
 // Constructor
@@ -39,12 +40,12 @@ VarDriver::VarDriver()
 	dataSuffix["cimss"] = cimss;
 	dataSuffix["dwl"] = dwl;
 	dataSuffix["insitu"] = insitu;
-    dataSuffix["mtp"] = mtp;
-    dataSuffix["mesonet"] = mesonet;
-    dataSuffix["classnc"] = classnc;
-    dataSuffix["qcf"] = qcf;
-    dataSuffix["aeri"] = aeri;
-		dataSuffix["rad"] = rad;
+	dataSuffix["mtp"] = mtp;
+	dataSuffix["mesonet"] = mesonet;
+	dataSuffix["classnc"] = classnc;
+	dataSuffix["qcf"] = qcf;
+	dataSuffix["aeri"] = aeri;
+	dataSuffix["rad"] = rad;
 }
 
 // Destructor
@@ -579,7 +580,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 	Dorade swpfile(metFile.fileName());
 
 	// Use a Transverse Mercator projection to map the radar gates to the grid
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	//Geographiclib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
 	QString radardbz = configHash.value("radar_dbz");
 	QString radarvel = configHash.value("radar_vel");
@@ -657,8 +658,8 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 				// Take into account curvature of the earth for the height of the radar beam
 				real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 				real radarX, radarY, gateLat, gateLon;
-				tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
-				tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+				projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+				projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 				real gateAlt = relZ + radarAlt*1000;
 
 				ob.setObType(MetObs::radar);
@@ -911,7 +912,8 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
 		return false;
 
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	//GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+
 	QTextStream in(&metFile);
 	// Skip two lines
 	in.readLine(); in.readLine();
@@ -972,8 +974,8 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 					// Take into account curvature of the earth
 					real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 					real radarX, radarY, gateLat, gateLon;
-					tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
-					tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+					projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+					projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 					real gateAlt = relZ + radarAlt;
 					ob.setObType(MetObs::lidar);
 					ob.setLat(gateLat);
@@ -1228,6 +1230,215 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
 	}
 	return true;
 
+}
+
+// This routine does the same thing as parseXMLconfig, excepts from a samurai_config structure instead of a QDomElement
+
+bool VarDriver::parseSamuraiConfig(const samurai_config &config)
+{
+  std::cout << "Parsing COAMPS structure ...\n";
+
+  // Parse the values to a hash
+  QString tmpstr;
+  configHash.insert("num_iterations",tmpstr.setNum(config.num_iterations));
+  configHash.insert("radar_skip",tmpstr.setNum(config.radar_skip));
+  configHash.insert("radar_stride",tmpstr.setNum(config.radar_stride));
+  configHash.insert("dynamic_stride",tmpstr.setNum(config.dynamic_stride));
+  configHash.insert("spline_approximation",tmpstr.setNum(config.spline_approximation));
+  configHash.insert("nx",tmpstr.setNum(config.nx));
+  configHash.insert("ny",tmpstr.setNum(config.ny));
+  configHash.insert("nz",tmpstr.setNum(config.nz));
+  configHash.insert("i_min",tmpstr.setNum(config.i_min));
+  configHash.insert("i_max",tmpstr.setNum(config.i_max));
+  configHash.insert("i_incr",tmpstr.setNum(config.i_incr));
+  configHash.insert("j_min",tmpstr.setNum(config.j_min));
+  configHash.insert("j_max",tmpstr.setNum(config.j_max));
+  configHash.insert("j_incr",tmpstr.setNum(config.j_incr));
+  configHash.insert("k_min",tmpstr.setNum(config.k_min));
+  configHash.insert("k_max",tmpstr.setNum(config.k_max));
+  configHash.insert("k_incr",tmpstr.setNum(config.k_incr));
+  configHash.insert("i_background_roi",tmpstr.setNum(config.i_background_roi));
+  configHash.insert("j_background_roi",tmpstr.setNum(config.j_background_roi));
+  configHash.insert("i_reflectivity_roi",tmpstr.setNum(config.i_reflectivity_roi));
+  configHash.insert("j_reflectivity_roi",tmpstr.setNum(config.j_reflectivity_roi));
+  configHash.insert("k_reflectivity_roi",tmpstr.setNum(config.k_reflectivity_roi));
+  configHash.insert("dbz_pseudow_weight",tmpstr.setNum(config.dbz_pseudow_weight));
+  configHash.insert("melting_zone_width",tmpstr.setNum(config.melting_zone_width));
+  configHash.insert("mixed_phase_dbz",tmpstr.setNum(config.mixed_phase_dbz));
+  configHash.insert("rain_dbz",tmpstr.setNum(config.rain_dbz));
+  configHash.insert("bg_rhou_error",tmpstr.setNum(config.bg_rhou_error));
+  configHash.insert("bg_rhov_error",tmpstr.setNum(config.bg_rhov_error));
+  configHash.insert("bg_rhow_error",tmpstr.setNum(config.bg_rhow_error));
+  configHash.insert("bg_tempk_error",tmpstr.setNum(config.bg_tempk_error));
+  configHash.insert("bg_qv_error",tmpstr.setNum(config.bg_qv_error));
+  configHash.insert("bg_rhoa_error",tmpstr.setNum(config.bg_rhoa_error));
+  configHash.insert("bg_qr_error",tmpstr.setNum(config.bg_qr_error));
+  configHash.insert("mc_weight",tmpstr.setNum(config.mc_weight));
+  configHash.insert("i_filter_length",tmpstr.setNum(config.i_filter_length));
+  configHash.insert("j_filter_length",tmpstr.setNum(config.j_filter_length));
+  configHash.insert("k_filter_length",tmpstr.setNum(config.k_filter_length));
+  configHash.insert("i_spline_cutoff",tmpstr.setNum(config.i_spline_cutoff));
+  configHash.insert("j_spline_cutoff",tmpstr.setNum(config.j_spline_cutoff));
+  configHash.insert("k_spline_cutoff",tmpstr.setNum(config.k_spline_cutoff));
+  configHash.insert("i_max_wavenumber",tmpstr.setNum(config.i_max_wavenumber));
+  configHash.insert("j_max_wavenumber",tmpstr.setNum(config.j_max_wavenumber));
+  configHash.insert("k_max_wavenumber",tmpstr.setNum(config.k_max_wavenumber));
+  configHash.insert("dropsonde_rhou_error",tmpstr.setNum(config.dropsonde_rhou_error));
+  configHash.insert("dropsonde_rhov_error",tmpstr.setNum(config.dropsonde_rhov_error));
+  configHash.insert("dropsonde_rhow_error",tmpstr.setNum(config.dropsonde_rhow_error));
+  configHash.insert("dropsonde_tempk_error",tmpstr.setNum(config.dropsonde_tempk_error));
+  configHash.insert("dropsonde_qv_error",tmpstr.setNum(config.dropsonde_qv_error));
+  configHash.insert("dropsonde_rhoa_error",tmpstr.setNum(config.dropsonde_rhoa_error));
+  configHash.insert("flightlevel_rhou_error",tmpstr.setNum(config.flightlevel_rhou_error));
+  configHash.insert("flightlevel_rhov_error",tmpstr.setNum(config.flightlevel_rhov_error));
+  configHash.insert("flightlevel_rhow_error",tmpstr.setNum(config.flightlevel_rhow_error));
+  configHash.insert("flightlevel_tempk_error",tmpstr.setNum(config.flightlevel_tempk_error));
+  configHash.insert("flightlevel_qv_error",tmpstr.setNum(config.flightlevel_qv_error));
+  configHash.insert("flightlevel_rhoa_error",tmpstr.setNum(config.flightlevel_rhoa_error));
+  configHash.insert("insitu_rhou_error",tmpstr.setNum(config.insitu_rhou_error));
+  configHash.insert("insitu_rhov_error",tmpstr.setNum(config.insitu_rhov_error));
+  configHash.insert("insitu_rhow_error",tmpstr.setNum(config.insitu_rhow_error));
+  configHash.insert("insitu_tempk_error",tmpstr.setNum(config.insitu_tempk_error));
+  configHash.insert("insitu_qv_error",tmpstr.setNum(config.insitu_qv_error));
+  configHash.insert("insitu_rhoa_error",tmpstr.setNum(config.insitu_rhoa_error));
+  configHash.insert("sfmr_windspeed_error",tmpstr.setNum(config.sfmr_windspeed_error));
+  configHash.insert("qscat_rhou_error",tmpstr.setNum(config.qscat_rhou_error));
+  configHash.insert("qscat_rhov_error",tmpstr.setNum(config.qscat_rhov_error));
+  configHash.insert("ascat_rhou_error",tmpstr.setNum(config.ascat_rhou_error));
+  configHash.insert("ascat_rhov_error",tmpstr.setNum(config.ascat_rhov_error));
+  configHash.insert("amv_rhou_error",tmpstr.setNum(config.amv_rhou_error));
+  configHash.insert("amv_rhov_error",tmpstr.setNum(config.amv_rhov_error));
+  configHash.insert("lidar_sw_error",tmpstr.setNum(config.lidar_sw_error));
+  configHash.insert("lidar_power_error",tmpstr.setNum(config.lidar_power_error));
+  configHash.insert("lidar_min_error",tmpstr.setNum(config.lidar_min_error));
+  configHash.insert("radar_sw_error",tmpstr.setNum(config.radar_sw_error));
+  configHash.insert("radar_fallspeed_error",tmpstr.setNum(config.radar_fallspeed_error));
+  configHash.insert("radar_min_error",tmpstr.setNum(config.radar_min_error));
+  configHash.insert("delx",tmpstr.setNum(config.delx));
+  configHash.insert("dely",tmpstr.setNum(config.dely));
+
+  if (config.load_background) configHash.insert("load_background","true");
+  else configHash.insert("load_background","false");
+  if (config.adjust_background) configHash.insert("adjust_background","true");
+  else configHash.insert("adjust_background","false");
+  if (config.preprocess_obs) configHash.insert("preprocess_obs","true");
+  else configHash.insert("preprocess_obs","false");
+  if (config.output_mish) configHash.insert("output_mish","true");
+  else configHash.insert("output_mish","false");
+  if (config.output_txt) configHash.insert("output_txt","true");
+  else configHash.insert("output_txt","false");
+  if (config.output_qc) configHash.insert("output_qc","true");
+  else configHash.insert("output_qc","false");
+  if (config.output_netcdf) configHash.insert("output_netcdf","true");
+  else configHash.insert("output_netcdf","false");
+  if (config.output_asi) configHash.insert("output_asi","true");
+  else configHash.insert("output_asi","false");
+  if (config.output_COAMPS) configHash.insert("output_COAMPS","true");
+  else configHash.insert("output_COAMPS","false");
+
+  configHash.insert("i_rhou_bcL",config.i_rhou_bcL);
+  configHash.insert("i_rhou_bcR",config.i_rhou_bcR);
+  configHash.insert("i_rhov_bcL",config.i_rhov_bcL);
+  configHash.insert("i_rhov_bcR",config.i_rhov_bcR);
+  configHash.insert("i_rhow_bcL",config.i_rhow_bcL);
+  configHash.insert("i_rhow_bcR",config.i_rhow_bcR);
+  configHash.insert("i_tempk_bcL",config.i_tempk_bcL);
+  configHash.insert("i_tempk_bcR",config.i_tempk_bcR);
+  configHash.insert("i_qv_bcL",config.i_qv_bcL);
+  configHash.insert("i_qv_bcR",config.i_qv_bcR);
+  configHash.insert("i_rhoa_bcL",config.i_rhoa_bcL);
+  configHash.insert("i_rhoa_bcR",config.i_rhoa_bcR);
+  configHash.insert("i_qr_bcL",config.i_qr_bcL);
+  configHash.insert("i_qr_bcR",config.i_qr_bcR);
+  configHash.insert("j_rhou_bcL",config.j_rhou_bcL);
+  configHash.insert("j_rhou_bcR",config.j_rhou_bcR);
+  configHash.insert("j_rhov_bcL",config.j_rhov_bcL);
+  configHash.insert("j_rhov_bcR",config.j_rhov_bcR);
+  configHash.insert("j_rhow_bcL",config.j_rhow_bcL);
+  configHash.insert("j_rhow_bcR",config.j_rhow_bcR);
+  configHash.insert("j_tempk_bcL",config.j_tempk_bcL);
+  configHash.insert("j_tempk_bcR",config.j_tempk_bcR);
+  configHash.insert("j_qv_bcL",config.j_qv_bcL);
+  configHash.insert("j_qv_bcR",config.j_qv_bcR);
+  configHash.insert("j_rhoa_bcL",config.j_rhoa_bcL);
+  configHash.insert("j_rhoa_bcR",config.j_rhoa_bcR);
+  configHash.insert("j_qr_bcL",config.j_qr_bcL);
+  configHash.insert("j_qr_bcR",config.j_qr_bcR);
+  configHash.insert("k_rhou_bcL",config.k_rhou_bcL);
+  configHash.insert("k_rhou_bcR",config.k_rhou_bcR);
+  configHash.insert("k_rhov_bcL",config.k_rhov_bcL);
+  configHash.insert("k_rhov_bcR",config.k_rhov_bcR);
+  configHash.insert("k_rhow_bcL",config.k_rhow_bcL);
+  configHash.insert("k_rhow_bcR",config.k_rhow_bcR);
+  configHash.insert("k_tempk_bcL",config.k_tempk_bcL);
+  configHash.insert("k_tempk_bcR",config.k_tempk_bcR);
+  configHash.insert("k_qv_bcL",config.k_qv_bcL);
+  configHash.insert("k_qv_bcR",config.k_qv_bcR);
+  configHash.insert("k_rhoa_bcL",config.k_rhoa_bcL);
+  configHash.insert("k_rhoa_bcR",config.k_rhoa_bcR);
+  configHash.insert("k_qr_bcL",config.k_qr_bcL);
+  configHash.insert("k_qr_bcR",config.k_qr_bcR);
+  configHash.insert("mode",config.mode);
+
+  configHash.insert("qr_variable",config.qr_variable);
+  configHash.insert("radar_dbz",config.radar_dbz);
+  configHash.insert("radar_vel",config.radar_vel);
+  configHash.insert("radar_sw",config.radar_sw);
+  configHash.insert("mask_reflectivity",config.mask_reflectivity);
+  configHash.insert("ref_time",config.ref_time);
+  configHash.insert("ref_state",config.ref_state);
+  configHash.insert("data_directory",config.data_directory);
+  configHash.insert("output_directory",config.output_directory);
+
+  configHash.insert("projection",config.projection);
+
+  // Validate the hash -- multiple passes are not validated currently
+  QStringList configKeys;
+  configKeys << "ref_state" << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
+    "qr_variable" << "i_background_roi" << "j_background_roi" <<
+    "i_reflectivity_roi" << "j_reflectivity_roi" << "k_reflectivity_roi" <<
+    "load_background" << "adjust_background" <<
+    "radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" <<
+    "radar_stride" << "dynamic_stride" << "dbz_pseudow_weight" <<
+    "melting_zone_width" << "mixed_phase_dbz" << "rain_dbz" <<
+    "num_iterations" << "output_mish" << "output_txt" << "output_qc" <<
+    "output_netcdf" << "output_asi" << "output_COAMPS" << "preprocess_obs" << "mask_reflectivity" <<
+    "dropsonde_rhou_error" << "dropsonde_rhov_error" << "dropsonde_rhow_error" <<
+    "dropsonde_tempk_error" << "dropsonde_qv_error" << "dropsonde_rhoa_error" <<
+    "flightlevel_rhou_error" << "flightlevel_rhov_error" << "flightlevel_rhow_error" <<
+    "flightlevel_tempk_error" << "flightlevel_qv_error" << "flightlevel_rhoa_error" <<
+    "insitu_rhou_error" << "insitu_rhov_error" << "insitu_rhow_error" <<
+    "insitu_tempk_error" << "insitu_qv_error" << "insitu_rhoa_error" <<
+    "sfmr_windspeed_error" << "qscat_rhou_error" << "qscat_rhov_error" <<
+    "ascat_rhou_error" << "ascat_rhov_error" << "amv_rhou_error" << "amv_rhov_error" <<
+    "lidar_sw_error" << "lidar_power_error" << "lidar_min_error" <<
+    "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error" <<
+    "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" <<
+    "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "projection";
+  for (int i = 0; i < configKeys.count(); i++) {
+    if (!configHash.contains(configKeys.at(i))) {
+      std::cout << "No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+Projection::ProjectionType VarDriver::projectionFromConfig()
+{
+  // default value
+  Projection::ProjectionType retVal =
+    Projection::ProjectionType::TRANSVERSE_MERCATOR_EXACT;
+  
+  if (configHash.contains("projection")) {
+    if (configHash.value("projection") == "lambert_conformal_conic")
+      retVal = Projection::ProjectionType::LAMBERT_CONFORMAL_CONIC;
+    else if (configHash.value("projection") != "transverse_mercator_exact")
+      std::cerr << "Warning: Unrecognized projection type "
+		<< configHash.value("projection").toLatin1().data()
+		<< ". Defaulting to transverse_mercator_exact\n";
+  }
+  return retVal;
 }
 
 bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
@@ -1651,8 +1862,8 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 		return false;
 
 		// Use a Transverse Mercator projection to map the radar gates to the grid
-		GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-
+		// GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+		
 		QTextStream in(&metFile);
 		MetObs ob;
 		QDate startDate;
@@ -1678,8 +1889,8 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 			// Take into account curvature of the earth for the height of the radar beam
 			real relZ = sqrt(range*range + rEarth*rEarth + 2.0 * range * rEarth * sin(el*Pi/180.)) - rEarth;
 			real radarX, radarY, gateLat, gateLon;
-			tm.Forward(radarLon, radarLat, radarLon, radarX, radarY);
-			tm.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+			projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+			projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
 			real gateAlt = relZ + radarAlt;
 
 			ob.setLat(gateLat);

@@ -16,14 +16,14 @@
 #include <QVector>
 #include <iomanip>
 #include "RecursiveFilter.h"
-#include <GeographicLib/TransverseMercatorExact.hpp>
+#include "samurai.h"
 
 // Constructor
 VarDriver3D::VarDriver3D()
 : VarDriver()
 {
 	numVars = 7;
-    numDerivatives = 4;
+	numDerivatives = 4;
 }
 
 // Destructor
@@ -31,216 +31,288 @@ VarDriver3D::~VarDriver3D()
 {
 }
 
-/* This routine is the main initializer of the analysis */
+// Initialize from parsed xml, or passed structure
 
 bool VarDriver3D::initialize(const QDomElement& configuration)
 {
-	// Run a 3D vortex background field
-	cout << "Initializing SAMURAI 3D" << endl;
+  // Run a 3D vortex background field
+  cout << "Initializing SAMURAI 3D" << endl;
 
-	// Parse the XML configuration file
-	if (!parseXMLconfig(configuration)) return false;
-
-	// Validate the 3D specific parameters
-	if (!validateXMLconfig()) return false;
-
-    // Validate the run geometry
-    if (configHash.value("mode") == "XYZ") {
-        runMode = XYZ;
-    } else if (configHash.value("mode") == "RTZ") {
-        runMode = RTZ;
-	} else {
-        cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
-        return false;
-    }
-
-	// Define the grid dimensions
-	imin = configHash.value("i_min").toFloat();
-	imax = configHash.value("i_max").toFloat();
-	iincr = configHash.value("i_incr").toFloat();
-	idim = (int)((imax - imin)/iincr) + 1;
-
-	jmin = configHash.value("j_min").toFloat();
-	jmax = configHash.value("j_max").toFloat();
-	jincr = configHash.value("j_incr").toFloat();
-	jdim = (int)((jmax - jmin)/jincr) + 1;
-
-	kmin = configHash.value("k_min").toFloat();
-	kmax = configHash.value("k_max").toFloat();
-	kincr = configHash.value("k_incr").toFloat();
-	kdim = (int)((kmax - kmin)/kincr) + 1;
-
-	// The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
-	if (idim < 4) {
-		cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}
-	if (jdim < 4) {
-		cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}
-	if (kdim < 4) {
-		cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
-		return false;
-	}
-
-	// Define the sizes of the arrays we are passing to the cost function
-	cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
-	cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
-	cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
-	cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
-
-	int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
-	int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
-	cout << "Physical (mish) State size = " << uStateSize << "\n";
-	cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
-
-	// Load the BG into a empty vector
-	bgU = new real[uStateSize];
-	bgWeights = new real[uStateSize];
-	for (int i=0; i < uStateSize; i++) {
-		bgU[i] = 0.0;
-		bgWeights[i] = 0.0;
-	}
-
-	/* Set the data path */
-	dataPath.setPath(configHash.value("data_directory"));
-	if (dataPath.exists()) {
-		dataPath.setFilter(QDir::Files);
-		dataPath.setSorting(QDir::Name);
-	} else {
-		cout << "Can't find data directory: " << configHash.value("data_directory").toStdString() << endl;
-		return false;
-	}
-
-	/* Check to make sure the output path exists */
-	QDir outputPath(configHash.value("output_directory"));
-	if (!outputPath.exists()) {
-		cout << "Can't find output directory: " << configHash.value("output_directory").toStdString() << endl;
-		return false;
-	}
-
-	// Define the Reference state
-	QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
-    refstate = new ReferenceState(refSounding);
-	cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
-	for (real k = kmin; k < kmax+kincr; k+= kincr) {
-		cout << "                   " << k << "\t";
-		for (int i = 0; i < 6; i++) {
-			real var = refstate->getReferenceVariable(i, k*1000);
-			if (i == 0) var = refstate->bhypInvTransform(var);
-			cout << setw(9) << setprecision(4)  << var << "\t";
-		}
-		cout << "\n";
-	}
-	cout << setprecision(9);
-
-	// Read in the Frame centers
-	// Ideally, create a time-based spline from limited center fixes here
-	// but just load 1 second centers into vector for now
-	readFrameCenters();
-
-	// Get the reference center
-	QTime reftime = QTime::fromString(configHash.value("ref_time"), "hh:mm:ss");
-	QString refstring = reftime.toString();
-	bool foundref = false;
-	for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
-		QDateTime frametime = frameVector[fi].getTime();
-		if (reftime == frametime.time()) {
-			QString tempstring;
-			QDate refdate = frametime.date();
-			QDateTime unixtime(refdate, reftime, Qt::UTC);
-			configHash.insert("ref_lat", tempstring.setNum(frameVector[fi].getLat()));
-			configHash.insert("ref_lon", tempstring.setNum(frameVector[fi].getLon()));
-			configHash.insert("ref_time", tempstring.setNum(unixtime.toTime_t()));
-			cout << "Found matching reference time " << refstring.toStdString()
-			<< " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
-			foundref = true;
-			break;
-		}
-	}
-	if (!foundref) {
-		cout << "Error finding reference time, please check date and time in XML file\n";
-		return false;
-	}
-
-	/* Set the maximum number of iterations to the multipass reduction factor
-     Multiple outer loops will reduce the cutoff wavelengths and background error variance */
-	maxIter = configHash.value("num_iterations").toInt();
-
-	/* Optionally load a set of background coefficients directly */
-	QString loadBGcoeffs = configHash.value("load_bg_coefficients");
-	int numbgCoeffs = 0;
-	if (loadBGcoeffs == "true") {
-		numbgCoeffs = loadBackgroundCoeffs();
-		if (numbgCoeffs != bStateSize) {
-			cout << "Error loading background coefficients\n";
-			return false;
-		}
-	}
-
-	/* Optionally load a set of background estimates and interpolate to the Gaussian mish */
-	QString loadBG = configHash.value("load_background");
-	int numbgObs = 0;
-	if (loadBG == "true") {
-		numbgObs = loadBackgroundObs();
-		if (numbgObs < 0) {
-			cout << "Error loading background file\n";
-			return false;
-		}
-	}
-
-	/* Optionally adjust the interpolated background to satisfy mass continuity
-	 and match the supplied points exactly. In essence, do a SAMURAI analysis using
-	 the background estimates as "observations" */
-	QString adjustBG = configHash.value("adjust_background");
-	if ((adjustBG == "true") and numbgObs) {
-		if (!adjustBackground(bStateSize)) {
-			cout << "Error adjusting background\n";
-			return false;
-		}
-	}
-
-	// Read in the observations, process them into weights and positions
-	// Either preprocess from raw observations or load an already processed Observations.in file
-	QString preprocess = configHash.value("preprocess_obs");
-	if (preprocess == "true") {
-		if (!preProcessMetObs()) {
-			cout << "Error pre-processing observations\n";
-			return false;
-		}
-	} else {
-		if (!loadMetObs()) {
-			cout << "Error loading observations\n";
-			return false;
-		}
-	}
-
-	// We are done with the bgWeights, so free up that memory
-	delete[] bgWeights;
-
-	if (obVector.size() == 0) {
-		// No observations so quit
-		cout << "No observations loaded, unable to perform analysis.\n";
-		return false;
-	} else {
-		cout << "Number of New Observations: " << obVector.size() << endl;
-	}
-
-    if (runMode == XYZ) {
-		if (configHash.value("output_pressure_increment").toFloat() > 0) {
-			obCost3D = new CostFunctionXYP(obVector.size(), bStateSize);
-		} else {
-			obCost3D = new CostFunctionXYZ(obVector.size(), bStateSize);
-		}
-    } else if (runMode == RTZ) {
-        obCost3D = new CostFunctionRTZ(obVector.size(), bStateSize);
-    }
-	obCost3D->initialize(&configHash, bgU, obs, refstate);
-
-	// If we got here, then everything probably went OK!
-	return true;
+  // Parse the XML configuration file
+  if (!parseXMLconfig(configuration)) return false;
+  
+  return validateDriver();
 }
+
+bool VarDriver3D::initialize(const samurai_config &configSam)
+{
+  // Run a 3D vortex background field
+  cout << "Initializing SAMURAI 3D" << endl;
+
+  // TODO Figure out if this needs to be done only once for all drivers
+  //    (firstcall in the original code)
+  // Parse the Samurai configuration structure passed from COAMPS
+  if (!parseSamuraiConfig(configSam)) return false;
+  
+  return validateDriver();
+}
+
+// Validate and finish initializing the driver
+
+bool VarDriver3D::validateDriver()
+{
+  if (!validateXMLconfig()) return false; // TODO rename validateConfig?
+
+  std::cout << "==== Content of configHash" << std::endl;
+  dump_hash(configHash);
+  
+  // Validate the run geometry
+  if (configHash.value("mode") == "XYZ") {
+    runMode = XYZ;
+  } else if (configHash.value("mode") == "RTZ") {
+    runMode = RTZ;
+  } else {
+    cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
+    return false;
+  }
+
+  // Set the projection (to be used by the cost functions)
+  projection.setProjection(projectionFromConfig());
+			   
+  // Define the grid dimensions
+  imin = configHash.value("i_min").toFloat();
+  imax = configHash.value("i_max").toFloat();
+  iincr = configHash.value("i_incr").toFloat();
+  idim = (int)((imax - imin)/iincr) + 1;
+
+  jmin = configHash.value("j_min").toFloat();
+  jmax = configHash.value("j_max").toFloat();
+  jincr = configHash.value("j_incr").toFloat();
+  jdim = (int)((jmax - jmin)/jincr) + 1;
+
+  kmin = configHash.value("k_min").toFloat();
+  kmax = configHash.value("k_max").toFloat();
+  kincr = configHash.value("k_incr").toFloat();
+  kdim = (int)((kmax - kmin)/kincr) + 1;
+
+  // The recursive filter uses a fourth order stencil to spread the observations, so less than 4 gridpoints will cause a memory fault
+  if (idim < 4) {
+    cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    return false;
+  }
+  if (jdim < 4) {
+    cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    return false;
+  }
+  if (kdim < 4) {
+    cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    return false;
+  }
+
+  // Define the sizes of the arrays we are passing to the cost function
+  cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
+  cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
+  cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
+  cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
+
+  int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
+  int bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
+  cout << "Physical (mish) State size = " << uStateSize << "\n";
+  cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
+
+  // Load the BG into a empty vector
+  bgU = new real[uStateSize];
+  bgWeights = new real[uStateSize];
+  for (int i=0; i < uStateSize; i++) {
+    bgU[i] = 0.0;
+    bgWeights[i] = 0.0;
+  }
+
+  /* Set the data path */
+  dataPath.setPath(configHash.value("data_directory"));
+  if (dataPath.exists()) {
+    dataPath.setFilter(QDir::Files);
+    dataPath.setSorting(QDir::Name);
+  } else {
+    cout << "Can't find data directory: " << configHash.value("data_directory").toStdString() << endl;
+    return false;
+  }
+
+  /* Check to make sure the output path exists */
+  QDir outputPath(configHash.value("output_directory"));
+  if (!outputPath.exists()) {
+    cout << "Can't find output directory: " << configHash.value("output_directory").toStdString() << endl;
+    return false;
+  }
+
+  // Define the Reference state
+  QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
+  refstate = new ReferenceState(refSounding);
+  cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
+  for (real k = kmin; k < kmax+kincr; k+= kincr) {
+    cout << "                   " << k << "\t";
+    for (int i = 0; i < 6; i++) {
+      real var = refstate->getReferenceVariable(i, k*1000);
+      if (i == 0) var = refstate->bhypInvTransform(var);
+      cout << setw(9) << setprecision(4)  << var << "\t";
+    }
+    cout << "\n";
+  }
+  cout << setprecision(9);
+
+  // Read in the Frame centers
+  // Ideally, create a time-based spline from limited center fixes here
+  // but just load 1 second centers into vector for now
+  readFrameCenters();
+
+  // Get the reference center
+  QTime reftime = QTime::fromString(configHash.value("ref_time"), "hh:mm:ss");
+  QString refstring = reftime.toString();
+  bool foundref = false;
+  for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
+    QDateTime frametime = frameVector[fi].getTime();
+    if (reftime == frametime.time()) {
+      QString tempstring;
+      QDate refdate = frametime.date();
+      QDateTime unixtime(refdate, reftime, Qt::UTC);
+      configHash.insert("ref_lat", tempstring.setNum(frameVector[fi].getLat()));
+      configHash.insert("ref_lon", tempstring.setNum(frameVector[fi].getLon()));
+      configHash.insert("ref_time", tempstring.setNum(unixtime.toTime_t()));
+      cout << "Found matching reference time " << refstring.toStdString()
+	   << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
+      foundref = true;
+      break;
+    }
+  }
+  if (!foundref) {
+    cout << "Error finding reference time, please check date and time in XML file\n";
+    return false;
+  }
+
+  /* Set the maximum number of iterations to the multipass reduction factor
+     Multiple outer loops will reduce the cutoff wavelengths and background error variance */
+  maxIter = configHash.value("num_iterations").toInt();
+
+  /* Optionally load a set of background coefficients directly */
+  QString loadBGcoeffs = configHash.value("load_bg_coefficients");
+  int numbgCoeffs = 0;
+  if (loadBGcoeffs == "true") {
+    numbgCoeffs = loadBackgroundCoeffs();
+    if (numbgCoeffs != bStateSize) {
+      cout << "Error loading background coefficients\n";
+      return false;
+    }
+  }
+
+  /* Optionally load a set of background estimates and interpolate to the Gaussian mish */
+  QString loadBG = configHash.value("load_background");
+  int numbgObs = 0;
+  if (loadBG == "true") {
+    numbgObs = loadBackgroundObs(dataPath.absoluteFilePath("samurai_Background.in").toLatin1().data());
+    if (numbgObs < 0) {
+      cout << "Error loading background file\n";
+      return false;
+    }
+  }
+
+  /* Optionally adjust the interpolated background to satisfy mass continuity
+     and match the supplied points exactly. In essence, do a SAMURAI analysis using
+     the background estimates as "observations" */
+  QString adjustBG = configHash.value("adjust_background");
+  if ((adjustBG == "true") and numbgObs) {
+    if (!adjustBackground(bStateSize)) {
+      cout << "Error adjusting background\n";
+      return false;
+    }
+  }
+
+  // Read in the observations, process them into weights and positions
+  // Either preprocess from raw observations or load an already processed Observations.in file
+  QString preprocess = configHash.value("preprocess_obs");
+  if (preprocess == "true") {
+    if (!preProcessMetObs()) {
+      cout << "Error pre-processing observations\n";
+      return false;
+    }
+  } else {
+    if (!loadMetObs()) {
+      cout << "Error loading observations\n";
+      return false;
+    }
+  }
+
+  // We are done with the bgWeights, so free up that memory
+  delete[] bgWeights;
+
+  if (obVector.size() == 0) {
+    // No observations so quit
+    cout << "No observations loaded, unable to perform analysis.\n";
+    return false;
+  } else {
+    cout << "Number of New Observations: " << obVector.size() << endl;
+  }
+
+  if (runMode == XYZ) {
+    if (configHash.value("output_pressure_increment").toFloat() > 0) {
+      obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
+    } else if (configHash.value("output_COAMPS") == "true") {
+      obCost3D = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
+    } else {
+      obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
+    }
+  } else if (runMode == RTZ) {
+    obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
+  }
+  obCost3D->initialize(&configHash, bgU, obs, refstate);
+
+  // If we got here, then everything probably went OK!
+  return true;
+}
+
+//
+// Initialize background observations and run
+//
+
+bool VarDriver3D::run(int nx, int ny, int nsigma,
+		      float dx, float dy,
+		      float *sigmas,
+		      float *latitude, // 2D arrays
+		      float *longitude,
+		      float *u1,	// 3D array (nx, ny, nsigma)  
+		      float *v1,
+		      float *w1,
+		      float *th1,
+		      float *p1,
+		      // These are output values
+		      float *usam,	// 3D array
+		      float *vsam,
+		      float *wsam,
+		      float *thsam,
+		      float *psam)
+{
+  if ( ! loadBackgroundObs(nx, ny, nsigma, dx, dy, sigmas, latitude, longitude,
+			   u1, v1, w1, th1, p1))
+    return false;
+
+  // TODO: massage samurai ouput into the output arrays
+  //       For now, put simple data so we can test these from the Fortran side.
+
+  // if( run() ) {
+  if(1) {
+    for(int i = 0; i < nx; i++)
+      for(int j = 0; j < ny; j++)
+	for(int k = 0; k < nsigma; k++) {
+	  *(usam + i + nx  * (j + ny * k)) = i + 1;
+	  *(vsam + i + nx  * (j + ny * k)) = j + 1;
+	  *(wsam + i + nx  * (j + ny * k)) = k + 1;
+	  *(thsam + i + nx * (j + ny * k)) = i + 1;
+	  *(psam + i + nx  * (j + ny * k)) = j + 1;
+	}
+    return true;
+  }
+  return false;
+}
+
 
 /* This routine drives the CostFunction minimization
  There is support for an outer loop to change the background
@@ -318,7 +390,8 @@ bool VarDriver3D::preProcessMetObs()
 
 
 	// Geographic functions
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	//GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+
 	real referenceLon = configHash.value("ref_lon").toFloat();
 
     // Find the zero C line using Newton's method
@@ -474,8 +547,8 @@ bool VarDriver3D::preProcessMetObs()
 			// Get the X, Y & Z
 			real tcX, tcY, metX, metY;
 			if ((metOb.getLat() == -999) or (metOb.getLat() == -999)) continue;
-			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
-			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
+			projection.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
+			projection.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
 			real obX = (metX - tcX)/1000.;
 			real obY = (metY - tcY)/1000.;
 			real heightm = metOb.getAltitude();
@@ -1390,7 +1463,7 @@ bool VarDriver3D::preProcessMetObs()
     cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
     // Write the Obs to a summary text file
-	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
+    QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ofstream obstream(obFilename.toLatin1().data());
     // Header messes up reload
     /*ostream_iterator<string> os(obstream, "\t ");
@@ -1491,7 +1564,7 @@ bool VarDriver3D::loadMetObs()
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
 
     // Open and read the file
-	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
+    QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
     ifstream obstream(obFilename.toLatin1().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
@@ -1555,16 +1628,48 @@ bool VarDriver3D::loadMetObs()
     return true;
 }
 
+/* Load the background estimates from the given array arguments */
+
+int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
+				   float dx, float dy,
+				   float *sigmas,
+				   float *latitude, float *longitude,
+				   float *u1,
+				   float *v1,
+				   float *w1,
+				   float *th1,
+				   float *p1)
+{
+  bkgdAdapter = new BkgdArray(nx, ny, nsigma,
+			      dx, dy,
+			      sigmas,
+			      latitude, longitude,
+			      u1, v1, w1, th1, p1);
+  return loadBackgroundObs();  
+}
+
 /* Load the background estimates from a file */
+
+int VarDriver3D::loadBackgroundObs(const char *background_fname)
+{
+  bkgdAdapter = new BkgdStream(background_fname);
+  return loadBackgroundObs();
+}
 
 int VarDriver3D::loadBackgroundObs()
 {
+  if(bkgdAdapter == NULL) {
+    std::cerr << "Error: VarDriver3D::loadBackgroundObs() called without adapter initialization." << std::endl;
+    exit(1);
+  }
+    
     // Turn Debug on if there are problems with the vertical spline interpolation,
     // Eventually this should be replaced with the internal spline code
     // SplineD::Debug(1);
 
     // Geographic functions
-    GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+    //GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+
     real referenceLon = configHash.value("ref_lon").toFloat();
 
     QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
@@ -1573,31 +1678,33 @@ int VarDriver3D::loadBackgroundObs()
     QString bgTimestring, tcstart, tcend;
     real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
     real bgX, bgY, bgRadius, bgTheta;
-	real bgZ = -32768.;
+    real bgZ = -32768.;
     // backgroundroi is in km, ROI is gridpoints
     real iROI = configHash.value("i_background_roi").toFloat() / iincr;
-	real jROI = configHash.value("j_background_roi").toFloat() / jincr;
+    real jROI = configHash.value("j_background_roi").toFloat() / jincr;
     QString interp_mode = configHash.value("bg_interpolation");
     real maxGridDist = 3.0;
     if (interp_mode == "Cressman") {
         maxGridDist = 1.0;
     }
     real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
-	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
-    ifstream bgstream(bgFilename.toLatin1().data());
-    if (!bgstream.good()) {
-        cout << "Error opening samurai_Background.in for reading.\n";
-        exit(1);
-    }
+    //    QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
+    //    ifstream bgstream(bgFilename.toLatin1().data());
+    // ifstream bgstream(background_fname);
+    // if (!bgstream.good()) {
+    //   std::cout << "Error opening " << background_fname << " for reading." << std::endl;
+    //   exit(1);
+    // }
     cout << "Loading background onto Gaussian mish with " << iROI << " grid length radius of influence in i direction" << endl;
     cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
 
-    while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr)
-    {
+    QDateTime startTime = frameVector.front().getTime();
+    QDateTime endTime = frameVector.back().getTime();
 
+    //    while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr)
+    while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) )
+    {
         // Process the metObs into Observations
-        QDateTime startTime = frameVector.front().getTime();
-        QDateTime endTime = frameVector.back().getTime();
 
         // Make sure the bg is within the time limits
         QDateTime bgTime;
@@ -1618,8 +1725,8 @@ int VarDriver3D::loadBackgroundObs()
 
         // Get the X, Y & Z
         real tcX, tcY, metX, metY;
-        tm.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
-        tm.Forward(referenceLon, lat, lon , metX, metY);
+        projection.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
+        projection.Forward(referenceLon, lat, lon , metX, metY);
         bgX = (metX - tcX)/1000.;
         bgY = (metY - tcY)/1000.;
         real heightm = alt;
@@ -2140,12 +2247,12 @@ bool VarDriver3D::adjustBackground(const int& bStateSize)
     // Adjust the background field to the spline mish
     if (runMode == XYZ) {
 		if (configHash.value("output_pressure_increment").toFloat() > 0) {
-			bgCost3D = new CostFunctionXYP(numbgObs, bStateSize);
+		  bgCost3D = new CostFunctionXYP(projection, numbgObs, bStateSize);
 		} else {
-        	bgCost3D = new CostFunctionXYZ(numbgObs, bStateSize);
+		  bgCost3D = new CostFunctionXYZ(projection, numbgObs, bStateSize);
 		}
     } else if (runMode == RTZ) {
-        bgCost3D = new CostFunctionRTZ(numbgObs, bStateSize);
+      bgCost3D = new CostFunctionRTZ(projection, numbgObs, bStateSize);
     }
     bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
     /* Set the iteration to zero -- this will prevent writing the background file until after the adjustment

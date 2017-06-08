@@ -23,6 +23,8 @@
 #include <QString>
 #include <QDomDocument>
 #include "precision.h"
+#include "Projection.h"
+#include "samurai.h"
 
 using namespace std;
 
@@ -30,20 +32,40 @@ class VarDriver
 {
 
 public:
+
 	VarDriver();
 	virtual ~VarDriver();
 	virtual bool initialize(const QDomElement& configuration) = 0;
+	virtual bool initialize(const samurai_config &configSam) = 0;
+
 	virtual bool run() = 0;
+	virtual bool run(int nx, int ny, int nsigma,
+			 float dx, float dy,
+			 float *sigmas,
+			 float *latitude, // 2D arrays
+			 float *longitude,
+			 float *u1,	// 3D array (nx, ny, nsigma)  
+			 float *v1,
+			 float *w1,
+			 float *th1,
+			 float *p1,
+			 // These are output values
+			 float *usam,	// 3D array
+			 float *vsam,
+			 float *wsam,
+			 float *thsam,
+			 float *psam) = 0;
+
 	virtual bool finalize() = 0;
 
-protected:
-
+ protected:
+	
 	real CoriolisF;
 	real Pi;
 	unsigned int numVars;
 	unsigned int numHeights;
 	unsigned int maxHeights;
-    unsigned int numDerivatives;
+	unsigned int numDerivatives;
 	unsigned int maxJdim;
 	unsigned int maxKdim;
 	vector<FrameCenter> frameVector;
@@ -70,14 +92,15 @@ protected:
 		cimss,
 		dwl,
 		insitu,
-        mtp,
-        mesonet,
-        classnc,
-        qcf,
-        aeri,
-				rad
+		mtp,
+		mesonet,
+		classnc,
+		qcf,
+		aeri,
+		rad
 	};
-
+	Projection projection;
+	
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_wwind(QFile& metFile, QList<MetObs>* metObVector);
@@ -92,15 +115,16 @@ protected:
 	bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);
-    bool read_mtp(QFile& metFile, QList<MetObs>* metObVector);
-    bool read_mesonet(QFile& metFile, QList<MetObs>* metObVector);
-    bool read_classnc(QFile& metFile, QList<MetObs>* metObVector);
-    bool read_qcf(QFile& metFile, QList<MetObs>* metObVector);
-    bool read_aeri(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_mtp(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_mesonet(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_classnc(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_qcf(QFile& metFile, QList<MetObs>* metObVector);
+	bool read_aeri(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_rad(QFile& metFile, QList<MetObs>* metObVector);
 	bool readFrameCenters();
 	bool parseXMLconfig(const QDomElement& config);
-
+	bool parseSamuraiConfig(const samurai_config &config);
+	Projection::ProjectionType projectionFromConfig();
 };
 
 #endif

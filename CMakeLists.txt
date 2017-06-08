@@ -5,7 +5,14 @@ cmake_minimum_required ( VERSION 2.6 )
 set ( CMAKE_BUILD_TYPE Release )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 #set ( CMAKE_CXX_COMPILER "g++-4.2" )
+
+# RPATH handling
+# TODO Plug qt5 header and library finder
+link_directories( /home/bpmelli/.linuxbrew/opt/qt/lib )
+
+set ( CMAKE_CXX_FLAGS "-g -std=c++11 -fPIC" )
 add_definitions ( -Wall )
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	if(${CMAKE_CXX_COMPILER} MATCHES "icpc")
 		set ( OPENMP_FLAG "-openmp" )
@@ -35,21 +42,37 @@ set ( CMAKE_PREFIX_PATH
 	/opt
 	/opt/local
 	/Users/$ENV{USER}/Development
+	/home/bpmelli/.linuxbrew/opt/qt
+	/home/bpmelli/.linuxbrew	
 	./include
 	./lib
 	)
-find_package ( Qt4 REQUIRED ) 
+# find_package ( Qt4 REQUIRED ) 
 find_package ( HDF5 REQUIRED )
 find_package ( NetCDF REQUIRED )
 find_package ( Geographic REQUIRED )
 find_package ( FFTW REQUIRED )
-include ( ${QT_USE_FILE} )
+# include ( ${QT_USE_FILE} )
+
+set ( QT_INCLUDE_DIR        "${QT5_PREFIX}/include" )
+set ( QT_QTCORE_INCLUDE_DIR "${QT_INCLUDE_DIR}/QtCore" )
+set ( QT_QTGUI_INCLUDE_DIR  "${QT_INCLUDE_DIR}/QtGui" )
+set ( QT_QTXML_INCLUDE_DIR  "${QT_INCLUDE_DIR}/QtXml" )
+
+set ( QT_QTCORE_LIBRARY "-L ${QT5_PREFIX}/lib -lQt5Core" )
+set ( QT_QTCORE_LIBRARY -lQt5Core )
+set ( QT_QTGUI_LIBRARY -lQt5Gui )
+set ( QT_QTXML_LIBRARY -lQt5Xml )
+
 include_directories (
 	${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
-	${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR} ${QT_QTXML_INCLUDE_DIR}
+	${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR} ${QT_QTXML_INCLUDE_DIR}
 	${HDF5_INCLUDE_DIR} ${NETCDF_INCLUDE_DIR}
 	${GEOGRAPHIC_INCLUDE_DIR} ${FFTW_INCLUDE_DIR} )
-set ( EXECUTABLE_OUTPUT_PATH build/release )
+      
+set ( EXECUTABLE_OUTPUT_PATH build/release/bin )
+set ( LIBRARY_OUTPUT_PATH build/release/lib )
+
 set ( samurai_HDRS
 	src/BandedMatrix.h 
         src/BSpline.h 
@@ -58,6 +81,7 @@ set ( samurai_HDRS
 	src/CostFunctionXYZ.h
 	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
+	src/CostFunctionCOAMPS.cpp
 	src/MetObs.h 
         src/Observation.h 
         src/RecursiveFilter.h 
@@ -68,9 +92,15 @@ set ( samurai_HDRS
         src/read_dorade.h 
         src/precision.h 
         src/FrameCenter.h
+	src/Projection.h
+	src/BkgdAdapter.h
 	)
 
-set ( samurai_SRCS
+set ( library_HDRS
+	src/samurai.h
+	)
+
+set ( common_SRCS
 	src/BSpline.cpp
 	src/BSplineD.cpp
 	src/BSplineF.cpp
@@ -79,7 +109,7 @@ set ( samurai_SRCS
 	src/CostFunctionXYZ.cpp
 	src/CostFunctionXYP.cpp
 	src/CostFunctionRTZ.cpp
-	src/main.cpp
+	src/CostFunctionCOAMPS.cpp
 	src/MetObs.cpp
 	src/Observation.cpp
 	src/RecursiveFilter.cpp
@@ -88,16 +118,48 @@ set ( samurai_SRCS
 	src/ReferenceState.cpp
 	src/Dorade.cpp
         src/FrameCenter.cpp
-	
+	src/Projection.cpp
+	src/BkgdStream.cpp
+	src/BkgdArr.cpp
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
 	)
+
+set (samurai_SRCS
+#	${common_SRCS}	
+	src/main.cpp
+	)
+      
+set (lib_SRCS
+	${common_SRCS}		
+	src/samurai.cpp
+	)
+
 set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp
 	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 	)
+
+add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+      
+add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+      
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
-target_link_libraries ( samurai  
+
+set_property ( TARGET samLibShared PROPERTY OUTPUT_NAME "samurai" )
+set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
+
+target_link_libraries ( samurai samLibStatic )
+
+target_link_libraries ( samLibShared 
+	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
+	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY}
+	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
+      
+target_link_libraries ( samLibStatic
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
 	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY}
 	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
 install ( TARGETS samurai DESTINATION bin )
+install ( FILES samurai.h DESTINATION include )
+install ( TARGETS samLibShared DESTINATION lib )
+install ( TARGETS samLibStatic DESTINATION lib )

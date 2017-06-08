@@ -1,3 +1,4 @@
+*.o
 *build/*
 lib/*
 bin/samurai

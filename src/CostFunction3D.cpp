@@ -16,9 +16,10 @@
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
-CostFunction3D::CostFunction3D(const int& numObs, const int& stateSize)
-    : CostFunction(numObs, stateSize)
+CostFunction3D::CostFunction3D(const Projection& proj, const int& numObs, const int& stateSize)
+  : CostFunction(proj, numObs, stateSize)
 {
+
     // Set up the boundary condition hash
     bcHash["R0"] = R0;
     bcHash["R1T0"] = R1T0;

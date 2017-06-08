@@ -29,7 +29,7 @@ class CostFunction3D: public CostFunction
 {
 
 public:
-	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
+  CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
     void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();

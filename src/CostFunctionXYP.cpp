@@ -14,8 +14,8 @@
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
-CostFunctionXYP::CostFunctionXYP(const int& numObs, const int& stateSize)
-: CostFunction3D(numObs, stateSize)
+CostFunctionXYP::CostFunctionXYP(const Projection& proj, const int& numObs, const int& stateSize)
+  : CostFunction3D(proj, numObs, stateSize)
 {
 }
 
@@ -51,15 +51,15 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 	real latReference = configHash->value("ref_lat").toFloat();
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	//GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	projection.Forward(lonReference, latReference, lonReference, refX, refY);
 	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
 	real minLat = 0.0;
 	real minLon = 0.0;
 	if (latlonIncr > 0) {
 		real lat, lon;
 		real invIncr = (1.0/latlonIncr);
-		tm.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
+		projection.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
 		minLat = int(lat*invIncr)/invIncr;
 		minLon = int(lon*invIncr)/invIncr;
 	}
@@ -81,7 +81,7 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 								real lat, lon;
 								lon = minLon + latlonIncr*iIndex;
 								lat = minLat + latlonIncr*jIndex;
-								tm.Forward(lonReference, lat, lon, i, j);
+								projection.Forward(lonReference, lat, lon, i, j);
 								i = (i-refX)/1000.0;
 								if ((i < iMin) or (i > ((iDim-1)*DI + iMin))) continue;
 								j = (j-refY)/1000.0;
@@ -1325,14 +1325,14 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
 	real refX, refY;
 
-	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-	tm.Forward(lonReference, latReference, lonReference, refX, refY);
+	// GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+	projection.Forward(lonReference, latReference, lonReference, refX, refY);
 	real minLat = 0.0;
 	real minLon = 0.0;
 	if (latlonIncr > 0) {
 		real lat, lon;
 		real invIncr = (1.0/latlonIncr);
-		tm.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
+		projection.Reverse(lonReference,refX + iMin*1000.0, refY + jMin*1000.0, lat, lon);
 		minLat = int(lat*invIncr)/invIncr;
 		minLon = int(lon*invIncr)/invIncr;
 	}
@@ -1340,13 +1340,13 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		if (latlonIncr > 0) {
 			real i, j;
 			lons[iIndex] = minLon + latlonIncr*iIndex;
-			tm.Forward(lonReference, latReference, lons[iIndex], i, j);
+			projection.Forward(lonReference, latReference, lons[iIndex], i, j);
 	        x[iIndex] = (i-refX)/1000;
 		} else {
 			real i = (iMin + DI * iIndex)*1000;
 			real j = (jMin + DJ * (jDim/2))*1000;
 			real latnull = 0;
-			tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
+			projection.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
 	        x[iIndex] = i/1000;
 		}
 	}
@@ -1356,13 +1356,13 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 		if (latlonIncr > 0) {
 			real i, j;
 			lats[jIndex] = minLat + latlonIncr*jIndex;
-			tm.Forward(lonReference, lats[jIndex], lonReference, i, j);
+			projection.Forward(lonReference, lats[jIndex], lonReference, i, j);
 	        y[jIndex] = (j-refY)/1000;
 		} else {
 			real i = (iMin + DI * (iDim/2))*1000;
 			real j = (jMin + DJ * jIndex)*1000;
 			real lonnull = 0;
-			tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
+			projection.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
 	        y[jIndex] = j/1000;
 		}
 	}

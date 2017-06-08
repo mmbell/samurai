@@ -14,8 +14,8 @@
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
-CostFunctionRTZ::CostFunctionRTZ(const int& numObs, const int& stateSize)
-	: CostFunction3D(numObs, stateSize)
+CostFunctionRTZ::CostFunctionRTZ(const Projection& proj, const int& numObs, const int& stateSize)
+  : CostFunction3D(proj, numObs, stateSize)
 {
 }
 
@@ -1226,14 +1226,14 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
-	tm.Forward(lonReference, latReference, lonReference, refX, refY); */
+	projection.Forward(lonReference, latReference, lonReference, refX, refY); */
 
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		real i = (iMin + DI * iIndex);
         radius[iIndex] = i;
 		/* real j = (jMin + DJ * (jDim/2))*1000;
 		real latnull = 0;
-		tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
+		projection.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
         x[iIndex] = i/1000; */
 	}
 
@@ -1242,7 +1242,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
         thetadeg[jIndex] = j;
         /* real i = (iMin + DI * (iDim/2))*1000;
 		real lonnull = 0;
-		tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
+		projection.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
         y[jIndex] = j/1000; */
 	}
 

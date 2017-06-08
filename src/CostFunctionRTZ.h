@@ -16,7 +16,7 @@ class CostFunctionRTZ: public CostFunction3D
 {
 	
 public:
-	CostFunctionRTZ(const int& numObs = 0, const int& stateSize = 0);
+  CostFunctionRTZ(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionRTZ();
 	
 private:
