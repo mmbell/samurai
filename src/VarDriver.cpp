@@ -1428,11 +1428,11 @@ Projection::ProjectionType VarDriver::projectionFromConfig()
 {
   // default value
   Projection::ProjectionType retVal =
-    Projection::ProjectionType::TRANSVERSE_MERCATOR_EXACT;
+    Projection::TRANSVERSE_MERCATOR_EXACT;
   
   if (configHash.contains("projection")) {
     if (configHash.value("projection") == "lambert_conformal_conic")
-      retVal = Projection::ProjectionType::LAMBERT_CONFORMAL_CONIC;
+      retVal = Projection::LAMBERT_CONFORMAL_CONIC;
     else if (configHash.value("projection") != "transverse_mercator_exact")
       std::cerr << "Warning: Unrecognized projection type "
 		<< configHash.value("projection").toLatin1().data()

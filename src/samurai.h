@@ -4,6 +4,7 @@
 #define SAMURAI_CONFIG_H
 
 #include <QString>
+#include <QHash>
 
 struct samurai_config {
   // operation

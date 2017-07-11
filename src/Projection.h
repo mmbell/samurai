@@ -22,8 +22,6 @@
 #include <GeographicLib/LambertConformalConic.hpp>
 #include "precision.h"
 
-using namespace std;
-
 class Projection
 {
 
