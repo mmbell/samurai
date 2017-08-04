@@ -934,7 +934,7 @@ bool VarDriver3D::preProcessMetObs()
                     // Geometry terms
                     real az = metOb.getAzimuth()*Pi/180.;
                     real el = metOb.getElevation()*Pi/180.;
-                    real uWgt, vWgt;
+                    real uWgt, vWgt, Vdopp;
                     if (runMode == XYZ) {
                         uWgt = sin(az)*cos(el);
                         vWgt = cos(az)*cos(el);
@@ -988,7 +988,7 @@ bool VarDriver3D::preProcessMetObs()
 										}
 										real VR = metOb.getRadialVelocity();
 										if (VR != -999.0) {
-                    	real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+                    	Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 
                     	varOb.setWeight(uWgt, 0);
                     	varOb.setWeight(vWgt, 1);
