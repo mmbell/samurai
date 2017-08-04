@@ -532,7 +532,7 @@ void CostFunction3D::updateBG()
 
     // In BG update we are directly summing C + A
     QString cFilename = outputPath.absoluteFilePath("samurai_Coefficients.out");
-    ofstream cstream(cFilename.toAscii().data());
+    ofstream cstream(cFilename.toLatin1().data());
     cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
     for (int var = 0; var < varDim; var++) {
         for (int iIndex = 0; iIndex < iDim; iIndex++) {

@@ -80,7 +80,7 @@ bool VarDriver::readFrameCenters()
 	// Open the file
 	QFile centerFile(dataPath.filePath(centerFilename));
 	if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		std::cout << "Unable to open centerfile " << centerFilename.toAscii().data() << std::endl;
+		std::cout << "Unable to open centerfile " << centerFilename.toLatin1().data() << std::endl;
 		return false;
 	}
 
@@ -190,10 +190,10 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 	bool start = false;
 	while (!in.atEnd()) {
 		QString line = in.readLine();
-		if (line.startsWith("Launch Site Type")) {
+		if (line.startsWith("Release Site Type")) {
 			QStringList lineparts = line.split(":");
 			aircraft = lineparts[1].trimmed();
-		} else if (line.startsWith("GMT")) {
+		} else if (line.startsWith("UTC")) {
 			datestr = line.mid(35,12);
 			timestr = line.mid(49,8);
 			QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
@@ -206,8 +206,8 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
 			MetObs ob;
 			ob.setStationName(aircraft);
 			QStringList lineparts = line.split(QRegExp("\\s+"));
-			int msec = lineparts[1].toInt()*1000;
-			ob.setTime(datetime.addMSecs(msec));
+			int sec = lineparts[1].toFloat();
+			ob.setTime(datetime.addSecs(sec));
 			if (lineparts[11].toFloat() != 999.) {
 				ob.setLon(lineparts[11].toFloat());
 			} else {
@@ -713,7 +713,7 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 		datetime = QDateTime(date, time, Qt::UTC);
 		ob.setTime(datetime);
 		//QString datestr = datetime.toString(Qt::ISODate);
-		//cout << datestr.toAscii().data() << endl;
+		//cout << datestr.toLatin1().data() << endl;
 		ob.setLat(lineparts[5].toFloat());
 		ob.setLon(lineparts[6].toFloat());
 		ob.setAltitude(10.0);
@@ -1235,7 +1235,7 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 	NcError err(NcError::verbose_nonfatal);
 
 	// Read the file.
-	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
 
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())
@@ -1352,7 +1352,7 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 	NcError err(NcError::verbose_nonfatal);
 
 	// Read the file.
-	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
 
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())
@@ -1526,7 +1526,7 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 	NcError err(NcError::verbose_nonfatal);
 
 	// Read the file.
-	NcFile dataFile(metFile.fileName().toAscii(), NcFile::ReadOnly);
+	NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
 
 	// Check to see if the file was read.
 	if(!dataFile.is_valid())

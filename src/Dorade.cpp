@@ -93,7 +93,7 @@ bool Dorade::readSwpfile()
 
 	// Read in a dorade file
 	char* ccfilename =new char[filename.size() + 1];
-	strcpy(ccfilename, filename.toAscii().data());
+	strcpy(ccfilename, filename.toLatin1().data());
 	sweepread(ccfilename, ssptr, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr);
 	delete[] ccfilename;
@@ -114,7 +114,7 @@ bool Dorade::readSwpfile(const QString& refname, const QString& velname, const Q
 
 	// Read in a dorade file
 	char* ccfilename = new char[filename.size() + 1];
-	strcpy(ccfilename, filename.toAscii().data());
+	strcpy(ccfilename, filename.toLatin1().data());
 	sweepread(ccfilename, ssptr, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr);
 
@@ -130,7 +130,7 @@ bool Dorade::writeSwpfile()
 		swap_bytes = true;
 	}
 
-	const char* ccfilename = filename.toAscii().data();
+	const char* ccfilename = filename.toLatin1().data();
 	int flag = 0;
 	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
@@ -149,7 +149,7 @@ bool Dorade::writeSwpfile(const QString& suffix)
 
 	// Add a suffix to indicate we've modified the file
 	filename += "." + suffix;
-	const char* ccfilename = filename.toAscii().data();
+	const char* ccfilename = filename.toLatin1().data();
 	int flag = 0;
 	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
 			  cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
@@ -166,7 +166,7 @@ bool Dorade::writeDoradefile(const QString& doradeFilename)
 	}
 
 	// Change the output file to a dorade file
-	const char* ccfilename = doradeFilename.toAscii().data();
+	const char* ccfilename = doradeFilename.toLatin1().data();
 	int flag = 1;
 	sweepwrite(ccfilename, ssptr, vptr, rptr, cptr,
 			   cfptr, pptr, sptr, ryptr, aptr, dptr, flag);
@@ -402,19 +402,19 @@ bool Dorade::copyField(const QString& oldFieldName, const QString& newFieldName,
 	pptr[newIndex] = pptr[oldIndex];
 	memset(pptr[newIndex].parm_name,' ',8);
 	for (int c=0; c < 8; c++) {
-		if (c < newFieldName.toAscii().size())
-			pptr[newIndex].parm_name[c] = newFieldName.toAscii().at(c);
+		if (c < newFieldName.toLatin1().size())
+			pptr[newIndex].parm_name[c] = newFieldName.toLatin1().at(c);
 	}
 	memset(pptr[newIndex].parm_desc,' ',40);
 	for (int c=0; c < 40; c++) {
-		if (c < newFieldDesc.toAscii().size())
-			pptr[newIndex].parm_desc[c] = newFieldDesc.toAscii().at(c);
+		if (c < newFieldDesc.toLatin1().size())
+			pptr[newIndex].parm_desc[c] = newFieldDesc.toLatin1().at(c);
 	}
 
 	memset(pptr[newIndex].parm_unit,' ',8);
 	for (int c=0; c < 8; c++) {
-		if (c < newFieldUnits.toAscii().size())
-			pptr[newIndex].parm_unit[c] = newFieldUnits.toAscii().at(c);
+		if (c < newFieldUnits.toLatin1().size())
+			pptr[newIndex].parm_unit[c] = newFieldUnits.toLatin1().at(c);
 	}
 
 	// Copy the RDAT blocks
@@ -422,8 +422,8 @@ bool Dorade::copyField(const QString& oldFieldName, const QString& newFieldName,
 		dptr[newIndex][i] = dptr[oldIndex][i];
 		memset(dptr[newIndex][i].parm_name,' ',8);
 		for (int c=0; c < 8; c++) {
-			if (c < newFieldName.toAscii().size())
-				dptr[newIndex][i].parm_name[c] = newFieldName.toAscii().at(c);
+			if (c < newFieldName.toLatin1().size())
+				dptr[newIndex][i].parm_name[c] = newFieldName.toLatin1().at(c);
 		}
 	}
 
@@ -499,7 +499,7 @@ void Dorade::sweepread(const char* swp_fname,struct sswb_info *ssptr, struct vol
 	int desc_len;
 	int fld_num=0;
 	int match;
-	//int found=FALSE;
+	//int found=false;
 	int beam=-1;
 	i = 0;
 	/* ADD NULL CHARACTER TO END OF STRING
@@ -603,7 +603,7 @@ void Dorade::sweepread(const char* swp_fname,struct sswb_info *ssptr, struct vol
 			/* GO BACK TO FIRST PARAMETER DESCRIPTOR */
 			for (i=0;i<rptr->num_param_desc;i++) {pptr--;}
 			/* DID WE FIND THE FIELD??
-			if (beam==2 && found==FALSE) {
+			if (beam==2 && found==false) {
 				printf ("%s NOT FOUND..\n",fld_name);
 				printf ("VALID FIELD NAMES:\n");
 				for (i=0;i<rptr->num_param_desc;i++) {
@@ -625,7 +625,7 @@ void Dorade::sweepread(const char* swp_fname,struct sswb_info *ssptr, struct vol
 			/* READ THE DATA DESCRIPTOR */
 			// printf ("reading rdat %s %d:\n", fld_name, desc_len);
 
-			match=FALSE;
+			match=false;
 			read_rdat(fp,fld_num,desc_len,&match,
 					  pptr->parm_type,beam,cptr->total_gates,
 					  rptr->compress_flag,pptr->baddata_flag,
@@ -633,7 +633,7 @@ void Dorade::sweepread(const char* swp_fname,struct sswb_info *ssptr, struct vol
 			fld_num++;
 			pptr++;
 
-			/* if (match==TRUE) {
+			/* if (match==true) {
 				// *dptr++;
 				found=match;
 			} */
@@ -690,7 +690,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 	if (!doradeFlag) {
 		/* SSWB */
 		block = "SSWB";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -707,7 +707,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 	/* VOLD */
 	block = "VOLD";
-	identifier = block.toAscii().data();
+	identifier = block.toLatin1().data();
 	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 		printf("sweep file read error..can't read identifier\n");
 		exit(-1);
@@ -723,7 +723,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 	/* RADD */
 	block = "RADD";
-	identifier = block.toAscii().data();
+	identifier = block.toLatin1().data();
 	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 		printf("sweep file read error..can't read identifier\n");
 		exit(-1);
@@ -745,7 +745,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 	//for (int i=0; i<rptr->num_param_desc; i++) {*pptr--;}
 	for (int i=0; i<rptr->num_param_desc; i++) {
 		block = "PARM";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -762,7 +762,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 	/* CELV */
 	block = "CELV";
-	identifier = block.toAscii().data();
+	identifier = block.toLatin1().data();
 	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 		printf("sweep file read error..can't read identifier\n");
 		exit(-1);
@@ -778,7 +778,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 	/* CFAC */
 	block = "CFAC";
-	identifier = block.toAscii().data();
+	identifier = block.toLatin1().data();
 	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 		printf("sweep file read error..can't read identifier\n");
 		exit(-1);
@@ -794,7 +794,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 	/* SWIB */
 	block = "SWIB";
-	identifier = block.toAscii().data();
+	identifier = block.toLatin1().data();
 	if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 		printf("sweep file read error..can't read identifier\n");
 		exit(-1);
@@ -814,7 +814,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		rtptr[i].offset = ftell(fp);
 		/* RYIB */
 		block = "RYIB";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -830,7 +830,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 		/* ASIB */
 		block = "ASIB";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -866,7 +866,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 			num_words=dd_compress((unsigned short *)&arr_uncom,(unsigned short *)&arr_com,(unsigned short)baddata_flag,arrsize);
 
 			block = "RDAT";
-			identifier = block.toAscii().data();
+			identifier = block.toLatin1().data();
 			if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 				printf("sweep file read error..can't read identifier\n");
 				exit(-1);
@@ -900,7 +900,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 	if (doradeFlag) {
 		/* VOLD */
 		block = "VOLD";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -916,7 +916,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 		/* RADD */
 		block = "RADD";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -938,7 +938,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		//for (int i=0; i<rptr->num_param_desc; i++) {*pptr--;}
 		for (int i=0; i<rptr->num_param_desc; i++) {
 			block = "PARM";
-			identifier = block.toAscii().data();
+			identifier = block.toLatin1().data();
 			if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 				printf("sweep file read error..can't read identifier\n");
 				exit(-1);
@@ -955,7 +955,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 		/* CELV */
 		block = "CELV";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -971,7 +971,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 		/* CFAC */
 		block = "CFAC";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -987,7 +987,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 	} else {
 		/* NULL */
 		block = "NULL";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -999,7 +999,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 
 		/* RKTB */
 		block = "RKTB";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -1027,7 +1027,7 @@ void Dorade::sweepwrite(const char swp_fname[],struct sswb_info *ssptr,struct vo
 		int offset = filesize - rktb_size;
 		rewind(fp);
 		block = "SSWB";
-		identifier = block.toAscii().data();
+		identifier = block.toLatin1().data();
 		if ( (fwrite(identifier,sizeof(char),IDENT_LEN,fp)) != IDENT_LEN) {
 			printf("sweep file read error..can't read identifier\n");
 			exit(-1);
@@ -1238,7 +1238,7 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 		swIndex = fld_num;
 	}
 
-	*match=TRUE;
+	*match=true;
 	/* CALCULATE SIZE OF DATA */
 	strncpy(rdat->parm_name,tempname,strsize);
 	if (parm_type==1) {datasize=sizeof(char);}
@@ -1282,7 +1282,7 @@ void Dorade::read_sh_arr(FILE *fp,int arrsize,int beam_count,
 	int i,num;
 	int empty_run=0;
 
-	if (compression==TRUE) {
+	if (compression==true) {
 		/* READ A RAY OF DATA */
 		if ( (fread(arr_com,sizeof(short),arrsize,fp)) != (unsigned int)arrsize)
 		{printf("sweep file read error..can't read data\n");}

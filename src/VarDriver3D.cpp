@@ -356,7 +356,7 @@ bool VarDriver3D::preProcessMetObs()
 		QString file = filenames.at(i);
 		QStringList fileparts = file.split(".");
 		if (fileparts.isEmpty()) {
-			cout << "Unknown file! " << file.toAscii().data() << endl;
+			cout << "Unknown file! " << file.toLatin1().data() << endl;
 			continue;
 		}
 		QString suffix = fileparts.last();
@@ -365,7 +365,7 @@ bool VarDriver3D::preProcessMetObs()
 			// Switch it to suffix
 			suffix = "swp";
 		}
-		cout << "Processing " << file.toAscii().data() << " of type " << suffix.toAscii().data() << endl;
+		cout << "Processing " << file.toLatin1().data() << " of type " << suffix.toLatin1().data() << endl;
 		QFile metFile(dataPath.filePath(file));
 
 		// Read different types of files
@@ -481,6 +481,7 @@ bool VarDriver3D::preProcessMetObs()
 
 			// Get the X, Y & Z
 			real tcX, tcY, metX, metY;
+			if ((metOb.getLat() == -999) or (metOb.getLat() == -999)) continue;
 			tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
 			tm.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
 			real obX = (metX - tcX)/1000.;
@@ -985,35 +986,38 @@ bool VarDriver3D::preProcessMetObs()
 												if (H < hlow) w_term=VTR;
 												if (H > hhi) w_term=VTS;
 										}
-                    real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+										real VR = metOb.getRadialVelocity();
+										if (VR != -999.0) {
+                    	real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
 
-                    varOb.setWeight(uWgt, 0);
-                    varOb.setWeight(vWgt, 1);
-                    varOb.setWeight(wWgt, 2);
+                    	varOb.setWeight(uWgt, 0);
+                    	varOb.setWeight(vWgt, 1);
+                    	varOb.setWeight(wWgt, 2);
 
-                    /* Theoretically, rhoPrime could be included as a prognostic variable here...
-                     However, adding another unknown without an extra equation makes the problem even more underdetermined
-                     so assume it is small and ignore it
-                     real rhopWgt = -Vdopp;
-                     varOb.setWeight(rhopWgt, 5); */
+	                    /* Theoretically, rhoPrime could be included as a prognostic variable here...
+	                     However, adding another unknown without an extra equation makes the problem even more underdetermined
+	                     so assume it is small and ignore it
+	                     real rhopWgt = -Vdopp;
+	                     varOb.setWeight(rhopWgt, 5); */
 
-                    // Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
-										real DopplerError = fabs(wWgt)*configHash.value("radar_fallspeed_error").toFloat();
-										if (metOb.getSpectrumWidth() != -999.0) {
-											DopplerError += metOb.getSpectrumWidth()*configHash.value("radar_sw_error").toFloat();
+	                    // Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
+											real DopplerError = fabs(wWgt)*configHash.value("radar_fallspeed_error").toFloat();
+											if (metOb.getSpectrumWidth() != -999.0) {
+												DopplerError += metOb.getSpectrumWidth()*configHash.value("radar_sw_error").toFloat();
+											}
+											if (DopplerError < configHash.value("radar_min_error").toFloat())
+												DopplerError = configHash.value("radar_min_error").toFloat();
+	                    varOb.setError(DopplerError);
+	                    varOb.setOb(Vdopp);
+
+	                    real maxel = configHash.value("max_radar_elevation").toFloat();
+											if (!maxel) maxel = 90.0;
+	                    if (fabs(metOb.getElevation() <= maxel)) obVector.push_back(varOb);
+
+	                    varOb.setWeight(0., 0);
+	                    varOb.setWeight(0., 1);
+	                    varOb.setWeight(0., 2);
 										}
-										if (DopplerError < configHash.value("radar_min_error").toFloat())
-											DopplerError = configHash.value("radar_min_error").toFloat();
-                    varOb.setError(DopplerError);
-                    varOb.setOb(Vdopp);
-
-                    real maxel = configHash.value("max_radar_elevation").toFloat();
-										if (!maxel) maxel = 90.0;
-                    if (fabs(metOb.getElevation() < maxel)) obVector.push_back(varOb);
-
-                    varOb.setWeight(0., 0);
-                    varOb.setWeight(0., 1);
-                    varOb.setWeight(0., 2);
 
                     // Reflectivity observations
                     QString gridref = configHash.value("qr_variable");
@@ -1505,7 +1509,7 @@ bool VarDriver3D::preProcessMetObs()
 
     // Write the Obs to a summary text file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-    ofstream obstream(obFilename.toAscii().data());
+    ofstream obstream(obFilename.toLatin1().data());
     // Header messes up reload
     /*ostream_iterator<string> os(obstream, "\t ");
      *os++ = "Type";
@@ -1606,7 +1610,7 @@ bool VarDriver3D::loadMetObs()
 
     // Open and read the file
 	QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-    ifstream obstream(obFilename.toAscii().data());
+    ifstream obstream(obFilename.toLatin1().data());
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
 			>> wgt[1][0] >> wgt[1][1] >> wgt[1][2] >> wgt[1][3]
@@ -1698,7 +1702,7 @@ int VarDriver3D::loadBackgroundObs()
     }
     real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
 	QString bgFilename = dataPath.absoluteFilePath("samurai_Background.in");
-    ifstream bgstream(bgFilename.toAscii().data());
+    ifstream bgstream(bgFilename.toLatin1().data());
     if (!bgstream.good()) {
         cout << "Error opening samurai_Background.in for reading.\n";
         exit(1);
