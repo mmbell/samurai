@@ -38,12 +38,13 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   }
 
   int analysisDim = 51;
-	sDim = 42;
+  sDim = 42;
   int analysisSize = (iDim-2)*(jDim-2)*(sDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
 	real gausspoint = 0.5*sqrt(1./3.);
 
 	// Sigma height levels
+	// TODO, these could be passed as arguments
 	const real sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
 		16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
 		9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
@@ -531,8 +532,11 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 	adjustInternalDomain(1);
 	sDim += 2;
 
-  // Free the memory for the analysis variables
-  delete[] finalAnalysis;
+	// Free the memory for the analysis variables
+
+
+	if (suffix != "analysis") 	// TODO: Need the keep analysis for return arrays
+	    delete[] finalAnalysis;
 
 	return true;
 

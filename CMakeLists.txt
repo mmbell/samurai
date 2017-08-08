@@ -94,6 +94,7 @@ set ( samurai_HDRS
         src/FrameCenter.h
 	src/Projection.h
 	src/BkgdAdapter.h
+	src/Xml.h
 	)
 
 set ( library_HDRS
@@ -121,6 +122,7 @@ set ( common_SRCS
 	src/Projection.cpp
 	src/BkgdStream.cpp
 	src/BkgdArr.cpp
+	src/Xml.cpp
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
 	)

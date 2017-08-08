@@ -24,6 +24,7 @@ private:
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	bool writeFlatfile(const QString& flatFileName, const int var);
+	bool copyResults(float *u, float *v, float *w, float *th, float *p);
 	int sDim;
 };
 

@@ -22,7 +22,9 @@ ReferenceState::ReferenceState(const QString& config)
 	//QFile refFile(config);
 	//if(!refFile.open(QIODevice::ReadOnly)) {
 	if (!refstream.good()) {
-		std::cout << "Can't open Reference State file for reading, using default..." << std::endl;
+	  std::cout << "Can't open Reference State file for reading, "
+		    << " '" << config.toLatin1().data()
+		    << "' using default..." << std::endl;
 		sfcpress = 1014.80;
 		altitude.push_back(log(10.0)); theta.push_back(298.6949); qv.push_back(bhypTransform(18.63960));
 		altitude.push_back(log(124.0)); theta.push_back(299.6500); qv.push_back(bhypTransform(18.58188));

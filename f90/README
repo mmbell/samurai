@@ -1,0 +1,7 @@
+Repository for Fortran 90 code.
+
+samurai_cdef.f90
+   Interface definig the C bindings to the Samurai library.
+   Include this file in your f90 code so that the compiler knows
+   about the function signatures
+   

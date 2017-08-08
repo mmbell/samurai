@@ -18,6 +18,8 @@
 #include "RecursiveFilter.h"
 #include "samurai.h"
 
+// TODO debug
+
 // Constructor
 VarDriver3D::VarDriver3D()
 : VarDriver()
@@ -293,23 +295,9 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
   if ( ! loadBackgroundObs(nx, ny, nsigma, dx, dy, sigmas, latitude, longitude,
 			   u1, v1, w1, th1, p1))
     return false;
-
-  // TODO: massage samurai ouput into the output arrays
-  //       For now, put simple data so we can test these from the Fortran side.
-
-  // if( run() ) {
-  if(1) {
-    for(int i = 0; i < nx; i++)
-      for(int j = 0; j < ny; j++)
-	for(int k = 0; k < nsigma; k++) {
-	  *(usam + i + nx  * (j + ny * k)) = i + 1;
-	  *(vsam + i + nx  * (j + ny * k)) = j + 1;
-	  *(wsam + i + nx  * (j + ny * k)) = k + 1;
-	  *(thsam + i + nx * (j + ny * k)) = i + 1;
-	  *(psam + i + nx  * (j + ny * k)) = j + 1;
-	}
-    return true;
-  }
+  
+  if( run() )
+    return obCost3D->copyResults(nx, ny, nsigma, usam, vsam, wsam, thsam, psam);
   return false;
 }
 
@@ -1460,6 +1448,7 @@ bool VarDriver3D::preProcessMetObs()
             }
         }
     }
+
     cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
     // Write the Obs to a summary text file
@@ -1640,6 +1629,19 @@ int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
 				   float *th1,
 				   float *p1)
 {
+#if 0
+  // TODO debug
+    for(int i = 0; i < nx; i++)
+      for(int j = 0; j < ny; j++)
+	for(int k = 0; k < nsigma; k++) {
+	  float f = *(u1 + i + nx * (j + ny * k));
+	  std::cout << "i: " << i
+		    << ", j: " << j
+		    << ", k: " << k
+		    << ", val: " << f
+		    << std::endl;
+	}
+#endif
   bkgdAdapter = new BkgdArray(nx, ny, nsigma,
 			      dx, dy,
 			      sigmas,

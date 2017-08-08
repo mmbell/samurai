@@ -1,13 +1,20 @@
 #include <iostream>
+#include <QtCore>
+#include <QtXml>
 
 #include "samurai.h"
 #include "VarDriver3D.h"
+#include "Xml.h"
 
 using namespace std;
 
 extern "C" {
 
-  // Constructor
+  // Constructors
+  
+  // Call this one if you want to pass a config structure.
+  // Very error prone. The Fortran and the C++ data structure must match exactly...
+  
   VarDriver3D *create_vardriver3D(const samurai_config *config) {
     cout << "C API, create_vardriver3D" << endl;
     VarDriver3D *driver = new VarDriver3D();
@@ -15,6 +22,7 @@ extern "C" {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
       return NULL;
     }
+    
     if(!driver->initialize(*config)) {
       std:: cout << "Failed to initialize the VarDriver3D" << std::endl;
       delete driver;
@@ -23,10 +31,38 @@ extern "C" {
     return driver;
   }
 
+  // Pass the path to a config file.
+  // I recommend this one. A lots simpler, and no need to match
+  // data structure from 2 different languages
+
+  VarDriver3D *create_vardriver3D_From_File(const char *config_path) {
+    cout << "C API, create_vardriver3D_From_File" << endl;
+    QDomDocument *domDoc = readXmlConfig(config_path);
+    
+    if (domDoc == NULL)
+      return NULL;
+
+    VarDriver3D *driver = new VarDriver3D();
+    if (driver == NULL) {
+      std:: cout << "Failed to create a VarDriver3D" << std::endl;
+      delete domDoc;
+      return NULL;
+    }
+
+    if ( ! driver->initialize(domDoc->documentElement() )) {
+      std:: cout << "Failed to initialize VarDriver3D with content of '" << config_path << "'"  << std::endl;
+      delete driver;
+      delete domDoc;
+      return NULL;
+    }      
+    return driver;
+  }
+
   // Destructor
   void delete_vardriver3D(VarDriver3D *d) {
-    cout << "C API, delete_vardriver3D" << endl;    
-    delete d;
+    cout << "C API, delete_vardriver3D" << endl;
+    if (d != NULL) 
+      delete d;
   }
   
   // Run the analysis
@@ -50,10 +86,12 @@ extern "C" {
 		      float *thsam,	// 3D array
 		      float *psam	// 3D array
 		      ) {
+    if (d == NULL)
+      return 0;
     return d->run(nx, ny, nsigma, dx, dy,
-		  sigmas, latitude, longitude,
-		  u1, v1, w1, th1, p1,
-		  usam, vsam, wsam, thsam, psam);
+			   sigmas, latitude, longitude,
+			   u1, v1, w1, th1, p1,
+			   usam, vsam, wsam, thsam, psam);
   }
 
   // Call this to debug

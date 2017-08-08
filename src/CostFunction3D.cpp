@@ -2241,3 +2241,69 @@ void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
   }
 
 }
+
+// Copy the final results into the given arrays
+// Source is row major order (C)
+// Dest is column major order (Fortran)
+
+#if 0
+bool CostFunction3D::copy3DArrayFtoC(real *src, float *dest, int iDim, int jDim, int kDim)
+{
+  for(int i = 0; i < iDim; i++)
+      for(int j = 0; j < jDim; j++)
+	for(int k = 0; k < kDim; k++) {
+	  std::cout << "i: " << i << ", j: " << j << ", k: " << k << std::endl;
+	  float f = *(src + i + iDim * (j + jDim * k));
+	  std::cout << "Address: " << (dest + i + iDim * (j + jDim * k))
+		    << ", value: " << f << std::endl;
+	  *(dest + i + iDim * (j + jDim * k)) = f;
+	}
+}
+#endif
+
+// Copy the final results into the given arrays
+// Source is row major order (C)
+// Dest is column major order (Fortran)
+
+// bool CostFunction3D::copy3DArrayCtoF(real *src, float *dest, int iDim, int jDim, int kDim)
+bool CostFunction3D::copy3DArray(real *src, float *dest, int iDim, int jDim, int kDim)
+{
+  
+#if 0
+  // TODO DEBUG.
+  float debug[iDim][jDim][kDim];
+  for(int i = 0; i < iDim; i++)
+      for(int j = 0; j < jDim; j++)
+	for(int k = 0; k < kDim; k++)
+	  debug[i][j][k] = (i + 1) * 100 + (j + 1) * 10 + k + 1;
+  float *foo = &debug[0][0][0];
+#endif
+  
+  for(int i = 0; i < iDim; i++)
+      for(int j = 0; j < jDim; j++)
+	for(int k = 0; k < kDim; k++) {
+	  float f = *(src + k + kDim * (j + jDim * i));
+	  // DEBUG float f = *(foo + k + kDim * (j + jDim * i));
+	  *(dest + i + iDim * (j + jDim * k)) = f;
+	}
+  return true;
+}
+
+bool CostFunction3D::copyResults(int iDim, int jDim, int kDim,
+				 float *u, float *v, float *w, float *t, float *p)
+{
+  // TODO do some error checking on the dimentions
+  // if bad, return false
+  
+  // question: Do the result sizes match the nx, ny, nsigmas passed in the VarDriver3d::run function?
+
+  // See CostFunctionCOAMPS.cpp around line  355 for the meaning of the indices used here (0, 1, 2, 19, 26)
+  copy3DArray(&finalAnalysis[0], u, iDim, jDim, kDim);
+  copy3DArray(&finalAnalysis[iDim * jDim * kDim * 1],  v, iDim, jDim, kDim);
+  copy3DArray(&finalAnalysis[iDim * jDim * kDim * 2],  w, iDim, jDim, kDim);
+  copy3DArray(&finalAnalysis[iDim * jDim * kDim * 19], p, iDim, jDim, kDim);
+  copy3DArray(&finalAnalysis[iDim * jDim * kDim * 26], t, iDim, jDim, kDim);
+	  
+  return true;
+}
+
