@@ -100,7 +100,8 @@ public:
 		rad
 	};
 	Projection projection;
-	
+
+	bool read_met_obs_file(int suffix, QFile& metFile, QList<MetObs>* metObVector);
 	bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
 	bool read_wwind(QFile& metFile, QList<MetObs>* metObVector);

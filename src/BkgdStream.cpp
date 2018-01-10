@@ -18,5 +18,5 @@ BkgdStream::~BkgdStream()
 bool BkgdStream::next(int &time, real &lat, real &lon, real &alt, real &u,
 		     real &v, real &w, real &t, real &qv, real &rhoa, real &qr)
 {
-  return *_stream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr;
+  return (bool) (*_stream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr);
 }
