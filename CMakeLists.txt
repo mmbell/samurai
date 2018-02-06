@@ -5,12 +5,15 @@ cmake_minimum_required ( VERSION 2.6 )
 set ( CMAKE_BUILD_TYPE Release )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 #set ( CMAKE_CXX_COMPILER "g++-4.2" )
+set ( CMAKE_CXX_COMPILER "/home/mbell/bin/g++" )
 
 # RPATH handling
 # TODO Plug qt5 header and library finder
-link_directories( /home/bpmelli/.linuxbrew/opt/qt/lib )
+# link_directories( /home/bpmelli/.linuxbrew/opt/qt/lib )
 
 set ( CMAKE_CXX_FLAGS "-g -std=c++11 -fPIC" )
+set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-rpath,/home/mbell/lib64 -Wl,-rpath,/home/mbell/lib" )
+
 add_definitions ( -Wall )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -42,8 +45,9 @@ set ( CMAKE_PREFIX_PATH
 	/opt
 	/opt/local
 	/Users/$ENV{USER}/Development
-	/home/bpmelli/.linuxbrew/opt/qt
-	/home/bpmelli/.linuxbrew	
+	/home/bpmelli/release/lib
+	/home/mbell/include
+	/home/mbell/lib
 	./include
 	./lib
 	)
@@ -152,7 +156,7 @@ set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
 
 target_link_libraries ( samurai samLibStatic )
 
-target_link_libraries ( samLibShared 
+target_link_libraries ( samLibShared
 	${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTXML_LIBRARY} 
 	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY}
 	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})

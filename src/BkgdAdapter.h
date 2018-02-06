@@ -2,6 +2,8 @@
 #define BKGD_ADAPTER_H
 
 #include <fstream>
+#include <QDateTime>
+
 #include "precision.h"	// for 'real' typedef
 
 // This is an abstract class to support the multiple ways Background observations can
@@ -15,6 +17,9 @@
 class BkgdAdapter {
 
  public:
+  BkgdAdapter() {};
+  virtual ~BkgdAdapter() {};
+  
   virtual bool next(int &time, real &lat, real &lon, real &alt, real &u,
 		    real &v, real &w, real &t, real &qv, real &rhoa, real &qr) = 0;
   virtual bool checkTime() = 0;
@@ -43,7 +48,9 @@ class BkgdArray : public BkgdAdapter {
  public:
   
   BkgdArray(int nx, int ny, int nsigma,
-	    float dx, float dy,
+	    char *ctdg,		// current time group string
+	    int delta,		// model time step on coarse grid
+	    int iter,		// current iteration
 	    float *sigmas,
 	    float *latitude,	// 2d
 	    float *longitude,
@@ -67,6 +74,10 @@ class BkgdArray : public BkgdAdapter {
 
   float _x_incr, _y_incr;
 
+  // Time elements
+  
+  QDateTime _obTime;
+  
   // 3d array dimentions
 
   int _xd, _yd, _zd;

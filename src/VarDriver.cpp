@@ -46,6 +46,9 @@ VarDriver::VarDriver()
   dataSuffix["qcf"] = qcf;
   dataSuffix["aeri"] = aeri;
   dataSuffix["rad"] = rad;
+
+  // By default we have fixed grid dimensions coming from the config file
+  fixedGrid = true;
 }
 
 // Destructor
@@ -122,6 +125,32 @@ bool VarDriver::readFrameCenters()
   }
 
   return true;
+}
+
+// These are interface functions to allow caller manipulation of the center vector
+
+// Empty the centers vector
+
+void VarDriver::clearCenters()
+{
+  frameVector.clear();
+}
+
+// Append a new center to the centers vector
+
+void VarDriver::appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um)
+{
+  QDateTime dateTime = QDateTime(QDate::fromString(date, "yyyyMMdd"),
+				 QTime::fromString(time, "HHmmss"),
+				 Qt::UTC);
+  frameVector.push_back(FrameCenter(dateTime, lat, lon, Um, Vm));
+}
+
+// Pop the first center (Might add a date later if needed to remove a specific center)
+
+void VarDriver::popCenter()
+{
+  frameVector.erase(frameVector.begin());
 }
 
 // interfact function to read radar data
@@ -1379,9 +1408,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_stride",tmpstr.setNum(config.radar_stride));
   configHash.insert("dynamic_stride",tmpstr.setNum(config.dynamic_stride));
   configHash.insert("spline_approximation",tmpstr.setNum(config.spline_approximation));
+#if 0 /* old style call */  
   configHash.insert("nx",tmpstr.setNum(config.nx));
   configHash.insert("ny",tmpstr.setNum(config.ny));
   configHash.insert("nz",tmpstr.setNum(config.nz));
+  
   configHash.insert("i_min",tmpstr.setNum(config.i_min));
   configHash.insert("i_max",tmpstr.setNum(config.i_max));
   configHash.insert("i_incr",tmpstr.setNum(config.i_incr));
@@ -1391,6 +1422,8 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("k_min",tmpstr.setNum(config.k_min));
   configHash.insert("k_max",tmpstr.setNum(config.k_max));
   configHash.insert("k_incr",tmpstr.setNum(config.k_incr));
+#endif
+  
   configHash.insert("i_background_roi",tmpstr.setNum(config.i_background_roi));
   configHash.insert("j_background_roi",tmpstr.setNum(config.j_background_roi));
   configHash.insert("i_reflectivity_roi",tmpstr.setNum(config.i_reflectivity_roi));
@@ -1448,9 +1481,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_sw_error",tmpstr.setNum(config.radar_sw_error));
   configHash.insert("radar_fallspeed_error",tmpstr.setNum(config.radar_fallspeed_error));
   configHash.insert("radar_min_error",tmpstr.setNum(config.radar_min_error));
+#if 0 /* old style */
   configHash.insert("delx",tmpstr.setNum(config.delx));
   configHash.insert("dely",tmpstr.setNum(config.dely));
-
+#endif
+  
   if (config.load_background) configHash.insert("load_background","true");
   else configHash.insert("load_background","false");
   if (config.adjust_background) configHash.insert("adjust_background","true");
@@ -1519,7 +1554,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_vel",config.radar_vel);
   configHash.insert("radar_sw",config.radar_sw);
   configHash.insert("mask_reflectivity",config.mask_reflectivity);
+  
+#if 0 /* old style */
   configHash.insert("ref_time",config.ref_time);
+#endif
+  
   configHash.insert("ref_state",config.ref_state);
   configHash.insert("data_directory",config.data_directory);
   configHash.insert("output_directory",config.output_directory);

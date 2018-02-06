@@ -40,7 +40,15 @@ public:
 
 	virtual bool run() = 0;
 	virtual bool run(int nx, int ny, int nsigma,
-			 float dx, float dy,
+			 
+			 // ----- new -----
+			 char cdtg[10],	// "12Z oct 4 2015 -> "2015100412"
+			 int delta,	// delta * iter1 past cdtg
+			 int iter1,
+			 float imin, float imax, float iincr, // used to come from config
+			 float jmin, float jmax, float jincr,
+			 // ----- new -----
+			 
 			 float *sigmas,
 			 float *latitude, // 2D arrays
 			 float *longitude,
@@ -57,8 +65,14 @@ public:
 			 float *psam) = 0;
 
 	virtual bool finalize() = 0;
+	
+	void clearCenters();
+	void appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um);
+	void popCenter();
 
  protected:
+	
+	bool fixedGrid;	// Indicates if the grid dims come from the config file or run call
 	
 	real CoriolisF;
 	real Pi;

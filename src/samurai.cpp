@@ -15,14 +15,14 @@ extern "C" {
   // Call this one if you want to pass a config structure.
   // Very error prone. The Fortran and the C++ data structure must match exactly...
   
-  VarDriver3D *create_vardriver3D(const samurai_config *config) {
+  VarDriver3D *create_vardriver3D(const samurai_config *config, bool fixedGrid ) {
     cout << "C API, create_vardriver3D" << endl;
     VarDriver3D *driver = new VarDriver3D();
     if (driver == NULL) {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
       return NULL;
     }
-    
+    driver->setGridFlag(fixedGrid);
     if(!driver->initialize(*config)) {
       std:: cout << "Failed to initialize the VarDriver3D" << std::endl;
       delete driver;
@@ -35,7 +35,7 @@ extern "C" {
   // I recommend this one. A lots simpler, and no need to match
   // data structure from 2 different languages
 
-  VarDriver3D *create_vardriver3D_From_File(const char *config_path) {
+  VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid) {
     cout << "C API, create_vardriver3D_From_File" << endl;
     QDomDocument *domDoc = readXmlConfig(config_path);
     
@@ -48,7 +48,8 @@ extern "C" {
       delete domDoc;
       return NULL;
     }
-
+    driver->setGridFlag(fixedGrid);
+    
     if ( ! driver->initialize(domDoc->documentElement() )) {
       std:: cout << "Failed to initialize VarDriver3D with content of '" << config_path << "'"  << std::endl;
       delete driver;
@@ -69,7 +70,15 @@ extern "C" {
   int run_vardriver3D(VarDriver3D *d,
 		      // These are input values
 		      int nx, int ny, int nsigma,
-		      float dx, float dy,
+
+		      // ----- new -----
+		      char cdtg[10],	// "12Z oct 4 2015 -> "2015100412"
+		      int delta,	// delta * iter1 past cdtg
+		      int iter1,
+		      float imin, float imax, float iincr, // used to come from config
+		      float jmin, float jmax, float jincr,
+		      // ----- new -----
+		      
 		      float *sigmas,	// 2D array (nsigma)
 		      float *latitude,	// 2D array (nx, ny)
 		      float *longitude,	// 2D array
@@ -86,14 +95,47 @@ extern "C" {
 		      float *thsam,	// 3D array
 		      float *psam	// 3D array
 		      ) {
-    if (d == NULL)
+    if (d == NULL) {
+      cout << "run_vardriver3D was called with a NULL driver handle" << endl;
       return 0;
-    return d->run(nx, ny, nsigma, dx, dy,
-			   sigmas, latitude, longitude,
-			   u1, v1, w1, th1, p1,
-			   usam, vsam, wsam, thsam, psam);
+    }
+    
+    if (d->isFixedGrid()) {
+      cout << "This version of run can only be called with non-fixed grids" << endl;
+      return 0;
+    }
+    
+    return d->run(nx, ny, nsigma,
+		  cdtg, delta, iter1,
+		  imin, imax, iincr,
+		  jmin, jmax, jincr,
+		  sigmas, latitude, longitude,
+		  u1, v1, w1, th1, p1,
+		  usam, vsam, wsam, thsam, psam);
   }
 
+  // Call this to clear the center vector
+
+  void clear_centers(VarDriver3D *d) {
+    if (d == NULL)
+      return;
+    d->clearCenters();
+  }
+  
+  void pop_center(VarDriver3D *d) {
+    if (d == NULL)
+      return;
+    d->popCenter();
+  }
+
+  void append_center(VarDriver3D *d, char *date, char *time,
+		     float lat, float lon,
+		     float vm, float um) {
+    if (d == NULL)
+      return;
+    d->appendCenter(date, time, lat, lon, vm, um);
+  }
+  
   // Call this to debug
   void dump_hash(QHash<QString, QString> &hash) {
     QHash<QString, QString>::iterator it;

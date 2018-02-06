@@ -2,7 +2,7 @@
 #include "BkgdAdapter.h"
 
 BkgdArray::BkgdArray(int nx, int ny, int nsigma,
-		     float dx, float dy,
+		     char *ctdg, int delta, int iter, // time elements
 		     float *sigmas,
 		     float *latitude,	// these 2 are 2D
 		     float *longitude,
@@ -12,13 +12,15 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 		     float *th1,
 		     float *p1)
 {
-  _x_incr = dx;
-  _y_incr = dy;
-
   _xd = nx;
   _yd = ny;
   _zd = nsigma;
 
+  // set the time for the observations
+  _obTime.setTimeSpec(Qt::UTC);
+  _obTime = QDateTime::fromString(ctdg, "yyyyMMDDhh");
+  _obTime.addSecs(delta * iter);	// TODO verify this!
+  
   _sigmas = sigmas;
   _lat_2d  = latitude;
   _long_2d = longitude;
@@ -56,7 +58,7 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
 {
   if(_curr_x >= _xd) return false;
 
-  // Don't care about time
+  time = _obTime.toSecsSinceEpoch();
   
   lat = item2d(_lat_2d, _curr_x, _curr_y);
   lon = item2d(_long_2d, _curr_x, _curr_y);
@@ -71,7 +73,7 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   //
   t = item3d(_th1_3d, _curr_x, _curr_y, _curr_z);
   qv = item3d(_p1_3d, _curr_x, _curr_y, _curr_z);
-  // Need a map to do a linear transform to go from these to samuari_background.in format
+  // Need a map to do a linear transform to go from these to samurai_background.in format
 
   // Need to get moisture: humidity(nx, ny, nsigma)
 

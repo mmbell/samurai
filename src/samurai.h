@@ -18,6 +18,7 @@ struct samurai_config {
   // c   <options>
   int spline_approximation;
 
+#if 0
   // COAMPS-TC array grid dimensions for current grid
   //  (could be either nest 1, 2 or )
   int nx;
@@ -34,7 +35,8 @@ struct samurai_config {
   float k_min;
   float k_max;
   float k_incr;
-
+#endif /* now comes from run call */
+  
   // background
   float i_background_roi;
   float j_background_roi;
@@ -101,10 +103,12 @@ struct samurai_config {
   float radar_fallspeed_error;
   float radar_min_error;
 
+#if 0
   // COAMPS-TC delta x and delta y for current grid
   float delx;
   float dely;
-
+#endif
+  
   // operation
   unsigned char load_background;
   unsigned char adjust_background;
@@ -172,9 +176,11 @@ struct samurai_config {
   // radar
   char mask_reflectivity[5];
 
+#if 0  
   // background
   char ref_time[9];
-
+#endif
+  
   // background
   char ref_state[14];
 
@@ -191,9 +197,11 @@ struct samurai_config {
 extern "C" {
   class VarDriver3D;
 
-  // Constructor
-  VarDriver3D *create_vardriver3D(const samurai_config *config);
-
+  // Constructors
+  
+  VarDriver3D *create_vardriver3D(const samurai_config *config, bool fixedGrid= true);
+  VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid = true);
+  
   // Destructor
   void delete_vardriver3D(VarDriver3D *d);
 
@@ -204,7 +212,14 @@ extern "C" {
   int run_vardriver3D(VarDriver3D *d,
 		      // These are input values
 		      int nx, int ny, int nsigma,
-		      float dx, float dy,
+		      // ----- new -----
+		      char cdtg[10],	// "12Z oct 4 2015 -> "2015100412"
+		      int delta,	// delta * iter1 past cdtg
+		      int iter1,
+		      float imin, float imax, float iincr, // used to come from config
+		      float jmin, float jmax, float jincr,
+		      // ----- new -----
+		      
 		      float *sigmas,	// 2D array (nsigma)
 		      float *latitude,	// 2D array (nx, ny)
 		      float *longitude,	// 2D array
@@ -221,6 +236,16 @@ extern "C" {
 		      float *thsam,	// 3D array
 		      float *psam	// 3D array
 		      );
+  
+  // centers vector manipulation
+  
+  void clear_centers(VarDriver3D *d);
+  
+  void pop_center(VarDriver3D *d);
+
+  void append_center(VarDriver3D *d, char *date, char *time,
+		     float lat, float lon,
+		     float vm, float um);
 
   // debug stuff
   void dump_hash(QHash<QString, QString> &hash);
