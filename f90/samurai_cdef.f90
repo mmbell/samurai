@@ -3,18 +3,20 @@
   
   interface
 
-     function create_vardriver3d_c(config) bind(C, name="create_vardriver3D")
+     function create_vardriver3d_c(config, fixedGrid) bind(C, name="create_vardriver3D")
        use iso_c_binding
        use samModule
        implicit none
        type(samurai_config) :: config
+       logical(kind=c_bool), intent (in), value :: fixedGrid
        type(c_ptr) :: create_vardriver3d_c
      end function create_vardriver3d_c
 
-     function create_vardriver3d_from_xml_c(xmlfile) bind(C, name="create_vardriver3D_From_File")
+     function create_vardriver3d_from_xml_c(xmlfile, fixedGrid) bind(C, name="create_vardriver3D_From_File")
        use iso_c_binding
        implicit none
        character(kind=c_char) :: xmlfile(*)
+       logical(kind=c_bool), intent (in), value :: fixedGrid       
        type(c_ptr) :: create_vardriver3d_from_xml_c
      end function create_vardriver3d_from_xml_c
 

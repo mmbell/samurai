@@ -22,6 +22,7 @@ extern "C" {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
       return NULL;
     }
+    
     driver->setGridFlag(fixedGrid);
     if(!driver->initialize(*config)) {
       std:: cout << "Failed to initialize the VarDriver3D" << std::endl;
@@ -38,7 +39,7 @@ extern "C" {
   VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid) {
     cout << "C API, create_vardriver3D_From_File" << endl;
     QDomDocument *domDoc = readXmlConfig(config_path);
-    
+
     if (domDoc == NULL)
       return NULL;
 

@@ -268,7 +268,7 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 
   if (! validateRunGrid(nx, ny, nsigma,
 			imin, imax, iincr,
-			jmin, jmax, jincr) )
+			jmin, jmax, jincr, sigmas) )
     return false;
 
 
@@ -2404,9 +2404,9 @@ bool VarDriver3D::loadBackgroundCoeffs()
 // fill up variables from arguments and call the common validateGrid()
 
 bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
-		     float i_min, float i_max, float i_incr,
-				  float j_min, float j_max, float j_incr)
-
+				  float i_min, float i_max, float i_incr,
+				  float j_min, float j_max, float j_incr,
+				  float *sigmas)
 {
   imin = i_min;
   imax = i_max;
@@ -2421,6 +2421,11 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
   idim = n_x;
   jdim = n_y;
   kdim = n_z;
+
+  // Compute k dimension
+  kmin  = sigmas[0];
+  kmax  = sigmas[ (int) n_z - 1];
+  kincr = (kmax - kmin) / n_z;
   
   return validateGrid();
 }

@@ -83,7 +83,8 @@ private:
 	bool validateFixedGrid();					// grid comes from config
 	bool validateRunGrid(float nx, float ny, float nz,		// grid comes from run call
 			     float imin, float imax, float iincr,
-			     float jmin, float jmax, float jincr);
+			     float jmin, float jmax, float jincr,
+			     float *sigmas);
 	bool validateGrid();						// called by both validate*Grid above
 	
 	bool initObCost3D();
