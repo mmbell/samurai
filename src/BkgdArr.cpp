@@ -18,9 +18,12 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 
   // set the time for the observations
   _obTime.setTimeSpec(Qt::UTC);
-  _obTime = QDateTime::fromString(ctdg, "yyyyMMDDhh");
-  _obTime.addSecs(delta * iter);	// TODO verify this!
-  
+  _obTime = QDateTime::fromString(ctdg, "yyyyMMddhh");
+  _obTime = _obTime.addSecs(delta * iter);
+
+  std::cout << "Observations will be stamped " << _obTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()
+	    << " time_t: " << _obTime.toTime_t() << std::endl;
+
   _sigmas = sigmas;
   _lat_2d  = latitude;
   _long_2d = longitude;
@@ -38,15 +41,19 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 
 // Return the item at the given position
 // a3d is a 3d array.
+//
+// This assumes a column-major order (Fortran style)
 
 float BkgdArray::item3d(float *a3d, int x, int y, int z)
 {
-  return *(a3d + x + _xd * (y + _yd * z));
+  return *(a3d + x + _xd * (y + _yd * z));	// column major  (Fortran)
+  //  return *(a3d + z + _zd * (y + _yd * x));
 }
 
 float BkgdArray::item2d(float *a2d, int x, int y)
 {
-  return *(a2d + x + _xd * y);
+  return *(a2d + x + _xd * y);		// column major
+  // return *(a2d + y + _xd * x);	// row major
 }
 
 BkgdArray::~BkgdArray()
@@ -58,11 +65,15 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
 {
   if(_curr_x >= _xd) return false;
 
-  time = _obTime.toSecsSinceEpoch();
-  
+  // time = _obTime.toSecsSinceEpoch();  Qt5 only
+  time = _obTime.toTime_t();
+#if 0  
+  std::cout << "in next() time is " << _obTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()
+	    << " time_t(): " << time << std::endl;
+#endif  
   lat = item2d(_lat_2d, _curr_x, _curr_y);
   lon = item2d(_long_2d, _curr_x, _curr_y);
-    
+  alt = _sigmas[_curr_z];
   u = item3d(_u1_3d, _curr_x, _curr_y, _curr_z);
   v = item3d(_v1_3d, _curr_x, _curr_y, _curr_z);
   w = item3d(_w1_3d, _curr_x, _curr_y, _curr_z);
@@ -86,6 +97,8 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   std::cout << "lat: " << lat << ", long: " << lon << ", alt: " << alt;
   std::cout << " u: " << u << ", v: " << v << ", w: " << w;
   std::cout << " t: " << t << ", qv: " << qv << ", rhoa: " << rhoa << ", qr: " << qr << std::endl;
+
+  
   // TODO Double (and triple) check this.
   // From the Samurai doc:
   // The data does not have to be evenly spaced, but the ordering of the positions is important.

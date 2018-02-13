@@ -69,8 +69,8 @@ bool VarDriver3D::validateDriver()
   if ( ! validateConfig())
     return false;
   
-  std::cout << "==== Content of configHash" << std::endl;
-  dump_hash(configHash);
+  // std::cout << "==== Content of configHash" << std::endl;
+  // dump_hash(configHash);
   
   // Validate the run geometry
   if (configHash.value("mode") == "XYZ") {
@@ -143,15 +143,15 @@ bool VarDriver3D::gridDependentInit()
 
   QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
   refstate = new ReferenceState(refSounding);
-  cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
+  // cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
   for (real k = kmin; k < kmax + kincr; k += kincr) {
-    cout << "                   " << k << "\t";
+    // cout << "                   " << k << "\t";
     for (int i = 0; i < 6; i++) {
       real var = refstate->getReferenceVariable(i, k*1000);
       if (i == 0) var = refstate->bhypInvTransform(var);
-      cout << setw(9) << setprecision(4)  << var << "\t";
+      // cout << setw(9) << setprecision(4)  << var << "\t";
     }
-    cout << "\n";
+    // cout << "\n";
   }
   cout << setprecision(9);
   
@@ -265,7 +265,8 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 		      float *thsam,
 		      float *psam)
 {
-
+  fillRunCenters(cdtg, delta, iter, *latitude, *longitude);
+  
   if (! validateRunGrid(nx, ny, nsigma,
 			imin, imax, iincr,
 			jmin, jmax, jincr, sigmas) )
@@ -1577,6 +1578,7 @@ bool VarDriver3D::loadPreProcessMetObs()
     return true;
 }
 
+#if 0
 // Load the background estimates from the given array arguments
 
 int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
@@ -1602,8 +1604,11 @@ int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
 		    << std::endl;
 	}
 #endif
+    
   return loadBackgroundObs();  
 }
+
+#endif
 
 // Load the background estimates from a file
 
@@ -1622,458 +1627,469 @@ int VarDriver3D::loadBackgroundObs()
     exit(1);
   }
     
-    // Turn Debug on if there are problems with the vertical spline interpolation,
-    // Eventually this should be replaced with the internal spline code
-    // SplineD::Debug(1);
+  // Turn Debug on if there are problems with the vertical spline interpolation,
+  // Eventually this should be replaced with the internal spline code
+  // SplineD::Debug(1);
 
-    // Geographic functions
-    //GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+  // Geographic functions
+  //GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
-    real referenceLon = configHash.value("ref_lon").toFloat();
+  real referenceLon = configHash.value("ref_lon").toFloat();
 
-    QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
-    //SplineD* bgSpline;
+  QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
+  //SplineD* bgSpline;
     
-    int time;
-    QString bgTimestring, tcstart, tcend;
-    real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
-    real bgX, bgY, bgRadius, bgTheta;
-    real bgZ = -32768.;
-    // backgroundroi is in km, ROI is gridpoints
-    real iROI = configHash.value("i_background_roi").toFloat() / iincr;
-    real jROI = configHash.value("j_background_roi").toFloat() / jincr;
-    QString interp_mode = configHash.value("bg_interpolation");
-    real maxGridDist = 3.0;
-    if (interp_mode == "Cressman") {
-        maxGridDist = 1.0;
-    }
-    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
+  int time;
+  QString bgTimestring, tcstart, tcend;
+  real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
+  real bgX, bgY, bgRadius, bgTheta;
+  real bgZ = -32768.;
+  // backgroundroi is in km, ROI is gridpoints
+  real iROI = configHash.value("i_background_roi").toFloat() / iincr;
+  real jROI = configHash.value("j_background_roi").toFloat() / jincr;
+  QString interp_mode = configHash.value("bg_interpolation");
+  real maxGridDist = 3.0;
+  if (interp_mode == "Cressman") {
+    maxGridDist = 1.0;
+  }
+  real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI);
 
-    // Make sure we have centers. That might not be the case if the user
-    // uses the run time grid and forgot to fill in centers
-
-    if (frameVector.size() == 0) {
-      cout << "Frame Vector is not initialized. Did you forget to call append_center?"
-	   << endl;
-      return -1;
-    }
+  if (frameVector.size() == 0) {
+    cout << "Frame Vector is not initialized."  << endl;
+    return -1;
+  }
     
-    cout << "Loading background onto Gaussian mish with " << iROI
-	 << " grid length radius of influence in i direction" << endl;
-    cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
+  cout << "Loading background onto Gaussian mish with " << iROI
+       << " grid length radius of influence in i direction" << endl;
+  cout << "and " << jROI << " grid length radius of influence in j direction" << endl;
 
-    QDateTime startTime = frameVector.front().getTime();
-    QDateTime endTime = frameVector.back().getTime();
+  QDateTime startTime = frameVector.front().getTime();
+  QDateTime endTime = frameVector.back().getTime();
 
-    //    while (bgstream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr)
-    while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) )
+  cout << "Start time: " << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;
+  cout << "End  time:  " << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;    
+
+  int debug = 0;
+    
+  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) )
     {
-        // Process the metObs into Observations
+      // Process the metObs into Observations
 
-        // Make sure the bg is within the time limits
-        QDateTime bgTime;
-        bgTime.setTimeSpec(Qt::UTC);
-        bgTime.setTime_t(time);
-        bgTimestring = bgTime.toString(Qt::ISODate);
-        tcstart = startTime.toString(Qt::ISODate);
-        tcend = endTime.toString(Qt::ISODate);
-        if ((bgTime < startTime) or (bgTime > endTime))
+      // Make sure the bg is within the time limits
+      QDateTime bgTime;
+      bgTime.setTime_t(time);
+      bgTime.setTimeSpec(Qt::UTC);
+      if(debug++ < 1000)
+	cout << "BgObs time:       " << bgTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()    
+	     << " time_t(): " << bgTime.toTime_t()
+	     << endl;
+      bgTimestring = bgTime.toString(Qt::ISODate);
+      tcstart = startTime.toString(Qt::ISODate);
+      tcend = endTime.toString(Qt::ISODate);
+      if ((bgTime < startTime) or (bgTime > endTime))
+	continue;
+      int tci = startTime.secsTo(bgTime);
+      if ((tci < 0) or (tci > (int)frameVector.size())) {
+	cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
+	continue;
+      }
+
+      real Um = frameVector[tci].getUmean();
+      real Vm = frameVector[tci].getVmean();
+
+      // Get the X, Y & Z
+      real tcX, tcY, metX, metY;
+      projection.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon(),
+			 tcX, tcY);
+      projection.Forward(referenceLon, lat, lon , metX, metY);
+      bgX = (metX - tcX) / 1000.;
+      bgY = (metY - tcY) / 1000.;
+
+      real heightm = alt;
+
+      bgZ = heightm/1000.;
+      bgRadius = sqrt(bgX*bgX + bgY*bgY);
+      bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
+      if (configHash.value("allow_negative_angles") != "true") {
+	if (bgTheta < 0) bgTheta += 360.0;
+      }
+
+      // Make sure the ob is in the Interpolation domain
+	
+      if (runMode == XYZ) {
+	if ((bgX < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgX > (imax+iincr+(iROI*iincr*maxGridDist))) or
+	    (bgY < (jmin-jincr-(jROI*jincr*maxGridDist))) or (bgY > (jmax+jincr+(jROI*jincr*maxGridDist)))
+	    or (bgZ < kmin)) //Allow for higher values for interpolation purposes
 	  continue;
-        int tci = startTime.secsTo(bgTime);
-        if ((tci < 0) or (tci > (int)frameVector.size())) {
-            cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
-            continue;
-        }
+      } else if (runMode == RTZ) {
+	if ((bgRadius < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgRadius > (imax+iincr+(iROI*iincr*maxGridDist))) or
+	    (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
+	    (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
+	  continue;
+	real cylUm = (Um*bgX + Vm*bgY)/bgRadius;
+	real cylVm = (-Um*bgY + Vm*bgX)/bgRadius;
+	Um = cylUm;
+	Vm = cylVm;
+      }
 
-        real Um = frameVector[tci].getUmean();
-        real Vm = frameVector[tci].getVmean();
+      // Reference states
+      real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
+      real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
+      real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
-        // Get the X, Y & Z
-        real tcX, tcY, metX, metY;
-        projection.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon() , tcX, tcY);
-        projection.Forward(referenceLon, lat, lon , metX, metY);
-        bgX = (metX - tcX) / 1000.;
-        bgY = (metY - tcY) / 1000.;
+      real rho = rhoa + rhoa*qv/1000.;
+      real rhou = rho*(u - Um);
+      real rhov = rho*(v - Vm);
+      real rhow = rho*w;
+      real tprime = t - tBar;
+      qv = refstate->bhypTransform(qv);
+      real qvprime = qv-qBar;
+      real rhoprime = (rhoa-rhoBar)*100;
+      real logZ = log(bgZ);
+      if (configHash.value("qr_variable") == "qr") {
+	qr = refstate->bhypTransform(qr);
+      }
+      // We assume here that the background precipitation field is always zero
+      // real qr = 0.;
 
-        real heightm = alt;
-
-        bgZ = heightm/1000.;
-        bgRadius = sqrt(bgX*bgX + bgY*bgY);
-        bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
-        if (configHash.value("allow_negative_angles") != "true") {
-          if (bgTheta < 0) bgTheta += 360.0;
-        }
-
-        // Make sure the ob is in the Interpolation domain
-        if (runMode == XYZ) {
-            if ((bgX < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgX > (imax+iincr+(iROI*iincr*maxGridDist))) or
-                (bgY < (jmin-jincr-(jROI*jincr*maxGridDist))) or (bgY > (jmax+jincr+(jROI*jincr*maxGridDist)))
-                or (bgZ < kmin)) //Allow for higher values for interpolation purposes
-                continue;
-        } else if (runMode == RTZ) {
-            if ((bgRadius < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgRadius > (imax+iincr+(iROI*iincr*maxGridDist))) or
-                (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
-                (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
-                continue;
-			real cylUm = (Um*bgX + Vm*bgY)/bgRadius;
-			real cylVm = (-Um*bgY + Vm*bgX)/bgRadius;
-			Um = cylUm;
-			Vm = cylVm;
-        }
-
-        // Reference states
-        real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
-        real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
-        real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-
-        real rho = rhoa + rhoa*qv/1000.;
-        real rhou = rho*(u - Um);
-        real rhov = rho*(v - Vm);
-        real rhow = rho*w;
-        real tprime = t - tBar;
-        qv = refstate->bhypTransform(qv);
-        real qvprime = qv-qBar;
-        real rhoprime = (rhoa-rhoBar)*100;
-        real logZ = log(bgZ);
-	if (configHash.value("qr_variable") == "qr") {
-	  qr = refstate->bhypTransform(qr);
+      if (runMode == XYZ) {
+	bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
+      } else if (runMode == RTZ) {
+	bgIn << bgRadius << bgTheta << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
+      }
+      if (logheights.size() == 0) {
+	// First column
+	logheights.push_back(logZ);
+	uBG.push_back(rhou);
+	vBG.push_back(rhov);
+	wBG.push_back(rhow);
+	tBG.push_back(tprime);
+	qBG.push_back(qvprime);
+	rBG.push_back(rhoprime);
+	zBG.push_back(qr);
+      } else if (logZ > logheights.back()) {
+	// Same column
+	logheights.push_back(logZ);
+	uBG.push_back(rhou);
+	vBG.push_back(rhov);
+	wBG.push_back(rhow);
+	tBG.push_back(tprime);
+	qBG.push_back(qvprime);
+	rBG.push_back(rhoprime);
+	zBG.push_back(qr);
+      } else {
+	// Solve for the spline
+	if (logheights.size() == 1) {
+	  cerr << "Error at " << lat << ", " << lon << "\n";
+	  cerr << "Only one level found in background spline setup. "
+	       << "Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+	  return -1;
 	}
-        // We assume here that the background precipitation field is always zero
-        // real qr = 0.;
 
-        if (runMode == XYZ) {
-            bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
-        } else if (runMode == RTZ) {
-            bgIn << bgRadius << bgTheta << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
-        }
-        if (logheights.size() == 0) {
-            // First column
-            logheights.push_back(logZ);
-            uBG.push_back(rhou);
-            vBG.push_back(rhov);
-            wBG.push_back(rhow);
-            tBG.push_back(tprime);
-            qBG.push_back(qvprime);
-            rBG.push_back(rhoprime);
-            zBG.push_back(qr);
-        } else if (logZ > logheights.back()) {
-            // Same column
-            logheights.push_back(logZ);
-            uBG.push_back(rhou);
-            vBG.push_back(rhov);
-            wBG.push_back(rhow);
-            tBG.push_back(tprime);
-            qBG.push_back(qvprime);
-            rBG.push_back(rhoprime);
-            zBG.push_back(qr);
-        } else {
-            // Solve for the spline
-            if (logheights.size() == 1) {
-				cerr << "Error at " << lat << ", " << lon << "\n";
-                cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
-                return -1;
-            }
-
-
-            // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
+	// Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
-            for (int ki = -1; ki < (kdim); ki++) {
-                SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
-                if (!bgSpline->ok()) {
-                    cerr << "bgSpline setup failed." << endl;
-                    continue; //return -1;
-                }
-                for (int kmu = -1; kmu <= 1; kmu += 2) {
-                    real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
-                    if (kPos < 0) kPos = 0.001;
-                    real logzPos = log(kPos);
-                    if (logzPos < logheights[0]) logzPos = logheights[0];
-                    //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-                    for (int ii = -1; ii < (idim); ii++) {
-                        for (int imu = -1; imu <= 1; imu += 2) {
-                            real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
-                            if (runMode == XYZ) {
-                                if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
-                            } else if (runMode == RTZ) {
-                                if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
-                            }
-                            for (int ji = -1; ji < (jdim); ji++) {
-                                for (int jmu = -1; jmu <= 1; jmu += 2) {
-                                    real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
-                                    real rSquare = 0.0;
-                                    if (runMode == XYZ) {
-                                        if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
-                                        rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
-                                    } else if (runMode == RTZ) {
-										real dTheta = fabs(jPos-bgTheta);
-										if (dTheta > 360.) dTheta -= 360.;
-										if (dTheta > jincr*jROI*2.) continue;
-                                        rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);
-                                    }
-                                    // Add one extra index to account for buffer zone in analysis
-                                    int bgI = (ii+1)*2 + (imu+1)/2;
-                                    int bgJ = (ji+1)*2 + (jmu+1)/2;
-                                    int bgK = (ki+1)*2 + (kmu+1)/2;
-                                    int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                                    if (rSquare < Rsquare*maxGridDist) {
-                                        real weight = exp(-2.302585092994045*rSquare/Rsquare);
-                                        if (interp_mode == "Cressman") {
-                                            weight = (Rsquare - rSquare)/(Rsquare + rSquare);
-                                        }
-                                        if (logzPos > logheights.front()) {
-                                            bgSpline->solve(uBG.data());
-                                            bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(vBG.data());
-                                            bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(wBG.data());
-                                            bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(tBG.data());
-                                            bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(qBG.data());
-                                            bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(rBG.data());
-                                            bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
-                                            bgSpline->solve(zBG.data());
-                                            bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
-                                            bgWeights[bIndex] += weight;
-                                        } else {
-                                            // Below the spline interpolation
-                                            bgU[bIndex] += weight*uBG.front();
-                                            bgU[bIndex +1] += weight*vBG.front();
-                                            bgU[bIndex +2] += weight*wBG.front();
-                                            bgU[bIndex +3] += weight*tBG.front();
-                                            bgU[bIndex +4] += weight*qBG.front();
-                                            bgU[bIndex +5] += weight*rBG.front();
-                                            bgU[bIndex +6] += weight*zBG.front();
-                                            bgWeights[bIndex] += weight;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                delete bgSpline;
-            }
-
-            logheights.clear();
-            uBG.clear();
-            vBG.clear();
-            wBG.clear();
-            tBG.clear();
-            qBG.clear();
-            rBG.clear();
-            zBG.clear();
-
-            logheights.push_back(log(bgZ));
-            uBG.push_back(rhou);
-            vBG.push_back(rhov);
-            wBG.push_back(rhow);
-            tBG.push_back(tprime);
-            qBG.push_back(qvprime);
-            rBG.push_back(rhoprime);
-            zBG.push_back(qr);
-        }
-    }
-
-    if (!logheights.size()) {
-        // Error reading in the background field
-        cout << "No background estimates read in. Please check the time and location of your background field.\n";
-        cout << "Observation window: " << tcstart.toStdString() << " to " << tcend.toStdString() << "\n";
-        cout << "Background time: " << bgTimestring.toStdString() << "\n";
-        return -1;
-    }
-
-    // Solve for the last spline
-		if (logheights.size() == 1) {
-			cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
-			return -1;
+	for (int ki = -1; ki < (kdim); ki++) {
+	  SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(),
+					  uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
+	  if (!bgSpline->ok()) {
+	    cerr << "bgSpline setup failed." << endl;
+	    continue; //return -1;
+	  }
+	  for (int kmu = -1; kmu <= 1; kmu += 2) {
+	    real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+	    if (kPos < 0) kPos = 0.001;
+	    real logzPos = log(kPos);
+	    if (logzPos < logheights[0]) logzPos = logheights[0];
+	    //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
+	    for (int ii = -1; ii < (idim); ii++) {
+	      for (int imu = -1; imu <= 1; imu += 2) {
+		real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+		if (runMode == XYZ) {
+		  if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
+		} else if (runMode == RTZ) {
+		  if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
 		}
+		for (int ji = -1; ji < (jdim); ji++) {
+		  for (int jmu = -1; jmu <= 1; jmu += 2) {
+		    real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+		    real rSquare = 0.0;
+		    if (runMode == XYZ) {
+		      if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
+		      rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
+		    } else if (runMode == RTZ) {
+		      real dTheta = fabs(jPos-bgTheta);
+		      if (dTheta > 360.) dTheta -= 360.;
+		      if (dTheta > jincr*jROI*2.) continue;
+		      rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);
+		    }
+		    // Add one extra index to account for buffer zone in analysis
+		    int bgI = (ii+1)*2 + (imu+1)/2;
+		    int bgJ = (ji+1)*2 + (jmu+1)/2;
+		    int bgK = (ki+1)*2 + (kmu+1)/2;
+		    int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+		    if (rSquare < Rsquare*maxGridDist) {
+		      real weight = exp(-2.302585092994045*rSquare/Rsquare);
+		      if (interp_mode == "Cressman") {
+			weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+		      }
+		      if (logzPos > logheights.front()) {
+			bgSpline->solve(uBG.data());
+			bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(vBG.data());
+			bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(wBG.data());
+			bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(tBG.data());
+			bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(qBG.data());
+			bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(rBG.data());
+			bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+			bgSpline->solve(zBG.data());
+			bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
+			bgWeights[bIndex] += weight;
+		      } else {
+			// Below the spline interpolation
+			bgU[bIndex] += weight*uBG.front();
+			bgU[bIndex +1] += weight*vBG.front();
+			bgU[bIndex +2] += weight*wBG.front();
+			bgU[bIndex +3] += weight*tBG.front();
+			bgU[bIndex +4] += weight*qBG.front();
+			bgU[bIndex +5] += weight*rBG.front();
+			bgU[bIndex +6] += weight*zBG.front();
+			bgWeights[bIndex] += weight;
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	  delete bgSpline;
+	}
 
-    // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
-#pragma omp parallel for
-    for (int ki = -1; ki < (kdim); ki++) {
-        SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 2, SplineBase::BC_ZERO_SECOND);
-        if (!bgSpline->ok())
-        {
-            cerr << "bgSpline setup failed." << endl;
-            continue; //return -1;
-        }
-        for (int kmu = -1; kmu <= 1; kmu += 2) {
-            real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
-            if (kPos < 0) kPos = 0.001;
-            real logzPos = log(kPos);
-            if (logzPos < logheights[0]) logzPos = logheights[0];
-            //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
-            for (int ii = -1; ii < (idim); ii++) {
-                for (int imu = -1; imu <= 1; imu += 2) {
-                    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
-                    if (runMode == XYZ) {
-                        if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
-                    } else if (runMode == RTZ) {
-                        if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
-                    }
-                    for (int ji = -1; ji < (jdim); ji++) {
-                        for (int jmu = -1; jmu <= 1; jmu += 2) {
-                            real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
-                            real rSquare = 0.0;
-                            if (runMode == XYZ) {
-                                if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
-                                rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
-                            } else if (runMode == RTZ) {
-								real dTheta = fabs(jPos-bgTheta);
-								if (dTheta > 360.) dTheta -= 360.;
-								if (dTheta > jincr*jROI*2.) continue;
-                                rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta;
-                            }
-                            // Add one extra index to account for buffer zone in analysis
-                            int bgI = (ii+1)*2 + (imu+1)/2;
-                            int bgJ = (ji+1)*2 + (jmu+1)/2;
-                            int bgK = (ki+1)*2 + (kmu+1)/2;
-                            int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                            if (rSquare < Rsquare*maxGridDist) {
-                                real weight = exp(-2.302585092994045*rSquare/Rsquare);
-                                if (interp_mode == "Cressman") {
-                                    weight = (Rsquare - rSquare)/(Rsquare + rSquare);
-                                }
-                                if (logzPos > logheights.front()) {
-                                    bgSpline->solve(uBG.data());
-                                    bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(vBG.data());
-                                    bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(wBG.data());
-                                    bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(tBG.data());
-                                    bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(qBG.data());
-                                    bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(rBG.data());
-                                    bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
-                                    bgSpline->solve(zBG.data());
-                                    bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
-                                    bgWeights[bIndex] += weight;
-                                } else {
-                                    // Below the spline interpolation
-                                    bgU[bIndex] += weight*uBG.front();
-                                    bgU[bIndex +1] += weight*vBG.front();
-                                    bgU[bIndex +2] += weight*wBG.front();
-                                    bgU[bIndex +3] += weight*tBG.front();
-                                    bgU[bIndex +4] += weight*qBG.front();
-                                    bgU[bIndex +5] += weight*rBG.front();
-                                    bgU[bIndex +6] += weight*zBG.front();
-                                    bgWeights[bIndex] += weight;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        delete bgSpline;
+	logheights.clear();
+	uBG.clear();
+	vBG.clear();
+	wBG.clear();
+	tBG.clear();
+	qBG.clear();
+	rBG.clear();
+	zBG.clear();
+
+	logheights.push_back(log(bgZ));
+	uBG.push_back(rhou);
+	vBG.push_back(rhov);
+	wBG.push_back(rhow);
+	tBG.push_back(tprime);
+	qBG.push_back(qvprime);
+	rBG.push_back(rhoprime);
+	zBG.push_back(qr);
+      }
     }
 
-    logheights.clear();
-    uBG.clear();
-    vBG.clear();
-    wBG.clear();
-    tBG.clear();
-    qBG.clear();
-    rBG.clear();
-    zBG.clear();
+  if (!logheights.size()) {
+    // Error reading in the background field
+    cout << "No background estimates read in. Please check the time and location of your background field.\n";
+    cout << "Observation window: " << tcstart.toStdString() << " to " << tcend.toStdString() << "\n";
+    cout << "Background time: " << bgTimestring.toStdString() << "\n";
+    return -1;
+  }
 
-    int numbgObs = bgIn.size()*7/11;
-    QVector<int> emptybg;
+  // Solve for the last spline
+  if (logheights.size() == 1) {
+    cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+    return -1;
+  }
+
+  // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
+#pragma omp parallel for
+  for (int ki = -1; ki < (kdim); ki++) {
+    SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(), uBG.data(), 2, SplineBase::BC_ZERO_SECOND);
+    if (!bgSpline->ok())
+      {
+	cerr << "bgSpline setup failed." << endl;
+	continue; //return -1;
+      }
+    for (int kmu = -1; kmu <= 1; kmu += 2) {
+      real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+      if (kPos < 0) kPos = 0.001;
+      real logzPos = log(kPos);
+      if (logzPos < logheights[0]) logzPos = logheights[0];
+      //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
+      for (int ii = -1; ii < (idim); ii++) {
+	for (int imu = -1; imu <= 1; imu += 2) {
+	  real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+	  if (runMode == XYZ) {
+	    if (fabs(iPos-bgX) > iincr*iROI*maxGridDist)
+	      continue;
+	  } else if (runMode == RTZ) {
+	    if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist)
+	      continue;
+	  }
+	  for (int ji = -1; ji < (jdim); ji++) {
+	    for (int jmu = -1; jmu <= 1; jmu += 2) {
+	      real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+	      real rSquare = 0.0;
+	      if (runMode == XYZ) {
+		if (fabs(jPos-bgY) > jincr*jROI*maxGridDist)
+		  continue;
+		rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
+	      } else if (runMode == RTZ) {
+		real dTheta = fabs(jPos-bgTheta);
+		if (dTheta > 360.) dTheta -= 360.;
+		if (dTheta > jincr*jROI*2.)
+		  continue;
+		rSquare = (bgRadius-iPos)*(bgRadius-iPos) + dTheta*dTheta;
+	      }
+	      // Add one extra index to account for buffer zone in analysis
+	      int bgI = (ii+1)*2 + (imu+1)/2;
+	      int bgJ = (ji+1)*2 + (jmu+1)/2;
+	      int bgK = (ki+1)*2 + (kmu+1)/2;
+	      int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+	      if (rSquare < Rsquare*maxGridDist) {
+		real weight = exp(-2.302585092994045*rSquare/Rsquare);
+		if (interp_mode == "Cressman") {
+		  weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+		}
+		if (logzPos > logheights.front()) {
+		  bgSpline->solve(uBG.data());
+		  bgU[bIndex] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(vBG.data());
+		  bgU[bIndex +1] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(wBG.data());
+		  bgU[bIndex +2] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(tBG.data());
+		  bgU[bIndex +3] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(qBG.data());
+		  bgU[bIndex +4] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(rBG.data());
+		  bgU[bIndex +5] += weight*(bgSpline->evaluate(logzPos));
+		  bgSpline->solve(zBG.data());
+		  bgU[bIndex +6] += weight*(bgSpline->evaluate(logzPos));
+		  bgWeights[bIndex] += weight;
+		} else {
+		  // Below the spline interpolation
+		  bgU[bIndex] += weight*uBG.front();
+		  bgU[bIndex +1] += weight*vBG.front();
+		  bgU[bIndex +2] += weight*wBG.front();
+		  bgU[bIndex +3] += weight*tBG.front();
+		  bgU[bIndex +4] += weight*qBG.front();
+		  bgU[bIndex +5] += weight*rBG.front();
+		  bgU[bIndex +6] += weight*zBG.front();
+		  bgWeights[bIndex] += weight;
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    delete bgSpline;
+  }
+
+  logheights.clear();
+  uBG.clear();
+  vBG.clear();
+  wBG.clear();
+  tBG.clear();
+  qBG.clear();
+  rBG.clear();
+  zBG.clear();
+
+  int numbgObs = bgIn.size()*7/11;
+  QVector<int> emptybg;
     
-    if (numbgObs > 0) {
-        // Check interpolation
-        for (int ki = -1; ki < (kdim); ki++) {
-            for (int kmu = -1; kmu <= 1; kmu += 2) {
-                real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
-                for (int ii = -1; ii < (idim); ii++) {
-                    for (int imu = -1; imu <= 1; imu += 2) {
-                        real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
-                        for (int ji = -1; ji < (jdim); ji++) {
-                            for (int jmu = -1; jmu <= 1; jmu += 2) {
-                                real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
-                                int bgI = (ii+1)*2 + (imu+1)/2;
-                                int bgJ = (ji+1)*2 + (jmu+1)/2;
-                                int bgK = (ki+1)*2 + (kmu+1)/2;
-                                int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
-                                for (unsigned int var = 0; var < numVars; var++) {
-                                    if (bgWeights[bIndex] != 0) {
-                                        bgU[bIndex +var] /= bgWeights[bIndex];
-                                    } else {
-																			emptybg.push_back(bIndex);
-																			if (emptybg.size() < 15) {
-																				cout << "Empty background mish for variable " << var << " at " << iPos << ", " << jPos << ", " << kPos << endl;
-																			} else if (emptybg.size() == 15) {
-																				cout << "Too many empty mish points, will no longer report.\n";
-																			}
-                                    }
-                                }
-																if (configHash.value("qr_variable") == "dbz") {
-																	if (bgU[bIndex +6] > 0) {
-																		real dbzavg = 10* log10(bgU[bIndex +6]);
-																		bgU[bIndex +6] = (dbzavg+35.)*0.1;
-																	} else {
-																		bgU[bIndex +6] = 0.0;
-																	}
-																}
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-		// Attempt to fill holes everywhere
-		if (emptybg.size() > 0) {
-			int neighbors[6];
-			real avg[numVars];
-			// int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
-			for (int i=0; i < emptybg.size(); i++) {
-				for (unsigned int var = 0; var < numVars; var++) avg[var] = 0.0;
-				// Check the neighbors
-				int bIndex = emptybg[i];
-				neighbors[0] = bIndex + numVars*(idim+1)*2*(jdim+1)*2;
-				neighbors[1] = bIndex - numVars*(idim+1)*2*(jdim+1)*2;
-				neighbors[2] = bIndex + numVars*(idim+1)*2;
-				neighbors[3] = bIndex - numVars*(idim+1)*2;
-				neighbors[4] = bIndex + 1;
-				neighbors[5] = bIndex - 1;
-				real count = 0.0;
-				for (int j = 0; j < 6; j++) {
-					if ((neighbors[j] >= 0) and (neighbors[j] < uStateSize) and (bgWeights[neighbors[j]])) {
-						// A good neighbor
-						for (unsigned int var = 0; var < numVars; var++) {
-							avg[var] += bgU[neighbors[j] + var];
-							count++;
-						}
-					}
-				}
-				// Need at least 3 neighbors
-				if (count > 2) {
-					for (unsigned int var = 0; var < numVars; var++) {
-						bgU[bIndex + var] = avg[var]/count;
-					}
-				} else {
-					if (configHash.value("allow_background_missing_values") != "true") {
-						cout << "Too large a hole in the background field!\n";
-						cout << "Please check your background file or ROI values.\n";
-						cout << "If you want to allow missing (zero) values, add the following line to <options>:\n";
-						cout << "<allow_background_missing_values>true</allow_background_missing_values>\n";
-						exit(-1);
-					}
-				}
-			}
+  if (numbgObs > 0) {
+    // Check interpolation
+    for (int ki = -1; ki < (kdim); ki++) {
+      for (int kmu = -1; kmu <= 1; kmu += 2) {
+	real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+	for (int ii = -1; ii < (idim); ii++) {
+	  for (int imu = -1; imu <= 1; imu += 2) {
+	    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+	    for (int ji = -1; ji < (jdim); ji++) {
+	      for (int jmu = -1; jmu <= 1; jmu += 2) {
+		real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+		int bgI = (ii+1)*2 + (imu+1)/2;
+		int bgJ = (ji+1)*2 + (jmu+1)/2;
+		int bgK = (ki+1)*2 + (kmu+1)/2;
+		int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+		for (unsigned int var = 0; var < numVars; var++) {
+		  if (bgWeights[bIndex] != 0) {
+		    bgU[bIndex +var] /= bgWeights[bIndex];
+		  } else {
+		    emptybg.push_back(bIndex);
+		    if (emptybg.size() < 15) {
+		      cout << "Empty background mish for variable " << var << " at " << iPos << ", " << jPos << ", " << kPos << endl;
+		    } else if (emptybg.size() == 15) {
+		      cout << "Too many empty mish points, will no longer report.\n";
+		    }
+		  }
 		}
-    } else {
-        cout << "No background observations loaded" << endl;
-        return 0;
+		if (configHash.value("qr_variable") == "dbz") {
+		  if (bgU[bIndex +6] > 0) {
+		    real dbzavg = 10* log10(bgU[bIndex +6]);
+		    bgU[bIndex +6] = (dbzavg+35.)*0.1;
+		  } else {
+		    bgU[bIndex +6] = 0.0;
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
     }
 
-    cout << numbgObs << " background observations loaded" << endl;
-    return numbgObs;
+    // Attempt to fill holes everywhere
+    if (emptybg.size() > 0) {
+      int neighbors[6];
+      real avg[numVars];
+      // int uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
+      for (int i=0; i < emptybg.size(); i++) {
+	for (unsigned int var = 0; var < numVars; var++) avg[var] = 0.0;
+	// Check the neighbors
+	int bIndex = emptybg[i];
+	neighbors[0] = bIndex + numVars*(idim+1)*2*(jdim+1)*2;
+	neighbors[1] = bIndex - numVars*(idim+1)*2*(jdim+1)*2;
+	neighbors[2] = bIndex + numVars*(idim+1)*2;
+	neighbors[3] = bIndex - numVars*(idim+1)*2;
+	neighbors[4] = bIndex + 1;
+	neighbors[5] = bIndex - 1;
+	real count = 0.0;
+	for (int j = 0; j < 6; j++) {
+	  if ((neighbors[j] >= 0) and (neighbors[j] < uStateSize) and (bgWeights[neighbors[j]])) {
+	    // A good neighbor
+	    for (unsigned int var = 0; var < numVars; var++) {
+	      avg[var] += bgU[neighbors[j] + var];
+	      count++;
+	    }
+	  }
+	}
+	// Need at least 3 neighbors
+	if (count > 2) {
+	  for (unsigned int var = 0; var < numVars; var++) {
+	    bgU[bIndex + var] = avg[var]/count;
+	  }
+	} else {
+	  if (configHash.value("allow_background_missing_values") != "true") {
+	    cout << "Too large a hole in the background field!\n";
+	    cout << "Please check your background file or ROI values.\n";
+	    cout << "If you want to allow missing (zero) values, add the following line to <options>:\n";
+	    cout << "<allow_background_missing_values>true</allow_background_missing_values>\n";
+	    exit(-1);
+	  }
+	}
+      }
+    }
+  } else {
+    cout << "No background observations loaded" << endl;
+    return 0;
+  }
+
+  cout << numbgObs << " background observations loaded" << endl;
+  return numbgObs;
 }
 
 bool VarDriver3D::adjustBackground()
@@ -2358,6 +2374,7 @@ bool VarDriver3D::validateConfig()
     "i_rhoa_bcL" << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR" <<
     "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR" <<
 	"data_directory" << "output_directory";
+
     for (int i = 0; i < configKeys.count(); i++) {
         if (!configHash.contains(configKeys.at(i))) {
             cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
@@ -2430,6 +2447,33 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
   return validateGrid();
 }
 
+//
+
+void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, float lon)
+{
+  // get rid of previous centers
+  clearCenters();
+
+  // Compute ref_time
+  QDateTime cDateTime;
+  QString tString;
+  cDateTime.setTimeSpec(Qt::UTC);
+  cDateTime = QDateTime::fromString(cdtg, "yyyyMMddHH");
+  cDateTime = cDateTime.addSecs(delta * iter);
+
+  configHash.insert("ref_time", tString.setNum(cDateTime.toTime_t()));
+  configHash.insert("ref_lat",  tString.setNum(lat));
+  configHash.insert("ref_lat",  tString.setNum(lon));  
+
+  // create 3 "centers" centered around the ref time, at 2 second intervals
+
+  float zero = 0.0;	// Framecenter constructor needs a reference... why?
+  for(int delta = -2; delta <= 2; delta += 1) {
+    QDateTime tTime = cDateTime.addSecs(delta);
+    frameVector.push_back(FrameCenter(tTime, lat, lon, zero, zero));
+  }    
+}
+		      
 // fill up variables from the config hash  and call the common validateGrid()
 
 bool VarDriver3D::validateFixedGrid()

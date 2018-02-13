@@ -86,7 +86,7 @@ private:
 			     float jmin, float jmax, float jincr,
 			     float *sigmas);
 	bool validateGrid();						// called by both validate*Grid above
-	
+	void fillRunCenters(char cdtg[10], int delta, int iter, float lat, float lon);
 	bool initObCost3D();
 	bool gridDependentInit();
 	bool preProcessMetObs();
