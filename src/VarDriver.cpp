@@ -1396,6 +1396,22 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
       return false;
     }
   }
+
+  // Set default for Bkgd Obs reader (only used if passed as arrays)
+  
+  if (!configHash.contains("array_order"))
+    configHash.insert("array_order", "column-major");
+
+  // Make sure we have a valid value for "array_order"
+
+  if ( (configHash.value("array_order") != "column-major") &&
+       (configHash.value("array_order") != "row-major")) {
+    cout << "Unsupported array_order" << configHash.value("array_order").toLatin1().data()
+	 << ". Only column-major and row-major are supported"
+	 << ". Aborting..." << endl;
+    return false;
+  }
+  
   return true;
 
 }

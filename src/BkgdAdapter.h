@@ -43,6 +43,10 @@ class BkgdStream : public BkgdAdapter {
   bool _valid;
 };
 
+// Abstract class.
+// You need to pick a BkgdFArray, or BkgdCArray depending
+// on whether your arrays are row-major or column-major
+
 class BkgdArray : public BkgdAdapter {
 
  public:
@@ -65,10 +69,10 @@ class BkgdArray : public BkgdAdapter {
 	    real &v, real &w, real &t, real &qv, real &rhoa, real &qr);
   bool checkTime() { return false; };
 
- private:
+ protected:
   
-  float item3d(float *a3d, int x, int y, int z);
-  float item2d(float *a2d, int x, int y);
+  virtual float item3d(float *a3d, int x, int y, int z) = 0;
+  virtual float item2d(float *a2d, int x, int y)= 0;
     
   // TODO Do we need these 2?
 
@@ -82,16 +86,16 @@ class BkgdArray : public BkgdAdapter {
 
   int _xd, _yd, _zd;
 
-  // 1D array from Fortran
+  // 1D array
 
   float *_sigmas;
   
-  // These are 2D from Fortran (column dominant)
+  // These are 2D
 
   float *_lat_2d;
   float *_long_2d;
 
-  // These are 3D arrays from Fortran (column dominant)
+  // These are 3D
   
   float* _u1_3d;
   float* _v1_3d;
@@ -102,6 +106,84 @@ class BkgdArray : public BkgdAdapter {
   // Iterator indices.
   
   int _curr_x, _curr_y, _curr_z;
+};
+
+// Redefine the pointer arithmetic to deal with column-major arrays (Fortran, Julia, ...)
+
+class BkgdFArray : public BkgdArray {
+  
+ public:
+
+ BkgdFArray(int nx, int ny, int nsigma,
+	    char *ctdg,		// current time group string
+	    int delta,		// model time step on coarse grid
+	    int iter,		// current iteration
+	    float *sigmas,
+	    float *latitude,	// 2d
+	    float *longitude,
+	    float *u1,		// 3d
+	    float *v1,
+	    float *w1,
+	    float *th1,
+	    float *p1) : BkgdArray(nx, ny, nsigma,
+				   ctdg,
+				   delta,
+				   iter,
+				   sigmas,
+				   latitude,
+				   longitude,
+				   u1,
+				   v1,
+				   w1,
+				   th1,
+				   p1) {};
+
+  ~BkgdFArray();
+  
+
+ protected:
+  
+  float item3d(float *a3d, int x, int y, int z);
+  float item2d(float *a2d, int x, int y);
+};
+
+// Redefine the pointer arithmetic to deal with row-major arrays (C, C++, c_float arrays from Python...)
+
+class BkgdCArray : public BkgdArray {
+  
+ public:
+
+ BkgdCArray(int nx, int ny, int nsigma,
+	    char *ctdg,		// current time group string
+	    int delta,		// model time step on coarse grid
+	    int iter,		// current iteration
+	    float *sigmas,
+	    float *latitude,	// 2d
+	    float *longitude,
+	    float *u1,		// 3d
+	    float *v1,
+	    float *w1,
+	    float *th1,
+	    float *p1) : BkgdArray(nx, ny, nsigma,
+				   ctdg,
+				   delta,
+				   iter,
+				   sigmas,
+				   latitude,
+				   longitude,
+				   u1,
+				   v1,
+				   w1,
+				   th1,
+				   p1) {};
+
+  ~BkgdCArray();
+  
+
+ protected:
+  
+  float item3d(float *a3d, int x, int y, int z);
+  float item2d(float *a2d, int x, int y);
 };
 
 #endif

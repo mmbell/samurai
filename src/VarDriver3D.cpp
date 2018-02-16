@@ -21,12 +21,13 @@
 // TODO debug
 
 // Constructor
-VarDriver3D::VarDriver3D()
-: VarDriver()
+VarDriver3D::VarDriver3D() : VarDriver()
 {
   numVars = 7;
   numDerivatives = 4;
   bkgdAdapter = NULL;
+  bgU = NULL;
+  bgWeights = NULL;
 }
 
 // Destructor
@@ -173,8 +174,29 @@ bool VarDriver3D::gridDependentInit()
       return false;
     }
   }
+
+  // These are used to process the obs (bkg and met)
   
+  uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars);
+  bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;
+  
+  cout << "Physical (mish) State size = " << uStateSize << "\n";
+  cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
+
+  if (bgU != NULL)
+    delete[] bgU;
+  if (bgWeights != NULL)
+    delete[] bgWeights;
+	      
+  bgU = new real[uStateSize];
+  bgWeights = new real[uStateSize];
+  for (int i=0; i < uStateSize; i++) {
+    bgU[i] = 0.0;
+    bgWeights[i] = 0.0;
+  }
+
   // Optionally load a set of background coefficients directly
+  
   QString loadBGcoeffs = configHash.value("load_bg_coefficients");
 
   if (loadBGcoeffs == "true")
@@ -279,12 +301,18 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
     delete bkgdAdapter;
   
   // Set the background obs adapter to get data from the passed arrays
-  
-  bkgdAdapter = new BkgdArray(nx, ny, nsigma,
-			      cdtg, delta, iter,
-			      sigmas,
-			      latitude, longitude,
-			      u1, v1, w1, th1, p1);
+  if (configHash.value("array_order") == "row-major")
+    bkgdAdapter = new BkgdCArray(nx, ny, nsigma,
+				 cdtg, delta, iter,
+				 sigmas,
+				 latitude, longitude,
+				 u1, v1, w1, th1, p1);
+  else
+    bkgdAdapter = new BkgdFArray(nx, ny, nsigma,
+				 cdtg, delta, iter,
+				 sigmas,
+				 latitude, longitude,
+				 u1, v1, w1, th1, p1);
 
   if (! gridDependentInit() )
     return false;
@@ -342,6 +370,7 @@ bool VarDriver3D::finalize()
 	obCost3D->finalize();
 	delete[] obs;
 	delete[] bgU;
+	delete[] bgWeights;
 	delete obCost3D;
 	delete refstate;
 	return true;
@@ -436,8 +465,8 @@ bool VarDriver3D::preProcessMetObs()
     processedFiles++;
 
     int obsProblem = 0;
-    int timeProblem = 0;
     int coordProblem = 0;
+    int timeProblem = 0;
     int domainProblem = 0;
     int radiusProblem = 0;
     
@@ -455,7 +484,7 @@ bool VarDriver3D::preProcessMetObs()
       QString tcstart = startTime.toString(Qt::ISODate);
       QString tcend = endTime.toString(Qt::ISODate);
       if ((obTime < startTime) or (obTime > endTime)) {
-	obsProblem++;
+	timeProblem++;
 	continue;
       }
       int fi = startTime.secsTo(obTime);
@@ -1579,6 +1608,7 @@ bool VarDriver3D::loadPreProcessMetObs()
 }
 
 #if 0
+// TODO deprecate
 // Load the background estimates from the given array arguments
 
 int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
@@ -1591,7 +1621,6 @@ int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
 				   float *th1,
 				   float *p1)
 {
-#if 0
   // TODO debug
     for(int i = 0; i < nx; i++)
       for(int j = 0; j < ny; j++)
@@ -1603,8 +1632,6 @@ int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
 		    << ", val: " << f
 		    << std::endl;
 	}
-#endif
-    
   return loadBackgroundObs();  
 }
 
@@ -1665,32 +1692,48 @@ int VarDriver3D::loadBackgroundObs()
 
   QDateTime startTime = frameVector.front().getTime();
   QDateTime endTime = frameVector.back().getTime();
-
+  
   cout << "Start time: " << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;
   cout << "End  time:  " << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;    
 
-  int debug = 0;
-    
-  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) )
-    {
+  // int debug = 0;
+
+  int timeProblem = 0;
+  int domainProblem = 0;
+  int radiusProblem = 0;
+  int levelProblem = 0;
+  int splineProblem = 0;
+
+  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) ) {
       // Process the metObs into Observations
 
       // Make sure the bg is within the time limits
       QDateTime bgTime;
       bgTime.setTime_t(time);
-      bgTime.setTimeSpec(Qt::UTC);
+      // bgTime.setTimeSpec(Qt::UTC);
+
+#if 0
       if(debug++ < 1000)
 	cout << "BgObs time:       " << bgTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()    
 	     << " time_t(): " << bgTime.toTime_t()
 	     << endl;
+#endif      
       bgTimestring = bgTime.toString(Qt::ISODate);
       tcstart = startTime.toString(Qt::ISODate);
       tcend = endTime.toString(Qt::ISODate);
-      if ((bgTime < startTime) or (bgTime > endTime))
+      cout << "bgTimestring: " << bgTimestring.toLatin1().data()
+	   << ", tcstart: " << tcstart.toLatin1().data()
+	   << ", tcend: " << tcend.toLatin1().data()
+	   << endl;
+      
+      if ((bgTime < startTime) or (bgTime > endTime)) {
+	timeProblem++;
 	continue;
+      }
       int tci = startTime.secsTo(bgTime);
       if ((tci < 0) or (tci > (int)frameVector.size())) {
 	cout << "Time problem with observation " << tci << "secs more than center entries" << endl;
+	timeProblem++;
 	continue;
       }
 
@@ -1719,13 +1762,17 @@ int VarDriver3D::loadBackgroundObs()
       if (runMode == XYZ) {
 	if ((bgX < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgX > (imax+iincr+(iROI*iincr*maxGridDist))) or
 	    (bgY < (jmin-jincr-(jROI*jincr*maxGridDist))) or (bgY > (jmax+jincr+(jROI*jincr*maxGridDist)))
-	    or (bgZ < kmin)) //Allow for higher values for interpolation purposes
+	    or (bgZ < kmin)) { //Allow for higher values for interpolation purposes
+	  domainProblem++;
 	  continue;
+	}
       } else if (runMode == RTZ) {
 	if ((bgRadius < (imin-iincr-(iROI*iincr*maxGridDist))) or (bgRadius > (imax+iincr+(iROI*iincr*maxGridDist))) or
 	    (bgTheta < jmin-jincr-(jROI*jincr*maxGridDist)) or (bgTheta > jmax+jincr+(jROI*jincr*maxGridDist)) or
-	    (bgZ < kmin)) //Exceeding the Theta domain only makes sense for sectors
+	    (bgZ < kmin)) {//Exceeding the Theta domain only makes sense for sectors
+	  domainProblem++;
 	  continue;
+	}
 	real cylUm = (Um*bgX + Vm*bgY)/bgRadius;
 	real cylVm = (-Um*bgY + Vm*bgX)/bgRadius;
 	Um = cylUm;
@@ -1783,6 +1830,7 @@ int VarDriver3D::loadBackgroundObs()
 	  cerr << "Error at " << lat << ", " << lon << "\n";
 	  cerr << "Only one level found in background spline setup. "
 	       << "Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+	  levelProblem++;
 	  return -1;
 	}
 
@@ -1793,6 +1841,7 @@ int VarDriver3D::loadBackgroundObs()
 					  uBG.data(), 0, SplineBase::BC_ZERO_SECOND);
 	  if (!bgSpline->ok()) {
 	    cerr << "bgSpline setup failed." << endl;
+	    splineProblem++;
 	    continue; //return -1;
 	  }
 	  for (int kmu = -1; kmu <= 1; kmu += 2) {
@@ -1805,21 +1854,33 @@ int VarDriver3D::loadBackgroundObs()
 	      for (int imu = -1; imu <= 1; imu += 2) {
 		real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
 		if (runMode == XYZ) {
-		  if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) continue;
+		  if (fabs(iPos-bgX) > iincr*iROI*maxGridDist) {
+		    ++radiusProblem;
+		    continue;
+		  }
 		} else if (runMode == RTZ) {
-		  if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) continue;
+		  if (fabs(iPos-bgRadius) > iincr*iROI*maxGridDist) {
+		    ++radiusProblem;
+		    continue;
+		  }
 		}
 		for (int ji = -1; ji < (jdim); ji++) {
 		  for (int jmu = -1; jmu <= 1; jmu += 2) {
 		    real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
 		    real rSquare = 0.0;
 		    if (runMode == XYZ) {
-		      if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) continue;
+		      if (fabs(jPos-bgY) > jincr*jROI*maxGridDist) {
+			++radiusProblem;
+			continue;
+		      }
 		      rSquare = (bgX-iPos)*(bgX-iPos) + (bgY-jPos)*(bgY-jPos);
 		    } else if (runMode == RTZ) {
 		      real dTheta = fabs(jPos-bgTheta);
 		      if (dTheta > 360.) dTheta -= 360.;
-		      if (dTheta > jincr*jROI*2.) continue;
+		      if (dTheta > jincr*jROI*2.) {
+			++radiusProblem;
+			continue;
+		      }
 		      rSquare = (bgRadius-iPos)*(bgRadius-iPos) + (dTheta)*(dTheta);
 		    }
 		    // Add one extra index to account for buffer zone in analysis
@@ -1888,6 +1949,11 @@ int VarDriver3D::loadBackgroundObs()
       }
     }
 
+  cout << "timeProblem: " << timeProblem << ", domainProblem: " << domainProblem
+       << ", radiusProblem: " << radiusProblem << ", levelProblem: " << levelProblem
+       << ", splineProblem: " << splineProblem
+       << endl;
+  
   if (!logheights.size()) {
     // Error reading in the background field
     cout << "No background estimates read in. Please check the time and location of your background field.\n";
@@ -2527,21 +2593,6 @@ bool VarDriver3D::validateGrid()
 
 bool VarDriver3D::loadMetObs()
 {
-  // Load the BG into an empty vector
-  
-  uStateSize = 8*(idim+1)*(jdim+1)*(kdim+1)*(numVars);
-  bStateSize = (idim+2)*(jdim+2)*(kdim+2)*numVars;
-  
-  cout << "Physical (mish) State size = " << uStateSize << "\n";
-  cout << "Nodal State size = " << bStateSize << ", Grid dimensions:\n";
-
-  bgU = new real[uStateSize];
-  bgWeights = new real[uStateSize];
-  for (int i=0; i < uStateSize; i++) {
-    bgU[i] = 0.0;
-    bgWeights[i] = 0.0;
-  }
-
   // Read in the meteorological observations, process them into weights and positions
   // Either preprocess from raw observations or load an already processed Observations.in file
 

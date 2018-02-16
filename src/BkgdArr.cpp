@@ -1,6 +1,8 @@
 #include <iostream>
 #include "BkgdAdapter.h"
 
+// ---------------------- BkgdArray --------------------------
+
 BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 		     char *ctdg, int delta, int iter, // time elements
 		     float *sigmas,
@@ -39,22 +41,6 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
   _curr_z = 0;
 }
 
-// Return the item at the given position
-// a3d is a 3d array.
-//
-// This assumes a column-major order (Fortran style)
-
-float BkgdArray::item3d(float *a3d, int x, int y, int z)
-{
-  return *(a3d + x + _xd * (y + _yd * z));	// column major  (Fortran)
-  //  return *(a3d + z + _zd * (y + _yd * x));
-}
-
-float BkgdArray::item2d(float *a2d, int x, int y)
-{
-  return *(a2d + x + _xd * y);		// column major
-  // return *(a2d + y + _xd * x);	// row major
-}
 
 BkgdArray::~BkgdArray()
 {
@@ -91,13 +77,14 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   // qv = ?
   // rhoa = ?
   qr = 0; // for now
-
+  
+#if 0
   std::cout << "(" << _curr_x << ", " << _curr_y << ", " << _curr_z;
   std::cout << ")\t";
   std::cout << "lat: " << lat << ", long: " << lon << ", alt: " << alt;
   std::cout << " u: " << u << ", v: " << v << ", w: " << w;
   std::cout << " t: " << t << ", qv: " << qv << ", rhoa: " << rhoa << ", qr: " << qr << std::endl;
-
+#endif
   
   // TODO Double (and triple) check this.
   // From the Samurai doc:
@@ -116,4 +103,48 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   }
   
   return true;
+}
+
+// ---------------------- BkgdFArray --------------------------
+
+BkgdFArray::~BkgdFArray()
+{
+}
+
+
+// Return the item at the given position
+// a3d is a 3d array.
+
+// column-major  (Fortran)
+
+float BkgdFArray::item3d(float *a3d, int x, int y, int z)
+{
+  return *(a3d + x + _xd * (y + _yd * z));
+}
+
+float BkgdFArray::item2d(float *a2d, int x, int y)
+{
+  return *(a2d + x + _xd * y);
+}
+
+// ---------------------- BkgdCArray --------------------------
+
+BkgdCArray::~BkgdCArray()
+{
+}
+
+
+// Return the item at the given position
+// a3d is a 3d array.
+
+// row-major  (C)
+
+float BkgdCArray::item3d(float *a3d, int x, int y, int z)
+{
+  return *(a3d + z + _zd * (y + _yd * x));
+}
+
+float BkgdCArray::item2d(float *a2d, int x, int y)
+{
+  return *(a2d + y + _xd * x);
 }
