@@ -1696,7 +1696,7 @@ int VarDriver3D::loadBackgroundObs()
   cout << "Start time: " << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;
   cout << "End  time:  " << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;    
 
-  // int debug = 0;
+  int debug = 0;
 
   int timeProblem = 0;
   int domainProblem = 0;
@@ -1721,10 +1721,11 @@ int VarDriver3D::loadBackgroundObs()
       bgTimestring = bgTime.toString(Qt::ISODate);
       tcstart = startTime.toString(Qt::ISODate);
       tcend = endTime.toString(Qt::ISODate);
-      cout << "bgTimestring: " << bgTimestring.toLatin1().data()
-	   << ", tcstart: " << tcstart.toLatin1().data()
-	   << ", tcend: " << tcend.toLatin1().data()
-	   << endl;
+      if (debug++ < 10)
+	cout << "bgTimestring: " << bgTimestring.toLatin1().data()
+	     << ", tcstart: " << tcstart.toLatin1().data()
+	     << ", tcend: " << tcend.toLatin1().data()
+	     << endl;
       
       if ((bgTime < startTime) or (bgTime > endTime)) {
 	timeProblem++;
@@ -2427,19 +2428,22 @@ bool VarDriver3D::validateConfig()
 {
     // Validate the hash -- multiple passes are not validated currently
     QStringList configKeys;
-    configKeys << "mc_weight" << "i_min" << "i_max" << "i_incr" <<
-    "j_min" << "j_max" << "j_incr" <<
-    "k_min" << "k_max" << "k_incr" <<
-    "i_filter_length" << "j_filter_length" << "k_filter_length" <<
-    "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff" <<
-    "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL" << "k_rhou_bcR" <<
-    "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR" << "k_rhov_bcL" << "k_rhov_bcR" <<
-    "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL" << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" <<
-    "i_tempk_bcL" << "i_tempk_bcR" << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" <<
-    "i_qv_bcL" << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" <<
-    "i_rhoa_bcL" << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR" <<
-    "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR" <<
-	"data_directory" << "output_directory";
+    configKeys << "mc_weight" << "i_filter_length" << "j_filter_length" << "k_filter_length"
+	       << "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff"
+	       << "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL"
+	       << "k_rhou_bcR" << "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR"
+	       << "k_rhov_bcL" << "k_rhov_bcR" << "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL"
+	       << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" << "i_tempk_bcL" << "i_tempk_bcR"
+	       << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" << "i_qv_bcL"
+	       << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" << "i_rhoa_bcL"
+	       << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR"
+	       << "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR"
+	       << "data_directory" << "output_directory";
+
+    if (fixedGrid)
+      configKeys << "i_min" << "i_max" << "i_incr"
+		 << "j_min" << "j_max" << "j_incr"
+		 << "k_min" << "k_max" << "k_incr";
 
     for (int i = 0; i < configKeys.count(); i++) {
         if (!configHash.contains(configKeys.at(i))) {

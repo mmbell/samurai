@@ -77,14 +77,14 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   // qv = ?
   // rhoa = ?
   qr = 0; // for now
-  
-#if 0
-  std::cout << "(" << _curr_x << ", " << _curr_y << ", " << _curr_z;
-  std::cout << ")\t";
-  std::cout << "lat: " << lat << ", long: " << lon << ", alt: " << alt;
-  std::cout << " u: " << u << ", v: " << v << ", w: " << w;
-  std::cout << " t: " << t << ", qv: " << qv << ", rhoa: " << rhoa << ", qr: " << qr << std::endl;
-#endif
+
+  if ( (_curr_z < _zd) && (_curr_y < 2) ) {
+    std::cout << "(" << _curr_x << ", " << _curr_y << ", " << _curr_z;
+    std::cout << ")\t";
+    std::cout << "lat: " << lat << ", long: " << lon << ", alt: " << alt;
+    std::cout << " u: " << u << ", v: " << v << ", w: " << w;
+    std::cout << " t: " << t << ", qv: " << qv << ", rhoa: " << rhoa << ", qr: " << qr << std::endl;
+  }
   
   // TODO Double (and triple) check this.
   // From the Samurai doc:
