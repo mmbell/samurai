@@ -228,6 +228,13 @@ bool VarDriver3D::gridDependentInit()
 
   if ( ! loadMetObs() )
     return false;
+
+  // We are done with the bgWeights, so free up that memory
+  // bgWeights are used by both loadMetObs and loadBackgroundObs
+  
+  delete[] bgWeights;
+  bgWeights = NULL;
+  
   initObCost3D();
   return true;
 }
@@ -370,7 +377,6 @@ bool VarDriver3D::finalize()
 	obCost3D->finalize();
 	delete[] obs;
 	delete[] bgU;
-	delete[] bgWeights;
 	delete obCost3D;
 	delete refstate;
 	return true;
@@ -2612,9 +2618,6 @@ bool VarDriver3D::loadMetObs()
       return false;
     }
   }
-
-  // We are done with the bgWeights, so free up that memory
-  delete[] bgWeights;
 
   if (obVector.size() == 0) {
     // No observations so quit
