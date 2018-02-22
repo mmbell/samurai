@@ -80,7 +80,7 @@ extern "C" {
 		      float jmin, float jmax, float jincr,
 		      // ----- new -----
 		      
-		      float *sigmas,	// 2D array (nsigma)
+		      float *sigmas,	// 1D array (nsigma)
 		      float *latitude,	// 2D array (nx, ny)
 		      float *longitude,	// 2D array
 		      float *u1,	// 3D array (nx, ny, nsigma)  

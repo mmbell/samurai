@@ -23,11 +23,17 @@ CostFunctionCOAMPS::CostFunctionCOAMPS(const Projection& proj, const int& numObs
 CostFunctionCOAMPS::~CostFunctionCOAMPS()
 {
 }
+
+void CostFunctionCOAMPS::setSigmas(float *sigmas, int size) {
+  sigmaTable = sigmas;
+  sDim = size;
+}
+
 bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 {
 
-	cout << "Outputting " << suffix.toStdString() << "...\n";
-	// H --> to Mish for output
+  cout << "Outputting " << suffix.toStdString() << "...\n";
+  // H --> to Mish for output
   QString samuraiout = "samurai_COAMPS_" + suffix + ".out";
   ofstream samuraistream;
   if (configHash->value("output_txt") == "true") {
@@ -38,19 +44,27 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   }
 
   int analysisDim = 51;
-  sDim = 42;
+  // sDim = 42;
   int analysisSize = (iDim-2)*(jDim-2)*(sDim-2);
-	finalAnalysis = new real[analysisSize*analysisDim];
-	real gausspoint = 0.5*sqrt(1./3.);
+  finalAnalysis = new real[analysisSize*analysisDim];
+  real gausspoint = 0.5*sqrt(1./3.);
 
-	// Sigma height levels
-	// TODO, these could be passed as arguments
-	const real sigma[42] = { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
-		16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
-		9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
-		3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
-		1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
-		55.0, 30.0, 10.0, 0.0 };
+  // sigmaTable and sDim might have been set with a call to setSigmas
+  // if not, use default values
+
+  float defaultSigmas[] { 31885.0, 29385.0, 25085.0, 21985.0, 19685.0, 17885.0,
+	      16385.0, 15072.5, 13910.0, 12860.0, 11885.0, 10955.0, 10065.0,
+	      9215.0, 8405.0, 7635.0, 6905.0, 6215.0, 5565.0, 4955.0, 4385.0,
+	      3855.0, 3365.0, 2915.0, 2505.0, 2135.0, 1805.0, 1515.0, 1265.0,
+	      1050.0, 860.0, 690.0, 540.0, 410.0, 300.0, 210.0, 140.0, 90.0,
+	      55.0, 30.0, 10.0, 0.0 };
+  
+  float *sigma = sigmaTable;
+  
+  if (sigma == NULL) {
+    sDim = 42;
+    sigma = defaultSigmas;
+  }
 
 	for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
 		for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {

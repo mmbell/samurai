@@ -1588,7 +1588,7 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
 
   // Validate the hash -- multiple passes are not validated currently
   QStringList configKeys;
-  configKeys << "ref_state" << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
+  configKeys << "ref_state" << //  << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
     "qr_variable" << "i_background_roi" << "j_background_roi" <<
     "i_reflectivity_roi" << "j_reflectivity_roi" << "k_reflectivity_roi" <<
     "load_background" << "adjust_background" <<
@@ -1609,6 +1609,10 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
     "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error" <<
     "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" <<
     "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "projection";
+  
+  if (fixedGrid)
+    configKeys << "ref_time";
+  
   for (int i = 0; i < configKeys.count(); i++) {
     if (!configHash.contains(configKeys.at(i))) {
       std::cout << "No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << std::endl;

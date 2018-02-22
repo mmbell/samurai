@@ -28,6 +28,7 @@ VarDriver3D::VarDriver3D() : VarDriver()
   bkgdAdapter = NULL;
   bgU = NULL;
   bgWeights = NULL;
+  sigmaTable = NULL;
 }
 
 // Destructor
@@ -320,22 +321,8 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 				 sigmas,
 				 latitude, longitude,
 				 u1, v1, w1, th1, p1);
-
   if (! gridDependentInit() )
     return false;
-#if 0  
-  // convert the time info
-  // cdtg:  current date-time group. oc. 12th 2015 at 12Z -> "2015100412"
-  // delta: model time step on coarse grid
-  // iter: current iteration
-  // delta * iter: model time past cdtg
-  
-  if ( ! loadRunBackgroundObs(nx, ny, nsigma,
-			      cdtg, delta, iter,
-			      sigmas, latitude, longitude,
-			      u1, v1, w1, th1, p1))
-    return false;
-#endif
   
   if( run() )
     return obCost3D->copyResults(nx, ny, nsigma, usam, vsam, wsam, thsam, psam);
@@ -1613,36 +1600,6 @@ bool VarDriver3D::loadPreProcessMetObs()
     return true;
 }
 
-#if 0
-// TODO deprecate
-// Load the background estimates from the given array arguments
-
-int VarDriver3D::loadBackgroundObs(int nx, int ny, int nsigma,
-				   char *ctdg, int delta, int iter, // time elements
-				   float *sigmas,
-				   float *latitude, float *longitude,
-				   float *u1,
-				   float *v1,
-				   float *w1,
-				   float *th1,
-				   float *p1)
-{
-  // TODO debug
-    for(int i = 0; i < nx; i++)
-      for(int j = 0; j < ny; j++)
-	for(int k = 0; k < nsigma; k++) {
-	  float f = *(u1 + i + nx * (j + ny * k));
-	  std::cout << "i: " << i
-		    << ", j: " << j
-		    << ", k: " << k
-		    << ", val: " << f
-		    << std::endl;
-	}
-  return loadBackgroundObs();  
-}
-
-#endif
-
 // Load the background estimates from a file
 
 int VarDriver3D::loadBackgroundObs(const char *background_fname)
@@ -1702,14 +1659,14 @@ int VarDriver3D::loadBackgroundObs()
   cout << "Start time: " << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;
   cout << "End  time:  " << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << endl;    
 
-  int debug = 0;
-
   int timeProblem = 0;
   int domainProblem = 0;
   int radiusProblem = 0;
   int levelProblem = 0;
   int splineProblem = 0;
 
+  int debug = 0;
+  
   while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) ) {
       // Process the metObs into Observations
 
@@ -1723,11 +1680,20 @@ int VarDriver3D::loadBackgroundObs()
 	cout << "BgObs time:       " << bgTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()    
 	     << " time_t(): " << bgTime.toTime_t()
 	     << endl;
-#endif      
+#endif
+      if (debug < 200) {
+	debug++;
+	std::cout << debug << ": "
+		  << "lat: " << lat << ", long: " << lon << ", alt: " << alt
+		  << " u: " << u << ", v: " << v << ", w: " << w
+		  << " t: " << t << ", qv: " << qv << ", rhoa: " << rhoa << ", qr: " << qr
+		  << std::endl;
+      }
+      
       bgTimestring = bgTime.toString(Qt::ISODate);
       tcstart = startTime.toString(Qt::ISODate);
       tcend = endTime.toString(Qt::ISODate);
-      if (debug++ < 10)
+      if (debug < 10)
 	cout << "bgTimestring: " << bgTimestring.toLatin1().data()
 	     << ", tcstart: " << tcstart.toLatin1().data()
 	     << ", tcend: " << tcend.toLatin1().data()
@@ -1960,6 +1926,8 @@ int VarDriver3D::loadBackgroundObs()
        << ", radiusProblem: " << radiusProblem << ", levelProblem: " << levelProblem
        << ", splineProblem: " << splineProblem
        << endl;
+
+  // cout << "------------------------1\n";
   
   if (!logheights.size()) {
     // Error reading in the background field
@@ -1969,12 +1937,16 @@ int VarDriver3D::loadBackgroundObs()
     return -1;
   }
 
+  // cout << "------------------------2\n";
+  
   // Solve for the last spline
   if (logheights.size() == 1) {
     cerr << "Only one level found in background spline setup. Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
     return -1;
   }
 
+  // cout << "------------------------3\n";
+  
   // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
   for (int ki = -1; ki < (kdim); ki++) {
@@ -2061,6 +2033,8 @@ int VarDriver3D::loadBackgroundObs()
     delete bgSpline;
   }
 
+  // cout << "------------------------4 \n";
+  
   logheights.clear();
   uBG.clear();
   vBG.clear();
@@ -2072,7 +2046,9 @@ int VarDriver3D::loadBackgroundObs()
 
   int numbgObs = bgIn.size()*7/11;
   QVector<int> emptybg;
-    
+  
+  // cout << "------------------------5\n";
+  
   if (numbgObs > 0) {
     // Check interpolation
     for (int ki = -1; ki < (kdim); ki++) {
@@ -2501,29 +2477,36 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
 				  float j_min, float j_max, float j_incr,
 				  float *sigmas)
 {
+
+  // Grid specs
+  
   imin = i_min;
   imax = i_max;
+  iincr = i_incr;
+  
   jmin = j_min;
   jmax = j_max;
-
-  iincr = i_incr;
   jincr = j_incr;
 
-  // Do we need these params, or can we compute them from the _min, _max, _incr?
+  // k grid dimension. This is pretty arbitrary
+  kmin = 0.0;
+  // kmax = sigmas[0] / 1000;	// do we ned to round this up?
+  kmax = *std::max_element(sigmas, sigmas + (int) n_z) / 1000;
+  kincr = 0.5;
+  
+  // Array dimensions
   
   idim = n_x;
   jdim = n_y;
   kdim = n_z;
 
-  // Compute k dimension
-  kmin  = sigmas[0];
-  kmax  = sigmas[ (int) n_z - 1];
-  kincr = (kmax - kmin) / n_z;
+  sigmaTable = sigmas;
   
   return validateGrid();
 }
 
-//
+// Create centers at 1 second increments, from -2 seconds to +2 seconds of the computed date/time
+// All centers are at the given lat and lon.
 
 void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, float lon)
 {
@@ -2541,7 +2524,7 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   configHash.insert("ref_lat",  tString.setNum(lat));
   configHash.insert("ref_lat",  tString.setNum(lon));  
 
-  // create 3 "centers" centered around the ref time, at 2 second intervals
+  // create 6 "centers" centered around the ref time, at 1 second intervals
 
   float zero = 0.0;	// Framecenter constructor needs a reference... why?
   for(int delta = -2; delta <= 2; delta += 1) {
@@ -2558,12 +2541,12 @@ bool VarDriver3D::validateFixedGrid()
   imin = configHash.value("i_min").toFloat();
   imax = configHash.value("i_max").toFloat();
   iincr = configHash.value("i_incr").toFloat();
-  idim = (int)((imax - imin)/iincr) + 1;
+  idim = (int)((imax - imin) / iincr) + 1;
 
   jmin = configHash.value("j_min").toFloat();
   jmax = configHash.value("j_max").toFloat();
   jincr = configHash.value("j_incr").toFloat();
-  jdim = (int)((jmax - jmin)/jincr) + 1;
+  jdim = (int)((jmax - jmin) / jincr) + 1;
 
   kmin = configHash.value("k_min").toFloat();
   kmax = configHash.value("k_max").toFloat();
@@ -2635,7 +2618,9 @@ bool VarDriver3D::initObCost3D()
     if (configHash.value("output_pressure_increment").toFloat() > 0) {
       obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
     } else if (configHash.value("output_COAMPS") == "true") {
-      obCost3D = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
+      CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
+      cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
+      obCost3D = cf;
     } else {
       obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
     }

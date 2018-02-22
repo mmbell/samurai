@@ -142,6 +142,9 @@ private:
 	int uStateSize;
 	
 	BkgdAdapter *bkgdAdapter;
+
+	// Some cost functions (COAMPS) might need access to the sigmas
+	float *sigmaTable;
 	
     enum RunModes {
         XYZ,
