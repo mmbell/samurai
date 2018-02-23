@@ -1800,9 +1800,10 @@ int VarDriver3D::loadBackgroundObs()
       } else {
 	// Solve for the spline
 	if (logheights.size() == 1) {
-	  cerr << "Error at " << lat << ", " << lon << "\n";
-	  cerr << "Only one level found in background spline setup. "
-	       << "Please check Background.in to ensure sorting by Z coordinate and re-run." << endl;
+	  cerr << "Error at " << lat << ", " << lon << endl
+	       << "Only one level found in background spline setup. " << endl
+	       << "Please check Background.in to ensure sorting by descending Z coordinate and re-run."
+	       << endl;
 	  levelProblem++;
 	  return -1;
 	}

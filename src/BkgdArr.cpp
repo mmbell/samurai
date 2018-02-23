@@ -38,7 +38,7 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 
   _curr_x = 0;
   _curr_y = 0;
-  _curr_z = 0;
+  _curr_z = _zd - 1;
 }
 
 
@@ -84,9 +84,11 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   // Data should be sorted by altitude, such that each successive column of data is grouped together
   // with altitude increasing.
 
-  _curr_z += 1;
-  if(_curr_z >= _zd) {
-    _curr_z %= _zd;
+  // This assumes that altitudes are in decreasing order
+  
+  _curr_z -= 1;
+  if(_curr_z < 0) {
+    _curr_z = _zd - 1;
     _curr_y += 1;
     if(_curr_y >= _yd) {
       _curr_y %= _yd;
