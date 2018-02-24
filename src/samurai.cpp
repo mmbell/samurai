@@ -6,6 +6,14 @@
 #include "VarDriver3D.h"
 #include "Xml.h"
 
+//
+// This is the Samurai API definition.
+// These functions are in the the samurai library. So you can access them
+// from any language that let you call external functions.
+// I have tested the interface with Fortran, Python, and Julia
+// See https://github.com/mjskier/samurai_scripts
+//
+
 using namespace std;
 
 extern "C" {

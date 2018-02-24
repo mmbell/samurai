@@ -15,6 +15,7 @@
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include "ReferenceState.h"
+
 #include <iostream>
 #include <vector>
 #include <QHash>
@@ -22,11 +23,19 @@
 #include <QList>
 #include <QString>
 #include <QDomDocument>
+
+
+#include <sys/time.h>
+#include <string>
+
 #include "precision.h"
 #include "Projection.h"
 #include "samurai.h"
 
 using namespace std;
+
+#define START_TIMER(s) struct timeval timer_##s; addDeltaTime(&timer_##s, NULL);
+#define PRINT_TIMER(msg, s) printRunTime(msg, &timer_##s);
 
 class VarDriver
 {
@@ -70,6 +79,9 @@ public:
 	void appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um);
 	void popCenter();
 
+	void addDeltaTime(struct timeval *, double *sum);
+	void printRunTime(const std::string &, struct timeval *);
+	
  protected:
 	
 	bool fixedGrid;	// Indicates if the grid dims come from the config file or run call

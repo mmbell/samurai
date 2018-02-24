@@ -141,6 +141,9 @@ bool VarDriver3D::validateDriver()
 
 bool VarDriver3D::gridDependentInit()
 {
+
+  START_TIMER(timei);
+  
   // Define the Reference state
 
   QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
@@ -149,7 +152,7 @@ bool VarDriver3D::gridDependentInit()
   for (real k = kmin; k < kmax + kincr; k += kincr) {
     // cout << "                   " << k << "\t";
     for (int i = 0; i < 6; i++) {
-      real var = refstate->getReferenceVariable(i, k*1000);
+      real var = refstate->getReferenceVariable(i, k * 1000);
       if (i == 0) var = refstate->bhypInvTransform(var);
       // cout << setw(9) << setprecision(4)  << var << "\t";
     }
@@ -208,7 +211,10 @@ bool VarDriver3D::gridDependentInit()
   
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
+    START_TIMER(timeb);
     numbgObs = loadBackgroundObs();
+    PRINT_TIMER("loadBackgroundObs", timeb);
+    
     if (numbgObs < 0) {
       cout << "Error loading background Obs\n";
       return false;
@@ -221,22 +227,31 @@ bool VarDriver3D::gridDependentInit()
 
   QString adjustBG = configHash.value("adjust_background");
   if ((adjustBG == "true") and numbgObs) {
+    START_TIMER(timea);
     if ( ! adjustBackground()) {
       cout << "Error adjusting background\n";
       return false;
     }
+    PRINT_TIMER("adjustBackGround", timea);
   }
 
+  START_TIMER(timem);
   if ( ! loadMetObs() )
     return false;
-
+  PRINT_TIMER("loadMetObs", timem);
+  
   // We are done with the bgWeights, so free up that memory
   // bgWeights are used by both loadMetObs and loadBackgroundObs
   
   delete[] bgWeights;
   bgWeights = NULL;
-  
+
+  START_TIMER(timec);
   initObCost3D();
+  PRINT_TIMER("initObCost3D", timec);
+
+  PRINT_TIMER("gridDependentInit", timei);
+  
   return true;
 }
 
@@ -344,9 +359,18 @@ bool VarDriver3D::run()
 			configHash["save_mish"] = "false";
 		}
 		cout << "Outer Loop Iteration: " << iter << endl;
+		START_TIMER(timei);
 		obCost3D->initState(iter);
+		PRINT_TIMER("Cost3D Init", timei);
+
+		START_TIMER(timem);
 		obCost3D->minimize();
+		PRINT_TIMER("Cost3D minimize", timem);
+
+		START_TIMER(timeu);
 		obCost3D->updateBG();
+		PRINT_TIMER("Cost3d update", timeu);
+		
 		iter++;
 
 		// Optionally update the analysis parameters for an additional iteration
@@ -1947,6 +1971,8 @@ int VarDriver3D::loadBackgroundObs()
   }
 
   // cout << "------------------------3\n";
+
+  START_TIMER(timels);
   
   // Exponential interpolation in horizontal, b-Spline interpolation on log height in vertical
 #pragma omp parallel for
@@ -2034,6 +2060,8 @@ int VarDriver3D::loadBackgroundObs()
     delete bgSpline;
   }
 
+  PRINT_TIMER("spline solver", timels);
+  
   // cout << "------------------------4 \n";
   
   logheights.clear();
@@ -2049,8 +2077,12 @@ int VarDriver3D::loadBackgroundObs()
   QVector<int> emptybg;
   
   // cout << "------------------------5\n";
+
   
   if (numbgObs > 0) {
+    
+      START_TIMER(timeci);
+
     // Check interpolation
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
@@ -2133,6 +2165,7 @@ int VarDriver3D::loadBackgroundObs()
 	}
       }
     }
+    PRINT_TIMER("Interpolation check", timeci);
   } else {
     cout << "No background observations loaded" << endl;
     return 0;
@@ -2147,6 +2180,8 @@ bool VarDriver3D::adjustBackground()
   /* Set the minimum filter length to the background resolution, not the analysis resolution
      to avoid artifacts when running interpolating to small mesoscale grids */
 
+  START_TIMER(timeab);
+  
   // Load the observations into a vector
   int numbgObs = bgIn.size()*7/11;
   if (configHash.value("mc_weight").toFloat() > 0) {
@@ -2334,7 +2369,8 @@ bool VarDriver3D::adjustBackground()
       }
     }
   }
-
+  PRINT_TIMER("adjustBackground", timeab);
+  
   return true;
 }
 
