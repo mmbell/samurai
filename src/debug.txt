@@ -1,0 +1,6 @@
+Above 30kn:
+
+qv: one order magnitude smaller with kd
+rhoprime: one order magnitude larger with kd
+
+

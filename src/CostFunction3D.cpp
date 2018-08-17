@@ -117,7 +117,8 @@ void CostFunction3D::finalize()
     fftw_free(kFFTout);
 }
 
-void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref)
+void CostFunction3D::initialize(const QHash<QString, QString>* config,
+				real* bgU, real* obs, ReferenceState* ref)
 {
 
     // Initialize number of variables
@@ -179,6 +180,7 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 
     // Assign local object pointers
     bgFields = bgU;
+    
     rawObs = obs;
     iMin = configHash->value("i_min").toFloat();
     iMax = configHash->value("i_max").toFloat();
@@ -286,7 +288,6 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config, real* bgU
 
 void CostFunction3D::initState(const int iteration)
 {
-
     // Clear the state vector
     cout << "Initializing state vector..." << endl;
     for (int n = 0; n < nState; n++) {
@@ -414,7 +415,9 @@ void CostFunction3D::initState(const int iteration)
         for (int iIndex = 0; iIndex < iDim; iIndex++) {
             for (int jIndex = 0; jIndex < jDim; jIndex++) {
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                    int bIndex = varDim * iDim * jDim*kIndex
+		      + varDim * iDim * jIndex
+		      + varDim * iIndex + var;
                     bgStdDev[bIndex] = bgError[var];
                 }
             }
@@ -427,12 +430,14 @@ void CostFunction3D::initState(const int iteration)
         for (int iIndex = 0; iIndex < iDim; iIndex++) {
             for (int jIndex = 0; jIndex < jDim; jIndex++) {
                 for (int kIndex = 0; kIndex < kDim; kIndex++) {
-                    int bIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+                    int bIndex = varDim * iDim * jDim * kIndex
+		      + varDim * iDim * jIndex
+		      + varDim * iIndex + var;
                     varScale += bgState[bIndex] * bgState[bIndex];
                 }
             }
         }
-        varScale = sqrt(varScale/(iDim*jDim*kDim));
+        varScale = sqrt(varScale / (iDim * jDim * kDim));
         if (varScale) {
             real errPct = 100*bgError[var]/varScale;
             cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]

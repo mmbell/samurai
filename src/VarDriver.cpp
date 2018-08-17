@@ -357,6 +357,7 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
     if (line.startsWith("Release Site Type")) {
       QStringList lineparts = line.split(":");
       aircraft = lineparts[1].trimmed();
+      // } else if (line.startsWith("UTC") || line.startsWith("GMT")) {
     } else if (line.startsWith("UTC")) {
       datestr = line.mid(35,12);
       timestr = line.mid(49,8);
@@ -2119,34 +2120,3 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
   return true;
 
 }
-
-// --------------------------------------- Timer Helpers -----------------------------------
-
-// These come from the original RadarWind code
-
-void VarDriver::addDeltaTime(struct timeval * ptva,
-		  double * psum)
-{
-  struct timeval tvb;
-  if (gettimeofday( &tvb, NULL) != 0)
-    return;
-  double deltaSec = tvb.tv_sec - ptva->tv_sec
-    + 1.e-6 * (tvb.tv_usec - ptva->tv_usec);
-  ptva->tv_sec = tvb.tv_sec;
-  ptva->tv_usec = tvb.tv_usec;
-  if (psum != NULL) (*psum) += deltaSec;
-}
-
-void VarDriver::printRunTime(const std::string &str,
-		  struct timeval * ptva)
-{
-  struct timeval tvb;
-  if (gettimeofday( &tvb, NULL) != 0)
-    return;
-  double deltaSec = tvb.tv_sec - ptva->tv_sec
-    + 1.e-6 * (tvb.tv_usec - ptva->tv_usec);
-  std::cout << "runTime: " << str << ": " << deltaSec << std::endl;
-  ptva->tv_sec = tvb.tv_sec;
-  ptva->tv_usec = tvb.tv_usec;
-}
-

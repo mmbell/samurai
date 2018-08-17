@@ -25,7 +25,6 @@
 #include <QDomDocument>
 
 
-#include <sys/time.h>
 #include <string>
 
 #include "precision.h"
@@ -33,9 +32,6 @@
 #include "samurai.h"
 
 using namespace std;
-
-#define START_TIMER(s) struct timeval timer_##s; addDeltaTime(&timer_##s, NULL);
-#define PRINT_TIMER(msg, s) printRunTime(msg, &timer_##s);
 
 class VarDriver
 {
@@ -78,9 +74,6 @@ public:
 	void clearCenters();
 	void appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um);
 	void popCenter();
-
-	void addDeltaTime(struct timeval *, double *sum);
-	void printRunTime(const std::string &, struct timeval *);
 	
  protected:
 	

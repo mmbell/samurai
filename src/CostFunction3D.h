@@ -75,6 +75,8 @@ protected:
 	bool copy3DArray(real *src, float *dest, int iDim, int jDim, int kDim);
 	void calcHmatrix();
 	void Htransform(const real* Cstate, real* Hstate);
+	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
+	
 	bool mishFlag;
 	int iDim, jDim, kDim;
 	int iLDim, jLDim, kLDim;

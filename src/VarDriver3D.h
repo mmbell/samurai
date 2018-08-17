@@ -39,6 +39,9 @@ public:
 	// ESMF type calls
 	bool initialize(const QDomElement& configuration);
 	bool initialize(const samurai_config &configSam);
+
+	void dumpBgu();
+	void dumpBgIn();
 	
 	bool run();
 	bool run(int nx, int ny, int nsigma,

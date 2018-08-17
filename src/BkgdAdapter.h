@@ -6,12 +6,14 @@
 
 #include "precision.h"	// for 'real' typedef
 
-// This is an abstract class to support the multiple ways Background observations can
-// be loaded into samurai.
+// This is an abstract class to support the multiple ways Background
+// observations can be loaded into samurai.
 //
 // Right now we support loading from
-//   a file (samurai_Background.in) The format is documented on the Samurai github wiki
-//   a set of arrays. This is a new format to support COAMPS. Interface is a work in progress.
+//   a file (samurai_Background.in) The format is documented on the
+//       Samurai github wiki
+//   a set of arrays. This is a new format to support COAMPS.
+//       This interface is a work in progress.
 //
 
 class BkgdAdapter {
