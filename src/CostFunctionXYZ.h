@@ -23,6 +23,7 @@ private:
 	bool outputAnalysis(const QString& suffix, real* Astate);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
+	bool SItransform(size_t numVars, double *finalAnalysis, double *mishData, real *Astate, ofstream *outStream);
 };
 
 #endif

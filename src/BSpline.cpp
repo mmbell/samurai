@@ -423,9 +423,10 @@ BSplineBase<T>::AlphaGQ (real wl)
  * Return the correct beta value given the node index.  The value depends
  * on the node index and the current boundary condition type.
  */
+
 template <class T>
 inline real
-BSplineBase<T>::Beta (unsigned int m)
+BSplineBase<T>::Beta (/* unsigned */ int m) // TODO called with int
 {
     if (m > 1 && m < M-1)
 	return 0.0;
@@ -435,8 +436,6 @@ BSplineBase<T>::Beta (unsigned int m)
     assert (0 <= m && m <= 3);
     return BoundaryConditions[BC][m];
 }
-
-
 
 /*
  * Given an array of y data points defined over the domain
@@ -572,8 +571,6 @@ BSplineBase<T>::qDelta (int m1, int m2)
     return q * alpha;
 }
 
-
-
 template <class T>
 void
 BSplineBase<T>::calculateQ ()
@@ -632,8 +629,6 @@ BSplineBase<T>::calculateQ ()
 	}
     }
 }
-
-
 
 template <class T>
 void

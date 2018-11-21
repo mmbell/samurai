@@ -43,7 +43,9 @@ class BkgdObsLoader {
 			  float imn, float jmn, float kmn,
 			  float imx, float jmx, float kmx,
 			  real iinc, real jinc, real kinc);
-
+  
+  KD_tree *buildKDTree(QList<double> &bgIn);
+  
   bool fillHoles(QVector<int> &emptybg);
   bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }  
   void dumpBgIn(int from, int to, QList<real> &bgIn);
@@ -163,11 +165,9 @@ class BkgdObsKDLoader : public BkgdObsLoader {
   
  protected:
 
-  KD_tree *buildKDTree(QList<double> &bgIn);
-
-  bool fillIt(KD_real *centerLoc, int nbrMax, float maxDistance,
-	      QList<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
-	      QVector<int> &emptybg, int debug);
+  bool fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
+		    QList<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
+		    QVector<int> &emptybg, int debug);
   bool overwriteBgu(const char *fname);
 };
 
@@ -182,7 +182,7 @@ class BkgdObsFractlLoader : public BkgdObsLoader {
   
   //  bool initialize();
   bool loadBkgdObs(QList<real> &bgIn);
-  
+  bool fillBguEntry(QList<real> &bgIn, real *bgU, int iIndex, int bIndex);
 };
 
 // ------------- Object Factory --------------

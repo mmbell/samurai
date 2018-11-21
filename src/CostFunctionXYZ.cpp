@@ -23,67 +23,44 @@ CostFunctionXYZ::~CostFunctionXYZ()
 {
 }
 
-bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
+// Do a SItransform
+// Pulled from inlined code in outputAnalysis.
+//
+// Calling code is responsible for allocating all the storage arrays
+//
+// numVar:		How many variables are computed: 51 for old case, 7 for std error
+// finalAnalysis:	What gets written to the nc file.
+// mishData:		bgU, or error data mish
+// Astate:		Input, which went from bgU to SBtransform, to SAtransform (and maybe FFtransform)
+// txtStrem:		If not NULL, ouput debug messages on it.
+
+bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double *mishData, real *Astate,
+				  ofstream *outStream)
 {
-  bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
-  bool debug_ref_state = isTrue("debug_ref_state");
-  bool debug_bgState = isTrue("debug_bgState");
-  
-  if ( debug_bgState) {
-    std::cout << "---- start of debug_bgState" << std::endl;
-    std::cout << "nState: " << nState << std::endl;
-    for (int idx = 0; idx < nState; idx++)
-      std::cout << Astate[idx] << std::endl;
-  }
+  real gausspoint = 0.5 * sqrt(1. / 3.);
   
   int max_aIndex = -1000;
   real max_heightm = -1000.0;
-  
-  cout << "Outputting " << suffix.toStdString() << "...\n";
-  // H --> to Mish for output
-  QString samuraiout = "samurai_XYZ_" + suffix + ".out";
-  ofstream samuraistream;
-  if (configHash->value("output_txt") == "true") {
-    samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
-    samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
-    samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
-    samuraistream.precision(10);
-  }
-
-  int analysisDim = 51;
-  int analysisSize = (iDim - 2) * (jDim - 2) * (kDim - 2);
-
-  finalAnalysis = new real[analysisSize * analysisDim];
-  
-  real gausspoint = 0.5 * sqrt(1. / 3.);
-
-  if (debug_final_analysis_indices) {
-    std::cout << "-------- start of debug_final_analysis_indices" << std::endl;
-    std::cout << "analysisDim: " << analysisDim << ", analysisSize: " << analysisSize
-	      << ", allocated: " << analysisSize * analysisDim << std::endl;
-  }
-
-  if (debug_ref_state)
-    std::cout << "--- start of debug_ref_state" << std::endl;
-  
-  for (int iIndex = 1; iIndex < iDim - 1; iIndex++) {
+  bool debug_ref_state = isTrue("debug_ref_state");
+    
+  for (int iIndex = 1; iIndex < iDim - 1; iIndex++) {   // SItransform loops on both mish and mesh datapoints
     for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
       for (int imu = -ihalf; imu <= ihalf; imu++) {
 	real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5 * ihalf));
 	if (i > ((iDim - 1) * DI + iMin)) continue;
 
 	for (int jIndex = 1; jIndex < jDim - 1; jIndex++) {
-	  for (int jhalf = 0; jhalf <=mishFlag; jhalf++) {
+	  for (int jhalf = 0; jhalf <= mishFlag; jhalf++) {
 	    for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-	      real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5*jhalf));
+	      real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5 * jhalf));
 	      if (j > ((jDim - 1) * DJ + jMin)) continue;
 
 	      real tpw = 0;
 
 	      for (int kIndex = 1; kIndex < kDim - 1; kIndex++) {
-		for (int khalf = 0; khalf <=mishFlag; khalf++) {
+		for (int khalf = 0; khalf <= mishFlag; khalf++) {
 		  for (int kmu = -khalf; kmu <= khalf; kmu++) {
-		    real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5*khalf));
+		    real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5 * khalf));
 		    if (k > ((kDim - 1) * DK + kMin)) continue;
 
 		    real heightm = 1000 * k;
@@ -91,48 +68,52 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 		    real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
 		    real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
-		    // if (debug_ref_state)
-		    //   std::cout << "heightm: " << heightm << ", rhoBar: " << rhoBar << ", qBar: " << qBar
-		    // 		<< ", tBar: " << tBar << std::endl;
-		    
 		    int ii = (int)((i - iMin) * DIrecip);
 		    int jj = (int)((j - jMin) * DJrecip);
 		    int kk = (int)((k - kMin) * DKrecip);
-		    real ibasis = 0.;
-		    real jbasis = 0.;
-		    real kbasis = 0.;
-		    real idbasis = 0.;
-		    real jdbasis = 0.;
-		    real kdbasis = 0.;
-		    real rhov = 0.;
-		    real rhou = 0.;
-		    real rhow = 0.;
-		    real rhovdx = 0.; real rhoudx = 0.; real rhowdx = 0.;
-		    real rhovdy = 0.; real rhoudy = 0.; real rhowdy = 0.;
-		    real rhovdz = 0.; real rhoudz = 0.; real rhowdz = 0.;
-		    real tprime = 0.; real tdx = 0.; real tdy = 0.; real tdz = 0.;
-		    real rhoadx = 0.; real rhoady = 0.; real rhoadz = 0.;
-		    real qvdx = 0.; real qvdy = 0.; real qvdz = 0.;
-		    real pdx = 0.; real pdy = 0.; real pdz = 0.;
-		    real qvprime = 0.;
-		    real rhoprime = 0.;
-		    real qrprime = 0.;
+		    
+		    real ibasis = 0.0;
+		    real jbasis = 0.0;
+		    real kbasis = 0.0;
+		    real idbasis = 0.0;
+		    real jdbasis = 0.0;
+		    real kdbasis = 0.0;
+		    
+		    real rhov = 0.0;
+		    real rhou = 0.0;
+		    real rhow = 0.0;
+		    
+		    real rhovdx = 0.0; real rhoudx = 0.0; real rhowdx = 0.0;
+		    real rhovdy = 0.0; real rhoudy = 0.0; real rhowdy = 0.0;
+		    real rhovdz = 0.0; real rhoudz = 0.0; real rhowdz = 0.0;
+		    
+		    real tprime = 0.0; real tdx = 0.0; real tdy = 0.0; real tdz = 0.0;
+		    real rhoadx = 0.0; real rhoady = 0.0; real rhoadz = 0.0;
+		    real qvdx = 0.0; real qvdy = 0.0; real qvdz = 0.0;
+		    real pdx = 0.0; real pdy = 0.0; real pdz = 0.0;
+		    
+		    real qvprime = 0.0;
+		    real rhoprime = 0.0;
+		    real qrprime = 0.0;
+		    
 		    for (int var = 0; var < varDim; var++) {
-		      for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+		      for (int kkNode = kk - 1; kkNode <= kk + 2; ++kkNode) {
 			int kNode = kkNode;
 			if ((kNode < 0) or (kNode >= kDim)) continue;
-			for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+			for (int iiNode = ii - 1; iiNode <= ii + 2; ++iiNode) {
 			  int iNode = iiNode;
 			  if ((iNode < 0) or (iNode >= iDim)) continue;
-			  for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+			  for (int jjNode = jj-1; jjNode <= jj + 2; ++jjNode) {
 			    int jNode = jjNode;
 			    if ((jNode < 0) or (jNode >= jDim)) continue;
+			    
 			    ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
 			    jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
 			    kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 			    idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
 			    jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
 			    kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+			    
 			    real basis3x = ibasis * jbasis  * kbasis;
 			    int aIndex = varDim * iDim * jDim  * kNode
 			      + varDim * iDim * jNode  + varDim * iNode;
@@ -188,33 +169,34 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 
 		    // Save mish values for future iterations
 		    QString gridref = configHash->value("qr_variable");
-		    if ((imu != 0) and (jmu != 0) and (kmu != 0)) {
+		    if ((imu != 0) and (jmu != 0) and (kmu != 0)) {	// We are on the Mish
 		      int uJ = jIndex * 2 + (jmu + 1) / 2;
 		      int uI = iIndex * 2 + (imu + 1) / 2;
 		      int uK = kIndex * 2 + (kmu + 1) / 2;
-		      int uIndex = varDim*(iDim-1)*2*(jDim-1)*2*uK +varDim*(iDim-1)*2*uJ +varDim*uI;
+		      int uIndex = varDim * (iDim - 1) * 2 * (jDim-1) * 2 * uK
+			+ varDim * (iDim - 1) * 2 * uJ +varDim * uI;
 
-		      bgFields[uIndex] = rhou;
-		      bgFields[uIndex + 1] = rhov;
-		      bgFields[uIndex + 2] = rhow;
-		      bgFields[uIndex + 3] = tprime;
-		      bgFields[uIndex + 4] = qvprime;
-		      bgFields[uIndex + 5] = rhoprime;
-		      bgFields[uIndex + 6] = qrprime;
+		      mishData[uIndex] = rhou;
+		      mishData[uIndex + 1] = rhov;
+		      mishData[uIndex + 2] = rhow;
+		      mishData[uIndex + 3] = tprime;
+		      mishData[uIndex + 4] = qvprime;
+		      mishData[uIndex + 5] = rhoprime;
+		      mishData[uIndex + 6] = qrprime;
 		    }
-
+		    
 		    if ((configHash->value("output_mish") == "false")
-			and (ihalf or jhalf or khalf)) continue;
+			and (ihalf or jhalf or khalf)) continue;		// halfway point on the Mesh
 
 		    // Output it
+		    
 		    real rhoa = rhoBar + rhoprime / 100;
 		    real qv = refstate->bhypInvTransform(qBar + qvprime);
 
 		    if (debug_ref_state && (heightm > 30000))
 		      std::cout << "---- qv: " << qv << ", qBar: " << qBar << ", qvprime: " << qvprime << std::endl;
 
-
-		    real qbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
+		    real qbardz = 1000.0 * refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm, 1);
 		    // qv derivatives multipled by 2 to account for hyperbolic transform
 		    qvdx = 2.0 * qvdx;
 		    qvdy = 2.0 * qvdy;
@@ -222,9 +204,9 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 
 		    real qr;
 		    if (gridref == "dbz") {
-		      qr = qrprime*10. - 35.;
-		      if (qr < -35.) {
-			qr = -999.;
+		      qr = qrprime*10.0 - 35.;
+		      if (qr < -35.0) {
+			qr = -999.0;
 		      }
 		    } else {
 		      qr = refstate->bhypInvTransform(qrprime);
@@ -245,166 +227,178 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 		    }
 		    
 		    real w = rhow / rho;
-		    real wspd = sqrt(u*u + v*v);
+		    real wspd = sqrt(u * u + v * v);
 		    real temp = tBar + tprime;
-		    real tbardz = 1000. * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
+		    real tbardz = 1000.0 * refstate->getReferenceVariable(ReferenceVariable::tempref, heightm, 1);
 		    tdz = tbardz + tdz;
 
-		    real h = 1005.7*temp + 2.501e3*qv + 9.81*heightm;
-		    real airpress = temp*rhoa*287./100.;
+		    real h = 1005.7 * temp + 2.501e3 * qv + 9.81 * heightm;
+		    real airpress = temp * rhoa * 287.0 / 100.0;
 		    //real tempc = temp - 273.15;
 		    //real satvp = 6.112 * exp((17.67 * tempc)/(243.5 + tempc));
 		    real satvp =  exp(-6096.9385 / temp + 16.635794 - 2.711193e-2 * temp
-				      + 1.673952e-5 * temp*temp + 2.433502 * log(temp));
-		    real vp = temp*rhoq*461./100.;
+				      + 1.673952e-5 * temp * temp + 2.433502 * log(temp));
+		    real vp = temp * rhoq * 461.0/100.0;
 		    //real vp = airpress * qv / (622 + qv);
 		    real press = airpress + vp;
 
-		    real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm)/100.;
+		    real pprime = press - refstate->getReferenceVariable(ReferenceVariable::pressref, heightm) / 100.0;
 		    real hprime = h - refstate->getReferenceVariable(ReferenceVariable::href, heightm);
 
-		    real RoverCp = 0.2854*(1 - 0.00028*qv);
-		    real theta = temp * pow((1000/press), RoverCp);
-		    real lcl = 2840/(3.5*log(temp) - log(vp) - 4.805) + 55.0;
-		    real thetae = theta * exp(((3.376/lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
+		    real RoverCp = 0.2854*(1 - 0.00028 * qv);
+		    real theta = temp * pow((1000 / press), RoverCp);
+		    real lcl = 2840 / (3.5 * log(temp) - log(vp) - 4.805) + 55.0;
+		    real thetae = theta * exp(((3.376 / lcl) - 0.00254) * qv * (1 + 0.00081 * qv));
 		    real qvsat = 622 * satvp / airpress;
 		    real relhum = -999.;
 		    real thetaes = -999.;
 		    if (satvp != 0) {
-		      relhum = 100*vp/satvp;
-		      lcl = 2840/(3.5*log(temp) - log(satvp) - 4.805) + 55.0;
-		      thetaes = theta * exp(((3.376/lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
+		      relhum = 100 * vp / satvp;
+		      lcl = 2840 / (3.5 * log(temp) - log(satvp) - 4.805) + 55.0;
+		      thetaes = theta * exp(((3.376 / lcl) - 0.00254) * qvsat * (1 + 0.00081 * qvsat));
 		    } else {
-		      relhum = -999.;
-		      thetaes = -999.;
+		      relhum = -999.0;
+		      thetaes = -999.0;
 		    }
-		    if (relhum > 100.) {
+		    if (relhum > 100.0) {
 		      relhum = 100.0;
 		      vp = satvp;
 		      qv = qvsat;
 		    }
 		    real dewp = -999.0;
 		    if (vp != 0) {
-		      dewp = 237.3 * log(vp/6.1078) / (17.2694 - log(vp/6.1078)) + 273.15;
+		      dewp = 237.3 * log(vp / 6.1078) / (17.2694 - log(vp / 6.1078)) + 273.15;
 		    }
+		    
 		    // Calculate the kinematic derivatives
 		    // rhoa derivatives divided by 100
-		    rhoadx /= 100.;
-		    rhoady /= 100.;
-		    rhoadz /= 100.;
-		    real rhodx = rhoadx * (1. + qv/1000.) + rhoa * qvdx/1000.;
-		    real rhody = rhoady * (1. + qv/1000.) + rhoa * qvdy/1000.;
-		    real rhodz = rhoadz * (1. + qv/1000.) + rhoa * qvdz/1000.;
+		    
+		    rhoadx /= 100.0;
+		    rhoady /= 100.0;
+		    rhoadz /= 100.0;
+		    real rhodx = rhoadx * (1.0 + qv / 1000.) + rhoa * qvdx / 1000.;
+		    real rhody = rhoady * (1.0 + qv / 1000.) + rhoa * qvdy / 1000.;
+		    real rhodz = rhoadz * (1.0 + qv / 1000.) + rhoa * qvdz / 1000.;
 		    real rhobardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm, 1);
 		    rhodz += rhobardz;
 		    real rhoabardz = 1000 * refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm, 1);
 		    rhoadz += rhoabardz;
 
 		    // Units 10-5
-		    real udx = 100. * (rhoudx - u*rhodx) / rho;
-		    real udy = 100. * (rhoudy - u*rhody) / rho;
-		    real udz = 100. * (rhoudz - u*rhodz) / rho;
+		    real udx = 100.0 * (rhoudx - u * rhodx) / rho;
+		    real udy = 100.0 * (rhoudy - u * rhody) / rho;
+		    real udz = 100.0 * (rhoudz - u * rhodz) / rho;
 
-		    real vdx = 100. * (rhovdx - v*rhodx) / rho;
-		    real vdy = 100. * (rhovdy - v*rhody) / rho;
-		    real vdz = 100. * (rhovdz - v*rhodz) / rho;
+		    real vdx = 100.0 * (rhovdx - v * rhodx) / rho;
+		    real vdy = 100.0 * (rhovdy - v * rhody) / rho;
+		    real vdz = 100.0 * (rhovdz - v * rhodz) / rho;
 
-		    real wdx = 100. * (rhowdx - w*rhodx) / rho;
-		    real wdy = 100. * (rhowdy - w*rhody) / rho;
-		    real wdz = 100. * (rhowdz - w*rhodz) / rho;
+		    real wdx = 100.0 * (rhowdx - w * rhodx) / rho;
+		    real wdy = 100.0 * (rhowdy - w * rhody) / rho;
+		    real wdz = 100.0 * (rhowdz - w * rhodz) / rho;
 
 		    // Thermodynamic derivatives
+		    
 		    pdx = (tdx*rhoa + rhoadx*temp)*287./100. + (tdx*rhoq + (rhoadx*qv + qvdx*rhoa)*temp/1000.0)*461./100.;
 		    pdy = (tdy*rhoa + rhoady*temp)*287./100. + (tdy*rhoq + (rhoady*qv + qvdy*rhoa)*temp/1000.0)*461./100.;
 		    pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
 
 		    // Vorticity units are 10-5
+		    
 		    real vorticity = (vdx - udy);
 		    real divergence = (udx + vdy);
 		    real s1 = (udx - vdy);
 		    real s2 = (vdx + udy);
-		    real strain = sqrt(s1*s1 + s2*s2);
-		    real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
+		    real strain = sqrt(s1 * s1 + s2 * s2);
+		    real okuboweiss = vorticity * vorticity - s1 * s1 -s2 * s2;
 		    real mcresidual = rhoudx + rhovdy + rhowdz;
 
 		    // Add Coriolis parameter to relative vorticity
+		    
 		    real latReference = configHash->value("ref_lat").toFloat();
-		    real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
+		    real Coriolisf = 2 * 7.2921 * sin(latReference * acos(-1.0) / 180); // Units 10^-5 s-1
 		    real absVorticity = vorticity + Coriolisf;
 
 		    QString refmask = configHash->value("mask_reflectivity");
 		    if (refmask != "None") {
 		      real refthreshold = refmask.toFloat();
-		      if (qr < refthreshold) {
-			u = -999.;
-			v = -999.;
-			w = -999.;
-			wspd = -999.;
-			relhum = -999.;
-			hprime = -999.;
-			qvprime = -999.;
-			rhoprime = -999.;
-			tprime = -999.;
-			pprime = -999.;
-			vorticity = -999.;
-			absVorticity = -999.;
-			divergence = -999.;
-			okuboweiss = -999.;
-			strain = -999.;
-			tpw = -999.;
-			rhou = -999.;
-			rhov = -999.;
-			rhow = -999.;
-			rho = -999.;
-			press = -999.;
-			temp = -999.;
-			qv = -999.;
-			h = -999.;
-			qr = -999.;
-			udx = -999.; udy = -999.; udz = -999.;
-			vdx = -999.; vdy = -999.; vdz = -999.;
-			wdx = -999.; wdy = -999.; wdz = -999.;
-			tdx = -999.; tdy = -999.; tdz = -999.;
-			qvdx = -999.; qvdy = -999.; qvdz = -999.;
-			pdx = -999.; pdy = -999.; pdz = -999.;
-			rhodx = -999.; rhody = -999.; rhodz = -999.;
-			dewp = -999.;
-			theta = -999.; thetae = -999.; thetaes = -999.;
+		      if (qr < refthreshold) {	// analusysDim variables
+			u = -999.0;
+			v = -999.0;
+			w = -999.0;
+			wspd = -999.0;
+			relhum = -999.0;
+			hprime = -999.0;
+			qvprime = -999.0;
+			rhoprime = -999.0;
+			tprime = -999.0;
+			pprime = -999.0;
+			vorticity = -999.0;
+			absVorticity = -999.0;
+			divergence = -999.0;
+			okuboweiss = -999.0;
+			strain = -999.0;
+			tpw = -999.0;
+			rhou = -999.0;
+			rhov = -999.0;
+			rhow = -999.0;
+			rho = -999.0;
+			press = -999.0;
+			temp = -999.0;
+			qv = -999.0;
+			h = -999.0;
+			qr = -999.0;
+			udx = -999.0; udy = -999.0; udz = -999.0;
+			vdx = -999.0; vdy = -999.0; vdz = -999.0;
+			wdx = -999.0; wdy = -999.0; wdz = -999.0;
+			tdx = -999.0; tdy = -999.0; tdz = -999.0;
+			qvdx = -999.0; qvdy = -999.0; qvdz = -999.0;
+			pdx = -999.0; pdy = -999.0; pdz = -999.0;
+			rhodx = -999.0; rhody = -999.0; rhodz = -999.0;
+			dewp = -999.0;
+			theta = -999.0; thetae = -999.0; thetaes = -999.0;
 		      }
 		    }
 
-		    if (configHash->value("output_txt") == "true") {
-		      samuraistream << scientific << i << "\t" << j << "\t"  << k
-				    << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-				    << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
-				    << "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
-				    << udx << "\t" << udy << "\t" << udz << "\t"
-				    << vdx << "\t" << vdy << "\t" << vdz << "\t"
-				    << wdx << "\t" << wdy << "\t" << wdz << "\t"
-				    << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
+		    if (outStream != NULL) {	// TODO number of vars...
+		      *outStream << scientific << i << "\t" << j << "\t"  << k
+				 << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
+				 << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
+				 << "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
+				 << udx << "\t" << udy << "\t" << udz << "\t"
+				 << vdx << "\t" << vdy << "\t" << vdz << "\t"
+				 << wdx << "\t" << wdy << "\t" << wdz << "\t"
+				 << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
 		    }
 
 		    // Sum up the TPW in the vertical, top level is tpw
 		    tpw += qv * rhoa * DK;
 
-		    // On the nodes
+		    // On the Mesh nodes
 		    if (!ihalf and !jhalf and !khalf) {
 		      int fIndex   = (iDim - 2) * (jDim - 2) * (kDim - 2);
 		      int posIndex = (iDim - 2) * (jDim - 2) * (kIndex - 1)
 			+ (iDim - 2) * (jIndex - 1) + (iIndex - 1);
-		      finalAnalysis[fIndex * 0 + posIndex] = u;
 
-		      if (debug_final_analysis_indices)
-			std::cout << "posIndex: " << posIndex << ", u: " << u
-				  << std::endl;
-		      
+		      finalAnalysis[fIndex * 0 + posIndex] = u;
 		      finalAnalysis[fIndex * 1 + posIndex] = v;
 		      finalAnalysis[fIndex * 2 + posIndex] = w;
+		      
+		      if (numVars == 7) { // std error
+			finalAnalysis[fIndex * 3 + posIndex] = tprime;
+			finalAnalysis[fIndex * 4 + posIndex] = qvprime;
+			finalAnalysis[fIndex * 5 + posIndex] = rhoprime;
+			finalAnalysis[fIndex * 6 + posIndex] = qr;
+			continue;
+		      }
+
+		      // Original code. 51 variables saved in finalAnalysis
+		      
 		      finalAnalysis[fIndex * 3 + posIndex] = wspd;
 		      finalAnalysis[fIndex * 4 + posIndex] = relhum;
 		      finalAnalysis[fIndex * 5 + posIndex] = hprime;
 		      if (qvprime != -999) {
-			finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
+			finalAnalysis[fIndex * 6 + posIndex] = 2 * qvprime;
 		      } else {
 			finalAnalysis[fIndex * 6 + posIndex] = -999;
 		      }
@@ -463,7 +457,71 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
       }
     }
   }
+  return true;
+}
 
+
+bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
+{
+  bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
+  bool debug_ref_state = isTrue("debug_ref_state");
+  bool debug_bgState = isTrue("debug_bgState");
+  
+  if ( debug_bgState) {
+    std::cout << "---- start of debug_bgState" << std::endl;
+    std::cout << "nState: " << nState << std::endl;
+    for (int idx = 0; idx < nState; idx++)
+      std::cout << Astate[idx] << std::endl;
+  }
+  
+  int max_aIndex = -1000;
+  real max_heightm = -1000.0;
+  
+  cout << "Outputting " << suffix.toStdString() << "...\n";
+  // H --> to Mish for output
+  QString samuraiout = "samurai_XYZ_" + suffix + ".out";
+  
+  ofstream samuraistream;
+  ofstream *samStreamPtr = NULL;;
+  
+  if (configHash->value("output_txt") == "true") {
+    samStreamPtr = &samuraistream;
+    samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
+    samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
+    samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
+    samuraistream.precision(10);
+  }
+
+  int analysisDim = 51;
+  int analysisSize = (iDim - 2) * (jDim - 2) * (kDim - 2); // mesh grid
+
+  finalAnalysis = new real[analysisSize * analysisDim];
+  
+  // real gausspoint = 0.5 * sqrt(1. / 3.);
+
+  if (debug_final_analysis_indices) {
+    std::cout << "-------- start of debug_final_analysis_indices" << std::endl;
+    std::cout << "analysisDim: " << analysisDim << ", analysisSize: " << analysisSize
+	      << ", allocated: " << analysisSize * analysisDim << std::endl;
+  }
+
+  if (debug_ref_state)
+    std::cout << "--- start of debug_ref_state" << std::endl;
+
+  // SItransform
+  // Loops on both mish and mesh datapoints
+  // Fills finalAnalysis
+  // Modifies the mish (bgFields which is bgU)
+
+  SItransform(51, finalAnalysis, bgFields, Astate, samStreamPtr); // write bgU
+  variance.writeDebugNc("debug.out/bgU_SI.nc", true, bgFields);
+
+  // SItransform on std errors
+  double *finalErrors = new double[analysisSize * varDim];
+  SItransform(varDim, finalErrors, variance.getMishData(), variance.getMeshData(), NULL);
+  variance.writeDebugNc("debug.out/std_errors_SI.nc", true, variance.getMishData());
+  variance.setFinalData(finalErrors);
+  
   if (debug_final_analysis_indices)
     std::cout << "-------- end of debug_final_analysis_indices" << std::endl;
 
@@ -613,7 +671,23 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   if (!(timeDim = dataFile.add_dim("time")))
     return NC_ERR;
 
+#if 0
+  // ---------- TODO debug ----------
+  size_t mish_dims[3];
+  variance.getMishDims(mish_dims);
+  
+  NcDim *z0Dim, *y0Dim, *x0Dim;
+  if (!(x0Dim = dataFile.add_dim("x0", mish_dims[2])))
+    return NC_ERR;
+  if (!(y0Dim = dataFile.add_dim("y0", mish_dims[1])))
+    return NC_ERR;
+  if (!(z0Dim = dataFile.add_dim("z0", mish_dims[0])))
+    return NC_ERR;
+  // ---------- end TODO debug ----------
+#endif
+  
   // Define the coordinate variables.
+  
   NcVar *latVar, *lonVar, *lvlVar, *timeVar, *xVar, *yVar;
   if (!(lonVar = dataFile.add_var("longitude", ncFloat, lonDim)))
     return NC_ERR;
@@ -631,6 +705,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   // Define units attributes for coordinate vars. This attaches a
   // text attribute to each of the coordinate variables, containing
   // the units.
+  
   if (!latVar->add_att("units", "degrees_north"))
     return NC_ERR;
   if (!lonVar->add_att("units", "degrees_east"))
@@ -645,6 +720,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     return NC_ERR;
 
   // Define the netCDF variables
+  
   NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
   NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
   NcVar *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
@@ -652,7 +728,13 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   NcVar *dtdx, *dqdx, *dpdx, *dtdy, *dqdy, *dpdy, *dtdz, *dqdz, *dpdz;
   NcVar *drhodx, *drhody, *drhodz;
   NcVar *dewp, *theta, *thetae, *thetaes, *mcresidual;
-
+  
+  NcVar *U_std, *V_std, *W_std;	    // Mesh variables (final analysis on std errors, after SItransform)
+  
+#if 0  // TODO debug
+  NcVar *dU_std, *dV_std, *dW_std;  // Mish variables (mish values modified by SItransform)
+#endif
+  
   if (!(u = dataFile.add_var("U", ncFloat, timeDim,
 			     lvlDim, latDim, lonDim)))
     return NC_ERR;
@@ -813,6 +895,36 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 				      lvlDim, latDim, lonDim)))
     return NC_ERR;
 
+  // Std Error
+  
+  // Final U, V, W are the result of running SBtransform, SAtransform, and SItransform
+  
+  if (!(U_std = dataFile.add_var("Final_U_std", ncFloat, timeDim,
+			     lvlDim, latDim, lonDim)))
+    return NC_ERR;
+  if (!(V_std = dataFile.add_var("Final_V_std", ncFloat, timeDim,
+			     lvlDim, latDim, lonDim)))
+    return NC_ERR;
+  if (!(W_std = dataFile.add_var("Final_W_std", ncFloat, timeDim,
+			     lvlDim, latDim, lonDim)))
+    return NC_ERR;
+
+#if 0
+  // Std U, V, W are the std errors on the mish after modified by SItransform
+  
+  if (!(dU_std = dataFile.add_var("Std_U_modified", ncFloat, timeDim,
+				  z0Dim, y0Dim, x0Dim)))
+    return NC_ERR;
+  if (!(dV_std = dataFile.add_var("Std_V_modified", ncFloat, timeDim,
+				  z0Dim, y0Dim, x0Dim)))
+    return NC_ERR;
+  if (!(dW_std = dataFile.add_var("Std_W_modified", ncFloat, timeDim,
+				  z0Dim, y0Dim, x0Dim)))
+    return NC_ERR;
+#endif
+  
+  // End of std error
+  
   // Define units attributes for data variables.
   if (!u->add_att("units", "m s-1"))
     return NC_ERR;
@@ -1294,7 +1406,7 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     return NC_ERR;
 
   // Write the data.
-  for (int rec = 0; rec < 1; rec++) {	// TODO why the loop. placeholder for multiple time?
+  for (int rec = 0; rec < 1; rec++) {
     
     if (isTrue("debug_adjust_background")) {
       std::cout << "=== Begin debug_adjust_background" << std::endl;
@@ -1410,6 +1522,42 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
     if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*kDim*50], rec))
       return NC_ERR;
 
+
+    // Print final analysis version of Std Errors
+    
+    double *errors = variance.getFinalData();
+    if (! U_std->put_rec(&errors[0] ) )
+      return NC_ERR;
+    if (! V_std->put_rec(&errors[iDim * jDim * kDim * 1], rec))
+      return NC_ERR;
+    if (! W_std->put_rec(&errors[iDim * jDim * kDim * 2], rec))
+      return NC_ERR;
+
+#if 0
+    // Print the modified Mish	// TODO do we want to print this?
+    
+    errors = variance.getMishVar(0);
+    if (errors == NULL)
+      return NC_ERR;
+    if (! dU_std->put_rec(errors, rec))
+      return NC_ERR;
+    delete[] errors;
+    
+    errors = variance.getMishVar(1);
+    if (errors == NULL)
+      return NC_ERR;
+    if (! dV_std->put_rec(errors, rec))
+      return NC_ERR;
+    delete[] errors;
+    
+    errors = variance.getMishVar(2);
+    if (errors == NULL)
+      return NC_ERR;
+    if (! dW_std->put_rec(errors, rec))
+      return NC_ERR;
+    delete[] errors;
+#endif
+    
   }
 
   // The file is automatically closed by the destructor. This frees
@@ -1421,7 +1569,6 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   delete[] x;
   delete[] y;
   return true;
-
 }
 
 bool CostFunctionXYZ::writeAsi(const QString& asiFileName)

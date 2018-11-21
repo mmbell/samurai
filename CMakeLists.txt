@@ -2,7 +2,7 @@ project(samurai)
 cmake_minimum_required ( VERSION 3.0 )
 set ( CMAKE_BUILD_TYPE Debug )
 set ( CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -Og" )
-# set ( CMAKE_BUILD_TYPE Release )
+#set ( CMAKE_BUILD_TYPE Release )
 #set ( CMAKE_CXX_COMPILER "icpc" )
 #set ( CMAKE_CXX_COMPILER "g++-4.2" )
 #set ( CMAKE_CXX_COMPILER "/home/mbell/bin/g++" )
@@ -20,13 +20,13 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 # which point to directories outside the build tree to the install RPATH
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set ( CMAKE_CXX_FLAGS "-g -std=c++11  -fPIC" )
-# set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-rpath,/home/mbell/lib64 -Wl,-rpath,/home/mbell/lib" )
-# set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,/home/mbell/lib64 -Wl,-rpath,/home/mbell/lib -Wl,-rpath,/usr/local/lrose/lib")
+set ( LROSE_INCLUDE_DIR	    "${LROSE_PREFIX}/include" )
+set ( LROSE_LIBRARY     "-L ${LROSE_PREFIX}/lib -lkd" )
 
-# set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-rpath,/home/mbell/lib64 -Wl,-rpath,/home/mbell/lib" )
-# set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,/home/mbell/lib66 -Wl,-rpath,/home/mbell/lib -Wl,-rpath,/usr/local/lrose/lib")
-set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,/usr/local/lrose/lib")
+
+set ( CMAKE_CXX_FLAGS "-g -std=c++11  -fPIC" )
+# set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,/usr/local/lrose/lib")
+set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,${LROSE_PREFIX}/lib")
 
 add_definitions ( -Wall )
 
@@ -110,7 +110,8 @@ set ( samurai_HDRS
 	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
 	src/CostFunctionCOAMPS.cpp
-        src/Dorade.h 
+        src/Dorade.h
+	src/ErrorData.h
         src/FrameCenter.h
 	src/MetObs.h 
         src/Observation.h 
@@ -143,6 +144,7 @@ set ( common_SRCS
 	src/CostFunctionRTZ.cpp
 	src/CostFunctionCOAMPS.cpp
 	src/Dorade.cpp
+	src/ErrorData.cpp
         src/FrameCenter.cpp
 	src/MetObs.cpp
 	src/mac_debug.xcconfig

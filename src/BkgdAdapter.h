@@ -14,7 +14,10 @@
 //       Samurai github wiki
 //   a set of arrays. This is a new format to support COAMPS.
 //       This interface is a work in progress.
-//
+//   Both the methods above expect to iterate over each iteration (line per line, or array rows)
+//   a Fractl generated netcdf file
+//       This one doesn't need to act as an iterator since no interpolation is done.
+//       So it really is just a placeholder
 
 class BkgdAdapter {
 
@@ -186,6 +189,14 @@ class BkgdCArray : public BkgdArray {
   
   float item3d(float *a3d, int x, int y, int z);
   float item2d(float *a2d, int x, int y);
+};
+
+// Place holder for Fractl input
+
+class BkgdFractl : public BkgdAdapter {
+  bool next(int &time, real &lat, real &lon, real &alt, real &u,
+	    real &v, real &w, real &t, real &qv, real &rhoa, real &qr) { return true;};
+  bool checkTime() { return true; };
 };
 
 #endif

@@ -14,6 +14,9 @@
 #include "RecursiveFilter.h"
 #include "Observation.h"
 #include "ReferenceState.h"
+// #include "VarDriver3D.h"
+#include "ErrorData.h"
+
 #include <iostream>
 #include <fstream>
 #include <iterator>
@@ -25,12 +28,12 @@
 //#include <complex.h>
 #include <fftw3.h>
 
-class CostFunction3D: public CostFunction
+class CostFunction3D : public CostFunction
 {
 
 public:
 
-  CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
+CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
     void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();
@@ -76,6 +79,8 @@ protected:
 	void calcHmatrix();
 	void Htransform(const real* Cstate, real* Hstate);
 	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
+
+	void initBkgdErrors();
 	
 	bool mishFlag;
 	int iDim, jDim, kDim;
@@ -150,6 +155,8 @@ protected:
 
 	ReferenceState* refstate;
 	QDir outputPath;
+
+	ErrorData variance;
 };
 
 #endif

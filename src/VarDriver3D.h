@@ -88,7 +88,9 @@ private:
 			     float imin, float imax, float iincr,
 			     float jmin, float jmax, float jincr,
 			     float *sigmas);
+	bool validateFractlGrid();				// grid comes from Fractl netcdf file
 	bool validateGrid();						// called by both validate*Grid above
+	
 	void fillRunCenters(char cdtg[10], int delta, int iter, float lat, float lon);
 	bool initObCost3D();
 	bool gridDependentInit();

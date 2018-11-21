@@ -1,3 +1,4 @@
+#include <cmath>
 #include <netcdfcpp.h>
 
 #include "BkgdObsLoaders.h"
@@ -27,7 +28,6 @@ BkgdObsLoader *BkgdObsLoaderFactory::createBkgdObsLoader(BkgdObsLoader::bg_loade
 
 BkgdObsLoader::BkgdObsLoader()
 {
-  // TODO do we need to check that adapter isn't NULL?
 }
 
 BkgdObsLoader::~BkgdObsLoader()
@@ -170,6 +170,47 @@ bool BkgdObsLoader::timeCheck(real time, QDateTime &startTime, QDateTime &endTim
   return true;
 }
 
+// This uses the kd tree implementation in the lrose-core distribution
+// The returned tree has no observation data. It is built only with observation coordinates
+//
+
+KD_tree *BkgdObsLoader::buildKDTree(QList<double> &bgIn)
+{
+  long numPoints;
+  int numDims = 3;
+
+  bool debug = isTrue("debug_kd_build");
+
+  if (debug)
+    std::cout << "--- start of kdtree matrix (bgX, bgY, bgZ from bgIn. using exp(logZ). " << std::endl;
+  
+  numPoints = bgIn.size() / 11;			// 11 entries per observations
+  KD_real **matrix = new KD_real*[numPoints];	// numPoints * ndim
+
+  long bgIndex = 0;
+  for (long i = 0; i < numPoints; i++) {
+    matrix[i] = new KD_real[numDims];
+    
+    matrix[i][0] = bgIn[bgIndex + 0];		// bgX
+    matrix[i][1] = bgIn[bgIndex + 1];		// bgY
+    matrix[i][2] = exp(bgIn[bgIndex + 2]);	// exp(logZ)
+    
+    if (debug)
+	std::cout <<   "bgX: " <<  matrix[i][0]
+		  << ", bgY: " <<  matrix[i][1]
+		  << ", bgZ: " <<  matrix[i][2]
+		  << std::endl;
+    
+    bgIndex += 11;
+  }
+  if (debug)
+    std::cout << "--- end of kdtree matrix" << std::endl;;
+
+  return new KD_tree( (const KD_real **) matrix,
+		       numPoints,
+		       numDims);
+}
+
 void BkgdObsLoader::dumpBgIn(int from, int to, QList<real> &bgIn)
 {
   std::cout << std::endl
@@ -220,12 +261,13 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
 
   // Create a 3D array to be written out
 
-  int iDim = (idim + 1) * 2 + 1;
-  int jDim = (jdim + 1) * 2 + 1;
-  int kDim = (kdim + 1) * 2 + 1;
+  int iDim = (idim + 1) * 2;
+  int jDim = (jdim + 1) * 2;
+  int kDim = (kdim + 1) * 2;
 
   std::cout << "idim: " << idim << ", jdim: " << jdim << ", kdim: " << kdim << std::endl;
   std::cout << "iDim: " << iDim << ", jDim: " << jDim << ", kDim: " << kDim << std::endl;
+
   
   double *data = (double *) malloc(iDim * jDim * kDim * sizeof(double));
   
@@ -235,60 +277,9 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
     return;
   }
 
-  int maxI = 0, maxJ = 0, maxK = 0;
-  
-  for (int ii = -1; ii < (idim); ii++) {
-    for (int imu = -1; imu <= 1; imu += 2) {
-      // real iPos = imin + iincr * (ii + (0.5 * sqrt(1. / 3.) * imu + 0.5));
-	    
-      for (int ji = -1; ji < (jdim); ji++) {
-	for (int jmu = -1; jmu <= 1; jmu += 2) {
-	  // real jPos = jmin + jincr * (ji + (0.5 * sqrt(1. / 3.) * jmu + 0.5));
-		
-	  for (int ki = -1; ki < (kdim); ki++) {
-	    for (int kmu = -1; kmu <= 1; kmu += 2) {
-	      // real kPos = kmin + kincr * (ki + (0.5 * sqrt(1. / 3.) * kmu + 0.5));
-
-	      int bgI = (ii + 1) * 2 + (imu + 1) / 2;
-	      int bgJ = (ji + 1) * 2 + (jmu + 1) / 2;
-	      int bgK = (ki + 1) * 2 + (kmu + 1) / 2;
-
-	      if (bgI > maxI) maxI = bgI;
-	      if (bgJ > maxJ) maxJ = bgJ;	      
-	      if (bgK > maxK) maxK = bgK;
-	      
-	      // index into bgU (flat array)
-	      int bIndex = numVars * (idim + 1) * 2 * (jdim + 1) * 2 * bgK
-		+ numVars * (idim + 1) * 2 * bgJ + numVars * bgI;
-
-	      // Index into data array (also a flat array)
-	      // int dIndex = bgK + kDim * (bgJ + jDim * bgI);
-	      
-	      int dIndex = bgI + iDim * (bgJ + jDim * bgK);   // lets reverse it for Ncdf
-
-	      data[dIndex] = bgU[bIndex];
-	      // data[dIndex] = dIndex; // TODO debug
-
-	      std::cout << "bIndex: " << bIndex << ", dIndex: " << dIndex
-			<< ", val: " << bgU[bIndex]
-			<< ", bgI: " << bgI << ", bgJ: " << bgJ << ", bgK: " << bgK
-			<< std::endl;
-	    }
-	  }
-	}
-      }
-    }
-  }
-
-  std::cout << "maxI: " << maxI << ", maxJ: " << maxJ << ", maxK: " << maxK << std::endl;
-  
   NcDim *dim1 = dataFile.add_dim("IDIM", iDim);
   NcDim *dim2 = dataFile.add_dim("JDIM", jDim);
   NcDim *dim3 = dataFile.add_dim("KDIM", kDim);
-
-  // NcDim *dim1 = dataFile.add_dim("IDIM", maxI + 1);
-  // NcDim *dim2 = dataFile.add_dim("JDIM", maxJ + 1);
-  // NcDim *dim3 = dataFile.add_dim("KDIM", maxK + 1);
 
   if ( (! dim1) || (! dim2) || (! dim3) ) {
     delete data;
@@ -296,15 +287,59 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
     return;
   }
 
-  NcVar *u_var = dataFile.add_var("U", ncDouble, dim3, dim2, dim1);
-  if ( ! u_var) {
-    std::cout << "Failed to add_var" << std::endl;
-    delete data;
-    return;
+  string var_names[] = { "rhou", "rhov", "rhow", "tprime", "qvprime", "rhoprime", "logZ" };
+  
+  // For each variable we want to dump
+
+  for (unsigned int var = 0; var < numVars; var++) {
+
+    for (int ii = -1; ii < (idim); ii++) {
+      for (int imu = -1; imu <= 1; imu += 2) {
+	    
+	for (int ji = -1; ji < (jdim); ji++) {
+	  for (int jmu = -1; jmu <= 1; jmu += 2) {
+		
+	    for (int ki = -1; ki < (kdim); ki++) {
+	      for (int kmu = -1; kmu <= 1; kmu += 2) {
+
+		int bgI = (ii + 1) * 2 + (imu + 1) / 2;
+		int bgJ = (ji + 1) * 2 + (jmu + 1) / 2;
+		int bgK = (ki + 1) * 2 + (kmu + 1) / 2;
+
+		// index into bgU (flat array)
+		int bIndex = numVars * (idim + 1) * 2 * (jdim + 1) * 2 * bgK
+		  + numVars * (idim + 1) * 2 * bgJ + numVars * bgI;
+
+		// Index into data array (also a flat array)
+		// int dIndex = bgK + kDim * (bgJ + jDim * bgI);
+	      
+		int dIndex = bgI + iDim * (bgJ + jDim * bgK);   // lets reverse it for Ncdf
+
+		data[dIndex] = bgU[bIndex + var];
+
+		// std::cout << "bIndex: " << bIndex << ", dIndex: " << dIndex
+		// 	  << ", val: " << bgU[bIndex]
+		// 	  << ", bgI: " << bgI << ", bgJ: " << bgJ << ", bgK: " << bgK
+		// 	  << std::endl;
+		
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    NcVar *the_var = dataFile.add_var(var_names[var].c_str(), ncDouble, dim3, dim2, dim1);
+    if ( ! the_var) {
+      std::cout << "Failed to add_var" << std::endl;
+      delete data;
+      return;
+    }
+    
+    for(long rec = 0; rec < kDim; rec++)
+      if ( ! the_var->put_rec(&data[iDim * jDim * rec], rec) )
+	std::cout << "Failed to write data at " << rec << " elevation" << std::endl;
   }
-  for(long rec = 0; rec < kDim; rec++)
-    if ( ! u_var->put_rec(&data[iDim * jDim * rec], rec) )
-      std::cout << "Failed to write data at " << rec << " elevation" << std::endl;
   delete data;
 }
 
@@ -386,7 +421,7 @@ bool BkgdObsSplineLoader::initialize(QHash<QString, QString> *config,
 // Fill bgIn with observations within time and domain
 // bgIn has 11 fields (see bgIn <<)
 //
-// Fill bgU with ???
+// Fill bgU with gridded values extrapolated from bgIn
 
 bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
 {
@@ -796,7 +831,7 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
   rBG.clear();
   zBG.clear();
 
-  return true; // TODO anything better?
+  return true;
 }
 
 // ---------------- The K-D Tree Background Obs Loader ------------------
@@ -862,7 +897,7 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
 	    << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << std::endl;
   
   // background is in km, ROI is gridpoints
-  // TODO that comment doesn't see correct. These are set to 45.0 in the config file...
+  // TODO that comment doesn't seem correct. These are set to 45.0 in the config file...
   
   iROI = configHash->value("i_background_roi").toFloat() / iincr;
   jROI = configHash->value("j_background_roi").toFloat() / jincr;
@@ -1037,7 +1072,7 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
 	      centerLoc[1] = jPos;
 	      centerLoc[2] = kPos;
 
-	      fillIt(centerLoc, nbrMax, maxDist, bgIn, kdTree, bgU, bIndex, emptybg, debugKd);
+	      fillBguEntry(centerLoc, nbrMax, maxDist, bgIn, kdTree, bgU, bIndex, emptybg, debugKd);
 	      if (debugKd > 0)
 		debugKd -= debugKdStep;
 	    }
@@ -1066,7 +1101,7 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
   return true;
 }
 
-bool BkgdObsKDLoader::fillIt(KD_real *centerLoc, int nbrMax, float maxDistance,
+bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
 			     QList<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
 			     QVector<int> &emptybg,			     
 			     int debug)
@@ -1106,7 +1141,7 @@ bool BkgdObsKDLoader::fillIt(KD_real *centerLoc, int nbrMax, float maxDistance,
     // nbrIxs[inbr] is the index of the observation. We need to convert that to
     // an index into the bgIn array
 
-    long bgInIdx = nbrIxs[inbr] * 11;		// 11 fields per obs  TODO Is this correct?
+    long bgInIdx = nbrIxs[inbr] * 11;
     
     float bgX      = bgIn[bgInIdx + 0];
     float bgY      = bgIn[bgInIdx + 1];
@@ -1147,11 +1182,6 @@ bool BkgdObsKDLoader::fillIt(KD_real *centerLoc, int nbrMax, float maxDistance,
   if (numNbrActual > 0) {	// we have enough neighbors
     // set the ob mean fields to the corresponding stat / corresponding start number of good
     bgU[bIndex]		= sumU / numNbrActual;
-
-    // if ( (bgU[bIndex] < -50.0 ) || (bgU[bIndex] > 50.0 ) )
-    //   std::cout << "U at (" << centerLoc[0] << ", " << centerLoc[1] << ", " << centerLoc[2]
-    // 		<< "): " << bgU[bIndex] << std::endl;
-
     bgU[bIndex + 1]	= sumV / numNbrActual;
     bgU[bIndex + 2]	= sumW / numNbrActual;
     bgU[bIndex + 3]	= sumTprime / numNbrActual;
@@ -1165,217 +1195,268 @@ bool BkgdObsKDLoader::fillIt(KD_real *centerLoc, int nbrMax, float maxDistance,
   return true;
 }
 
-// This uses the kd tree implementation in the lrose-core distribution
-// The returned tree has no observation data. It is built only with observation coordinates
-//
-// TODO verify assumption: If x,y,z is entered into the tree, 
 
-KD_tree *BkgdObsKDLoader::buildKDTree(QList<double> &bgIn)
-{
-  long numPoints;
-  int numDims = 3;
+// ---------------- The FRACTL Mish Background Obs Loader ------------------
 
-  bool debug = isTrue("debug_kd_build");
-
-  if (debug)
-    std::cout << "--- start of kdtree matrix (bgX, bgY, bgZ from bgIn. using exp(logZ). " << std::endl;
-  
-  numPoints = bgIn.size() / 11;			// 11 entries per observations
-  KD_real **matrix = new KD_real*[numPoints];	// numPoints * ndim
-
-  long bgIndex = 0;
-  for (long i = 0; i < numPoints; i++) {
-    matrix[i] = new KD_real[numDims];
-    
-    matrix[i][0] = bgIn[bgIndex + 0];		// bgX
-    matrix[i][1] = bgIn[bgIndex + 1];		// bgY
-    matrix[i][2] = exp(bgIn[bgIndex + 2]);	// exp(logZ)
-    
-    if (debug)
-	std::cout <<   "bgX: " <<  matrix[i][0]
-		  << ", bgY: " <<  matrix[i][1]
-		  << ", bgZ: " <<  matrix[i][2]
-		  << std::endl;
-    
-    bgIndex += 11;
-  }
-  if (debug)
-    std::cout << "--- end of kdtree matrix" << std::endl;;
-
-  return new KD_tree( (const KD_real **) matrix,
-		       numPoints,
-		       numDims);
-}
-
-// ---------------- The FRACTL Background Obs Loader ------------------
+// This loader assumes that Fractl was run with the GRID_MISH option.
 
 BkgdObsFractlLoader::BkgdObsFractlLoader() {}
 BkgdObsFractlLoader::~BkgdObsFractlLoader() {}
 
 bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
 {
-
   NcError err(NcError::verbose_nonfatal);
   // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
   QString fname = configHash->value("fractl_nc_file");
   
-   // Open the file.
+  // Open the file.
   NcFile dataFile(fname.toLatin1().data(), NcFile::ReadOnly);
    
-   // Check to see if the file was opened.
-   if(!dataFile.is_valid()) {
-     std::cout << "Failed to read FRACTL generated nc file " << fname.toLatin1().data()
-	       << std::endl;
-     return false;
-   }
+  // Check to see if the file was opened.
+  if(!dataFile.is_valid()) {
+    std::cout << "Failed to read FRACTL generated nc file " << fname.toLatin1().data()
+	      << std::endl;
+    return false;
+  }
 
-   NcDim *timeDim = dataFile.get_dim("time");
-   if (! timeDim)
-     return false;
-
-   NcDim *z0Dim = dataFile.get_dim("z0");
-   if (! z0Dim)
-     return false;
-
-   NcDim *y0Dim = dataFile.get_dim("y0");
-   if (! y0Dim)
-     return false;
-
-   NcDim *x0Dim = dataFile.get_dim("x0");
-   if (! x0Dim)
-     return false;
-
-   long ntime = timeDim->size();
-   long nz0 = z0Dim->size();
-   long ny0 = y0Dim->size();
-   long nx0 = x0Dim->size();   
+  // TODO The same size variables are also read in VarDriver3D::validateFractlGrid()
+  //      Combine into common code?
    
-   NcVar *z0 = dataFile.get_var("z0");
-   if (! z0)
-     return false;
+  NcDim *timeDim = dataFile.get_dim("time");
+  if (! timeDim)
+    return false;
+
+  NcDim *z0Dim = dataFile.get_dim("z0");
+  if (! z0Dim)
+    return false;
+
+  NcDim *y0Dim = dataFile.get_dim("y0");
+  if (! y0Dim)
+    return false;
+
+  NcDim *x0Dim = dataFile.get_dim("x0");
+  if (! x0Dim)
+    return false;
+
+  long ntime = timeDim->size();
+  long nz0 = z0Dim->size();
+  long ny0 = y0Dim->size();
+  long nx0 = x0Dim->size();
+
+  NcVar *time0 = dataFile.get_var("time");
+  if (! time0)
+    return false;
    
-   NcVar *y0 = dataFile.get_var("y0");
-   if (! y0)
-     return false;
-   NcVar *x0 = dataFile.get_var("x0");
-   if (! x0)
-     return false;
-   NcVar *lat0 = dataFile.get_var("lat0");
-   if (! lat0)
-     return false;
-   NcVar *lon0 = dataFile.get_var("lon0");
-   if (! lon0)
-     return false;
-
-   NcVar *upward_air_velocity = dataFile.get_var("upward_air_velocity");
-   if (! upward_air_velocity)
-     return false;
-   NcVar *northward_wind = dataFile.get_var("northward_wind");
-   if (! northward_wind)
-     return false;
-   NcVar *eastward_wind = dataFile.get_var("eastward_wind");
-   if (! eastward_wind)
-     return false;
-   NcVar *meanNbrDbz = dataFile.get_var("meanNbrDbz");
-   if (! meanNbrDbz)
-       return false;
-
-   long numBgObs = ntime * nz0 * ny0 * nx0;
+  NcVar *z0 = dataFile.get_var("z0");
+  if (! z0)
+    return false;
    
-   if (numBgObs <= 0) {
-     std::cout << "No background observations loaded" << std::endl;
-     return false;
-   }
-   std::cout << "Loading " << numBgObs << " background observations" << std::endl;
+  NcVar *y0 = dataFile.get_var("y0");
+  if (! y0)
+    return false;
+  NcVar *x0 = dataFile.get_var("x0");
+  if (! x0)
+    return false;
+  NcVar *lat0 = dataFile.get_var("lat0");
+  if (! lat0)
+    return false;
+  NcVar *lon0 = dataFile.get_var("lon0");
+  if (! lon0)
+    return false;
+
+  NcVar *upward_air_velocity = dataFile.get_var("W");
+  if (! upward_air_velocity)
+    return false;
+  NcVar *northward_wind = dataFile.get_var("V");
+  if (! northward_wind)
+    return false;
+  NcVar *eastward_wind = dataFile.get_var("U");
+  if (! eastward_wind)
+    return false;
+  NcVar *meanNbrDbz = dataFile.get_var("DBZ");
+  if (! meanNbrDbz)
+    return false;
+
+  NcVar *meanNeighborNcp = dataFile.get_var("NCP");
+  if (! meanNeighborNcp)
+    return false;
+
+  NcVar *W_std = dataFile.get_var("W_std");
+  if (! W_std)
+    return false;
+  NcVar *V_std = dataFile.get_var("V_std");
+  if (! V_std)
+    return false;
+  NcVar *U_std = dataFile.get_var("U_std");
+  if (! U_std)
+    return false;
    
-   // Allocate data arrays
-
-   double *lats = new double[nx0 * ny0];
-   double *lons = new double[nx0 * ny0];
-   double *alts = new double[nz0];
-
-   double *upWind = new double[numBgObs];
-   double *northWind = new double[numBgObs];
-   double *eastWind = new double[numBgObs];
-   double *meanDbz =  new double[numBgObs];
+  long numBgObs = ntime * nz0 * ny0 * nx0;
    
-   bool success = true;
-
-   // Get the heights in meter
+  if (numBgObs <= 0) {
+    std::cout << "No background observations loaded" << std::endl;
+    return false;
+  }
+  std::cout << "Loading " << numBgObs << " background observations" << std::endl;
    
-   if (alts == NULL) {
-     std::cout << "Failed to allocate altitude table." << std::endl;
-     success = false;
-   }
+  // Allocate data arrays
 
-   if ( success && ! z0->get(alts, 1, nz0) ) {
-     std::cout << "Failed to read in altitudes." << std::endl;
-     success = false;
-   }
+  double *times = new double[ntime];
    
-   for (int rec = 0; rec < ntime; rec++) {
-     if ( ! upward_air_velocity->set_cur(rec, 0, 0, 0)) {
-       std::cout << "Failed to read in upward air velocity" << std::endl;
-       success = false;
-     }	 
-     if ( success && ! upward_air_velocity->get(upWind, 1, nz0, ny0, nx0)) {
-       std::cout << "Failed to read in upward air velocity" << std::endl;
-       success = false;
-     }
+  double *lats = new double[nx0 * ny0];
+  double *lons = new double[nx0 * ny0];
+  double *alts = new double[nz0];
 
-     if ( success && ! northward_wind->set_cur(rec, 0, 0, 0)) {
-       std::cout << "Failed to read in northward air velocity" << std::endl;
-       success = false;
-     }
-     if ( success && ! northward_wind->get(northWind, 1, nz0, ny0, nx0)) {
-       std::cout << "Failed to read in northward air velocity" << std::endl;
-       success = false;
-     }
+  double *upWind = new double[numBgObs];
+  double *northWind = new double[numBgObs];
+  double *eastWind = new double[numBgObs];
+  double *meanDbz =  new double[numBgObs];
+
+  double *wStd = new double[numBgObs];
+  double *vStd = new double[numBgObs];
+  double *uStd = new double[numBgObs];
+   
+  bool success = true;
+
+  // Make sure table allocations worked.
+  // alts was allocated last so if any are going to fail that would be the one.
+   
+  if (alts == NULL) {
+    std::cout << "Failed to allocate altitude table." << std::endl;
+    success = false;
+  }
+   
+  // Get the time array
+
+  if ( success && ! time0->get(times, 1, ntime) ) {
+    std::cout << "Failed to read in the times." << std::endl;
+    success = false;
+  }
+   
+  // Get the heights in meter
+   
+  if ( success && ! z0->get(alts, nz0) ) {
+    std::cout << "Failed to read in altitudes." << std::endl;
+    success = false;
+  }
+   
+  for (int rec = 0; rec < ntime; rec++) {
+    if ( ! upward_air_velocity->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in upward air velocity" << std::endl;
+      success = false;
+    }	 
+    if ( success && ! upward_air_velocity->get(upWind, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in upward air velocity" << std::endl;
+      success = false;
+    }
+
+    if ( success && ! northward_wind->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in northward air velocity" << std::endl;
+      success = false;
+    }
+    if ( success && ! northward_wind->get(northWind, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in northward air velocity" << std::endl;
+      success = false;
+    }
      
-     if ( success && ! eastward_wind->set_cur(rec, 0, 0, 0)) {
-       std::cout << "Failed to read in eastward air velocity" << std::endl;
-       success = false;
-     }
-     if ( success && ! eastward_wind->get(eastWind, 1, nz0, ny0, nx0)) {
-       std::cout << "Failed to read in eastward air velocity" << std::endl;
-       success = false;
-     }
+    if ( success && ! eastward_wind->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in eastward air velocity" << std::endl;
+      success = false;
+    }
+    if ( success && ! eastward_wind->get(eastWind, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in eastward air velocity" << std::endl;
+      success = false;
+    }
      
-     if ( success && ! meanNbrDbz->set_cur(rec, 0, 0, 0)) {
-       std::cout << "Failed to read in mean dbZ" << std::endl;
-       success = false;
-     }
-     if ( success && ! meanNbrDbz->get(meanDbz, 1, nz0, ny0, nx0)) {
-       std::cout << "Failed to read in mean dbZ" << std::endl;
-       success = false;
-     }
-   }
+    if ( success && ! meanNbrDbz->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in mean dbZ" << std::endl;
+      success = false;
+    }
+    if ( success && ! meanNbrDbz->get(meanDbz, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in mean dbZ" << std::endl;
+      success = false;
+    }
 
-   for (int z = 0; z < nz0; z++) {
+    if ( success && ! W_std->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in W_std" << std::endl;
+      success = false;
+    }
      
-     float heightm = alts[z];
-     float rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm);
+    if ( success && ! W_std->get(wStd, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in W_std" << std::endl;
+      success = false;
+    }
 
-     for (int y = 0; y < ny0; y++) {
-       for (int x = 0; x < nx0; x++) {
-	 
-	 int vIndex = x + nx0 * (y + ny0 * z);		// variables index
-	 int bIndex = vIndex * numVars;			// index into bgU
-	 
-	 bgU[bIndex + 0] = upWind[vIndex] * rho;	// rhou
-	 bgU[bIndex + 1] = northWind[vIndex] * rho;	// rhov
-	 bgU[bIndex + 2] = eastWind[vIndex] * rho;	// rhow
-	 bgU[bIndex + 3] = 0.0;				// t'
-	 bgU[bIndex + 4] = 0.0;				// qv'
-	 bgU[bIndex + 5] = rho;				// rho'
-	 bgU[bIndex + 6] = meanDbz[vIndex];
-       }
-     }
-   }
+    if ( success && ! V_std->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in V_std" << std::endl;
+      success = false;
+    }
+     
+    if ( success && ! V_std->get(vStd, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in V_std" << std::endl;
+      success = false;
+    }
 
-   for (int i = 0; i < uStateSize; i++)	// replace NaN with 0.0
-     if (bgU[i] != bgU[i])
-       bgU[i] = 0.0;
+    if ( success && ! U_std->set_cur(rec, 0, 0, 0)) {
+      std::cout << "Failed to read in U_std" << std::endl;
+      success = false;
+    }
+     
+    if ( success && ! W_std->get(uStd, 1, nz0, ny0, nx0)) {
+      std::cout << "Failed to read in U_std" << std::endl;
+      success = false;
+    }
+     
+  }
+
+  double fillVal = 0.0;
+  // double fillVal = std::nan(""); // testing. Quick 2 iteration 
+  
+  for (int t = 0; t < ntime; t++) {
+    // double currentTime = times[t];
+     
+    for (int z = 0; z < nz0; z++) {
+     
+      float heightm = alts[z];	// TODO check unit
+      float rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm);
+      
+      for (int y = 0; y < ny0; y++) {
+	for (int x = 0; x < nx0; x++) {
+	  int vIndex = x + nx0 * (y + ny0 * z);		// variables index
+	  int bIndex = vIndex * numVars;		// index into bgU
+
+	  double rhou = eastWind[vIndex] * rho;
+	  if (std::isnan(rhou))
+	    rhou = fillVal;
+	  double rhov = northWind[vIndex] * rho;
+	  if (std::isnan(rhov))
+	    rhov = fillVal;
+	  double rhow = upWind[vIndex] * rho;
+	  if (std::isnan(rhow))
+	    rhow = fillVal;
+	  double dbz  = meanDbz[vIndex];
+	  if (std::isnan(dbz))
+	    dbz = -35.0;		// clear air.
+	  
+	  bgU[bIndex + 0] = rhou;
+	  bgU[bIndex + 1] = rhov;
+	  bgU[bIndex + 2] = rhow;
+	  bgU[bIndex + 3] = 0.0;			// t'
+	  bgU[bIndex + 4] = 0.0;			// qv'
+	  bgU[bIndex + 5] = 0.0;			// rho'
+	  bgU[bIndex + 6] = (dbz + 35.) * 0.1;		// transform to scaled value [0..7]
+	  
+	  // W_std, V_std, U_std are handled separatively in CostFunction3D
+	}
+      }
+    }
+  } // ntime
+  
+  if (isTrue("debug_bgU"))
+    dumpBgU(0, uStateSize, bgU);
+  
+  if (configHash->contains("debug_bgU_nc"))
+    bgu2nc(configHash->value("debug_bgU_nc").toLatin1().data(), bgU);
    
    delete[] lats;
    delete[] lons;
@@ -1384,6 +1465,10 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
    delete[] northWind;
    delete[] eastWind;
    delete[] meanDbz;
-   
+
+   delete[] wStd;
+   delete[] vStd;
+   delete[] uStd;
+
    return success;
 }

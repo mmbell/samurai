@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QVector>
 #include <iomanip>
+#include <netcdfcpp.h>
 
 #include "VarDriver3D.h"
 #include "Dorade.h"
@@ -21,8 +22,6 @@
 #include "samurai.h"
 #include "timers.h"
 #include "BkgdObsLoaders.h"
-
-// TODO debug
 
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
@@ -88,6 +87,24 @@ bool VarDriver3D::validateDriver()
     return false;
   }
 
+  bool fractlBkgd = ( configHash.value("bkgd_obs_interpolation") == "fractl" );
+  bool loadBG = ( configHash.value("load_background") == "true" );
+  
+  // Warn is there are non-sensical combos of options.
+  // Just 1 right now, so put it inlie
+
+  if (fractlBkgd && ( configHash.value("adjust_background") == "true"))
+    std::cout << "** Warning: 'adjust_background' set to 'true' "
+	      << "with 'bkgd_obs_interpolation' set to 'fractl' doesn't make sense."
+	      << std::endl;
+
+  if (fractlBkgd && ! loadBG) {
+    std::cout << "** Warning: 'bkgd_obs_interpolation' set to 'true' "
+	      << "but 'load_background' set to false. Setting loadBG to true."
+	      << std::endl;
+    loadBG = true;
+  }
+  
   // Set the projection (to be used by the cost functions)
   projection.setProjection(projectionFromConfig());
 
@@ -124,13 +141,18 @@ bool VarDriver3D::validateDriver()
   // With coamps, grid dimensions come from the run arguments, not the fixed confid
   // So only do validation that depends on grid dimensions if fixedGrid is set.
 
-  if (fixedGrid) {   // If runGrid, this will be done in the run(......) call
+  if (fractlBkgd) { // Grid comes from the fractl file
+    if ( ! validateFractlGrid() )
+      return false;
+
+    bkgdAdapter = new BkgdFractl();
+    return gridDependentInit();
+  } else if (fixedGrid) {   // If runGrid, this will be done in the run(......) call
     if ( ! validateFixedGrid() )
       return false;
 
     // Set the background Obs adapter to get data from a file (if config says so)
-    QString loadBG = configHash.value("load_background");
-    if (loadBG == "true")
+    if (loadBG)
       bkgdAdapter = new BkgdStream(dataPath.absoluteFilePath("samurai_Background.in").toLatin1().data());
     
     return gridDependentInit();
@@ -142,13 +164,13 @@ bool VarDriver3D::validateDriver()
 
 // This used to be in validateDriver.
 // All the grid dependent initialization is performed here.
-// Prerequisit: Grid dimensions have been set and verified.
+// Prerequisit: Grid dimensions have been set and verified. ***
 
 bool VarDriver3D::gridDependentInit()
 {
 
   START_TIMER(timei);
-  
+
   // Define the Reference state
 
   QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
@@ -186,8 +208,8 @@ bool VarDriver3D::gridDependentInit()
 
   // These are used to process the obs (bkg and met)
   
-  uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars);
-  bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;
+  uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars); // bgU size
+  bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;       // 2 mish points between nodes
   
   std::cout << "Physical (mish) State size = " << uStateSize << std::endl;
   std::cout << "Nodal State size = " << bStateSize << std::endl;
@@ -275,6 +297,8 @@ bool VarDriver3D::findReferenceCenter()
 // Initialize background observations and run
 //
 
+// While this was developed to interface with coamps, nothing prevents a caller to use this interface.
+
 bool VarDriver3D::run(int nx, int ny, int nsigma,
 
 		      // ----- new -----
@@ -306,7 +330,6 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 			imin, imax, iincr,
 			jmin, jmax, jincr, sigmas) )
     return false;
-
 
   // Clean up from previous run if needed
   
@@ -432,10 +455,10 @@ bool VarDriver3D::preProcessMetObs()
 
   while ((fabs(tmin) > 0.1) and (iter < 5000)) {
     real t = refstate->getReferenceVariable(ReferenceVariable::tempref, height) - zeroClevel;
-    real tprime = (refstate->getReferenceVariable(ReferenceVariable::tempref, height+500.)
-		   - refstate->getReferenceVariable(ReferenceVariable::tempref, height-500.))/1000.;
+    real tprime = (refstate->getReferenceVariable(ReferenceVariable::tempref, height + 500.)
+		   - refstate->getReferenceVariable(ReferenceVariable::tempref, height - 500.)) / 1000.;
     if (tprime != 0) {
-      height = height - t/tprime;
+      height = height - t / tprime;
       tmin = t;
     }
     iter++;
@@ -518,15 +541,17 @@ bool VarDriver3D::preProcessMetObs()
       }
       projection.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
       projection.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
-      real obX = (metX - tcX)/1000.;
-      real obY = (metY - tcY)/1000.;
+      real obX = (metX - tcX) / 1000.;
+      real obY = (metY - tcY) / 1000.;
+      
       real heightm = metOb.getAltitude();
+      
       real obZ = heightm/1000.;
       real obRadius = sqrt(obX*obX + obY*obY);
       real obTheta = 180.0 * atan2(obY, obX) / Pi;
-      if (configHash.value("allow_negative_angles") != "true") {
-	if (obTheta < 0) obTheta += 360.0;
-      }
+      if (configHash.value("allow_negative_angles") != "true")
+	if (obTheta < 0)
+	  obTheta += 360.0;
 
         // Make sure the ob is in the domain
       if (runMode == XYZ) {
@@ -573,6 +598,7 @@ bool VarDriver3D::preProcessMetObs()
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
       
       switch (metOb.getObType()) {
+	
       case (MetObs::dropsonde):
 	varOb.setType(MetObs::dropsonde);
 	u = metOb.getCartesianUwind();
@@ -1621,7 +1647,10 @@ bool VarDriver3D::loadPreProcessMetObs()
 }
 
 
-// Background Observations can come either from a file, or from passed arguments to the run() function.
+// Background Observations can come from
+// - a samurai_Background.in file,
+// - a FRACTL generated netcdf file
+// - from passed arguments to the run() function.
 
 int VarDriver3D::loadBackgroundObs()
 {
@@ -2023,7 +2052,6 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
 				  float j_min, float j_max, float j_incr,
 				  float *sigmas)
 {
-
   // Grid specs
   
   imin = i_min;
@@ -2049,6 +2077,160 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
   sigmaTable = sigmas;
   
   return validateGrid();
+}
+
+bool VarDriver3D::validateFractlGrid()
+{
+  // Need to read grid from fractl file.
+  NcError err(NcError::verbose_nonfatal);
+  // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
+  QString fname = configHash.value("fractl_nc_file");
+  
+   // Open the file.
+  NcFile dataFile(fname.toLatin1().data(), NcFile::ReadOnly);
+   
+   // Check to see if the file was opened.
+   if(!dataFile.is_valid()) {
+     std::cout << "Failed to read FRACTL generated nc file " << fname.toLatin1().data()
+	       << std::endl;
+     return false;
+   }
+
+   NcDim *timeDim = dataFile.get_dim("time");
+   if (! timeDim)
+     return false;
+
+   NcDim *z0Dim = dataFile.get_dim("z0");
+   if (! z0Dim)
+     return false;
+
+   NcDim *y0Dim = dataFile.get_dim("y0");
+   if (! y0Dim)
+     return false;
+
+   NcDim *x0Dim = dataFile.get_dim("x0");
+   if (! x0Dim)
+     return false;
+
+
+   NcAtt *sam_idim = dataFile.get_att("sam_idim");
+   if (! sam_idim)
+     return false;
+   NcAtt *sam_jdim = dataFile.get_att("sam_jdim");
+   if (! sam_jdim)
+     return false;
+   NcAtt *sam_kdim = dataFile.get_att("sam_kdim");
+   if (! sam_kdim)
+     return false;
+   
+   NcAtt *sam_imin = dataFile.get_att("sam_imin");
+   if (! sam_imin)
+     return false;
+   NcAtt *sam_imax = dataFile.get_att("sam_imax");
+   if (! sam_imax)
+     return false;
+   NcAtt *sam_iincr = dataFile.get_att("sam_iincr");
+   if (! sam_iincr)
+     return false;
+   
+   NcAtt *sam_jmin = dataFile.get_att("sam_jmin");
+   if (! sam_jmin)
+     return false;
+   NcAtt *sam_jmax = dataFile.get_att("sam_jmax");
+   if (! sam_jmax)
+     return false;
+   NcAtt *sam_jincr = dataFile.get_att("sam_jincr");
+   if (! sam_jincr)
+     return false;
+   
+   NcAtt *sam_kmin = dataFile.get_att("sam_kmin");
+   if (! sam_kmin)
+     return false;
+   NcAtt *sam_kmax = dataFile.get_att("sam_kmax");
+   if (! sam_kmax)
+     return false;
+   NcAtt *sam_kincr = dataFile.get_att("sam_kincr");
+   if (! sam_kincr)
+     return false;
+   
+   // long ntime = timeDim->size();
+   long nz0 = z0Dim->size();
+   long ny0 = y0Dim->size();
+   long nx0 = x0Dim->size();   
+
+   NcVar *z0 = dataFile.get_var("z0");
+   if (! z0)
+     return false;
+   
+   NcVar *y0 = dataFile.get_var("y0");
+   if (! y0)
+     return false;
+   NcVar *x0 = dataFile.get_var("x0");
+   if (! x0)
+     return false;
+
+   double *xs = new double[nx0];
+   double *ys = new double[ny0];   
+   double *zs = new double[nz0];
+
+   bool success = true;
+   if ( (xs == NULL) || (ys == NULL) || (zs == NULL) ) {
+     std::cout << "Failed to allocate memory for Fractl grid coordinates." << std::endl;
+     success = false;
+   }
+
+   if (success && ! z0->get(zs, nz0)) {
+     std::cout << "Failed to read z scale." << std::endl;
+     success = false;
+   }
+   if (success && ! y0->get(ys, ny0)) {
+     std::cout << "Failed to read y scale." << std::endl;
+     success = false;
+   }
+   if (success && ! x0->get(xs, nx0)) {
+     std::cout << "Failed to read x scale." << std::endl;
+     success = false;
+   }
+
+   if (success) {
+     idim = sam_idim->as_long(0);
+     jdim = sam_jdim->as_long(0);
+     kdim = sam_kdim->as_long(0);     
+     
+     imin  = sam_imin->as_double(0);
+     imax  = sam_imax->as_double(0);
+     iincr = sam_iincr->as_double(0);
+     
+     jmin  = sam_jmin->as_double(0);
+     jmax  = sam_jmax->as_double(0);
+     jincr = sam_jincr->as_double(0);
+     
+     kmin  = sam_kmin->as_double(0);
+     kmax  = sam_kmax->as_double(0);
+     kincr = sam_kincr->as_double(0);
+     
+     // TODO Do we need to read in the sigmas?
+
+     // CostFunction3D reads grid dims from the configHash
+
+     configHash["i_min"]  = QString::number(imin);
+     configHash["i_max"]  = QString::number(imax);
+     configHash["i_incr"] = QString::number(iincr);
+     configHash["j_min"]  = QString::number(jmin);
+     configHash["j_max"]  = QString::number(jmax);
+     configHash["j_incr"] = QString::number(jincr);
+     configHash["k_min"]  = QString::number(kmin);
+     configHash["k_max"]  = QString::number(kmax);
+     configHash["k_incr"] = QString::number(kincr);
+
+     success = validateGrid();
+   }
+   
+   delete[] xs;
+   delete[] ys;
+   delete[] zs;
+
+   return success;
 }
 
 // Create centers at 1 second increments, from -2 seconds to +2 seconds of the computed date/time
