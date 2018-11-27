@@ -78,8 +78,13 @@ protected:
 	bool copy3DArray(real *src, float *dest, int iDim, int jDim, int kDim);
 	void calcHmatrix();
 	void Htransform(const real* Cstate, real* Hstate);
-	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
 
+	// A couple of utilities functions to help query config values
+	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
+	bool isEqual(const char *flag, QString value) {
+	  return configHash->contains(flag) && configHash->value(flag) == value;
+	}
+	
 	void initBkgdErrors();
 	
 	bool mishFlag;

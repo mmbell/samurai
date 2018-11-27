@@ -466,6 +466,8 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
   bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
   bool debug_ref_state = isTrue("debug_ref_state");
   bool debug_bgState = isTrue("debug_bgState");
+
+  fractl_mode = isEqual("bkgd_obs_interpolation", "fractl");
   
   if ( debug_bgState) {
     std::cout << "---- start of debug_bgState" << std::endl;
@@ -514,13 +516,16 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
   // Modifies the mish (bgFields which is bgU)
 
   SItransform(51, finalAnalysis, bgFields, Astate, samStreamPtr); // write bgU
-  variance.writeDebugNc("debug.out/bgU_SI.nc", true, bgFields);
+  // variance.writeDebugNc("debug.out/bgU_SI.nc", true, bgFields);
 
-  // SItransform on std errors
-  double *finalErrors = new double[analysisSize * varDim];
-  SItransform(varDim, finalErrors, variance.getMishData(), variance.getMeshData(), NULL);
-  variance.writeDebugNc("debug.out/std_errors_SI.nc", true, variance.getMishData());
-  variance.setFinalData(finalErrors);
+  // SItransform on std errors (Only in fractl mode)
+
+  if (fractl_mode) {
+    double *finalErrors = new double[analysisSize * varDim];
+    SItransform(varDim, finalErrors, variance.getMishData(), variance.getMeshData(), NULL);
+    variance.writeDebugNc("debug.out/std_errors_SI.nc", true, variance.getMishData());
+    variance.setFinalData(finalErrors);
+  }
   
   if (debug_final_analysis_indices)
     std::cout << "-------- end of debug_final_analysis_indices" << std::endl;
@@ -728,8 +733,9 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   NcVar *dtdx, *dqdx, *dpdx, *dtdy, *dqdy, *dpdy, *dtdz, *dqdz, *dpdz;
   NcVar *drhodx, *drhody, *drhodz;
   NcVar *dewp, *theta, *thetae, *thetaes, *mcresidual;
-  
-  NcVar *U_std, *V_std, *W_std;	    // Mesh variables (final analysis on std errors, after SItransform)
+
+  // Mesh variables (final analysis on std errors, after SItransform) (fractl_mode only)  
+  NcVar *U_std = NULL, *V_std = NULL, *W_std = NULL;
   
 #if 0  // TODO debug
   NcVar *dU_std, *dV_std, *dW_std;  // Mish variables (mish values modified by SItransform)
@@ -898,17 +904,21 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   // Std Error
   
   // Final U, V, W are the result of running SBtransform, SAtransform, and SItransform
-  
-  if (!(U_std = dataFile.add_var("Final_U_std", ncFloat, timeDim,
-			     lvlDim, latDim, lonDim)))
-    return NC_ERR;
-  if (!(V_std = dataFile.add_var("Final_V_std", ncFloat, timeDim,
-			     lvlDim, latDim, lonDim)))
-    return NC_ERR;
-  if (!(W_std = dataFile.add_var("Final_W_std", ncFloat, timeDim,
-			     lvlDim, latDim, lonDim)))
-    return NC_ERR;
+  // Only in fractl mode
 
+  if (fractl_mode) {
+  
+    if (!(U_std = dataFile.add_var("Final_U_std", ncFloat, timeDim,
+				   lvlDim, latDim, lonDim)))
+      return NC_ERR;
+    if (!(V_std = dataFile.add_var("Final_V_std", ncFloat, timeDim,
+				   lvlDim, latDim, lonDim)))
+      return NC_ERR;
+    if (!(W_std = dataFile.add_var("Final_W_std", ncFloat, timeDim,
+				   lvlDim, latDim, lonDim)))
+      return NC_ERR;
+  }
+  
 #if 0
   // Std U, V, W are the std errors on the mish after modified by SItransform
   
@@ -1523,16 +1533,18 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
       return NC_ERR;
 
 
-    // Print final analysis version of Std Errors
-    
-    double *errors = variance.getFinalData();
-    if (! U_std->put_rec(&errors[0] ) )
-      return NC_ERR;
-    if (! V_std->put_rec(&errors[iDim * jDim * kDim * 1], rec))
-      return NC_ERR;
-    if (! W_std->put_rec(&errors[iDim * jDim * kDim * 2], rec))
-      return NC_ERR;
+    // Print final analysis version of Std Errors (Only if fractl mode)
 
+    if (fractl_mode) {
+      double *errors = variance.getFinalData();
+      if (! U_std->put_rec(&errors[0] ) )
+	return NC_ERR;
+      if (! V_std->put_rec(&errors[iDim * jDim * kDim * 1], rec))
+	return NC_ERR;
+      if (! W_std->put_rec(&errors[iDim * jDim * kDim * 2], rec))
+	return NC_ERR;
+    }
+    
 #if 0
     // Print the modified Mish	// TODO do we want to print this?
     

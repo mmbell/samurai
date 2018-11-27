@@ -24,6 +24,8 @@ private:
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
 	bool SItransform(size_t numVars, double *finalAnalysis, double *mishData, real *Astate, ofstream *outStream);
+
+	bool fractl_mode;
 };
 
 #endif

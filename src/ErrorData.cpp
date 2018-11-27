@@ -22,7 +22,10 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
   bgError[5] = configHash->value("bg_rhoa_error").toFloat();  // 
   bgError[6] = configHash->value("bg_qr_error").toFloat();    // reflectivity
 
-  // Read variance from fractl_nc_file
+  // Read variance from fractl_nc_file if specified
+
+  if ( fname == "" )
+    return NULL;
   
   NcError err(NcError::verbose_nonfatal);
   // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  

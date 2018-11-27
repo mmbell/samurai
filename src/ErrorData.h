@@ -8,8 +8,9 @@ class ErrorData {
  public:
   
   
-  ErrorData() {};
+  ErrorData() { mishData = meshData = finalData = NULL; }
   ~ErrorData();
+  
   double *init(QString fname, const QHash<QString, QString>* config, size_t numVar);
 
   double *getMeshVar(size_t var);	// After SA. Do we care anymore? TODO
