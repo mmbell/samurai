@@ -1,6 +1,7 @@
 *.o
 *.swp
 
+hide
 *build/*
 lib/*
 bin/samurai
