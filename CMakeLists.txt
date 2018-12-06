@@ -180,6 +180,6 @@ target_link_libraries ( samLibStatic
  # Where to install files
       
 install ( TARGETS samurai DESTINATION bin )
-install ( FILES samurai.h DESTINATION include )
+install ( FILES src/samurai.h DESTINATION include )
 install ( TARGETS samLibShared DESTINATION lib )
 install ( TARGETS samLibStatic DESTINATION lib )
