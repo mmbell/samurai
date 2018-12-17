@@ -16,13 +16,16 @@ class CostFunctionXYZ: public CostFunction3D
 {
 	
 public:
-	CostFunctionXYZ(const int& numObs = 0, const int& stateSize = 0);
+  CostFunctionXYZ(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	~CostFunctionXYZ();
 	
 private:
 	bool outputAnalysis(const QString& suffix, real* Astate);
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
+	bool SItransform(size_t numVars, double *finalAnalysis, double *mishData, real *Astate, ofstream *outStream);
+
+	bool fractl_mode;
 };
 
 #endif

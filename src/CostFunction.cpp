@@ -11,13 +11,11 @@
 #include <iostream>
 #include <limits>
 
-CostFunction::CostFunction(const int& numObs, const int& stateSize)
+CostFunction::CostFunction(const Projection& proj, const int& numObs, const int& stateSize) :
+	projection(proj)
 {
-	
-	// Create a cost function
 	mObs = numObs;
 	nState = stateSize;
-	
 }
 
 CostFunction::~CostFunction()

@@ -357,7 +357,7 @@ protected:
 	bool SetupGQ (int num_nodes = 0);
     void calculateQ ();
     real qDelta (int m1, int m2);
-    real Beta (unsigned int m);
+    real Beta (/* unsigned */ int m);
     void addP ();
 	void addPGQ ();
     bool factor ();

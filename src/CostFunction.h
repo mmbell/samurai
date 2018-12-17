@@ -9,6 +9,7 @@
 #ifndef COSTFUNC_H
 #define COSTFUNC_H
 #include "precision.h"
+#include "Projection.h"
 
 using namespace std;
 
@@ -17,7 +18,7 @@ class CostFunction
 	
 public:
 	
-	CostFunction(const int& numObs = 0, const int& stateSize = 0);
+  CostFunction(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction();
 	void setNumObservations(const int& numObs);
 	int getNumObservations();
@@ -34,6 +35,9 @@ protected:
 	real* tempGradient;
 	real* xt;
 	real* df;
+	const Projection& projection;
+	       
+	       
 	virtual real funcValue(real* state) = 0;
 	virtual void funcGradient(real* state, real* gradient) = 0;
 	

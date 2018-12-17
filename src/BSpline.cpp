@@ -116,7 +116,7 @@ struct BSplineBaseP
     typedef Matrix<T> MatrixT;
 
     MatrixT Q;				// Holds P+Q and its factorization
-	T* q;
+    T* q;
     std::vector<T> X;
     std::vector<T> Nodes;
 };
@@ -127,16 +127,16 @@ struct BSplineBaseP
 template <class T>
 const real BSplineBase<T>::BoundaryConditions[9][4] =
 {
-    //	0		1		M-1		M
-    {	-4,		-1,		-1,		-4 },
-    {	0,		1,		1,		0 },
-    {	2,		-1,		-1,		2 },
-	{   -4,     -1,     1,      0 },
-	{   -4,     -1,     -1,     2 },
-	{   0,      1,      -1,     -4 },
-	{   0,      1,      -1,     2 },
-	{   2,      -1,     -1,     -4 },
-	{   2,      -1,     1,      0 }
+    //	0	1	M-1	M
+    {	-4,	-1,	-1,	-4 },
+    {	0,	1,	1,	0 },
+    {	2,	-1,	-1,	2 },
+    {   -4,     -1,	1,      0 },
+    {   -4,     -1,     -1,     2 },
+    {   0,      1,      -1,     -4 },
+    {   0,      1,      -1,     2 },
+    {   2,      -1,     -1,     -4 },
+    {   2,      -1,     1,      0 }
 };
 
 
@@ -149,12 +149,11 @@ inline bool BSplineBase<T>::Debug (int on)
     return debug;
 }
 
-
 template <class T>
 const real BSplineBase<T>::PI = 3.141592653589793;
 
 template <class T>
-const real BSplineBase<T>::ONESIXTH = 1.0/6.0;
+const real BSplineBase<T>::ONESIXTH = 1.0 / 6.0;
 
 template <class T>
 const char *
@@ -180,7 +179,7 @@ BSplineBase<T>::IfaceVersion()
 template <class T>
 BSplineBase<T>::~BSplineBase()
 {
-	delete[] base->q;
+    delete[] base->q;
     delete base;
 }
 
@@ -189,6 +188,7 @@ BSplineBase<T>::~BSplineBase()
 // private base structure with the source's, rather than just copying
 // the pointer.  But we use the compiler's default copy constructor for
 // constructing our BSplineBaseP.
+
 template <class T>
 BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) :
     K(bb.K), BC(bb.BC), OK(bb.OK), base(new BSplineBaseP<T>(*bb.base))
@@ -198,7 +198,7 @@ BSplineBase<T>::BSplineBase (const BSplineBase<T> &bb) :
     alpha = bb.alpha;
     waveLength = bb.waveLength;
     DX = bb.DX;
-	DXrecip = 1/DX;
+    DXrecip = 1 / DX;
     M = bb.M;
     NX = base->X.size();
 }
@@ -209,8 +209,8 @@ BSplineBase<T>::BSplineBase (const T *x, int nx, real wl, int bc,
 			     int num_nodes) :
     K(3), OK(false), base(new BSplineBaseP<T>)
 {
-	int qSize = base->Q.num_rows()*base->Q.num_cols();
-	base->q = new T[qSize];
+    int qSize = base->Q.num_rows()*base->Q.num_cols();
+    base->q = new T[qSize];
     setDomain (x, nx, wl, bc, num_nodes);
 }
 
@@ -233,8 +233,11 @@ BSplineBase<T>::setDomain (const T *x, int nx, real wl, int bc,
 
     // Copy the x array into our storage.
     base->X.resize (nx);
-    std::copy (x, x+nx, base->X.begin());
+    std::copy (x, x + nx, base->X.begin());
     NX = base->X.size();
+    
+    // for(int i = 0; i < NX; i++)
+    //	  std::cout << "X[" << i << "] = " << base->X[i] << std::endl;
 
     // The Setup() method determines the number and size of node intervals.
     if (Setup(num_nodes))
@@ -420,9 +423,10 @@ BSplineBase<T>::AlphaGQ (real wl)
  * Return the correct beta value given the node index.  The value depends
  * on the node index and the current boundary condition type.
  */
+
 template <class T>
 inline real
-BSplineBase<T>::Beta (unsigned int m)
+BSplineBase<T>::Beta (/* unsigned */ int m) // TODO called with int
 {
     if (m > 1 && m < M-1)
 	return 0.0;
@@ -432,8 +436,6 @@ BSplineBase<T>::Beta (unsigned int m)
     assert (0 <= m && m <= 3);
     return BoundaryConditions[BC][m];
 }
-
-
 
 /*
  * Given an array of y data points defined over the domain
@@ -569,8 +571,6 @@ BSplineBase<T>::qDelta (int m1, int m2)
     return q * alpha;
 }
 
-
-
 template <class T>
 void
 BSplineBase<T>::calculateQ ()
@@ -629,8 +629,6 @@ BSplineBase<T>::calculateQ ()
 	}
     }
 }
-
-
 
 template <class T>
 void
@@ -759,6 +757,8 @@ BSplineBase<T>::Setup(int num_nodes)
     xmin = X[0];
     xmax = X[0];
 
+    // std::cout << "::Setup: X[0] = " << X[0] << std::endl;
+    
     int i;
     for (i = 1; i < NX; ++i)
     {
@@ -828,8 +828,7 @@ BSplineBase<T>::Setup(int num_nodes)
     // Store the calculations in our state
     M = ni;
     DX = (xmax - xmin) / ni;
-	DXrecip = 1/DX;
-
+    DXrecip = 1 / DX;
     return (true);
 }
 
@@ -840,17 +839,17 @@ BSplineBase<T>::SetupGQ(int num_nodes)
     std::vector<T> &X = base->X;
 
     // Find the min and max of the x domain
-	float mu = 0.5 - 0.5*sqrt(1./3.);
-    xmin = X[0]-mu;
-    xmax = X[0]+mu;
+	float mu = 0.5 - 0.5*sqrt(1. / 3.);
+    xmin = X[0] - mu;
+    xmax = X[0]  +mu;
 
     int i;
     for (i = 1; i < NX; ++i)
     {
-		if ((X[i]-mu) < xmin)
-			xmin = X[i]-mu;
+		if ((X[i]  -mu) < xmin)
+			xmin = X[i] - mu;
 		else if ((X[i]+mu) > xmax)
-			xmax = X[i]+mu;
+			xmax = X[i] + mu;
     }
 
     int ni = 9;			// Number of node intervals (NX - 1)
@@ -913,7 +912,7 @@ BSplineBase<T>::SetupGQ(int num_nodes)
     // Store the calculations in our state
     M = ni;
     DX = (xmax - xmin) / ni;
-	DXrecip = 1/DX;
+	DXrecip = 1 / DX;
 
     return (true);
 }

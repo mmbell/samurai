@@ -14,6 +14,9 @@
 #include "RecursiveFilter.h"
 #include "Observation.h"
 #include "ReferenceState.h"
+// #include "VarDriver3D.h"
+#include "ErrorData.h"
+
 #include <iostream>
 #include <fstream>
 #include <iterator>
@@ -25,16 +28,19 @@
 //#include <complex.h>
 #include <fftw3.h>
 
-class CostFunction3D: public CostFunction
+class CostFunction3D : public CostFunction
 {
 
 public:
-	CostFunction3D(const int& numObs = 0, const int& stateSize = 0);
+
+CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
     void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
+	bool copyResults(int iDim, int jDim, int kDim,
+			 float *u, float *v, float *w, float *th, float *p);
 
 protected:
 	double funcValue(double* state);
@@ -52,7 +58,7 @@ protected:
 	void obAdjustments();
 	void solveBC(real* A, real* B);
 	bool SAtransform(const real* Bstate, real* Astate);
-    bool SAtranspose(const real* Astate, real* Bstate);
+	bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const QString& suffix, real* Astate) = 0;
@@ -64,16 +70,27 @@ protected:
 
 	bool writeAsi(const QString& asiFileName);
 	bool writeNetCDF(const QString& netcdfFileName);
+	
 	void adjustInternalDomain(int increment);
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                 const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
                                 real* L[7], real* gamma[7]);
+	bool copy3DArray(real *src, float *dest, int iDim, int jDim, int kDim);
 	void calcHmatrix();
 	void Htransform(const real* Cstate, real* Hstate);
+
+	// A couple of utilities functions to help query config values
+	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
+	bool isEqual(const char *flag, QString value) {
+	  return configHash->contains(flag) && configHash->value(flag) == value;
+	}
+	
+	void initBkgdErrors();
+	
 	bool mishFlag;
 	int iDim, jDim, kDim;
-    int iLDim, jLDim, kLDim;
-    int iRank[7], jRank[7], kRank[7];
+	int iLDim, jLDim, kLDim;
+	int iRank[7], jRank[7], kRank[7];
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
@@ -92,33 +109,33 @@ protected:
 	real* iL[7];
 	real* jL[7];
 	real* kL[7];
-    real* iGamma[7];
-    real* jGamma[7];
-    real* kGamma[7];
+	real* iGamma[7];
+	real* jGamma[7];
+	real* kGamma[7];
 	real* finalAnalysis;
 	int varDim;
-    int derivDim;
+	int derivDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
-    int derivative[4][3];
+	int derivative[4][3];
 	real constHeight;
 	real mcWeight;
-    int iMaxWavenumber[7], jMaxWavenumber[7], kMaxWavenumber[7];
-    double *iFFTin, *jFFTin, *kFFTin;
-    fftw_complex *iFFTout, *jFFTout, *kFFTout;
-    fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
-		real *H;
-		int *IH, *JH;
-
+	int iMaxWavenumber[7], jMaxWavenumber[7], kMaxWavenumber[7];
+	double *iFFTin, *jFFTin, *kFFTin;
+	fftw_complex *iFFTout, *jFFTout, *kFFTout;
+	fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
+	real *H;
+	int *IH, *JH;
+		
 	int basisappx;
 	real* basis0;
 	real* basis1;
 	const QHash<QString, QString>* configHash;
 	QHash<QString, int> bcHash;
-    QHash<int, int> rankHash;
+	QHash<int, int> rankHash;
 
 	enum BoundaryConditionTypes {
-        RX = -1,
+		RX = -1,
 		R0 = 0,
 		R1T0 = 1,
 		R1T1 = 2,
@@ -141,9 +158,10 @@ protected:
 	RecursiveFilter* jFilter;
 	RecursiveFilter* kFilter;
 
-    ReferenceState* refstate;
-    QDir outputPath;
+	ReferenceState* refstate;
+	QDir outputPath;
 
+	ErrorData variance;
 };
 
 #endif
