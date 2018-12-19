@@ -18,6 +18,13 @@
 #include <GeographicLib/LambertConformalConic.hpp>
 #include <netcdfcpp.h>
 
+#include <Radx/Radx.hh>
+#include <Radx/RadxField.hh>
+#include <Radx/RadxGeoref.hh>
+#include <Radx/RadxRay.hh>
+#include <Radx/RadxVol.hh>
+#include <Radx/NcfRadxFile.hh>
+
 // Constructor
 VarDriver::VarDriver()
 {
@@ -46,6 +53,7 @@ VarDriver::VarDriver()
   dataSuffix["qcf"] = qcf;
   dataSuffix["aeri"] = aeri;
   dataSuffix["rad"] = rad;
+  dataSuffix["cfrad"] = cfrad;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -153,9 +161,9 @@ void VarDriver::popCenter()
   frameVector.erase(frameVector.begin());
 }
 
-// interfact function to read radar data
+// interface function to read radar data
 
-bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QList<MetObs>* metData)
+bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file, QList<MetObs>* metData)
 {
   switch (suffix) {
   case (frd):
@@ -279,6 +287,13 @@ bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QList<MetObs>* met
     break;
   case (cen):
     return false;
+  case(cfrad):
+    if (!read_cfrad(file, metData)) {
+      cout << "Error reading cfrad file" << endl;
+      return false;
+    }
+    break;
+    
   default:
     cout << "Unknown data type, skipping..." << endl;
     return false;
@@ -2119,4 +2134,177 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
   metFile.close();
   return true;
 
+}
+
+
+// This routing reads the Lrose Radx format
+
+bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
+{
+  RadxFile rxFile;
+  RadxVol rxVol;
+
+  if ( ! rxFile.isSupported(fileName.toLatin1().data()) ) {
+    std::cerr << "ERROR - File '" << fileName.toLatin1().data()
+             << "' is not in a Radx supported format." << std::endl;
+    return false;
+  }
+
+  rxFile.setReadPreserveSweeps(true); // prevent Radx from tossing away long sweeps
+
+  if (rxFile.readFromPath(fileName.toLatin1().data(), rxVol) ) {
+    std::cerr << "ERROR - reading file: " << fileName.toLatin1().data() << std::endl;
+    std::cerr << rxFile.getErrStr() << std::endl;
+    return false;
+  }
+
+  // Name of the fields to use
+  // TODO Should we use cfradial defaults if not specified?
+  // DBZ, VEL, and WIDTH?
+  
+  QString radarDbzStr = configHash.value("radar_dbz");
+  QString radarVelStr = configHash.value("radar_vel");
+  QString radarSwStr  = configHash.value("radar_sw");
+  
+  // Use a Transverse Mercator projection to map the radar gates to the grid
+  GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+
+  double tmStart = rxVol.getStartTimeSecs() + 1.e-9 * rxVol.getStartNanoSecs();
+  double tmEnd = rxVol.getEndTimeSecs() + 1.e-9 * rxVol.getEndNanoSecs();
+
+  vector<RadxRay *> rays = rxVol.getRays();
+
+  for (size_t index = 0; index < rays.size(); index++) {
+    RadxRay *ray = rays[index];
+    if (ray == NULL) {
+      std::cout << "Error: Failed to read ray " << index
+               << " from file " << fileName.toLatin1().data() << std::endl;
+      return false;
+    }
+
+    double radarLat = numeric_limits<double>::quiet_NaN();     // degrees
+    double radarLon = numeric_limits<double>::quiet_NaN();     // degrees
+    double radarAlt = numeric_limits<double>::quiet_NaN();     // km
+
+    double beamWidth = sin(ray->getFixedAngleDeg() * Pi / 180.0);
+    
+    const RadxGeoref *gref = ray->getGeoreference();
+    if (gref == NULL ) { // gref is NULL for some ground-based stations
+      radarLat = rxVol.getLatitudeDeg();
+      radarLon = rxVol.getLongitudeDeg();
+      radarAlt = rxVol.getAltitudeKm();
+    } else {
+      radarLat = gref->getLatitude();
+      radarLon = gref->getLongitude();
+      radarAlt = gref->getAltitudeKmMsl();
+    }
+    if (std::isnan(radarLat)
+       || std::isnan(radarLon)
+       || std::isnan(radarAlt))
+    {
+      std::cout << "Error: incomplete file spec or radx Georeference" << std::endl;
+      return false;
+    }
+    
+    QDateTime rayTime = QDateTime::fromTime_t(ray->getTimeDouble());
+    double az = ray->getAzimuthDeg();
+    double el = ray->getElevationDeg();
+
+    // Get the ref, vel, and swdata
+    
+    RadxField *radarDbz = ray->getField(radarDbzStr.toLatin1().data());
+    RadxField *radarVel = ray->getField(radarVelStr.toLatin1().data());
+    RadxField *radarSw  = ray->getField(radarSwStr.toLatin1().data());
+
+    double dbzMissingVal = radarDbz->getMissingFl64();
+    double velMissingVal = radarVel->getMissingFl64();
+    double swMissingVal =  radarSw->getMissingFl64();
+    
+    size_t nGates = ray->getNGates();
+    float gatelength = ray->getGateSpacingKm();
+    
+    int rayskip = configHash.value("radar_skip").toInt();
+    int minstride = configHash.value("radar_stride").toInt();
+    bool dynamicStride = configHash.value("dynamic_stride").toInt();
+    int stride = minstride;
+  
+    for (size_t gateIndex = 0; gateIndex < nGates - stride; gateIndex += stride) {
+      MetObs ob;
+      float range = gatelength * (gateIndex + stride / 2);
+      if (dynamicStride) {
+	stride = (int) (range * beamWidth / gatelength);
+	if (stride < minstride) stride = minstride;
+      }
+      real dz = 0.0;
+      real vr = 0.0;
+      real sw = 0.0;
+      int dzCount = 0;
+      int vrCount = 0;
+      int swCount = 0;
+
+      for (size_t idx = gateIndex; idx < (gateIndex + stride); idx++) {
+	
+	double valDbz = radarDbz->getDoubleValue(idx);
+	double valVel = radarVel->getDoubleValue(idx);
+	double valSw  = radarSw->getDoubleValue(idx);
+	
+	if (valVel != velMissingVal) {
+	  vr += valVel;
+	  vrCount++;
+	}
+	if (valDbz != dbzMissingVal) {
+	  dz += pow(10.0, valDbz * 0.1);
+	  dzCount++;
+	}
+	if(valSw != swMissingVal) {
+	  sw += valSw;
+	  swCount++;
+	}
+      }
+      
+      if (dzCount > 0) {
+	dz = dz / float(dzCount);
+	dz = 10 * log10(dz);
+      } else
+	dz = -999.0;
+      if (vrCount > 0) {
+	vr = vr / float(vrCount);
+      } else {
+	vr = -999.0;
+      }
+      if (swCount > 0) {
+	sw = sw / float(swCount);
+      } else {
+	sw = -999.0;
+      }
+      
+      if ((vr != -999.0) || (dz != -999.0)) {
+	real relX = range * sin(az * Pi / 180.0) * cos(el * Pi / 180.0);
+	real relY = range * cos(az * Pi / 180.0) * cos(el * Pi / 180.0);
+	real rEarth = 6371000.0;
+
+	// Take into account curvature of the earth for the height of the radar beam
+	real relZ = sqrt(range * range + rEarth * rEarth + 2.0 * range
+			 * rEarth * sin(el * Pi / 180.0)) - rEarth;
+	
+	real radarX, radarY, gateLat, gateLon;
+	projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+	projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+	real gateAlt = relZ + radarAlt * 1000;
+
+	ob.setObType(MetObs::radar);
+	ob.setLat(gateLat);
+	ob.setLon(gateLon);
+	ob.setAltitude(gateAlt);
+	ob.setAzimuth(az);
+	ob.setElevation(el);
+	ob.setRadialVelocity(vr);
+	ob.setReflectivity(dz);
+	ob.setSpectrumWidth(sw);
+	ob.setTime(rayTime);
+	metObVector->push_back(ob);
+      }	
+    } // gates
+  } // rays
+  return true;
 }

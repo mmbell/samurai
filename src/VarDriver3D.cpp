@@ -489,7 +489,7 @@ bool VarDriver3D::preProcessMetObs()
     QFile metFile(dataPath.filePath(file));
 
     // Read different types of files
-    if (! read_met_obs_file(dataSuffix.value(suffix), metFile, metData))
+    if (! read_met_obs_file(dataSuffix.value(suffix), metFile, file, metData))
       continue;
 
     processedFiles++;
