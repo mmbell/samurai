@@ -13,6 +13,7 @@
 #include <QTextStream>
 #include <QFile>
 #include <QVector>
+#include <QRegularExpression>
 #include <iomanip>
 #include <netcdfcpp.h>
 
@@ -466,6 +467,8 @@ bool VarDriver3D::preProcessMetObs()
   zeroClevel = height;
   cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl;
 
+  // Load Met. Observations
+  
   QStringList filenames = dataPath.entryList();
   int processedFiles = 0;
   QList<MetObs>* metData = new QList<MetObs>;
@@ -479,17 +482,28 @@ bool VarDriver3D::preProcessMetObs()
       cout << "Unknown file! " << file.toLatin1().data() << endl;
       continue;
     }
+    
     QString suffix = fileparts.last();
     QString prefix = fileparts.first();
+    
     if (prefix == "swp") {
       // Switch it to suffix
       suffix = "swp";
     }
+    
+    if (suffix == "nc") {	// cfrad file?
+      QRegularExpression re(".*cfrad.*\\.nc");
+      QRegularExpressionMatch match = re.match(file);
+      if (match.hasMatch())
+	suffix = "cfrad";
+    }
+    
     cout << "Processing " << file.toLatin1().data() << " of type " << suffix.toLatin1().data() << endl;
     QFile metFile(dataPath.filePath(file));
-
+    QString fullPath = dataPath.filePath(file);
     // Read different types of files
-    if (! read_met_obs_file(dataSuffix.value(suffix), metFile, file, metData))
+    if (! read_met_obs_file(dataSuffix.value(suffix), metFile,
+			    fullPath, metData))
       continue;
 
     processedFiles++;
@@ -501,6 +515,12 @@ bool VarDriver3D::preProcessMetObs()
     int radiusProblem = 0;
     
     // Process the metObs into Observations
+
+    if (frameVector.size() == 0) {
+      std::cout << "No centerfile, cannot process Met. Obs." << std::endl;
+      return false;
+    }
+    
     QDateTime startTime = frameVector.front().getTime();
     QDateTime endTime = frameVector.back().getTime();
     int prevobs = obVector.size();
@@ -513,15 +533,14 @@ bool VarDriver3D::preProcessMetObs()
       QString obstring = obTime.toString(Qt::ISODate);
       QString tcstart = startTime.toString(Qt::ISODate);
       QString tcend = endTime.toString(Qt::ISODate);
-
-#if 0
-      std::cout << "tcstart: " << tcstart.toLatin1().data()
-		<< ", tcend: " << tcend.toLatin1().data()
-		<< ", obTime: " << obstring.toLatin1().data()  << std::endl;
-#endif
       
       if ((obTime < startTime) or (obTime > endTime)) {
 	timeProblem++;
+	
+	if (timeProblem < 10) 
+	  std::cout << "tcstart: " << tcstart.toLatin1().data()
+		    << ", tcend: " << tcend.toLatin1().data()
+		    << ", obTime: " << obstring.toLatin1().data()  << std::endl;
 	continue;
       }
       int fi = startTime.secsTo(obTime);

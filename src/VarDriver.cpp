@@ -1,5 +1,5 @@
 /*
- *  VarDriver.cpp
+ *  Vardriver.cpp
  *  samurai
  *
  *  Copyright 2008 Michael Bell. All rights reserved.
@@ -16,7 +16,6 @@
 #include <QDomNodeList>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 #include <GeographicLib/LambertConformalConic.hpp>
-#include <netcdfcpp.h>
 
 #include <Radx/Radx.hh>
 #include <Radx/RadxField.hh>
@@ -163,7 +162,8 @@ void VarDriver::popCenter()
 
 // interface function to read radar data
 
-bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file, QList<MetObs>* metData)
+bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file,
+				  QList<MetObs>* metData)
 {
   switch (suffix) {
   case (frd):
@@ -1657,22 +1657,22 @@ Projection::ProjectionType VarDriver::projectionFromConfig()
 
 bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 {
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
+  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
     return false;
 
   // Get the number of records
-  NcDim* recnum;
+  Nc3Dim* recnum;
   if (!(recnum = dataFile.get_dim("recNum")))
     return false;
   int NREC = recnum->size();
 
-  NcVar *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+  Nc3Var *latVar, *lonVar, *altVar, *timeVar, *tempVar,
     *dewpVar, *wdirVar, *wspdVar, *pressVar;
   if (!(latVar = dataFile.get_var("latitude")))
     return false;
@@ -1774,22 +1774,23 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 {
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
+  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
     return false;
 
   // Get the number of records
-  NcDim* recnum;
+  // Nc3Dim* recnum;
+  Nc3Dim* recnum;
   if (!(recnum = dataFile.get_dim("time")))
     return false;
   int NREC = recnum->size();
 
-  NcVar *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+  Nc3Var *latVar, *lonVar, *altVar, *timeVar, *tempVar,
     *rhVar, *wdirVar, *wspdVar, *pressVar;
   if (!(latVar = dataFile.get_var("lat")))
     return false;
@@ -1948,28 +1949,28 @@ bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
 
 bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 {
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  NcFile dataFile(metFile.fileName().toLatin1(), NcFile::ReadOnly);
+  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
     return false;
 
   // Get the number of records
-  NcDim* recnum;
+  Nc3Dim* recnum;
   if (!(recnum = dataFile.get_dim("time")))
     return false;
   int NREC = recnum->size();
 
   // Get the number of pressure levels
-  NcDim* pres_level;
+  Nc3Dim* pres_level;
   if (!(pres_level = dataFile.get_dim("pres_level")))
     return false;
   int NLVL = pres_level->size();
 
-  NcVar *latVar, *lonVar, *altVarBase, *altVar, *timeVarBase, *timeVar,
+  Nc3Var *latVar, *lonVar, *altVarBase, *altVar, *timeVarBase, *timeVar,
     *tempVar, *dewpVar, *pressVar;
   if (!(latVar = dataFile.get_var("lat")))
     return false;
@@ -2167,11 +2168,13 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
   QString radarSwStr  = configHash.value("radar_sw");
   
   // Use a Transverse Mercator projection to map the radar gates to the grid
-  GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+  // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
+#if 0
   double tmStart = rxVol.getStartTimeSecs() + 1.e-9 * rxVol.getStartNanoSecs();
   double tmEnd = rxVol.getEndTimeSecs() + 1.e-9 * rxVol.getEndNanoSecs();
-
+#endif
+  
   vector<RadxRay *> rays = rxVol.getRays();
 
   for (size_t index = 0; index < rays.size(); index++) {
@@ -2206,15 +2209,35 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
       return false;
     }
     
-    QDateTime rayTime = QDateTime::fromTime_t(ray->getTimeDouble());
+    // Qt 5.8 //  QDateTime rayTime = QDateTime::fromSecsSinceEpoch(ray->getTimeSecs());
+    QDateTime rayTime = QDateTime::fromTime_t(ray->getTimeSecs());
     double az = ray->getAzimuthDeg();
     double el = ray->getElevationDeg();
 
     // Get the ref, vel, and swdata
     
     RadxField *radarDbz = ray->getField(radarDbzStr.toLatin1().data());
+    if (radarDbz == NULL) {
+      std::cout << "Failed to get variable " <<
+	radarDbzStr.toLatin1().data() << " from " <<
+	fileName.toLatin1().data() << std::endl;
+      return false;
+    }
+	
     RadxField *radarVel = ray->getField(radarVelStr.toLatin1().data());
+    if (radarVel == NULL) {
+      std::cout << "Failed to get variable " <<
+	radarVelStr.toLatin1().data() << " from " <<
+	fileName.toLatin1().data() << std::endl;
+      return false;
+    }
     RadxField *radarSw  = ray->getField(radarSwStr.toLatin1().data());
+    if (radarDbz == NULL) {
+      std::cout << "Failed to get variable " <<
+	radarSwStr.toLatin1().data() << " from " <<
+	fileName.toLatin1().data() << std::endl;
+      return false;
+    }
 
     double dbzMissingVal = radarDbz->getMissingFl64();
     double velMissingVal = radarVel->getMissingFl64();
@@ -2223,7 +2246,7 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     size_t nGates = ray->getNGates();
     float gatelength = ray->getGateSpacingKm();
     
-    int rayskip = configHash.value("radar_skip").toInt();
+    //    int rayskip = configHash.value("radar_skip").toInt();
     int minstride = configHash.value("radar_stride").toInt();
     bool dynamicStride = configHash.value("dynamic_stride").toInt();
     int stride = minstride;
