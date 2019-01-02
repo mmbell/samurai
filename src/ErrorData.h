@@ -7,7 +7,6 @@ class ErrorData {
 
  public:
   
-  
   ErrorData() { mishData = meshData = finalData = NULL; }
   ~ErrorData();
   
@@ -35,6 +34,7 @@ class ErrorData {
   
  private:
 
+  bool useDefaultValues;	// use values from the xml file, not from fractl
   size_t varDim;	// how many variables our caller thinks we have
   
   size_t mish_nx, mish_ny, mish_nz;	// size of the mish

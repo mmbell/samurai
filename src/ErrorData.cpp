@@ -22,6 +22,13 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
   bgError[5] = configHash->value("bg_rhoa_error").toFloat();  // 
   bgError[6] = configHash->value("bg_qr_error").toFloat();    // reflectivity
 
+  // By default, we use error values from the config files
+  // Set use_fractl_errors to true if you want to use the fractl errors instead
+  
+  useDefaultValues = true;
+  if (configHash->contains("use_fractl_errors") )
+    useDefaultValues = configHash->value("use_fractl_errors") == "false";
+  
   // Read variance from fractl_nc_file if specified
 
   if ( fname == "" )
@@ -178,7 +185,7 @@ double ErrorData::meshValueAt(size_t var, size_t x, size_t y, size_t z)
 {
   // return bgError[var]; // TODO debug. 
   
-  if (meshData == NULL)
+  if ( useDefaultValues || (meshData == NULL))
     return bgError[var];
   if (var >= varDim)
     return bgError[var];    

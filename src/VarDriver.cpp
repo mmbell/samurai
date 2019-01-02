@@ -789,7 +789,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
       MetObs ob;
       real range = gatesp[n+stride/2];
       if (dynamicStride) {
-	stride = (int)(range*beamwidth/gatelength);
+	stride = (int)(range * beamwidth / gatelength);
 	if (stride < minstride) stride = minstride;
       }
       real dz = 0.0;
@@ -2137,7 +2137,6 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
 
 }
 
-
 // This routing reads the Lrose Radx format
 
 bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
@@ -2250,7 +2249,10 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     int minstride = configHash.value("radar_stride").toInt();
     bool dynamicStride = configHash.value("dynamic_stride").toInt();
     int stride = minstride;
-  
+
+    // std::cout << "-I- Gates: " << nGates << ", stride: " << stride
+    // << ", length: " << gatelength << std::endl;
+    
     for (size_t gateIndex = 0; gateIndex < nGates - stride; gateIndex += stride) {
       MetObs ob;
       float range = gatelength * (gateIndex + stride / 2);
