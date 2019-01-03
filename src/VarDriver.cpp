@@ -2243,7 +2243,7 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     double swMissingVal =  radarSw->getMissingFl64();
     
     size_t nGates = ray->getNGates();
-    float gatelength = ray->getGateSpacingKm();
+    float gatelength = ray->getGateSpacingKm() * 1000;
     
     //    int rayskip = configHash.value("radar_skip").toInt();
     int minstride = configHash.value("radar_stride").toInt();

@@ -291,7 +291,7 @@ bool VarDriver3D::findReferenceCenter()
       return true;
     }
   }
-  return true;
+  return false;
 }
 
 //
