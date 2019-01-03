@@ -15,7 +15,8 @@
 #include <QVector>
 #include <QRegularExpression>
 #include <iomanip>
-#include <netcdfcpp.h>
+// #include <netcdfcpp.h>
+#include <Ncxx/Nc3File.hh>
 
 #include "VarDriver3D.h"
 #include "Dorade.h"
@@ -2101,12 +2102,12 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
 bool VarDriver3D::validateFractlGrid()
 {
   // Need to read grid from fractl file.
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
   // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
   QString fname = configHash.value("fractl_nc_file");
   
    // Open the file.
-  NcFile dataFile(fname.toLatin1().data(), NcFile::ReadOnly);
+  Nc3File dataFile(fname.toLatin1().data(), Nc3File::ReadOnly);
    
    // Check to see if the file was opened.
    if(!dataFile.is_valid()) {
@@ -2115,60 +2116,60 @@ bool VarDriver3D::validateFractlGrid()
      return false;
    }
 
-   NcDim *timeDim = dataFile.get_dim("time");
+   Nc3Dim *timeDim = dataFile.get_dim("time");
    if (! timeDim)
      return false;
 
-   NcDim *z0Dim = dataFile.get_dim("z0");
+   Nc3Dim *z0Dim = dataFile.get_dim("z0");
    if (! z0Dim)
      return false;
 
-   NcDim *y0Dim = dataFile.get_dim("y0");
+   Nc3Dim *y0Dim = dataFile.get_dim("y0");
    if (! y0Dim)
      return false;
 
-   NcDim *x0Dim = dataFile.get_dim("x0");
+   Nc3Dim *x0Dim = dataFile.get_dim("x0");
    if (! x0Dim)
      return false;
 
 
-   NcAtt *sam_idim = dataFile.get_att("sam_idim");
+   Nc3Att *sam_idim = dataFile.get_att("sam_idim");
    if (! sam_idim)
      return false;
-   NcAtt *sam_jdim = dataFile.get_att("sam_jdim");
+   Nc3Att *sam_jdim = dataFile.get_att("sam_jdim");
    if (! sam_jdim)
      return false;
-   NcAtt *sam_kdim = dataFile.get_att("sam_kdim");
+   Nc3Att *sam_kdim = dataFile.get_att("sam_kdim");
    if (! sam_kdim)
      return false;
    
-   NcAtt *sam_imin = dataFile.get_att("sam_imin");
+   Nc3Att *sam_imin = dataFile.get_att("sam_imin");
    if (! sam_imin)
      return false;
-   NcAtt *sam_imax = dataFile.get_att("sam_imax");
+   Nc3Att *sam_imax = dataFile.get_att("sam_imax");
    if (! sam_imax)
      return false;
-   NcAtt *sam_iincr = dataFile.get_att("sam_iincr");
+   Nc3Att *sam_iincr = dataFile.get_att("sam_iincr");
    if (! sam_iincr)
      return false;
    
-   NcAtt *sam_jmin = dataFile.get_att("sam_jmin");
+   Nc3Att *sam_jmin = dataFile.get_att("sam_jmin");
    if (! sam_jmin)
      return false;
-   NcAtt *sam_jmax = dataFile.get_att("sam_jmax");
+   Nc3Att *sam_jmax = dataFile.get_att("sam_jmax");
    if (! sam_jmax)
      return false;
-   NcAtt *sam_jincr = dataFile.get_att("sam_jincr");
+   Nc3Att *sam_jincr = dataFile.get_att("sam_jincr");
    if (! sam_jincr)
      return false;
    
-   NcAtt *sam_kmin = dataFile.get_att("sam_kmin");
+   Nc3Att *sam_kmin = dataFile.get_att("sam_kmin");
    if (! sam_kmin)
      return false;
-   NcAtt *sam_kmax = dataFile.get_att("sam_kmax");
+   Nc3Att *sam_kmax = dataFile.get_att("sam_kmax");
    if (! sam_kmax)
      return false;
-   NcAtt *sam_kincr = dataFile.get_att("sam_kincr");
+   Nc3Att *sam_kincr = dataFile.get_att("sam_kincr");
    if (! sam_kincr)
      return false;
    
@@ -2177,14 +2178,14 @@ bool VarDriver3D::validateFractlGrid()
    long ny0 = y0Dim->size();
    long nx0 = x0Dim->size();   
 
-   NcVar *z0 = dataFile.get_var("z0");
+   Nc3Var *z0 = dataFile.get_var("z0");
    if (! z0)
      return false;
    
-   NcVar *y0 = dataFile.get_var("y0");
+   Nc3Var *y0 = dataFile.get_var("y0");
    if (! y0)
      return false;
-   NcVar *x0 = dataFile.get_var("x0");
+   Nc3Var *x0 = dataFile.get_var("x0");
    if (! x0)
      return false;
 

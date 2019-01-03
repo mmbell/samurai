@@ -5,7 +5,7 @@ set (CMAKE_CXX_STANDARD 11)
 add_definitions (-Wall)
 
 set ( CMAKE_BUILD_TYPE Debug )
-set ( CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -Og" )
+set ( CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -g" )
 
 set (NETCDF_CXX)
 

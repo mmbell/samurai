@@ -1,5 +1,6 @@
 #include <cmath>
-#include <netcdfcpp.h>
+//#include <netcdfcpp.h>
+#include <Ncxx/Nc3File.hh>
 
 #include "BkgdObsLoaders.h"
 #include "BSpline.h"
@@ -247,11 +248,11 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
 
   std::cout << "--- Dumping bgU in " << fname << std::endl;
   
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
   // int NC_ERR = 0;
 
   // Create the file.
-  NcFile dataFile(fname, NcFile::Replace);
+  Nc3File dataFile(fname, Nc3File::Replace);
 
   // Check to see if the file was created.
   if(!dataFile.is_valid()) {
@@ -277,9 +278,9 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
     return;
   }
 
-  NcDim *dim1 = dataFile.add_dim("IDIM", iDim);
-  NcDim *dim2 = dataFile.add_dim("JDIM", jDim);
-  NcDim *dim3 = dataFile.add_dim("KDIM", kDim);
+  Nc3Dim *dim1 = dataFile.add_dim("IDIM", iDim);
+  Nc3Dim *dim2 = dataFile.add_dim("JDIM", jDim);
+  Nc3Dim *dim3 = dataFile.add_dim("KDIM", kDim);
 
   if ( (! dim1) || (! dim2) || (! dim3) ) {
     delete data;
@@ -329,7 +330,7 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
       }
     }
 
-    NcVar *the_var = dataFile.add_var(var_names[var].c_str(), ncDouble, dim3, dim2, dim1);
+    Nc3Var *the_var = dataFile.add_var(var_names[var].c_str(), nc3Double, dim3, dim2, dim1);
     if ( ! the_var) {
       std::cout << "Failed to add_var" << std::endl;
       delete data;
@@ -1205,12 +1206,12 @@ BkgdObsFractlLoader::~BkgdObsFractlLoader() {}
 
 bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
 {
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
   // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
   QString fname = configHash->value("fractl_nc_file");
   
   // Open the file.
-  NcFile dataFile(fname.toLatin1().data(), NcFile::ReadOnly);
+  Nc3File dataFile(fname.toLatin1().data(), Nc3File::ReadOnly);
    
   // Check to see if the file was opened.
   if(!dataFile.is_valid()) {
@@ -1222,19 +1223,19 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
   // TODO The same size variables are also read in VarDriver3D::validateFractlGrid()
   //      Combine into common code?
    
-  NcDim *timeDim = dataFile.get_dim("time");
+  Nc3Dim *timeDim = dataFile.get_dim("time");
   if (! timeDim)
     return false;
 
-  NcDim *z0Dim = dataFile.get_dim("z0");
+  Nc3Dim *z0Dim = dataFile.get_dim("z0");
   if (! z0Dim)
     return false;
 
-  NcDim *y0Dim = dataFile.get_dim("y0");
+  Nc3Dim *y0Dim = dataFile.get_dim("y0");
   if (! y0Dim)
     return false;
 
-  NcDim *x0Dim = dataFile.get_dim("x0");
+  Nc3Dim *x0Dim = dataFile.get_dim("x0");
   if (! x0Dim)
     return false;
 
@@ -1243,51 +1244,51 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
   long ny0 = y0Dim->size();
   long nx0 = x0Dim->size();
 
-  NcVar *time0 = dataFile.get_var("time");
+  Nc3Var *time0 = dataFile.get_var("time");
   if (! time0)
     return false;
    
-  NcVar *z0 = dataFile.get_var("z0");
+  Nc3Var *z0 = dataFile.get_var("z0");
   if (! z0)
     return false;
    
-  NcVar *y0 = dataFile.get_var("y0");
+  Nc3Var *y0 = dataFile.get_var("y0");
   if (! y0)
     return false;
-  NcVar *x0 = dataFile.get_var("x0");
+  Nc3Var *x0 = dataFile.get_var("x0");
   if (! x0)
     return false;
-  NcVar *lat0 = dataFile.get_var("lat0");
+  Nc3Var *lat0 = dataFile.get_var("lat0");
   if (! lat0)
     return false;
-  NcVar *lon0 = dataFile.get_var("lon0");
+  Nc3Var *lon0 = dataFile.get_var("lon0");
   if (! lon0)
     return false;
 
-  NcVar *upward_air_velocity = dataFile.get_var("W");
+  Nc3Var *upward_air_velocity = dataFile.get_var("W");
   if (! upward_air_velocity)
     return false;
-  NcVar *northward_wind = dataFile.get_var("V");
+  Nc3Var *northward_wind = dataFile.get_var("V");
   if (! northward_wind)
     return false;
-  NcVar *eastward_wind = dataFile.get_var("U");
+  Nc3Var *eastward_wind = dataFile.get_var("U");
   if (! eastward_wind)
     return false;
-  NcVar *meanNbrDbz = dataFile.get_var("DBZ");
+  Nc3Var *meanNbrDbz = dataFile.get_var("DBZ");
   if (! meanNbrDbz)
     return false;
 
-  NcVar *meanNeighborNcp = dataFile.get_var("NCP");
+  Nc3Var *meanNeighborNcp = dataFile.get_var("NC3P");
   if (! meanNeighborNcp)
     return false;
 
-  NcVar *W_std = dataFile.get_var("W_std");
+  Nc3Var *W_std = dataFile.get_var("W_std");
   if (! W_std)
     return false;
-  NcVar *V_std = dataFile.get_var("V_std");
+  Nc3Var *V_std = dataFile.get_var("V_std");
   if (! V_std)
     return false;
-  NcVar *U_std = dataFile.get_var("U_std");
+  Nc3Var *U_std = dataFile.get_var("U_std");
   if (! U_std)
     return false;
    

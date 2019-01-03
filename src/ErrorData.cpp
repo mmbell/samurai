@@ -3,7 +3,8 @@
 #include <netcdfcpp.h>
 
 #include "ErrorData.h"
-#include <netcdfcpp.h>
+//#include <netcdfcpp.h>
+#include <Ncxx/Nc3File.hh>
 
 // This returns a one dimentional array of error data for the Mish
 
@@ -34,10 +35,10 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
   if ( fname == "" )
     return NULL;
   
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
   // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
    // Open the file.
-  NcFile dataFile(fname.toLatin1().data(), NcFile::ReadOnly);
+  Nc3File dataFile(fname.toLatin1().data(), Nc3File::ReadOnly);
    
    // Check to see if the file was opened.
    if(!dataFile.is_valid()) {
@@ -46,15 +47,15 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
      return NULL;
    }
 
-   NcDim *z0Dim = dataFile.get_dim("z0");
+   Nc3Dim *z0Dim = dataFile.get_dim("z0");
    if (! z0Dim)
      return NULL;
 
-   NcDim *y0Dim = dataFile.get_dim("y0");
+   Nc3Dim *y0Dim = dataFile.get_dim("y0");
    if (! y0Dim)
      return NULL;
 
-   NcDim *x0Dim = dataFile.get_dim("x0");
+   Nc3Dim *x0Dim = dataFile.get_dim("x0");
    if (! x0Dim)
      return NULL;
 
@@ -66,7 +67,7 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
 
    // Set the Mesh size
 
-   NcAtt *dim;
+   Nc3Att *dim;
    dim = dataFile.get_att("sam_idim");
    if (dim != NULL)
      mesh_nx = dim->as_long(0);
@@ -88,13 +89,13 @@ double  *ErrorData::init(QString fname, const QHash<QString, QString>* config, s
    
    // Get the Error variables
    
-   NcVar *uStd = dataFile.get_var("U_std");
+   Nc3Var *uStd = dataFile.get_var("U_std");
    if (! uStd)
      return NULL;   
-   NcVar *vStd = dataFile.get_var("V_std");
+   Nc3Var *vStd = dataFile.get_var("V_std");
    if (! vStd)
      return NULL;   
-   NcVar *wStd = dataFile.get_var("W_std");
+   Nc3Var *wStd = dataFile.get_var("W_std");
    if (! wStd)
      return NULL;
 
@@ -214,12 +215,12 @@ bool ErrorData::writeDebugNc(const QString& netcdfFileName,
   
   std::cout << "-D- Dumping data in " << netcdfFileName.toLatin1().data() << std::endl;
   
-  NcError err(NcError::verbose_nonfatal);
+  Nc3Error err(Nc3Error::verbose_nonfatal);
   int NC_ERR = 0;
 
   // Create the file.
   
-  NcFile dataFile(netcdfFileName.toLatin1(), NcFile::Replace);
+  Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
 
   // Check to see if the file was created.
   
@@ -228,8 +229,8 @@ bool ErrorData::writeDebugNc(const QString& netcdfFileName,
 
   // Dimensions
   
-  NcDim *timeDim;
-  NcDim *xDim, *yDim, *zDim;
+  Nc3Dim *timeDim;
+  Nc3Dim *xDim, *yDim, *zDim;
 
   if (!(timeDim = dataFile.add_dim("time")))	// unlimited dimension
     return NC_ERR;
@@ -243,22 +244,22 @@ bool ErrorData::writeDebugNc(const QString& netcdfFileName,
 
   // Variables
   
-  // NcVar *timeVar;
+  // Nc3Var *timeVar;
   
-  NcVar *v_U, *v_V, *v_W;	// Original from Fractal
+  Nc3Var *v_U, *v_V, *v_W;	// Original from Fractal
 
 #if 0
   if (!(timeVar = dataFile.add_var("time", ncInt, timeDim)))
     return NC_ERR;
 #endif
   
-  if (!(v_U = dataFile.add_var("U", ncFloat, timeDim,
+  if (!(v_U = dataFile.add_var("U", nc3Float, timeDim,
 				  zDim, yDim, xDim)))
     return NC_ERR;
-  if (!(v_V = dataFile.add_var("V", ncFloat, timeDim,
+  if (!(v_V = dataFile.add_var("V", nc3Float, timeDim,
 				  zDim, yDim, xDim)))
     return NC_ERR;
-  if (!(v_W = dataFile.add_var("W", ncFloat, timeDim,
+  if (!(v_W = dataFile.add_var("W", nc3Float, timeDim,
 				  zDim, yDim, xDim)))
     return NC_ERR;
 

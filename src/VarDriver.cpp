@@ -2231,7 +2231,7 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
       return false;
     }
     RadxField *radarSw  = ray->getField(radarSwStr.toLatin1().data());
-    if (radarDbz == NULL) {
+    if (radarSw == NULL) {
       std::cout << "Failed to get variable " <<
 	radarSwStr.toLatin1().data() << " from " <<
 	fileName.toLatin1().data() << std::endl;

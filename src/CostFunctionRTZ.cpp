@@ -11,7 +11,9 @@
 #include <QTextStream>
 #include <QDir>
 #include <QDateTime>
-#include <netcdfcpp.h>
+//#include <netcdfcpp.h>
+#include <Ncxx/Nc3File.hh>
+
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
 CostFunctionRTZ::CostFunctionRTZ(const Projection& proj, const int& numObs, const int& stateSize)
@@ -561,11 +563,11 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 
 bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 {
-	NcError err(NcError::verbose_nonfatal);
+	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
 	// Create the file.
-	NcFile dataFile(netcdfFileName.toLatin1(), NcFile::Replace);
+	Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
 
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -573,7 +575,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 
 	// Define the dimensions. NetCDF will hand back an ncDim object for
 	// each.
-	NcDim *lvlDim, *radDim, *thetaDim, *timeDim;
+	Nc3Dim *lvlDim, *radDim, *thetaDim, *timeDim;
 	if (!(radDim = dataFile.add_dim("radius", iDim)))
 		return NC_ERR;
 	if (!(thetaDim = dataFile.add_dim("theta", jDim)))
@@ -585,19 +587,19 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 
 	// Define the coordinate variables.
-    NcVar *lvlVar, *timeVar, *radVar, *thetaVar;
-    /* NcVar *latVar, *lonVar;
-	if (!(lonVar = dataFile.add_var("longitude", ncFloat, radDim)))
+    Nc3Var *lvlVar, *timeVar, *radVar, *thetaVar;
+    /* Nc3Var *latVar, *lonVar;
+	if (!(lonVar = dataFile.add_var("longitude", nc3Float, radDim)))
 		return NC_ERR;
-	if (!(latVar = dataFile.add_var("latitude", ncFloat, thetaDim)))
+	if (!(latVar = dataFile.add_var("latitude", nc3Float, thetaDim)))
 		return NC_ERR; */
-    if (!(radVar = dataFile.add_var("radius", ncFloat, radDim)))
+    if (!(radVar = dataFile.add_var("radius", nc3Float, radDim)))
 		return NC_ERR;
-	if (!(thetaVar = dataFile.add_var("theta", ncFloat, thetaDim)))
+	if (!(thetaVar = dataFile.add_var("theta", nc3Float, thetaDim)))
 		return NC_ERR;
-	if (!(lvlVar = dataFile.add_var("altitude", ncFloat, lvlDim)))
+	if (!(lvlVar = dataFile.add_var("altitude", nc3Float, lvlDim)))
 		return NC_ERR;
-	if (!(timeVar = dataFile.add_var("time", ncInt, timeDim)))
+	if (!(timeVar = dataFile.add_var("time", nc3Int, timeDim)))
 		return NC_ERR;
 
 	// Define units attributes for coordinate vars. This attaches a
@@ -617,171 +619,171 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 
 	// Define the netCDF variables
-	NcVar *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
-	NcVar *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
-	NcVar *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
-    NcVar *dudr, *dvdr, *dwdr, *dudt, *dvdt, *dwdt, *dudz, *dvdz, *dwdz;
-	NcVar *dtdr, *dqdr, *dpdr, *dtdt, *dqdt, *dpdt, *dtdz, *dqdz, *dpdz;
-    NcVar *drhodr, *drhodt, *drhodz;
-	NcVar *dewp, *theta, *thetae, *thetaes, *mcresidual;
+	Nc3Var *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
+	Nc3Var *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
+	Nc3Var *rho, *press, *temp, *qv, *h, *qr, *absVorticity;
+	Nc3Var *dudr, *dvdr, *dwdr, *dudt, *dvdt, *dwdt, *dudz, *dvdz, *dwdz;
+	Nc3Var *dtdr, *dqdr, *dpdr, *dtdt, *dqdt, *dpdt, *dtdz, *dqdz, *dpdz;
+	Nc3Var *drhodr, *drhodt, *drhodz;
+	Nc3Var *dewp, *theta, *thetae, *thetaes, *mcresidual;
 
-	if (!(u = dataFile.add_var("U", ncFloat, timeDim,
+	if (!(u = dataFile.add_var("U", nc3Float, timeDim,
                                lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(v = dataFile.add_var("V", ncFloat, timeDim,
+	if (!(v = dataFile.add_var("V", nc3Float, timeDim,
 							   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(w = dataFile.add_var("W", ncFloat, timeDim,
+	if (!(w = dataFile.add_var("W", nc3Float, timeDim,
 							   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(wspd = dataFile.add_var("WSPD", ncFloat, timeDim,
+	if (!(wspd = dataFile.add_var("WSPD", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(relhum = dataFile.add_var("RH", ncFloat, timeDim,
+	if (!(relhum = dataFile.add_var("RH", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(hprime = dataFile.add_var("HP", ncFloat, timeDim,
+	if (!(hprime = dataFile.add_var("HP", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(qvprime = dataFile.add_var("QVP", ncFloat, timeDim,
+	if (!(qvprime = dataFile.add_var("QVP", nc3Float, timeDim,
                                      lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(rhoprime = dataFile.add_var("RHOAP", ncFloat, timeDim,
+	if (!(rhoprime = dataFile.add_var("RHOAP", nc3Float, timeDim,
                                       lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(tprime = dataFile.add_var("TP", ncFloat, timeDim,
+	if (!(tprime = dataFile.add_var("TP", nc3Float, timeDim,
 									lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(pprime = dataFile.add_var("PP", ncFloat, timeDim,
+	if (!(pprime = dataFile.add_var("PP", nc3Float, timeDim,
 									lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(vorticity = dataFile.add_var("VORT", ncFloat, timeDim,
+	if (!(vorticity = dataFile.add_var("VORT", nc3Float, timeDim,
                                        lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(divergence = dataFile.add_var("DIV", ncFloat, timeDim,
+	if (!(divergence = dataFile.add_var("DIV", nc3Float, timeDim,
                                         lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(okuboweiss = dataFile.add_var("OW", ncFloat, timeDim,
+	if (!(okuboweiss = dataFile.add_var("OW", nc3Float, timeDim,
                                         lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(strain = dataFile.add_var("STRAIN", ncFloat, timeDim,
+	if (!(strain = dataFile.add_var("STRAIN", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(tpw = dataFile.add_var("TPW", ncFloat, timeDim,
+	if (!(tpw = dataFile.add_var("TPW", nc3Float, timeDim,
                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(rhou = dataFile.add_var("RHOU", ncFloat, timeDim,
+	if (!(rhou = dataFile.add_var("RHOU", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(rhov = dataFile.add_var("RHOV", ncFloat, timeDim,
+	if (!(rhov = dataFile.add_var("RHOV", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(rhow = dataFile.add_var("RHOW", ncFloat, timeDim,
+	if (!(rhow = dataFile.add_var("RHOW", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(rho = dataFile.add_var("RHOA", ncFloat, timeDim,
+	if (!(rho = dataFile.add_var("RHOA", nc3Float, timeDim,
                                  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(press = dataFile.add_var("P", ncFloat, timeDim,
+	if (!(press = dataFile.add_var("P", nc3Float, timeDim,
                                    lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(temp = dataFile.add_var("T", ncFloat, timeDim,
+	if (!(temp = dataFile.add_var("T", nc3Float, timeDim,
 								  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(qv = dataFile.add_var("QV", ncFloat, timeDim,
+	if (!(qv = dataFile.add_var("QV", nc3Float, timeDim,
 								lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(h = dataFile.add_var("H", ncFloat, timeDim,
+	if (!(h = dataFile.add_var("H", nc3Float, timeDim,
                                lvlDim, thetaDim, radDim)))
 		return NC_ERR;
     if (configHash->value("qr_variable") == "dbz") {
-        if (!(qr = dataFile.add_var("DBZ", ncFloat, timeDim,
+        if (!(qr = dataFile.add_var("DBZ", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
             return NC_ERR;
 	} else {
-        if (!(qr = dataFile.add_var("QR", ncFloat, timeDim,
+        if (!(qr = dataFile.add_var("QR", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
             return NC_ERR;
     }
-    if (!(absVorticity = dataFile.add_var("ABSVORT", ncFloat, timeDim,
+    if (!(absVorticity = dataFile.add_var("ABSVORT", nc3Float, timeDim,
                                        lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dewp = dataFile.add_var("DEWPOINT", ncFloat, timeDim,
+	if (!(dewp = dataFile.add_var("DEWPOINT", nc3Float, timeDim,
 								  lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(theta = dataFile.add_var("THETA", ncFloat, timeDim,
+	if (!(theta = dataFile.add_var("THETA", nc3Float, timeDim,
 								   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(thetae = dataFile.add_var("THETAE", ncFloat, timeDim,
+	if (!(thetae = dataFile.add_var("THETAE", nc3Float, timeDim,
 									lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(thetaes = dataFile.add_var("THETAES", ncFloat, timeDim,
+	if (!(thetaes = dataFile.add_var("THETAES", nc3Float, timeDim,
 									 lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (!(dudr = dataFile.add_var("DUDR", ncFloat, timeDim,
+    if (!(dudr = dataFile.add_var("DUDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dvdr = dataFile.add_var("DVDR", ncFloat, timeDim,
+	if (!(dvdr = dataFile.add_var("DVDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dwdr = dataFile.add_var("DWDR", ncFloat, timeDim,
+	if (!(dwdr = dataFile.add_var("DWDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dudt = dataFile.add_var("DUDT", ncFloat, timeDim,
+	if (!(dudt = dataFile.add_var("DUDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dvdt = dataFile.add_var("DVDT", ncFloat, timeDim,
+	if (!(dvdt = dataFile.add_var("DVDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dwdt = dataFile.add_var("DWDT", ncFloat, timeDim,
+	if (!(dwdt = dataFile.add_var("DWDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dudz = dataFile.add_var("DUDZ", ncFloat, timeDim,
+	if (!(dudz = dataFile.add_var("DUDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dvdz = dataFile.add_var("DVDZ", ncFloat, timeDim,
+	if (!(dvdz = dataFile.add_var("DVDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dwdz = dataFile.add_var("DWDZ", ncFloat, timeDim,
+	if (!(dwdz = dataFile.add_var("DWDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dtdr = dataFile.add_var("DTDR", ncFloat, timeDim,
+	if (!(dtdr = dataFile.add_var("DTDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dqdr = dataFile.add_var("DQVDR", ncFloat, timeDim,
+	if (!(dqdr = dataFile.add_var("DQVDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dpdr = dataFile.add_var("DPDR", ncFloat, timeDim,
+	if (!(dpdr = dataFile.add_var("DPDR", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dtdt = dataFile.add_var("DTDT", ncFloat, timeDim,
+	if (!(dtdt = dataFile.add_var("DTDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dqdt = dataFile.add_var("DQVDT", ncFloat, timeDim,
+	if (!(dqdt = dataFile.add_var("DQVDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dpdt = dataFile.add_var("DPDT", ncFloat, timeDim,
+	if (!(dpdt = dataFile.add_var("DPDT", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dtdz = dataFile.add_var("DTDZ", ncFloat, timeDim,
+	if (!(dtdz = dataFile.add_var("DTDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dqdz = dataFile.add_var("DQVDZ", ncFloat, timeDim,
+	if (!(dqdz = dataFile.add_var("DQVDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(dpdz = dataFile.add_var("DPDZ", ncFloat, timeDim,
+	if (!(dpdz = dataFile.add_var("DPDZ", nc3Float, timeDim,
                                   lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (!(drhodr = dataFile.add_var("DRHODR", ncFloat, timeDim,
+    if (!(drhodr = dataFile.add_var("DRHODR", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(drhodt = dataFile.add_var("DRHODT", ncFloat, timeDim,
+	if (!(drhodt = dataFile.add_var("DRHODT", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(drhodz = dataFile.add_var("DRHODZ", ncFloat, timeDim,
+	if (!(drhodz = dataFile.add_var("DRHODZ", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-	if (!(mcresidual = dataFile.add_var("MCRESIDUAL", ncFloat, timeDim,
+	if (!(mcresidual = dataFile.add_var("MCRESIDUAL", nc3Float, timeDim,
 										lvlDim, thetaDim, radDim)))
 		return NC_ERR;
 
