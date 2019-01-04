@@ -1278,7 +1278,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
   if (! meanNbrDbz)
     return false;
 
-  Nc3Var *meanNeighborNcp = dataFile.get_var("NC3P");
+  Nc3Var *meanNeighborNcp = dataFile.get_var("NCP");
   if (! meanNeighborNcp)
     return false;
 
