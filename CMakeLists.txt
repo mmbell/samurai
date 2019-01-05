@@ -150,19 +150,22 @@ add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOC
 
 target_link_libraries(samurai
   Qt5::Widgets Qt5::Xml
-  Geographic fftw3 bz2
+  Geographic fftw3 
   ${LROSE_LIBRARIES}
+  bz2
   )
 target_link_libraries(samLibStatic
   Qt5::Widgets Qt5::Xml
-  Geographic fftw3 bz2
+  Geographic fftw3
   ${LROSE_LIBRARIES}   
+  bz2
   )
 target_link_libraries(samLibShared
   Qt5::Widgets Qt5::Xml
-  Geographic fftw3 bz2
+  Geographic fftw3 
   ${LROSE_LIBRARIES}
-  )  
+  bz2 
+)  
 
 set_property ( TARGET samLibShared PROPERTY OUTPUT_NAME "samurai" )
 set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
