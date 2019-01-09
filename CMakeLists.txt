@@ -1,4 +1,4 @@
-cmake_minimum_required ( VERSION 3.0 )
+cmake_minimum_required ( VERSION 3.12 )
 project(samurai)
 
 set (CMAKE_CXX_STANDARD 11)
@@ -47,7 +47,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
                 set ( OPENMP_LINK "-lgomp" )
         endif(${CMAKE_CXX_COMPILER} MATCHES "icpc")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        find_package ( OPENMP REQUIRED )
+        find_package ( OpenMP REQUIRED ) # needs brew install libomp
 	if(${CMAKE_GENERATOR} MATCHES "Makefile")
 		set ( OPENMP_FLAG "-Xclang -fopenmp" )
 		set ( OPENMP_LINK "-lgomp" )
