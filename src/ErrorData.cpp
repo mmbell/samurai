@@ -1,7 +1,5 @@
 #include <limits>
 #include <cmath>
-#include <netcdfcpp.h>
-
 #include "ErrorData.h"
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
