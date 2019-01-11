@@ -1,4 +1,4 @@
-cmake_minimum_required ( VERSION 3.12 )
+cmake_minimum_required ( VERSION 3.0.2 )
 project(samurai)
 
 set (CMAKE_CXX_STANDARD 11)
@@ -33,8 +33,9 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set ( CMAKE_INSTALL_RPATH ${LROSE_LIB_DIR} )
 set ( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
 
-# set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,/usr/local/lrose/lib")
-# set (CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath,${LROSE_PREFIX}/lib")
+# Use RUNPATH, not RPATH
+
+set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
 
 # Different compilers use different OpenMP options
 
