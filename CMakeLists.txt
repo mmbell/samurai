@@ -20,6 +20,7 @@ set(CMAKS_AUTOMOC ON)
 find_package(Qt5 COMPONENTS Core Widgets Xml REQUIRED)
 
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
+find_package ( LibZip REQUIRED )
 find_package ( GeographicLib REQUIRED )
 find_package ( FFTW REQUIRED )
 
@@ -35,11 +36,12 @@ set ( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
 
 # Use RUNPATH, not RPATH
 
-set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
 
 # Different compilers use different OpenMP options
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
+  
 	if(${CMAKE_CXX_COMPILER} MATCHES "icpc")
 		set ( OPENMP_FLAG "-openmp" )
 		set ( OPENMP_LINK "-openmp" )
