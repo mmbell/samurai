@@ -1373,7 +1373,6 @@ bool VarDriver::parseXMLconfig(const QDomElement& config)
       }
       if (!group.text().isEmpty()) {
 	configHash.insert(tag, group.text());
-	// cout << tag.toStdString() << " => " << configHash.value(tag).toStdString() << endl;
       }
     }
   }

@@ -7,13 +7,22 @@
 
 #include "Xml.h"
 
+void usage() {
+  std::cout << "Usage: samurai <samurai_configuration.xml>" << std::endl;
+}
+
 int main (int argc, char *argv[]) {
 	
-  //QApplication app(argc, argv); It would be nice to wrap a GUI around this at some point
-	
-	
   // Read the command line argument to get the XML configuration file
-  if (argc >=2) {
+
+  switch (argc) {
+    
+  case 1:
+    usage();
+    return EXIT_FAILURE;
+    break;
+    
+  case 2:
     QDomDocument *domDoc = readXmlConfig(argv[1]);
     if (domDoc == NULL)
       return EXIT_FAILURE;
@@ -45,9 +54,12 @@ int main (int argc, char *argv[]) {
       std:: cout << "No run mode found!" << std::endl;
       return EXIT_FAILURE;
     }
-  } else {
-    std::cout << "Usage: samurai <samurai_configuration.xml>\n";
+    break;
+    
+  default:
+    
     return EXIT_SUCCESS;
   }
+  return EXIT_FAILURE;
 }
 
