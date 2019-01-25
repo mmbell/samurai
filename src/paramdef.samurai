@@ -1,0 +1,767 @@
+/*********************************************************
+ * parameter definitions for FractlSamurai
+ *
+ * Bruno Melli, CSU
+ *
+ * Jan 2019
+ */
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+  p_header = "Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation";
+}
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "DEBUGGING SECTION";
+}
+
+paramdef boolean {
+  p_default = false;
+  p_descr = "Dump the content of the bgU array";
+  p_help = "If true, the bgU array will be dumped into a netcdf file";
+} debug_bgu;
+
+paramdef string {
+  p_default = "/tmp/bgu.nc";
+  p_descr = "Dump the content of the bgU array in this file";
+  p_help = "If debug_bgu is set to true, the bgU array will be dumped into this file";
+} debug_bgu_nc;
+
+paramdef boolean {
+  p_default = false;
+  p_descr = "Dump the content of the bgIn array";
+  p_help = "If true, the bgIn array will be dumped on stdout";
+} debug_bgin;
+
+paramdef string {
+  p_default = "";
+  p_descr = "Overwrite bgU with the content of this file";
+  p_help = "If set to a valid file, the bgU array will be overwritten"; 
+} debug_bgU_overwrite;
+
+paramdef int {
+  p_default = 0;
+  p_descr = "Debug the KD tree";
+  p_help = "If set to a non-zero value val, dump val/step KD tree lookup";
+} debug_kd;
+
+paramdef int {
+  p_default = 0;
+  p_descr = "Step for decrementing debug_kd";
+  p_help = "debug_kd is decremented by this value";
+} debug_kd_step;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "OPERATION SECTION";
+}
+
+typedef enum {
+  MODE_XYZ, MODE_RTZ
+} mode_t;
+
+paramdef enum mode_t {
+  p_default = MODE_XYZ;
+  p_descr = "Coordinate system";
+  p_help = "XYZ for Cartesian, RTZ for spherical";
+} mode;
+
+paramdef string {
+  p_descr = "Path to the data directory";
+  p_help = "Samurai will load data files from this directory";
+} data_directory;
+
+paramdef string {
+  p_descr = "Path to the output directory";
+  p_help = "Samurai will write result files in this directory";
+} output_directory;
+
+paramdef boolean {
+  p_default = true;
+  p_descr = "Tell Samurai to load background observations";
+  p_help = "TODO";
+} load_background;
+
+paramdef boolean {
+  p_default = false;
+  p_descr = "Tell Samurai to adjust the background observations";
+  p_help = "Adjust the interpolated background to satisfy mass continuity and match the supplied points exactly";
+} adjust_background;
+
+paramdef boolean {
+  p_default = true;
+  p_desc = "Preprocess the observations into a single vector";
+  p_help = "TODO";
+} preprocess_obs;
+
+paramdef int {
+  p_default = 1;
+  p_descr = "Max number of iterations to the multipass reduction factor";
+  p_help = "Multiple iterations will reduce the cutoff wavelengths and background error variance";
+} num_iterations;
+
+paramdef boolean {
+  p_default = false;
+} output_mish;
+
+paramdef boolean {
+  p_default = false;
+} output_txt;
+
+paramdef boolean {
+  p_default = true;
+} output_qc;
+
+paramdef boolean {
+  p_default = true;
+} output_netcdf;
+
+paramdef boolean {
+  p_default = false;
+} output_asi;
+
+paramdef boolean {
+  p_default = false;
+} output_COAMPS;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "GRID DEFINITION SECTION";
+}
+
+paramdef float {
+} i_min;
+
+paramdef float {
+} i_max;
+
+paramdef float {
+} i_incr;
+
+paramdef float {
+} j_min;
+
+paramdef float {
+} j_max;
+
+paramdef float {
+} j_incr;
+
+paramdef float {
+} k_min;
+
+paramdef float {
+} k_max;
+
+paramdef float {
+} k_incr;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "BACKGROUND SECTION";
+}
+
+paramdef string {
+  p_default = "dunion_mt.snd";
+} ref_state;
+
+paramdef string {
+  p_descr = "Reference time";
+  p_help = "hh:mm:ss";
+} ref_time;
+
+paramdef float {
+  p_default = 20.0;
+  p_help = "Radius of influence in the I direction";
+} i_background_roi;
+
+paramdef float {
+  p_default = 20.0;
+  p_help = "Radius of influence in the J direction";
+} j_background_roi;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "RADAR SECTION";
+}
+
+paramdef int {
+  p_default = 2;
+  p_descr = "";
+  p_help = "";
+} radar_skip;
+
+paramdef int {
+  p_default = 3;
+  p_descr = "";
+  p_help = "";
+} radar_stride;
+
+paramdef int {
+  p_default = 0;
+  p_descr = "";
+  p_help = "";
+} dynamic_stride;
+
+paramdef string {
+  p_default = "dbz";
+  p_descr = "???";
+  p_help = "";
+} qr_variable;
+
+paramdef string {
+  p_default = "DBZ";
+  p_descr = "Radar reflectivity variable name in the input files";
+  p_help = "Example: DBZ for Eldora, DZ for CSU-CHILL";
+} radar_dbz;
+
+paramdef string {
+  p_default = "VG";
+  p_descr = "Radar velocity of scatterers away from instrument";
+  p_help = "Example: VG for Eldora, VE for CSU-CHILL, VR, ...";
+} radar_vel;
+
+paramdef string {
+  p_default = "SW";
+  p_descr = "";
+  p_help = "";
+} radar_sw;
+
+paramdef float {
+  p_default = 0.4;
+  p_descr = "";
+  p_help = "";
+} i_reflectivity_roi;
+
+paramdef float {
+  p_default = 0.4;
+  p_descr = "";
+  p_help = "";
+} j_reflectivity_roi;
+
+paramdef float {
+  p_default = 0.4;
+  p_descr = "";
+  p_help = "";
+} k_reflectivity_roi;
+
+paramdef float {
+  p_default = 0.0;
+  p_descr = "";
+  p_help = "";
+} dbz_pseudow_weight;
+
+paramdef float {
+  p_default = -26.0;
+  p_descr = "";
+  p_help = "";
+} mask_reflectivity;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} melting_zone_width;
+
+paramdef float {
+  p_default = 20.0;
+  p_descr = "";
+  p_help = "";
+} mixed_phase_dbz;
+
+paramdef float {
+  p_default = 30.0;
+  p_descr = "";
+  p_help = "";
+} rain_dbz;
+
+//////////////////////////////////////////////////////////
+
+///// TODO Figure out the parameters iter
+
+commentdef {
+   p_header = "PARAMETERS SECTION";
+}
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "BOUNDARY CONDITIONS SECTION";
+}
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhou_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhou_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhov_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhov_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhow_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhow_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_tempk_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_tempk_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_qv_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_qv_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhoa_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_rhoa_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_qr_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} i_qr_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhou_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhou_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhov_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhov_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhow_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhow_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_tempk_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_tempk_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_qv_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_qv_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhoa_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_rhoa_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_qr_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} j_qr_bcR;
+
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhou_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhou_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhov_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhov_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhow_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhow_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_tempk_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_tempk_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_qv_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_qv_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhoa_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_rhoa_bcR;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_qr_bcL;
+
+paramdef string {
+  p_default = "R0";
+  p_descr = "";
+  p_help = "";
+} k_qr_bcR;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "OBSERVATION ERRORS SECTION";
+}
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} dropsound_rhou_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} dropsound_rhov_error;
+
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} dropsound_rhow_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} dropsound_tempk_error;
+
+paramdef float {
+  p_default = 0.5;
+  p_descr = "";
+  p_help = "";
+} dropsound_qv_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} dropsound_rhoua_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_rhou_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_rhov_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_rhow_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_tempk_error;
+
+paramdef float {
+  p_default = 0.5;
+  p_descr = "";
+  p_help = "";
+} flightlevel_qv_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_rhoua_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} insitu_rhou_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} insitu_rhov_error;
+
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} insitu_rhow_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} insitu_tempk_error;
+
+paramdef float {
+  p_default = 0.5;
+  p_descr = "";
+  p_help = "";
+} insitu_qv_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} insitu_rhoua_error;
+
+paramdef float {
+  p_default = 10.0;
+  p_descr = "";
+  p_help = "";
+} sfmr_windspeed_error;
+
+paramdef float {
+  p_default = 2.5;
+  p_descr = "";
+  p_help = "";
+} qscat_rhou_error;
+
+paramdef float {
+  p_default = 2.5;
+  p_descr = "";
+  p_help = "";
+} qscat_rhov_error;
+
+paramdef float {
+  p_default = 2.5;
+  p_descr = "";
+  p_help = "";
+} ascat_rhou_error;
+
+paramdef float {
+  p_default = 2.5;
+  p_descr = "";
+  p_help = "";
+} ascat_rhov_error;
+
+
+paramdef float {
+  p_default = 10.0;
+  p_descr = "";
+  p_help = "";
+} amv_rhou_error;
+
+paramdef float {
+  p_default = 10.0;
+  p_descr = "";
+  p_help = "";
+} amv_rhov_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} lidar_sw_error;
+
+paramdef float {
+  p_default = 50.0;
+  p_descr = "";
+  p_help = "";
+} lidar_power_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} lidar_min_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} radar_sw_error;
+
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} radar_fallspeed_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} radar_min_error;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "OPTION SECTION";
+}
+
+paramdef float {
+  p_default = 45.0;
+  p_descr = "";
+  p_help = "";
+} max_radar_elevation;
+
+paramdef boolean {
+  p_default = true;
+  p_descr = "";
+  p_help = "";
+} horizontal_radar_appx;
+
+paramdef boolean {
+  p_default = true;
+  p_descr = "";
+  p_help = "";
+} allow_background_missing_values;
