@@ -41,6 +41,15 @@ VarDriver3D::~VarDriver3D()
 {
 }
 
+// Initialize with the configHash already filled
+
+bool VarDriver3D::initialize()
+{
+  // Run a 3D vortex background field
+  cout << "Initializing SAMURAI 3D" << endl;
+  return validateDriver();
+}
+
 // Initialize from parsed xml
 
 bool VarDriver3D::initialize(const QDomElement& configuration)
@@ -101,8 +110,8 @@ bool VarDriver3D::validateDriver()
 	      << std::endl;
 
   if (fractlBkgd && ! loadBG) {
-    std::cout << "** Warning: 'bkgd_obs_interpolation' set to 'true' "
-	      << "but 'load_background' set to false. Setting loadBG to true."
+    std::cout << "** Warning: 'bkgd_obs_interpolation' set "
+	      << "but 'load_background' set to false. Setting load_background to true."
 	      << std::endl;
     loadBG = true;
   }
@@ -1035,7 +1044,8 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  real wWgt = sin(el);
 	  // Restrict to horizontal component only
-	  if (configHash.value("horizontal_radar_appx") == "true") wWgt = 0;
+	  if (configHash.value("horizontal_radar_appx") == "true")
+	    wWgt = 0;
 
 	  // Fall speed
 	  real Z = metOb.getReflectivity();

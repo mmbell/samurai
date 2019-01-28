@@ -693,12 +693,12 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
 
   std::cout << numbgObs << " background observations loaded" << std::endl;
 
-  if (isTrue("debug_bgU")) {
+  if (isTrue("debug_bgu")) {
     dumpBgU(0, uStateSize, bgU);
   }
 
-  if (configHash->contains("debug_bgU_nc"))
-    bgu2nc(configHash->value("debug_bgU_nc").toLatin1().data(), bgU);
+  if (configHash->contains("debug_bgu_nc"))
+    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
   
   return true;
 }
@@ -1089,15 +1089,15 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
   if (debugKd)
     std::cout << "--- end of debug kd" << std::endl;
 
-  if (configHash->contains("debug_bgU_overwrite"))
-    overwriteBgu(configHash->value("debug_bgU_overwrite").toLatin1().data());
+  if (configHash->contains("debug_bgu_overwrite"))
+    overwriteBgu(configHash->value("debug_bgu_overwrite").toLatin1().data());
   
-  if (isTrue("debug_bgU")) {
+  if (isTrue("debug_bgu")) {
     dumpBgU(0, uStateSize, bgU);
   }
   
-  if (configHash->contains("debug_bgU_nc"))
-    bgu2nc(configHash->value("debug_bgU_nc").toLatin1().data(), bgU);
+  if (configHash->contains("debug_bgu_nc"))
+    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
   
   return true;
 }
@@ -1453,11 +1453,11 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
     }
   } // ntime
   
-  if (isTrue("debug_bgU"))
+  if (isTrue("debug_bgu"))
     dumpBgU(0, uStateSize, bgU);
   
-  if (configHash->contains("debug_bgU_nc"))
-    bgu2nc(configHash->value("debug_bgU_nc").toLatin1().data(), bgU);
+  if (configHash->contains("debug_bgu_nc"))
+    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
    
    delete[] lats;
    delete[] lons;

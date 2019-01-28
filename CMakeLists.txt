@@ -92,6 +92,7 @@ set ( samurai_HDRS
 	src/timers.h
         src/VarDriver3D.h
 	src/Xml.h
+	src/Params.hh	# generated file
 	)
 
 set ( library_HDRS
@@ -125,6 +126,8 @@ set ( common_SRCS
 	src/VarDriver.cpp
 	src/VarDriver3D.cpp
 	src/Xml.cpp
+	src/Args.cpp
+	src/Params.cc	# generated file
 	)
 
 set (samurai_SRCS
@@ -145,6 +148,14 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/Bkg
 include_directories ( ${LROSE_INCLUDE_DIRS} )
 link_directories( ${LROSE_LIB_DIR} )
 
+# Generate the argument files
+
+add_custom_command (
+  OUTPUT src/Params.hh src/Params.cc
+  COMMAND ${TDRP_EXECUTABLE} -c++ -f src/paramdef.samurai && mv Params.* src/
+  DEPENDS src/paramdef.samurai
+  )
+
 # We release an executable and both static and shared libraries
 
 add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
@@ -153,21 +164,21 @@ add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOC
 
 target_link_libraries(samurai
   Qt5::Widgets Qt5::Xml
-  Geographic fftw3 
+  Geographic fftw3
   ${LROSE_LIBRARIES}
-  bz2
+  bz2 z
   )
 target_link_libraries(samLibStatic
   Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}   
-  bz2
+  bz2 z
   )
 target_link_libraries(samLibShared
   Qt5::Widgets Qt5::Xml
-  Geographic fftw3 
+  Geographic fftw3
   ${LROSE_LIBRARIES}
-  bz2 
+  bz2 z
 )  
 
 set_property ( TARGET samLibShared PROPERTY OUTPUT_NAME "samurai" )

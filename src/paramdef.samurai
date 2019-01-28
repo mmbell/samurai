@@ -1,5 +1,5 @@
 /*********************************************************
- * parameter definitions for FractlSamurai
+ * parameter definitions for Samurai
  *
  * Bruno Melli, CSU
  *
@@ -40,7 +40,7 @@ paramdef string {
   p_default = "";
   p_descr = "Overwrite bgU with the content of this file";
   p_help = "If set to a valid file, the bgU array will be overwritten"; 
-} debug_bgU_overwrite;
+} debug_bgu_overwrite;
 
 paramdef int {
   p_default = 0;
@@ -53,6 +53,40 @@ paramdef int {
   p_descr = "Step for decrementing debug_kd";
   p_help = "debug_kd is decremented by this value";
 } debug_kd_step;
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "BACKGROUND SECTION";
+}
+
+typedef enum {
+  INTERP_NONE, INTERP_SPLINE, INTERP_KD_TREE, INTERP_FRACTL
+} bkgd_interp_method_t;
+
+paramdef boolean {
+  p_default = true;
+  p_descr = "Tell Samurai to load background observations";
+  p_help = "TODO";
+} load_background;
+
+paramdef boolean {
+  p_default = false;
+  p_descr = "Tell Samurai to load background coefficients";
+  p_help = "TODO";
+} load_bg_coefficients;
+
+paramdef boolean {
+  p_default = false;
+  p_descr = "Tell Samurai to adjust the background observations";
+  p_help = "Adjust the interpolated background to satisfy mass continuity and match the supplied points exactly";
+} adjust_background;
+
+paramdef enum bkgd_interp_method_t {
+  p_default = INTERP_SPLINE;
+  p_descr = "Interpolation method to fit background observations to the grid";
+  p_help = "TODO explain the various methods here";
+} bkgd_obs_interpolation;
 
 //////////////////////////////////////////////////////////
 
@@ -70,6 +104,17 @@ paramdef enum mode_t {
   p_help = "XYZ for Cartesian, RTZ for spherical";
 } mode;
 
+typedef enum {
+  PROJ_LAMBERT_CONFORMAL_CONIC,
+  PROJ_TRANSVERSE_MERCATOR_EXACT
+} projection_t;
+
+paramdef enum projection_t {
+  p_default = PROJ_TRANSVERSE_MERCATOR_EXACT;
+  p_descr = "Projection";
+  p_help = "TODO";
+} projection;
+
 paramdef string {
   p_descr = "Path to the data directory";
   p_help = "Samurai will load data files from this directory";
@@ -80,17 +125,6 @@ paramdef string {
   p_help = "Samurai will write result files in this directory";
 } output_directory;
 
-paramdef boolean {
-  p_default = true;
-  p_descr = "Tell Samurai to load background observations";
-  p_help = "TODO";
-} load_background;
-
-paramdef boolean {
-  p_default = false;
-  p_descr = "Tell Samurai to adjust the background observations";
-  p_help = "Adjust the interpolated background to satisfy mass continuity and match the supplied points exactly";
-} adjust_background;
 
 paramdef boolean {
   p_default = true;
@@ -127,6 +161,10 @@ paramdef boolean {
 paramdef boolean {
   p_default = false;
 } output_COAMPS;
+
+paramdef boolean {
+  p_default = false;
+} save_mish;
 
 //////////////////////////////////////////////////////////
 
@@ -559,37 +597,49 @@ paramdef float {
   p_default = 1.0;
   p_descr = "";
   p_help = "";
-} dropsound_rhou_error;
+} dropsonde_rhoa_error;
 
 paramdef float {
   p_default = 1.0;
   p_descr = "";
   p_help = "";
-} dropsound_rhov_error;
+} dropsonde_rhou_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} dropsonde_rhov_error;
 
 paramdef float {
   p_default = 2.0;
   p_descr = "";
   p_help = "";
-} dropsound_rhow_error;
+} dropsonde_rhow_error;
 
 paramdef float {
   p_default = 1.0;
   p_descr = "";
   p_help = "";
-} dropsound_tempk_error;
+} dropsonde_tempk_error;
 
 paramdef float {
   p_default = 0.5;
   p_descr = "";
   p_help = "";
-} dropsound_qv_error;
+} dropsonde_qv_error;
 
 paramdef float {
   p_default = 1.0;
   p_descr = "";
   p_help = "";
-} dropsound_rhoua_error;
+} dropsonde_rhoua_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} flightlevel_rhoa_error;
 
 paramdef float {
   p_default = 1.0;
@@ -626,6 +676,24 @@ paramdef float {
   p_descr = "";
   p_help = "";
 } flightlevel_rhoua_error;
+
+paramdef float {
+  p_default = 0.0;  // TODO
+  p_descr = "";
+  p_help = "";
+} mtp_rhoa_error;
+
+paramdef float {
+  p_default = 0.0; // TODO
+  p_descr = "";
+  p_help = "";
+} mtp_tempk_error;
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} insitu_rhoa_error;
 
 paramdef float {
   p_default = 1.0;
@@ -742,6 +810,110 @@ paramdef float {
   p_help = "";
 } radar_min_error;
 
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_qv_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_rhoa_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_rhou_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_rhov_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_rhow_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} aeri_tempk_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} bg_obs_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} bg_interpolation_error; // TODO Check default value
+
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_qv_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_rhoa_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_rhou_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_rhov_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_rhow_error; // TODO Check default value
+
+paramdef float {
+  p_default = 1.0;
+  p_descr = "";
+  p_help = "";
+} mesonet_tempk_error; // TODO Check default value
+
+//////////////////////////////////////////////////////////
+
+commentdef {
+   p_header = "XYP SPECIFIC SECTION";
+}
+
+paramdef float {
+  p_default = 1.0; // TODO
+  p_descr = "";
+  p_help = "";
+} output_latlon_increment;
+
+paramdef float {
+  p_default = 1.0; // TODO
+  p_descr = "";
+  p_help = "";
+} output_pressure_increment;
+
+
 //////////////////////////////////////////////////////////
 
 commentdef {
@@ -765,3 +937,153 @@ paramdef boolean {
   p_descr = "";
   p_help = "";
 } allow_background_missing_values;
+
+paramdef boolean {
+  p_default = true;
+  p_descr = "";
+  p_help = "";
+} allow_negative_angles;
+
+paramdef string {
+  p_default = "row_order";
+  p_descr = "Order of compressed arrays passed through samurai.h interface";
+  p_help = "One of row_order or column_order";
+} array_order;
+
+paramdef string {
+  p_default = "none";
+  p_desc = "Either Cressman or none";
+} bg_interpolation;
+
+commentdef {
+   p_header = "KD TREE NEAREST NEIGHBOR SECTION";
+}
+
+paramdef float {
+  p_default = 20.0;
+  p_desc = "Max distance for a valid neighbor";
+  p_help = "Any point outside of that distance will be ignored";
+} bkgd_kd_max_distance;
+
+paramdef int  {
+  p_default = 1;
+  p_desc = "How many neighbors to consider";
+  p_help = "Values will be averaged over these many nearest neighbors";
+} bkgd_kd_num_neighbors;
+
+commentdef {
+   p_header = "FRACTL INTERFACE SECTION";
+}
+
+paramdef string {
+  p_default = "";
+  p_desc = "Fractl output file to be used as input to Samurai";
+  p_help = "Need bkgd_obs_interpolation set to 'fractl' to be used";
+} fractl_nc_file;
+
+paramdef boolean {
+  p_default = false;
+  p_desc = "Use Fractl generated errors instead of ...";
+  p_help = "Need bkgd_obs_interpolation set to 'fractl' to be used";
+} use_fractl_errors;
+
+commentdef {
+   p_header = "ITERATION DEPENDENT SECTION";
+   p_help = "All of these need as many entries as num_iterations";
+}
+
+paramdef float {
+  p_default = {3.0, 1.0};
+  p_descr = "";
+  p_help = "";
+} bg_qr_error[];
+
+paramdef float {
+  p_default = {3.0, 1.0};
+  p_descr = "";
+  p_help = "";
+} bg_qv_error[]; //
+
+paramdef float {
+  p_default = {3.0, 1.0};
+  p_descr = "";
+  p_help = "";
+} bg_rhoa_error[];
+
+paramdef float {
+  p_default = {100.0, 5.0};
+  p_descr = "";
+  p_help = "";
+} bg_rhou_error[];
+
+paramdef float {
+  p_default = {100.0, 5.0};
+  p_descr = "";
+  p_help = "";
+} bg_rhov_error[];
+
+paramdef float {
+  p_default = {100.0, 5.0};
+  p_descr = "";
+  p_help = "";
+} bg_rhow_error[];
+
+paramdef float {
+  p_default = {3.0, 1.0};
+  p_descr = "";
+  p_help = "";
+} bg_tempk_error[];
+
+paramdef float {
+  p_default = {4.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} i_filter_length[];
+
+paramdef float {
+  p_default = {4.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} j_filter_length[];
+
+paramdef float {
+  p_default = {4.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} k_filter_length[];
+
+paramdef float {
+  p_default = {2.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} i_spline_cutoff[];
+
+paramdef float {
+  p_default = {2.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} j_spline_cutoff[];
+
+paramdef float {
+  p_default = {2.0, 2.0};
+  p_descr = "";
+  p_help = "";
+} k_spline_cutoff[];
+
+paramdef float {
+  p_default = {-1.0, -1.0};
+  p_descr = "";
+  p_help = "";
+} i_max_wavenumber[];
+
+paramdef float {
+  p_default = {-1.0, -1.0};
+  p_descr = "";
+  p_help = "";
+} j_max_wavenumber[];
+
+paramdef float {
+  p_default = {-1.0, -1.0};
+  p_descr = "";
+  p_help = "";
+} k_max_wavenumber[];

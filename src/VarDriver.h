@@ -42,6 +42,7 @@ class VarDriver
   virtual ~VarDriver();
   virtual bool initialize(const QDomElement& configuration) = 0;
   virtual bool initialize(const samurai_config &configSam) = 0;
+  virtual bool initialize() = 0;  
 
   virtual bool run() = 0;
   virtual bool run(int nx, int ny, int nsigma,
@@ -74,7 +75,9 @@ class VarDriver
   void clearCenters();
   void appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um);
   void popCenter();
-	
+
+  QHash<QString, QString> *getConfigHash() { return &configHash; }
+  
  protected:
 	
   bool fixedGrid;	// Indicates if the grid dims come from the config file or run call
