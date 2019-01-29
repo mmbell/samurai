@@ -987,7 +987,7 @@ commentdef {
 paramdef string {
   p_default = "";
   p_desc = "Fractl output file to be used as input to Samurai";
-  p_help = "Need bkgd_obs_interpolation set to 'fractl' to be used";
+  p_help = "Need bkgd_obs_interpolation set to INTERP_FRACTL to be used";
 } fractl_nc_file;
 
 paramdef boolean {
