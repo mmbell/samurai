@@ -30,7 +30,7 @@ int main (int argc, char *argv[]) {
     return EXIT_FAILURE;
     break;
     
-  case 2: // assume old way of specifying an .xml file
+  default: // assume old way of specifying an .xml file
 
     QString fname = argv[1];
     if (fname.endsWith(".xml") ) {

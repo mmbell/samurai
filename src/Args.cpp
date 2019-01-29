@@ -65,8 +65,9 @@ bool Args::parseArgs(int argc, char *argv[])
 #define CONFIG_INSERT_INT(_X_) configHash->insert(#_X_, QVariant(params._X_).toString())
 #define CONFIG_INSERT_FLOAT(_X_) configHash->insert(#_X_, QVariant(params._X_).toString())
 #define CONFIG_INSERT_STR(_X_) configHash->insert(#_X_, params._X_)
-#define CONFIG_INSERT_FLOAT_ARRAY(_X_, _iter_) \
-  configHash->insert(STR(_X_) + "_" + QVariant(iter).toString(), QVariant(params._X_[_iter_]).toString())
+#define CONFIG_INSERT_FLOAT_ARRAY(zZz, _iter_) \
+  configHash->insert(STR(zZz) + "_" + QVariant(iter).toString(), QVariant(params._##zZz[_iter_ - 1]).toString()); \
+  configHash->insert(#zZz, QVariant(params._##zZz[0]).toString())
 
 #define CONFIG_INSERT_MAP_VALUE(_X_, _table_) configHash->insert(#_X_, _table_[params._X_])
 
@@ -80,8 +81,8 @@ QString mode_map[] = { "XYZ", "RTZ" };
 
 // This needs to match projection_t in paramdef.samurai
 
-QString projection_map[] = { "PROJ_LAMBERT_CONFORMAL_CONIC",
-				 "PROJ_TRANSVERSE_MERCATOR_EXACT" };
+QString projection_map[] = { "lambert_conformal_conic",
+			     "transverse_mercator_exact" };
 
 bool Args::paramsToHash(QHash<QString, QString> *configHash) {
 
@@ -261,7 +262,6 @@ bool Args::paramsToHash(QHash<QString, QString> *configHash) {
   CONFIG_INSERT_FLOAT(lidar_power_error);
   CONFIG_INSERT_FLOAT(lidar_sw_error);
   CONFIG_INSERT_FLOAT(max_radar_elevation);
-  // CONFIG_INSERT_FLOAT(mc_weight);
   CONFIG_INSERT_FLOAT(melting_zone_width);
   CONFIG_INSERT_FLOAT(mesonet_qv_error);
   CONFIG_INSERT_FLOAT(mesonet_rhoa_error);
@@ -283,22 +283,24 @@ bool Args::paramsToHash(QHash<QString, QString> *configHash) {
   CONFIG_INSERT_FLOAT(sfmr_windspeed_error);
 
   for (int iter = 1; iter <= params.num_iterations; iter++) {
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_qr_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_rhoa_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_rhou_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_rhov_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_rhow_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_tempk_error, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_bg_qv_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_qr_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_rhoa_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_rhou_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_rhov_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_rhow_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_tempk_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_qv_error, iter);
 
-    CONFIG_INSERT_FLOAT_ARRAY(_i_filter_length, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_j_filter_length, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_k_filter_length, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_i_spline_cutoff, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_j_spline_cutoff, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_k_spline_cutoff, iter);    
-    CONFIG_INSERT_FLOAT_ARRAY(_i_max_wavenumber, iter);
-    CONFIG_INSERT_FLOAT_ARRAY(_j_max_wavenumber, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(i_filter_length, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(j_filter_length, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(k_filter_length, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(i_spline_cutoff, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(j_spline_cutoff, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(k_spline_cutoff, iter);    
+    CONFIG_INSERT_FLOAT_ARRAY(i_max_wavenumber, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(j_max_wavenumber, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(mc_weight, iter);
+    
   }
   return true;
 }

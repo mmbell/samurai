@@ -173,30 +173,39 @@ commentdef {
 }
 
 paramdef float {
+  p_default = 0.0;
 } i_min;
 
 paramdef float {
+  p_default = 0.0;
 } i_max;
 
 paramdef float {
+  p_default = 0.0;
 } i_incr;
 
 paramdef float {
+  p_default = 0.0;
 } j_min;
 
 paramdef float {
+  p_default = 0.0;
 } j_max;
 
 paramdef float {
+  p_default = 0.0;
 } j_incr;
 
 paramdef float {
+  p_default = 0.0;
 } k_min;
 
 paramdef float {
+  p_default = 0.0;
 } k_max;
 
 paramdef float {
+  p_default = 0.0;
 } k_incr;
 
 //////////////////////////////////////////////////////////
@@ -991,6 +1000,12 @@ commentdef {
    p_header = "ITERATION DEPENDENT SECTION";
    p_help = "All of these need as many entries as num_iterations";
 }
+
+paramdef float {
+  p_default = {1.0, 1.0};
+  p_descr = "";
+  p_help = "";
+} mc_weight[];
 
 paramdef float {
   p_default = {3.0, 1.0};
