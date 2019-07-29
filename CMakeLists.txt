@@ -80,7 +80,6 @@ set ( samurai_HDRS
 	src/timers.h
         src/VarDriver3D.h
 	src/Xml.h
-	src/Params.hh	# generated file
 	)
 
 set ( library_HDRS
