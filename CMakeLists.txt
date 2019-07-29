@@ -1,11 +1,11 @@
-cmake_minimum_required ( VERSION 3.0.2 )
+cmake_minimum_required ( VERSION 3.12 )
 project(samurai)
 
 set (CMAKE_CXX_STANDARD 11)
 add_definitions (-Wall)
 
 set ( CMAKE_BUILD_TYPE Debug )
-set ( CMAKE_CXX_FLAGS_DEBUG "-gdwarf-4 -g -std=c++11" )
+set ( CMAKE_CXX_FLAGS_DEBUG "-v -gdwarf-4 -g -std=c++11" )
 
 set (NETCDF_CXX)
 
@@ -23,6 +23,7 @@ find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
 find_package ( LibZip REQUIRED )
 find_package ( GeographicLib REQUIRED )
 find_package ( FFTW REQUIRED )
+find_package ( OpenMP REQUIRED )
 
 # Set RPATH so that executable finds lrose libraries without needing LD_LIBRARY_PATH
 
@@ -36,32 +37,19 @@ set ( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
 
 # Use RUNPATH, not RPATH
 
-
-# Different compilers use different OpenMP options
-
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
-  
-	if(${CMAKE_CXX_COMPILER} MATCHES "icpc")
-		set ( OPENMP_FLAG "-openmp" )
-		set ( OPENMP_LINK "-openmp" )
-        else()
-                set ( OPENMP_FLAG "-fopenmp" )
-                set ( OPENMP_LINK "-lgomp" )
-        endif(${CMAKE_CXX_COMPILER} MATCHES "icpc")
-elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        find_package ( OpenMP REQUIRED ) # needs brew install libomp
-	if(${CMAKE_GENERATOR} MATCHES "Makefile")
-		set ( OPENMP_FLAG "-Xclang -fopenmp" )
-		set ( OPENMP_LINK "-lgomp" )
-		#set ( APP_TYPE MACOSX_BUNDLE )
-	else()
-		set ( OPENMP_FLAG "-fopenmp" )
-	        set ( OPENMP_LINK "" )
-	endif(${CMAKE_GENERATOR} MATCHES "Makefile")
-else()
-	set ( OPENMP_FLAG "" )
-	set ( OPENMP_LINK "" )
+  set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
+endif()
+
+set ( OPENMP_FLAG ${OpenMP_CXX_FLAGS} )
+
+if(NOT TARGET OpenMP::OpenMP_CXX)
+    add_library(OpenMP_TARGET INTERFACE)
+    add_library(OpenMP::OpenMP_CXX ALIAS OpenMP_TARGET)
+    target_compile_options(OpenMP_TARGET INTERFACE ${OpenMP_CXX_FLAGS})
+    find_package(Threads REQUIRED)
+    target_link_libraries(OpenMP_TARGET INTERFACE Threads::Threads)
+    target_link_libraries(OpenMP_TARGET INTERFACE ${OpenMP_CXX_FLAGS})
 endif()
 
 set ( EXECUTABLE_OUTPUT_PATH build/release/bin )
@@ -133,7 +121,7 @@ set ( common_SRCS
 set (samurai_SRCS
 	src/main.cpp
 	)
-      
+
 set (lib_SRCS
 	${common_SRCS}		
 	src/samurai.cpp
@@ -166,18 +154,21 @@ target_link_libraries(samurai
   Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}
+  OpenMP::OpenMP_CXX
   bz2 z
   )
 target_link_libraries(samLibStatic
   Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}   
+  OpenMP::OpenMP_CXX
   bz2 z
   )
 target_link_libraries(samLibShared
   Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}
+  OpenMP::OpenMP_CXX
   bz2 z
 )  
 
