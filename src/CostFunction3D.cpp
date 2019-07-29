@@ -2230,7 +2230,7 @@ void CostFunction3D::calcHmatrix()
 
   int nonzeros = 0;
   for (int m = 0; m < mObs; m++) {
-    nonzeros += Hbuild[m][0]-1;
+    nonzeros += Hbuild[m][0] - 1;
   }
 
   IH[mObs] = nonzeros;
