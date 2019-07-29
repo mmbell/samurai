@@ -80,7 +80,6 @@ set ( samurai_HDRS
 	src/timers.h
         src/VarDriver3D.h
 	src/Xml.h
-	src/Params.hh	# generated file
 	)
 
 set ( library_HDRS
@@ -140,7 +139,7 @@ link_directories( ${LROSE_LIB_DIR} )
 
 add_custom_command (
   OUTPUT src/Params.hh src/Params.cc
-  COMMAND ${TDRP_EXECUTABLE} -c++ -f src/paramdef.samurai && mv Params.* src/
+  COMMAND ${TDRP_EXECUTABLE} -c++ -f src/paramdef.samurai && cp Params.* src/
   DEPENDS src/paramdef.samurai
   )
 
