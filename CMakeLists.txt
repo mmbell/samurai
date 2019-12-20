@@ -43,6 +43,10 @@ endif()
 
 set ( OPENMP_FLAG ${OpenMP_CXX_FLAGS} )
 
+#set(OpenMP_C_FLAGS "-I/usr/local/Cellar/open-mpi/4.0.1_2/include")
+#set(OpenMP_C_LIB_NAMES "libmpi")
+#set(OpenMP_C_LIB_NAMES "-L/usr/local/Cellar/open-mpi/4.0.1_2/lib -L/usr/local/opt/libevent/lib -lmpi")
+
 if(NOT TARGET OpenMP::OpenMP_CXX)
     add_library(OpenMP_TARGET INTERFACE)
     add_library(OpenMP::OpenMP_CXX ALIAS OpenMP_TARGET)
@@ -132,8 +136,8 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/Bkg
 	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 	)
 
-include_directories ( ${LROSE_INCLUDE_DIRS} )
-link_directories( ${LROSE_LIB_DIR} )
+include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} )
+link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
 
 # Generate the argument files
 
