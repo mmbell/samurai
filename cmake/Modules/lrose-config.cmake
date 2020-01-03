@@ -12,6 +12,6 @@ set ( LROSE_LIB_DIR ${LROSE_PREFIX}/lib )
 set ( LROSE_BIN_DIR ${LROSE_PREFIX}/bin )
 set ( LROSE_DEFINITIONS -L ${LROSE_LIB_DIR} )
 #set ( LROSE_LIBRARIES -lkd -ltdrp -lRadx -lhdf5_cpp -lhdf5 -lnetcdf -lNcxx -lnetcdf_c++ )
-set ( LROSE_LIBRARIES -lkd -ltdrp -lRadx -lhdf5_cpp -lnetcdf -lNcxx)
+set ( LROSE_LIBRARIES -lkd -ltdrp -lRadx -lNcxx -lnetcdf -lhdf5_cpp -lhdf5)
 
 set ( TDRP_EXECUTABLE ${LROSE_BIN_DIR}/tdrp_gen )
