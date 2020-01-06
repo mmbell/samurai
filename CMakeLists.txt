@@ -143,7 +143,7 @@ link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
 
 add_custom_command (
   OUTPUT src/Params.hh src/Params.cc
-  COMMAND ${TDRP_EXECUTABLE} -c++ -f src/paramdef.samurai && cp Params.* src/
+  COMMAND ${TDRP_EXECUTABLE} -c++ -f src/paramdef.samurai && rsync -av Params.* src/
   DEPENDS src/paramdef.samurai
   )
 
