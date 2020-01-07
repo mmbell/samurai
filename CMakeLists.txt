@@ -137,7 +137,7 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/Bkg
 	)
 
 include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} )
-link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
+link_directories( /usr/local/lib ${LROSE_LIB_DIR}  /usr/lib/x86_64-linux-gnu/hdf5/serial )
 
 # Generate the argument files
 
