@@ -30,6 +30,7 @@ void CostFunctionCOAMPS::setSigmas(float *sigmas, int size) {
 
 bool CostFunctionCOAMPS::outputAnalysis(const std::string& suffix, real* Astate)
 {
+/* NCAR FIXME
   cout << "Outputting " << suffix << "...\n";
   // H --> to Mish for output
   std::string samuraiout = "samurai_COAMPS_" + suffix + ".out";
@@ -559,13 +560,14 @@ bool CostFunctionCOAMPS::outputAnalysis(const std::string& suffix, real* Astate)
 
   if (suffix != "analysis") 	// TODO: Need the keep analysis for return arrays
     delete[] finalAnalysis;
-
+*/
   return true;
 
 }
 
 bool CostFunctionCOAMPS::writeFlatfile(const std::string& flatFileName, const int var)
 {
+/*fixme
 	// Write out a binary file for use with COAMPS
 	std::ofstream file(flatFileName);
 	if (! file.is_open()) {
@@ -584,12 +586,14 @@ bool CostFunctionCOAMPS::writeFlatfile(const std::string& flatFileName, const in
 		}
 	}
 	file.close();
+*/
 	return true;
 
 }
 
 bool CostFunctionCOAMPS::writeNetCDF(const std::string& netcdfFileName)
 {
+/* fixme
 	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
@@ -1418,6 +1422,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const std::string& netcdfFileName)
 	delete[] levs;
 	delete[] x;
 	delete[] y;
+*/
 	return true;
 
 }
@@ -1431,6 +1436,7 @@ bool CostFunctionCOAMPS::writeAsi(const std::string& asiFileName)
 	}
 
 	// Calculate headers
+	/*fixme
 	std::vector<std::string> fieldNames;
 	fieldNames.push_back("U");
 	fieldNames.push_back("V");
@@ -1472,7 +1478,7 @@ bool CostFunctionCOAMPS::writeAsi(const std::string& asiFileName)
 		id[178 + (5 * n)] = 8224;
 		id[179 + (5 * n)] = 8224;
 		id[180 + (5 * n)] = 1;
-	}
+	}*/
 
 	// Cartesian file
 	id[16] = 17217;
@@ -1532,6 +1538,7 @@ bool CostFunctionCOAMPS::writeAsi(const std::string& asiFileName)
 
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
+/*fixme
 	std::ofstream out(asiFileName);
 	if(!out.is_open()) {
 		std::cout << "Can't open CAPPI file for writing" << std::endl;
@@ -1574,6 +1581,6 @@ bool CostFunctionCOAMPS::writeAsi(const std::string& asiFileName)
 			}
 		}
 	}
-
+*/
 	return true;
 }

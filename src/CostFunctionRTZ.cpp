@@ -8,9 +8,7 @@
 
 #include "CostFunctionRTZ.h"
 #include <cmath>
-#include <QTextStream>
-#include <QDir>
-#include <QDateTime>
+#include "datetime.h"
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 
@@ -24,9 +22,9 @@ CostFunctionRTZ::CostFunctionRTZ(const Projection& proj, const int& numObs, cons
 CostFunctionRTZ::~CostFunctionRTZ()
 {
 }
-bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
+bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
-
+/*fixme
 	cout << "Outputting " << suffix.toStdString() << "...\n";
 	// H --> to Mish for output
     QString samuraiout = "samurai_RTZ_" + suffix + ".out";
@@ -556,18 +554,18 @@ bool CostFunctionRTZ::outputAnalysis(const QString& suffix, real* Astate)
 
     // Free the memory for the analysis variables
     delete[] finalAnalysis;
-
+*/
 	return true;
 
 }
 
-bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
+bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 {
 	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
 	// Create the file.
-	Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
+	Nc3File dataFile(netcdfFileName.c_str(), Nc3File::Replace);
 
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -617,7 +615,7 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!timeVar->add_att("units", "seconds since 1970-01-01 00:00:00 +0000"))
 		return NC_ERR;
-
+/*fixme
 	// Define the netCDF variables
 	Nc3Var *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	Nc3Var *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
@@ -1212,10 +1210,11 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!mcresidual->add_att("_FillValue", -999.f))
 		return NC_ERR;
-
+*/
 	// Write the coordinate variable data to the file.
 	/* real *lons = new real[iDim];
 	real *lats = new real[jDim]; */
+/*fixme
 	real *levs = new real[kDim];
     real *radius = new real[iDim];
     real *thetadeg = new real[jDim];
@@ -1223,37 +1222,40 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 
 	// Reference time and position from center file
 	time[0] = configHash->value("ref_time").toInt();
-
+*/
 	/* real latReference = configHash->value("ref_lat").toFloat();
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	projection.Forward(lonReference, latReference, lonReference, refX, refY); */
-
+/*fixme
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		real i = (iMin + DI * iIndex);
         radius[iIndex] = i;
+*/
 		/* real j = (jMin + DJ * (jDim/2))*1000;
 		real latnull = 0;
 		projection.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
         x[iIndex] = i/1000; */
-	}
+//fixme	}
 
+/*fixme
 	for (int jIndex = 0; jIndex < jDim; jIndex++) {
 		real j = (jMin + DJ * jIndex);
         thetadeg[jIndex] = j;
+*/
         /* real i = (iMin + DI * (iDim/2))*1000;
 		real lonnull = 0;
 		projection.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
         y[jIndex] = j/1000; */
-	}
+//fixme	}
 
 	/* if (!lonVar->put(lons, iDim))
 		return NC_ERR;
 
 	if (!latVar->put(lats, jDim))
 		return NC_ERR; */
-
+/*fixme
     if (!radVar->put(radius, iDim))
 		return NC_ERR;
 
@@ -1376,20 +1378,22 @@ bool CostFunctionRTZ::writeNetCDF(const QString& netcdfFileName)
 		if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*kDim*50], rec))
 			return NC_ERR;
 	}
-
+*/
 	// The file is automatically closed by the destructor. This frees
 	// up any internal netCDF resources associated with the file, and
 	// flushes any buffers.
 	/* delete[] lats;
 	delete[] lons; */
+/*fixme
 	delete[] levs;
 	delete[] radius;
     delete[] thetadeg;
+*/
 	return true;
 
 }
 
-bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
+bool CostFunctionRTZ::writeAsi(const std::string& asiFileName)
 {
 	// Initialize header
 	int id[511];
@@ -1398,6 +1402,7 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 	}
 
 	// Calculate headers
+	/*fixme
 	QStringList fieldNames;
 	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
 	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
@@ -1413,6 +1418,7 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 		id[179 + (5 * n)] = 8224;
 		id[180 + (5 * n)] = 1;
 	}
+ */
 
 	// Polar file
 	id[16] = 20559;
@@ -1472,7 +1478,8 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
-	QFile asiFile(asiFileName);
+/*fixme
+	std::ofstream asiFile(asiFileName);
 	if(!asiFile.open(QIODevice::WriteOnly)) {
 		cout << "Can't open CAPPI file for writing" << endl;
 		return false;
@@ -1514,6 +1521,6 @@ bool CostFunctionRTZ::writeAsi(const QString& asiFileName)
 			}
 		}
 	}
-
+*/
 	return true;
 }

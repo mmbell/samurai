@@ -8,9 +8,7 @@
 
 #include "CostFunctionXYP.h"
 #include <cmath>
-#include <QTextStream>
-#include <QDir>
-#include <QDateTime>
+#include "datetime.h"
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 
@@ -25,10 +23,10 @@ CostFunctionXYP::~CostFunctionXYP()
 {
 }
 
-bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
+bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 {
-
-	cout << "Outputting " << suffix.toStdString() << "...\n";
+	cout << "Outputting " << suffix << "...\n";
+/*fixme
 	// H --> to Mish for output
     QString samuraiout = "samurai_XYP_" + suffix + ".out";
     ofstream samuraistream;
@@ -656,13 +654,14 @@ bool CostFunctionXYP::outputAnalysis(const QString& suffix, real* Astate)
 
     // Free the memory for the analysis variables
     delete[] finalAnalysis;
-
+*/
 	return true;
 
 }
 
-bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
+bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 {
+/*fixme
 	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
@@ -1509,11 +1508,12 @@ bool CostFunctionXYP::writeNetCDF(const QString& netcdfFileName)
 	delete[] levs;
 	delete[] x;
     delete[] y;
+*/
 	return true;
 
 }
 
-bool CostFunctionXYP::writeAsi(const QString& asiFileName)
+bool CostFunctionXYP::writeAsi(const std::string& asiFileName)
 {
 	// Initialize header
 	int id[511];
@@ -1522,6 +1522,7 @@ bool CostFunctionXYP::writeAsi(const QString& asiFileName)
 	}
 
 	// Calculate headers
+	/*fixme
 	QStringList fieldNames;
 	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
 	<< "MU" << "MV" << "MW" << "RO" << "PZ" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
@@ -1537,6 +1538,7 @@ bool CostFunctionXYP::writeAsi(const QString& asiFileName)
 		id[179 + (5 * n)] = 8224;
 		id[180 + (5 * n)] = 1;
 	}
+*/
 
 	// Cartesian file
 	id[16] = 17217;
@@ -1596,7 +1598,8 @@ bool CostFunctionXYP::writeAsi(const QString& asiFileName)
 
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
-	QFile asiFile(asiFileName);
+/*fixme
+	std::ofstream asiFile(asiFileName);
 	if(!asiFile.open(QIODevice::WriteOnly)) {
 		cout << "Can't open CAPPI file for writing" << endl;
 		return false;
@@ -1638,6 +1641,6 @@ bool CostFunctionXYP::writeAsi(const QString& asiFileName)
 			}
 		}
 	}
-
+*/
 	return true;
 }

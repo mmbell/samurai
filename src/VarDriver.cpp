@@ -109,7 +109,7 @@ bool VarDriver::readFrameCenters()
  		iss >> timestr;
     int hours = std::stoi(timestr.substr(0,2));
     if (hours > 23) { // (FIXME : NCAR) The original code added a day here, then subtracted 24 from the hours, is this needed?
-      date = date::make_zoned(startDate.get_sys_time() + date::days{1});
+      //fixme date = date::make_zoned(startDate + date::days{1});
       hours -= 24;
     } else {
       date = startDate;
@@ -282,7 +282,7 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
   case (cen):
     return false;
   case(cfrad):
-    if (!read_cfrad(file, metData)) {
+    if (!read_cfrad(metFile, metData)) {
       cout << "Error reading cfrad file" << endl;
       return false;
     }
@@ -1708,7 +1708,7 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
     configKeys << "ref_time";
 */
   
-  for (int i = 0; i < configKeys.count(); i++) {
+  for (int i = 0; i < configKeys.size(); i++) {
 /*fixme    if (!configHash.contains(configKeys.at(i))) {
       std::cout << "No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << std::endl;
       return false;

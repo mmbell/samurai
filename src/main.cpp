@@ -3,7 +3,6 @@
 #include "VarDriver3D.h"
 #include "Xml.h"
 #include <iostream>
-#include "timing/gptl.h"
 #include "Args.h"
 #include "Strings.h" // Helper functions, eg: 'endsWith' (which will be in C++20)
 

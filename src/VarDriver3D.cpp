@@ -498,14 +498,14 @@ bool VarDriver3D::preProcessMetObs()
     }
     
     if (suffix == "nc") {	// cfrad file?
-			if (std::regex_match(file, ".*cfrad.*\\.nc")) 
+			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc"))) 
 				suffix = "cfrad";
     }
     
     cout << "Processing " << file << " of type " << suffix << endl;
     // Read different types of files
     std::string fullpath = dataPath + "/" + file;
-    if (! read_met_obs_file(x, fullpath, metData))
+    if (! read_met_obs_file(dataSuffix[suffix], fullpath, metData))
       continue;
 
     processedFiles++;

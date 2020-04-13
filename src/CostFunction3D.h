@@ -89,7 +89,7 @@ protected:
     return false;
   }
 
-	bool isEqual(const char *flag, std::string value) {
+	bool isEqual(const char *flag_in, std::string value) {
     std::string flag = flag_in;
     if (configHash->find(flag) != configHash->end()) {
       if ((*configHash)[flag] == value) {

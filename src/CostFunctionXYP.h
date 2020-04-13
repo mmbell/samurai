@@ -10,7 +10,7 @@
 #define COSTFUNCXYP_H
 
 #include "CostFunctionXYZ.h"
-#include <QString>
+#include <string>
 
 class CostFunctionXYP: public CostFunction3D
 {
@@ -20,9 +20,9 @@ public:
 	~CostFunctionXYP();
 	
 private:
-	bool outputAnalysis(const QString& suffix, real* Astate);
-	bool writeAsi(const QString& asiFileName);
-	bool writeNetCDF(const QString& netcdfFileName);
+	bool outputAnalysis(const std::string& suffix, real* Astate);
+	bool writeAsi(const std::string& asiFileName);
+	bool writeNetCDF(const std::string& netcdfFileName);
 	real pMin, pMax, DP;
 	int pDim;
 };

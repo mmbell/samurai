@@ -17,8 +17,6 @@ set ( CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH} )
 # Tell CMake to run moc automatically when needed
 set(CMAKS_AUTOMOC ON)
 
-find_package(Qt5 COMPONENTS Core Widgets Xml REQUIRED)
-
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
 find_package ( LibZip REQUIRED )
 find_package ( GeographicLib REQUIRED )
@@ -119,6 +117,10 @@ set ( common_SRCS
 	src/Xml.cpp
 	src/Args.cpp
 	src/Params.cc	# generated file
+	src/XML/tinyxml2.cpp
+	src/LineSplit.cpp
+	src/datetime.cpp
+	src/FileList.cpp
 	)
 
 set (samurai_SRCS
@@ -154,21 +156,18 @@ add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} 
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 
 target_link_libraries(samurai
-  Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}
   OpenMP::OpenMP_CXX
   bz2 z
   )
 target_link_libraries(samLibStatic
-  Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}   
   OpenMP::OpenMP_CXX
   bz2 z
   )
 target_link_libraries(samLibShared
-  Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}
   OpenMP::OpenMP_CXX

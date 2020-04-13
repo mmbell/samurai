@@ -42,12 +42,13 @@ extern "C" {
   // I recommend this one. A lots simpler, and no need to match
   // data structure from 2 different languages
 
+	XMLDocument xml;
   VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid) {
     cout << "C API, create_vardriver3D_From_File" << endl;
-    XMLError ec = xml.LoadFile(fname.c_str());
+    XMLError ec = xml.LoadFile(config_path);
     if (ec != XML_SUCCESS) {
-      std::cout << "Error opening XML file: " << fname << std::endl;
-      return EXIT_FAILURE;
+      std::cout << "Error opening XML file: " << config_path << std::endl;
+      return NULL;
     }
 
     XMLElement* root = xml.FirstChildElement("samurai");
@@ -56,7 +57,6 @@ extern "C" {
     VarDriver3D *driver = new VarDriver3D();
     if (driver == NULL) {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
-      delete root;
       return NULL;
     }
     driver->setGridFlag(fixedGrid);
@@ -64,7 +64,6 @@ extern "C" {
     if ( ! driver->initialize(*root)) {
       std:: cout << "Failed to initialize VarDriver3D with content of '" << config_path << "'"  << std::endl;
       delete driver;
-      delete root;
       return NULL;
     }      
     return driver;

@@ -477,6 +477,8 @@ bool MetObs::operator > (const MetObs &other)
 
 void MetObs::printString()
 {
+  using namespace date;
+  using namespace std::chrono;
 	std::cout << getStationName() << "_" << getTime() << "_" << getPressure() << std::endl;
 	//std::cout << printMessage.toAscii();
 	
