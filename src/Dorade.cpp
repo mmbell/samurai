@@ -245,7 +245,7 @@ float* Dorade::getRayData(int &ray, const std::string& field)
 		if (fieldName.size() > 8) fieldName.resize(8);
 		//std::cout << "ERROR: This function is never called; need to make sure it works after removing Qt " << std::endl;
 		std::regex rx("[\\s+]");
-		fieldName = std::regex_replace(fieldName, rx, "");
+		fieldName = std::regex_replace(fieldName, rx, std::string(""));
 		if (field == fieldName) {
 			// Match
 			fldIndex = j;
@@ -382,7 +382,7 @@ bool Dorade::copyField(const std::string& oldFieldName, const std::string& newFi
 		if (fieldName.size() > 8) fieldName.resize(8);
 		//std::cout << "ERROR: This function is never called; need to make sure it works after removing Qt " << std::endl;
 		std::regex rx("[\\s+]");
-		fieldName = std::regex_replace(fieldName, rx, "");
+		fieldName = std::regex_replace(fieldName, rx, std::string(""));
 		if (oldFieldName == fieldName) {
 			// Match
 			oldIndex = j;
@@ -1230,7 +1230,7 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	std::string fld_name(tempname);
 	if (fld_name.size() > 8) fld_name.resize(8);
 	std::regex rx("[\\s+]");
-	fld_name = std::regex_replace(fld_name, rx, "");
+	fld_name = std::regex_replace(fld_name, rx, std::string(""));
   fld_name.erase(remove_if(fld_name.begin(), fld_name.end(), isspace), fld_name.end());
 	if (fld_name == ref_fld) {
 		refIndex = fld_num;

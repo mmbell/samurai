@@ -7,7 +7,8 @@
 #  GeographicLib_LIBRARY_DIRS = /usr/local/lib
 
 find_library (GeographicLib_LIBRARIES Geographic
-  PATHS "${CMAKE_INSTALL_PREFIX}/../GeographicLib/lib" /usr/local/lrose/lib )
+  #PATHS "${CMAKE_INSTALL_PREFIX}/../GeographicLib/lib" /usr/local/lrose/lib )
+  PATHS "${CMAKE_INSTALL_PREFIX}/../GeographicLib/lib" "${LROSE_PREFIX}/lib" )
 
   if (GeographicLib_LIBRARIES)
   get_filename_component (GeographicLib_LIBRARY_DIRS
