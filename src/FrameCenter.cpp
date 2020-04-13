@@ -14,10 +14,11 @@ FrameCenter::FrameCenter()
 	longitude = -999;
 	Um = -999;
 	Vm = -999;
-	time = QDateTime();
+	char const* zero = "00000101";
+	time = ParseDate(zero, "%Y%m%d");
 }
 
-FrameCenter::FrameCenter(QDateTime& t, float& lat, float& lon, float& u, float& v)
+FrameCenter::FrameCenter(datetime& t, float lat, float lon, float u, float v)
 {
 	time = t;
 	latitude = lat;
@@ -51,14 +52,14 @@ void FrameCenter::setLon(const float& lon)
 	longitude = lon;
 }
 
-QDateTime FrameCenter::getTime() const
+datetime FrameCenter::getTime() const
 {
 	return time;
 }
 
-void FrameCenter::setTime(const QDateTime& obTime)
+void FrameCenter::setTime(const datetime& obTime)
 {
-	time = QDateTime(obTime);
+	time = datetime(obTime);
 }
 
 float  FrameCenter::getUmean() const

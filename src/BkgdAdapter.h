@@ -2,7 +2,7 @@
 #define BKGD_ADAPTER_H
 
 #include <fstream>
-#include <QDateTime>
+#include "datetime.h"
 
 #include "precision.h"	// for 'real' typedef
 
@@ -85,7 +85,7 @@ class BkgdArray : public BkgdAdapter {
 
   // Time elements
   
-  QDateTime _obTime;
+	datetime _obTime;
   
   // 3d array dimentions
 

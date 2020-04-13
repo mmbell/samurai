@@ -3,8 +3,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <fstream>
-
-#include <QVariant>
+#include <unordered_set>
 
 //#include <regex>
 
@@ -58,33 +57,33 @@ bool Args::parseArgs(int argc, char *argv[])
 
 
 // Fill the given configHash with the data from the params object
-#define STR_HELPER(_X_) QString(#_X_)
+#define STR_HELPER(_X_) std::string(#_X_)
 #define STR(_X_) STR_HELPER(_X_)
 
-#define CONFIG_INSERT_BOOL(_X_) configHash->insert(#_X_, params._X_ ? "true" : "false")
-#define CONFIG_INSERT_INT(_X_) configHash->insert(#_X_, QVariant(params._X_).toString())
-#define CONFIG_INSERT_FLOAT(_X_) configHash->insert(#_X_, QVariant(params._X_).toString())
-#define CONFIG_INSERT_STR(_X_) configHash->insert(#_X_, params._X_)
+#define CONFIG_INSERT_BOOL(_X_) configHash->emplace(#_X_, params._X_ ? "true" : "false")
+#define CONFIG_INSERT_INT(_X_) configHash->emplace(#_X_, std::to_string(params._X_))
+#define CONFIG_INSERT_FLOAT(_X_) configHash->emplace(#_X_, std::to_string(params._X_))
+#define CONFIG_INSERT_STR(_X_) configHash->emplace(#_X_, params._X_)
 #define CONFIG_INSERT_FLOAT_ARRAY(zZz, _iter_) \
-  configHash->insert(STR(zZz) + "_" + QVariant(iter).toString(), QVariant(params._##zZz[_iter_ - 1]).toString()); \
-  configHash->insert(#zZz, QVariant(params._##zZz[0]).toString())
+  configHash->emplace(STR(zZz) + "_" + std::to_string(iter), std::to_string(params._##zZz[_iter_ - 1])); \
+  configHash->emplace(#zZz, std::to_string(params._##zZz[0]))
 
-#define CONFIG_INSERT_MAP_VALUE(_X_, _table_) configHash->insert(#_X_, _table_[params._X_])
+#define CONFIG_INSERT_MAP_VALUE(_X_, _table_) configHash->emplace(#_X_, _table_[params._X_])
 
 // This needs to match bkgd_interp_method_t in paramdef.samurai
 
-QString interp_map[] = { "none", "spline", "kd_tree", "fractl" };
+std::string interp_map[] = { "none", "spline", "kd_tree", "fractl" };
 
 // This needs to match mode_t in paramdef.samurai
 
-QString mode_map[] = { "XYZ", "RTZ" };
+std::string mode_map[] = { "XYZ", "RTZ" };
 
 // This needs to match projection_t in paramdef.samurai
 
-QString projection_map[] = { "lambert_conformal_conic",
+std::string projection_map[] = { "lambert_conformal_conic",
 			     "transverse_mercator_exact" };
 
-bool Args::paramsToHash(QHash<QString, QString> *configHash) {
+bool Args::paramsToHash(std::unordered_map<std::string, std::string> *configHash) {
 
   // string arguments
 
@@ -129,50 +128,50 @@ bool Args::paramsToHash(QHash<QString, QString> *configHash) {
   CONFIG_INSERT_INT(num_iterations);
   CONFIG_INSERT_INT(radar_skip);
   CONFIG_INSERT_INT(radar_stride);
-  CONFIG_INSERT_INT(ref_time);
+  CONFIG_INSERT_STR(ref_time);
 
-  CONFIG_INSERT_INT(i_qr_bcL);
-  CONFIG_INSERT_INT(i_qr_bcR);
-  CONFIG_INSERT_INT(i_qv_bcL);
-  CONFIG_INSERT_INT(i_qv_bcR);
-  CONFIG_INSERT_INT(i_rhoa_bcL);
-  CONFIG_INSERT_INT(i_rhoa_bcR);
-  CONFIG_INSERT_INT(i_rhou_bcL);
-  CONFIG_INSERT_INT(i_rhou_bcR);
-  CONFIG_INSERT_INT(i_rhov_bcL);
-  CONFIG_INSERT_INT(i_rhov_bcR);
-  CONFIG_INSERT_INT(i_rhow_bcL);
-  CONFIG_INSERT_INT(i_rhow_bcR);
-  CONFIG_INSERT_INT(i_tempk_bcL);
-  CONFIG_INSERT_INT(i_tempk_bcR);
-  CONFIG_INSERT_INT(j_qr_bcL);
-  CONFIG_INSERT_INT(j_qr_bcR);
-  CONFIG_INSERT_INT(j_qv_bcL);
-  CONFIG_INSERT_INT(j_qv_bcR);
-  CONFIG_INSERT_INT(j_rhoa_bcL);
-  CONFIG_INSERT_INT(j_rhoa_bcR);
-  CONFIG_INSERT_INT(j_rhou_bcL);
-  CONFIG_INSERT_INT(j_rhou_bcR);
-  CONFIG_INSERT_INT(j_rhov_bcL);
-  CONFIG_INSERT_INT(j_rhov_bcR);
-  CONFIG_INSERT_INT(j_rhow_bcL);
-  CONFIG_INSERT_INT(j_rhow_bcR);
-  CONFIG_INSERT_INT(j_tempk_bcL);
-  CONFIG_INSERT_INT(j_tempk_bcR);
-  CONFIG_INSERT_INT(k_qr_bcL);
-  CONFIG_INSERT_INT(k_qr_bcR);
-  CONFIG_INSERT_INT(k_qv_bcL);
-  CONFIG_INSERT_INT(k_qv_bcR);
-  CONFIG_INSERT_INT(k_rhoa_bcL);
-  CONFIG_INSERT_INT(k_rhoa_bcR);
-  CONFIG_INSERT_INT(k_rhou_bcL);
-  CONFIG_INSERT_INT(k_rhou_bcR);
-  CONFIG_INSERT_INT(k_rhov_bcL);
-  CONFIG_INSERT_INT(k_rhov_bcR);
-  CONFIG_INSERT_INT(k_rhow_bcL);
-  CONFIG_INSERT_INT(k_rhow_bcR);
-  CONFIG_INSERT_INT(k_tempk_bcL);
-  CONFIG_INSERT_INT(k_tempk_bcR);
+  CONFIG_INSERT_STR(i_qr_bcL);
+  CONFIG_INSERT_STR(i_qr_bcR);
+  CONFIG_INSERT_STR(i_qv_bcL);
+  CONFIG_INSERT_STR(i_qv_bcR);
+  CONFIG_INSERT_STR(i_rhoa_bcL);
+  CONFIG_INSERT_STR(i_rhoa_bcR);
+  CONFIG_INSERT_STR(i_rhou_bcL);
+  CONFIG_INSERT_STR(i_rhou_bcR);
+  CONFIG_INSERT_STR(i_rhov_bcL);
+  CONFIG_INSERT_STR(i_rhov_bcR);
+  CONFIG_INSERT_STR(i_rhow_bcL);
+  CONFIG_INSERT_STR(i_rhow_bcR);
+  CONFIG_INSERT_STR(i_tempk_bcL);
+  CONFIG_INSERT_STR(i_tempk_bcR);
+  CONFIG_INSERT_STR(j_qr_bcL);
+  CONFIG_INSERT_STR(j_qr_bcR);
+  CONFIG_INSERT_STR(j_qv_bcL);
+  CONFIG_INSERT_STR(j_qv_bcR);
+  CONFIG_INSERT_STR(j_rhoa_bcL);
+  CONFIG_INSERT_STR(j_rhoa_bcR);
+  CONFIG_INSERT_STR(j_rhou_bcL);
+  CONFIG_INSERT_STR(j_rhou_bcR);
+  CONFIG_INSERT_STR(j_rhov_bcL);
+  CONFIG_INSERT_STR(j_rhov_bcR);
+  CONFIG_INSERT_STR(j_rhow_bcL);
+  CONFIG_INSERT_STR(j_rhow_bcR);
+  CONFIG_INSERT_STR(j_tempk_bcL);
+  CONFIG_INSERT_STR(j_tempk_bcR);
+  CONFIG_INSERT_STR(k_qr_bcL);
+  CONFIG_INSERT_STR(k_qr_bcR);
+  CONFIG_INSERT_STR(k_qv_bcL);
+  CONFIG_INSERT_STR(k_qv_bcR);
+  CONFIG_INSERT_STR(k_rhoa_bcL);
+  CONFIG_INSERT_STR(k_rhoa_bcR);
+  CONFIG_INSERT_STR(k_rhou_bcL);
+  CONFIG_INSERT_STR(k_rhou_bcR);
+  CONFIG_INSERT_STR(k_rhov_bcL);
+  CONFIG_INSERT_STR(k_rhov_bcR);
+  CONFIG_INSERT_STR(k_rhow_bcL);
+  CONFIG_INSERT_STR(k_rhow_bcR);
+  CONFIG_INSERT_STR(k_tempk_bcL);
+  CONFIG_INSERT_STR(k_tempk_bcR);
   
   // float arguments
 
@@ -300,7 +299,7 @@ bool Args::paramsToHash(QHash<QString, QString> *configHash) {
     CONFIG_INSERT_FLOAT_ARRAY(i_max_wavenumber, iter);
     CONFIG_INSERT_FLOAT_ARRAY(j_max_wavenumber, iter);
     CONFIG_INSERT_FLOAT_ARRAY(mc_weight, iter);
-    
+  
   }
   return true;
 }

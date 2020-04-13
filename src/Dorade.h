@@ -11,9 +11,9 @@
 #define DORADE_H
 
 #include "read_dorade.h"
-#include <QDir>
-#include <QDateTime>
+#include "datetime.h"
 #include <cmath>
+#include <string>
 
 class Dorade
 {
@@ -21,18 +21,18 @@ class Dorade
 public:
 	// Constructor / Destructor
 	Dorade();
-	Dorade(const QString& swpFilename);
+	Dorade(const std::string& swpFilename);
 	~Dorade();
 	
 	// I/O
 	bool readSwpfile();
-	bool readSwpfile(const QString& refname, const QString& velname, const QString& swname);
+	bool readSwpfile(const std::string& refname, const std::string& velname, const std::string& swname);
 	bool writeSwpfile();
-	bool writeSwpfile(const QString& suffix);
-	bool writeDoradefile(const QString& doradeFilename);
-	QString getFilename();
-	QString getRadarname();
-	void setFilename(const QString& newname);
+	bool writeSwpfile(const std::string& suffix);
+	bool writeDoradefile(const std::string& doradeFilename);
+	std::string getFilename();
+	std::string getRadarname();
+	void setFilename(const std::string& newname);
 	
 	// Data Retrieval
 	float getAzimuth(int& ray);
@@ -40,7 +40,7 @@ public:
 	float* getReflectivity(int& ray);
 	float* getRadialVelocity(int& ray);	
 	float* getSpectrumWidth(int& ray);
-	float* getRayData(int &ray, const QString& field);
+	float* getRayData(int &ray, const std::string& field);
 	int getNumRays();
 	int getNumGates();
 	float* getGateSpacing();
@@ -52,16 +52,16 @@ public:
 	float getRadarLon(const int& ray);
 	float getRadarAlt(const int& ray);
 	float getRadarAltMSL(const int& ray);
-	QDateTime getRayTime(int& ray);
+	datetime getRayTime(int& ray);
 	float getFLwind_u(const int& ray);
 	float getFLwind_v(const int& ray);
 	float getHeading(const int& ray);
 	float getBeamwidthDeg();
 	
 	// Editing
-	bool copyField(const QString& oldFieldName,const QString& newFieldName, 
-				   const QString& newFieldDesc,const QString& newFieldUnits);
-	//bool deleteField(const QString& fldname);
+	bool copyField(const std::string& oldFieldName,const std::string& newFieldName, 
+				   const std::string& newFieldDesc,const std::string& newFieldUnits);
+	//bool deleteField(const std::string& fldname);
 	
 private:
 	bool swap_bytes;
@@ -89,10 +89,10 @@ private:
 	int refIndex;
 	int velIndex;
 	int swIndex;
-	QString ref_fld;
-	QString vel_fld;
-	QString sw_fld;	
-	QString filename;
+	std::string ref_fld;
+	std::string vel_fld;
+	std::string sw_fld;	
+	std::string filename;
 	/*double isnanf(double x)   {  return  (((*(int *)&(x) & 0x7f800000L) == 0x7f800000L) && \
 										  ((*(int *)&(x) & 0x007fffffL) != 0x00000000L)); }; */
 	double RADIANS(double x)  { return ((x)*0.017453292); };

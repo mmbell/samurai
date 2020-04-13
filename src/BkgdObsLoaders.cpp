@@ -37,7 +37,7 @@ BkgdObsLoader::~BkgdObsLoader()
 
 // Set various variables used by member functions
 
-bool BkgdObsLoader::initialize(QHash<QString, QString> *config,
+bool BkgdObsLoader::initialize(std::unordered_map<std::string, std::string> *config,
 			       std::vector<FrameCenter> frames,
 			       BkgdAdapter *adapter,
 			       Projection proj,
@@ -79,19 +79,19 @@ bool BkgdObsLoader::initialize(QHash<QString, QString> *config,
   // Validate the run geometry. Vardriver should have already checked if the value is valid
   // TODO: DRY in VarDriver3D
   
-  if (configHash->value("mode") == "XYZ") {
+  if ((*configHash)["mode"] == "XYZ") {
     runMode = RUN_MODE_XYZ;
-  } else if (configHash->value("mode") == "RTZ") {
+  } else if ((*configHash)["mode"] == "RTZ") {
     runMode = RUN_MODE_RTZ;
   }
-  interp_mode = configHash->value("bg_interpolation");
+  interp_mode = (*configHash)["bg_interpolation"];
 
   return true;
 }
 
 // Attempt to fill holes everywhere after interpolation
 
-bool BkgdObsLoader::fillHoles(QVector<int> &emptybg)
+bool BkgdObsLoader::fillHoles(std::vector<int> &emptybg)
 {
   if (emptybg.size() > 0) {
     // Attempt to fill holes everywhere
@@ -100,7 +100,7 @@ bool BkgdObsLoader::fillHoles(QVector<int> &emptybg)
     int neighbors[6];
     real avg[numVars];
 
-    for (int i = 0; i < emptybg.size(); i++) {
+    for (std::size_t i = 0; i < emptybg.size(); i++) {
       for (unsigned int var = 0; var < numVars; var++)
 	avg[var] = 0.0;
       // Check the neighbors
@@ -128,7 +128,7 @@ bool BkgdObsLoader::fillHoles(QVector<int> &emptybg)
 	for (unsigned int var = 0; var < numVars; var++)
 	  bgU[bIndex + var] = avg[var] / count;
       } else {
-	if (configHash->value("allow_background_missing_values") != "true") {
+	if ((*configHash)["allow_background_missing_values"] != "true") {
 	  std::cout << "Too large a hole in the background field!\n";
 	  std::cout << "Please check your background file or ROI values.\n";
 	  std::cout << "If you want to allow missing (zero) values, add the following line to <options>:\n";
@@ -143,8 +143,10 @@ bool BkgdObsLoader::fillHoles(QVector<int> &emptybg)
 
 // Check that the given time is within the given time frame
 
-bool BkgdObsLoader::timeCheck(real time, QDateTime &startTime, QDateTime &endTime, int &tci)
+bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, int &tci)
 {
+/* NCAR - commented out since we can't test this; it's only used when reading in background obs
+ * Asked Ting for a file that will let me test.
   QString bgTimestring, tcstart, tcend;
   QDateTime bgTime;
   
@@ -168,6 +170,7 @@ bool BkgdObsLoader::timeCheck(real time, QDateTime &startTime, QDateTime &endTim
     std::cout << "Time problem with observation " << tci << " secs more than center entries" << std::endl;
     return false;
   }
+*/
   return true;
 }
 
@@ -175,7 +178,7 @@ bool BkgdObsLoader::timeCheck(real time, QDateTime &startTime, QDateTime &endTim
 // The returned tree has no observation data. It is built only with observation coordinates
 //
 
-KD_tree *BkgdObsLoader::buildKDTree(QList<double> &bgIn)
+KD_tree *BkgdObsLoader::buildKDTree(std::vector<double> &bgIn)
 {
   long numPoints;
   int numDims = 3;
@@ -212,7 +215,7 @@ KD_tree *BkgdObsLoader::buildKDTree(QList<double> &bgIn)
 		       numDims);
 }
 
-void BkgdObsLoader::dumpBgIn(int from, int to, QList<real> &bgIn)
+void BkgdObsLoader::dumpBgIn(int from, int to, std::vector<real> &bgIn)
 {
   std::cout << std::endl
 	    << "---------------------- bgIn[" << from << ":" << to << "] ----------------"
@@ -355,7 +358,7 @@ BkgdObsPreLoader::~BkgdObsPreLoader()
 {
 }
 
-bool BkgdObsPreLoader::loadBkgdObs(QList<real> &bgIn) {
+bool BkgdObsPreLoader::loadBkgdObs(std::vector<real> &bgIn) {
   return false;
 }
 
@@ -371,7 +374,7 @@ BkgdObsSplineLoader::~BkgdObsSplineLoader()
   delete[] bgWeights;
 }
 
-bool BkgdObsSplineLoader::initialize(QHash<QString, QString> *config,
+bool BkgdObsSplineLoader::initialize(std::unordered_map<std::string, std::string> *config,
 				     std::vector<FrameCenter> frames,
 				     BkgdAdapter *adapter,
 				     Projection proj,
@@ -424,7 +427,7 @@ bool BkgdObsSplineLoader::initialize(QHash<QString, QString> *config,
 //
 // Fill bgU with gridded values extrapolated from bgIn
 
-bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
+bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 {
   // Turn Debug on if there are problems with the vertical spline interpolation,
   // Eventually this should be replaced with the internal spline code
@@ -432,8 +435,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
 
   // Geographic functions
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-
-  real referenceLon = configHash->value("ref_lon").toFloat();
+  real referenceLon = std::stof((*configHash)["ref_lon"]);
 
   int time;
   real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
@@ -446,11 +448,11 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
   
   // background is in km, ROI is gridpoints
   
-  iROI = configHash->value("i_background_roi").toFloat() / iincr;
-  jROI = configHash->value("j_background_roi").toFloat() / jincr;
+  iROI = std::stof((*configHash)["i_background_roi"]) / iincr;
+  jROI = std::stof((*configHash)["j_background_roi"]) / jincr;
   maxGridDist = 3.0;
   
-  QString interp_mode = configHash->value("bg_interpolation");
+  std::string interp_mode = (*configHash)["bg_interpolation"];
   if (interp_mode == "Cressman")
     maxGridDist = 1.0;
 
@@ -463,13 +465,11 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
 	    << " grid length radius of influence in i direction" << std::endl;
   std::cout << "and " << jROI << " grid length radius of influence in j direction" << std::endl;
 
-  QDateTime startTime = frameVector.front().getTime();
-  QDateTime endTime = frameVector.back().getTime();
+  datetime startTime = frameVector.front().getTime();
+  datetime endTime = frameVector.back().getTime();
   
-  std::cout << "Start time: " << startTime.toTime_t() << " "
-	    << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << std::endl;
-  std::cout << "End  time:  " << endTime.toTime_t()  << " "
-	    << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << std::endl;
+  std::cout << "Start time: " << PrintTime(startTime)  << std::endl;
+  std::cout << "End  time:  " << PrintTime(endTime)  << std::endl;
 
   int timeProblem = 0;
   int domainProblem = 0;
@@ -506,7 +506,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
     bgZ = heightm / 1000.;
     bgRadius = sqrt(bgX * bgX + bgY * bgY);
     bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
-    if (configHash->value("allow_negative_angles") != "true")
+    if ((*configHash)["allow_negative_angles"] != "true")
       if (bgTheta < 0)
 	bgTheta += 360.0;
 
@@ -553,17 +553,37 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
     real rhoprime = (rhoa - rhoBar) * 100;
     real logZ = log(bgZ);
     
-    if (configHash->value("qr_variable") == "qr")
+    if ((*configHash)["qr_variable"] == "qr")
       qr = refstate->bhypTransform(qr);
     
     // We assume here that the background precipitation field is always zero
     // real qr = 0.;
 
     if (runMode == RUN_MODE_XYZ) {
-      bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
-    } else if (runMode == RUN_MODE_RTZ)
-      bgIn << bgRadius << bgTheta << logZ << time << rhou << rhov << rhow << tprime
-	   << qvprime << rhoprime << qr ;
+			bgIn.push_back(bgX);
+			bgIn.push_back(bgY);
+			bgIn.push_back(logZ);
+			bgIn.push_back(time);
+			bgIn.push_back(rhou);
+			bgIn.push_back(rhov);
+			bgIn.push_back(rhow);
+			bgIn.push_back(tprime);
+			bgIn.push_back(qvprime);
+			bgIn.push_back(rhoprime);
+			bgIn.push_back(qr);
+    } else if (runMode == RUN_MODE_RTZ) {
+			bgIn.push_back(bgRadius);
+			bgIn.push_back(bgTheta);
+			bgIn.push_back(logZ);
+			bgIn.push_back(time);
+			bgIn.push_back(rhou);
+			bgIn.push_back(rhov);
+			bgIn.push_back(rhow);
+			bgIn.push_back(tprime);
+			bgIn.push_back(qvprime);
+			bgIn.push_back(rhoprime);
+			bgIn.push_back(qr);
+		}
 
     // Push values for an entire column, then solve for the spline
     
@@ -624,7 +644,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
   if (isTrue("debug_bgIn"))
     dumpBgIn(0, numbgObs, bgIn);
       
-  QVector<int> emptybg;
+  std::vector<int> emptybg;
 
   // TODO Do we need to check interpolation and fill hole for KD too?
   // bgWeight is a byproduct of calling the spline solver, so that's not available.
@@ -668,7 +688,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
 		    }
 		  }
 		}
-		if (configHash->value("qr_variable") == "dbz") {
+		if ((*configHash)["qr_variable"] == "dbz") {
 		  if (bgU[bIndex + 6] > 0) {
 		    real dbzavg = 10 * log10(bgU[bIndex + 6]);
 		    bgU[bIndex + 6] = (dbzavg + 35.) * 0.1;
@@ -697,9 +717,9 @@ bool BkgdObsSplineLoader::loadBkgdObs(QList<real> &bgIn)
     dumpBgU(0, uStateSize, bgU);
   }
 
-  if (configHash->contains("debug_bgu_nc"))
-    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
-  
+  if (configHash->find("debug_bgu_nc") != configHash->end()) 
+    bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
+
   return true;
 }
 
@@ -881,7 +901,7 @@ bool BkgdObsKDLoader::overwriteBgu(const char *fname)
   return true;
 }
 
-bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
+bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 {
   int time;
   real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
@@ -889,19 +909,17 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
 
   KD_tree *kdTree;
 
-  QDateTime startTime = frameVector.front().getTime();
-  QDateTime endTime = frameVector.back().getTime();
+  datetime startTime = frameVector.front().getTime();
+  datetime endTime = frameVector.back().getTime();
 
-  std::cout << "Start time: " << startTime.toTime_t() << " "
-	    << startTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << std::endl;
-  std::cout << "End  time:  " << endTime.toTime_t()  << " "
-	    << endTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data() << std::endl;
+  std::cout << "Start time: " << PrintTime(startTime) << std::endl;
+  std::cout << "End  time:  " << PrintTime(endTime)  << std::endl;
   
   // background is in km, ROI is gridpoints
   // TODO that comment doesn't seem correct. These are set to 45.0 in the config file...
   
-  iROI = configHash->value("i_background_roi").toFloat() / iincr;
-  jROI = configHash->value("j_background_roi").toFloat() / jincr;
+  iROI = std::stof((*configHash)["i_background_roi"]) / iincr;
+  jROI = std::stof((*configHash)["j_background_roi"]) / jincr;
 
   maxGridDist = 3.0;
   
@@ -909,14 +927,14 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
   int domainProblem = 0;
 
   int debugKd = 0;
-  if (configHash->contains("debug_kd") ) {
-    debugKd = configHash->value("debug_kd").toInt();
+  if (configHash->find("debug_kd") != configHash->end()) {
+    debugKd = std::stoi((*configHash)["debug_kd"]);
     std::cout << "*** dbugKD: " << debugKd << std::endl;    
   }
 
   int debugKdStep = 0;
-  if (configHash->contains("debug_kd_step") ) {
-    debugKdStep = configHash->value("debug_kd_step").toInt();
+  if (configHash->find("debug_kd_step") != configHash->end() ) {
+    debugKdStep = std::stoi((*configHash)["debug_kd_step"]);
     std::cout << "*** Debug KD Step: " << debugKdStep << std::endl;
   }
   
@@ -933,7 +951,7 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
 
     // Get the X, Y & Z
     real tcX, tcY, metX, metY;
-    real referenceLon = configHash->value("ref_lon").toFloat();
+    real referenceLon = std::stof((*configHash)["ref_lon"]);
     
     projection.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon(),
 		       tcX, tcY);
@@ -946,7 +964,7 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
     bgZ = heightm / 1000.;
     bgRadius = sqrt(bgX * bgX + bgY * bgY);
     bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
-    if (configHash->value("allow_negative_angles") != "true")
+    if ((*configHash)["allow_negative_angles"] != "true")
       if (bgTheta < 0)
 	bgTheta += 360.0;
 
@@ -991,18 +1009,37 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
     real rhoprime = (rhoa - rhoBar) * 100;
     real logZ = log(bgZ);
 
-    if (configHash->value("qr_variable") == "qr")
+    if ((*configHash)["qr_variable"] == "qr")
       qr = refstate->bhypTransform(qr);
     
     // We assume here that the background precipitation field is always zero
     // real qr = 0.;
 
     if (runMode == RUN_MODE_XYZ) {
-      bgIn << bgX << bgY << logZ << time << rhou << rhov << rhow << tprime << qvprime << rhoprime << qr ;
-    } else if (runMode == RUN_MODE_RTZ)
-      bgIn << bgRadius << bgTheta << logZ << time << rhou << rhov << rhow << tprime
-	   << qvprime << rhoprime << qr;
-
+			bgIn.push_back(bgX);
+			bgIn.push_back(bgY);
+			bgIn.push_back(logZ);
+			bgIn.push_back(time);
+			bgIn.push_back(rhou);
+			bgIn.push_back(rhov);
+			bgIn.push_back(rhow);
+			bgIn.push_back(tprime);
+			bgIn.push_back(qvprime);
+			bgIn.push_back(rhoprime);
+			bgIn.push_back(qr);
+    } else if (runMode == RUN_MODE_RTZ) {
+			bgIn.push_back(bgRadius);
+			bgIn.push_back(bgTheta);
+			bgIn.push_back(logZ);
+			bgIn.push_back(time);
+			bgIn.push_back(rhou);
+			bgIn.push_back(rhov);
+			bgIn.push_back(rhow);
+			bgIn.push_back(tprime);
+			bgIn.push_back(qvprime);
+			bgIn.push_back(rhoprime);
+			bgIn.push_back(qr);
+		}
   } // each obs
 
   std::cout << "timeProblem: " << timeProblem << ", domainProblem: " << domainProblem
@@ -1023,15 +1060,15 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
   // All the obs are now loaded in bgIn. Build a KD tree
   
   kdTree = buildKDTree(bgIn);
-  QVector<int> emptybg;
+  std::vector<int> emptybg;
   
   KD_real *centerLoc = new KD_real[3];	// 3 dim
-  int nbrMax  = configHash->value("bkgd_kd_num_neighbors").toInt();
+  int nbrMax  = std::stoi((*configHash)["bkgd_kd_num_neighbors"]);
   if (nbrMax <= 0) {
     std::cerr << "Number of neighbors must be greater than 0." << std::endl;
     return false;
   }
-  float maxDist = configHash->value("bkgd_kd_max_distance").toFloat();
+  float maxDist = std::stof((*configHash)["bkgd_kd_max_distance"]);
   // KD tree returns the square of the distance...
   maxDist *= maxDist;
 
@@ -1089,22 +1126,21 @@ bool BkgdObsKDLoader::loadBkgdObs(QList<real> &bgIn)
   if (debugKd)
     std::cout << "--- end of debug kd" << std::endl;
 
-  if (configHash->contains("debug_bgu_overwrite"))
-    overwriteBgu(configHash->value("debug_bgu_overwrite").toLatin1().data());
+  if (configHash->find("debug_bgu_overwrite") != configHash->end())
+    overwriteBgu((*configHash)["debug_bgu_overwrite"].c_str());
   
   if (isTrue("debug_bgu")) {
     dumpBgU(0, uStateSize, bgU);
   }
   
-  if (configHash->contains("debug_bgu_nc"))
-    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
-  
+  if (configHash->find("debug_bgu_nc") != configHash->end())
+    bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
   return true;
 }
 
 bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
-			     QList<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
-			     QVector<int> &emptybg,			     
+			     std::vector<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
+			     std::vector<int> &emptybg,			     
 			     int debug)
 {
   int nbrIxs[nbrMax];
@@ -1204,18 +1240,16 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
 BkgdObsFractlLoader::BkgdObsFractlLoader() {}
 BkgdObsFractlLoader::~BkgdObsFractlLoader() {}
 
-bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
+bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
 {
   Nc3Error err(Nc3Error::verbose_nonfatal);
-  // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
-  QString fname = configHash->value("fractl_nc_file");
-  
+  std::string fname = (*configHash)["fractl_nc_file"];
   // Open the file.
-  Nc3File dataFile(fname.toLatin1().data(), Nc3File::ReadOnly);
+  Nc3File dataFile(fname.c_str(), Nc3File::ReadOnly);
    
   // Check to see if the file was opened.
   if(!dataFile.is_valid()) {
-    std::cout << "Failed to read FRACTL generated nc file " << fname.toLatin1().data()
+    std::cout << "Failed to read FRACTL generated nc file " << fname
 	      << std::endl;
     return false;
   }
@@ -1456,8 +1490,8 @@ bool BkgdObsFractlLoader::loadBkgdObs(QList<real> &bgIn)
   if (isTrue("debug_bgu"))
     dumpBgU(0, uStateSize, bgU);
   
-  if (configHash->contains("debug_bgu_nc"))
-    bgu2nc(configHash->value("debug_bgu_nc").toLatin1().data(), bgU);
+  if (configHash->find("debug_bgu_nc") != configHash->end())
+    bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
    
    delete[] lats;
    delete[] lons;

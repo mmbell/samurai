@@ -10,7 +10,7 @@
 #define COSTFUNCCOAMPS_H
 
 #include "CostFunction3D.h"
-#include <QString>
+#include <string>
 
 class CostFunctionCOAMPS: public CostFunction3D
 {
@@ -21,10 +21,10 @@ public:
 	void setSigmas(float *sigmas, int size);
 
 private:
-	bool outputAnalysis(const QString& suffix, real* Astate);
-	bool writeAsi(const QString& asiFileName);
-	bool writeNetCDF(const QString& netcdfFileName);
-	bool writeFlatfile(const QString& flatFileName, const int var);
+	bool outputAnalysis(const std::string& suffix, real* Astate);
+	bool writeAsi(const std::string& asiFileName);
+	bool writeNetCDF(const std::string& netcdfFileName);
+	bool writeFlatfile(const std::string& flatFileName, const int var);
 	bool copyResults(float *u, float *v, float *w, float *th, float *p);
 	
 	int sDim;		// size of sigmaTable

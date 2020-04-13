@@ -9,14 +9,14 @@
 #ifndef FRAMECENTER
 #define FRAMECENTER
 
-#include <QDateTime>
+#include "datetime.h"
 
 class FrameCenter
 {
 		
 public:
 	FrameCenter();
-	FrameCenter(QDateTime& time, float& lat, float& lon, float& u, float& v);
+	FrameCenter(datetime& time, float lat, float lon, float u, float v);
 	~FrameCenter();
 	
 	void printString();
@@ -27,8 +27,8 @@ public:
 	float getLon() const;
 	void setLon(const float& lon);
 	
-	QDateTime getTime() const;
-	void setTime(const QDateTime& time);
+	datetime getTime() const;
+	void setTime(const datetime& time);
 	
 	float getUmean() const;
 	void setUmean(const float& u);
@@ -40,7 +40,7 @@ private:
 	
 	float latitude;
 	float longitude;
-	QDateTime time;
+	datetime time;
 	float Um;
 	float Vm;		
 	

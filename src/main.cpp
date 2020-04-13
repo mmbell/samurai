@@ -1,20 +1,21 @@
 
 #include "precision.h"
 #include "VarDriver3D.h"
-#include <iostream>
-#include <QtCore>
-#include <QtXml>
-#include <QString>
-
 #include "Xml.h"
+#include <iostream>
+#include "timing/gptl.h"
 #include "Args.h"
+#include "Strings.h" // Helper functions, eg: 'endsWith' (which will be in C++20)
+
 
 void usage() {
   std::cout << "Usage: samurai <samurai_configuration.xml>" << std::endl;
 }
 
 int main (int argc, char *argv[]) {
-	
+	// Set up our XML document:
+  XMLDocument xml;
+
   // Read the command line argument to get the XML configuration file
 
   // Generic driver which will be instanced by the configuration specification
@@ -32,17 +33,19 @@ int main (int argc, char *argv[]) {
     
   default: // assume old way of specifying an .xml file
 
-    QString fname = argv[1];
-    if (fname.endsWith(".xml") ) {
-      QDomDocument *domDoc = readXmlConfig(argv[1]);
-      if (domDoc == NULL)
-	return EXIT_FAILURE;
+    std::string fname = argv[1];
+    if (endsWith(fname, ".xml") ) {
+      XMLError ec = xml.LoadFile(fname.c_str());
+			if (ec != XML_SUCCESS) {
+				std::cout << "Error opening XML file: " << fname << std::endl;
+				return EXIT_FAILURE;
+			}
     
-      QDomElement root = domDoc->documentElement();
+      XMLElement* root = xml.FirstChildElement("samurai");
     
-      if(!driver->initialize(root)) {
-	delete driver;
-	return EXIT_FAILURE;
+      if(!driver->initialize(*root)) {
+				delete driver;
+				return EXIT_FAILURE;
       }
     } else {	// New way, goes through the TDRP system
       Args args;
@@ -52,8 +55,9 @@ int main (int argc, char *argv[]) {
 	  delete driver;
 	  return EXIT_FAILURE;
 	}
-      } else
+      } else {
 	return EXIT_FAILURE;
+			}
     }
     // Parse was fine. Fall through
   }

@@ -1,6 +1,4 @@
 #include <iostream>
-#include <QtCore>
-#include <QtXml>
 
 #include "samurai.h"
 #include "VarDriver3D.h"
@@ -46,23 +44,27 @@ extern "C" {
 
   VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid) {
     cout << "C API, create_vardriver3D_From_File" << endl;
-    QDomDocument *domDoc = readXmlConfig(config_path);
+    XMLError ec = xml.LoadFile(fname.c_str());
+    if (ec != XML_SUCCESS) {
+      std::cout << "Error opening XML file: " << fname << std::endl;
+      return EXIT_FAILURE;
+    }
 
-    if (domDoc == NULL)
-      return NULL;
+    XMLElement* root = xml.FirstChildElement("samurai");
+
 
     VarDriver3D *driver = new VarDriver3D();
     if (driver == NULL) {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
-      delete domDoc;
+      delete root;
       return NULL;
     }
     driver->setGridFlag(fixedGrid);
     
-    if ( ! driver->initialize(domDoc->documentElement() )) {
+    if ( ! driver->initialize(*root)) {
       std:: cout << "Failed to initialize VarDriver3D with content of '" << config_path << "'"  << std::endl;
       delete driver;
-      delete domDoc;
+      delete root;
       return NULL;
     }      
     return driver;
@@ -146,10 +148,9 @@ extern "C" {
   }
   
   // Call this to debug
-  void dump_hash(QHash<QString, QString> &hash) {
-    QHash<QString, QString>::iterator it;
-    for(it = hash.begin(); it != hash.end(); ++it)
-      std::cout << it.key().toLatin1().data() << ": "
-		<< it.value().toLatin1().data() << std::endl;
+  void dump_hash(std::unordered_map<std::string, std::string> &hash) {
+		for (auto &entry : hash) {
+			std::cout << entry.first << " : " << entry.second << std::endl;
+		}
   }
 }
