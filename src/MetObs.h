@@ -9,8 +9,7 @@
 #ifndef METOBS_H
 #define METOBS_H
 
-#include<QDateTime>
-#include<QString>
+#include "datetime.h"
 
 /*
  * Constants
@@ -34,8 +33,8 @@ class MetObs
 		
   void printString();
 		
-  QString getStationName() const;
-  void setStationName(const QString& name);
+  std::string getStationName() const;
+  void setStationName(const std::string& name);
 		
   float getLat() const;
   void setLat(const float& lat);
@@ -46,8 +45,8 @@ class MetObs
   float getAltitude() const;
   void setAltitude(const float& alt);
 		
-  QDateTime getTime() const;
-  void setTime(const QDateTime& obTime);
+  datetime getTime() const;
+  void setTime(const datetime& obTime);
 		
   float getPressure() const;
   void setPressure(const float& press);
@@ -130,8 +129,8 @@ class MetObs
   float longitude;
   float altitude;
   float pressure;
-  QDateTime time;
-  QString stationName;
+  datetime time;
+  std::string stationName;
   float windSpeed;
   float windDirection;
   float verticalVelocity;

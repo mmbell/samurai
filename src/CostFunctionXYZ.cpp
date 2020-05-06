@@ -8,9 +8,7 @@
 
 #include "CostFunctionXYZ.h"
 #include <cmath>
-#include <QTextStream>
-#include <QDir>
-#include <QDateTime>
+#include "datetime.h"
 // #include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 #include <GeographicLib/TransverseMercatorExact.hpp>
@@ -39,7 +37,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 				  ofstream *outStream)
 {
   real gausspoint = 0.5 * sqrt(1. / 3.);
-  
+/*fixme  
   int max_aIndex = -1000;
   real max_heightm = -1000.0;
   bool debug_ref_state = isTrue("debug_ref_state");
@@ -458,12 +456,14 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
       }
     }
   }
+*/
   return true;
 }
 
 
-bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
+bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
+/*fixme
   bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
   bool debug_ref_state = isTrue("debug_ref_state");
   bool debug_bgState = isTrue("debug_bgState");
@@ -648,13 +648,14 @@ bool CostFunctionXYZ::outputAnalysis(const QString& suffix, real* Astate)
 
   // Free the memory for the analysis variables
   delete[] finalAnalysis;
-
+*/
   return true;
 
 }
 
-bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
+bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
 {
+/*fixme
   Nc3Error err(Nc3Error::verbose_nonfatal);
   int NC_ERR = 0;
 
@@ -741,7 +742,8 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
 #if 0  // TODO debug
   Nc3Var *dU_std, *dV_std, *dW_std;  // Mish variables (mish values modified by SItransform)
 #endif
-  
+*/ 
+/*fixme 
   if (!(u = dataFile.add_var("U", nc3Float, timeDim,
 			     lvlDim, latDim, lonDim)))
     return NC_ERR;
@@ -1581,17 +1583,18 @@ bool CostFunctionXYZ::writeNetCDF(const QString& netcdfFileName)
   delete[] levs;
   delete[] x;
   delete[] y;
+*/
   return true;
 }
 
-bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
+bool CostFunctionXYZ::writeAsi(const std::string& asiFileName)
 {
   // Initialize header
   int id[511];
   for (int n = 1; n <= 510; n++) {
     id[n]=-999;
   }
-
+/*fixme
   // Calculate headers
   QStringList fieldNames;
   fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
@@ -1612,7 +1615,7 @@ bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
   // Cartesian file
   id[16] = 17217;
   id[17] = 21076;
-
+*/
   /* Lat and Lon
      id[33] = (int)latReference;
      id[34] = (int)((latReference - (float)id[33]) * 60.);
@@ -1667,7 +1670,8 @@ bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
 
   // Write ascii file for grid2ps
   //Message::toScreen("Trying to write cappi to "+outFileName);
-  QFile asiFile(asiFileName);
+/*fixme
+  std::ofstream asiFile(asiFileName);
   if(!asiFile.open(QIODevice::WriteOnly)) {
     cout << "Can't open CAPPI file for writing" << endl;
     return false;
@@ -1709,6 +1713,6 @@ bool CostFunctionXYZ::writeAsi(const QString& asiFileName)
       }
     }
   }
-
+*/
   return true;
 }

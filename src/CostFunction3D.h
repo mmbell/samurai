@@ -22,9 +22,8 @@
 #include <iterator>
 #include <vector>
 #include <string>
-#include <QString>
-#include <QHash>
-#include <QDir>
+#include <string>
+#include <unordered_map>
 //#include <complex.h>
 #include <fftw3.h>
 
@@ -35,7 +34,7 @@ public:
 
 CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(const QHash<QString, QString>* config, real* bgU, real* obs, ReferenceState* ref);
+    void initialize(std::unordered_map<std::string, std::string>* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
@@ -61,15 +60,15 @@ protected:
 	bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
-	virtual bool outputAnalysis(const QString& suffix, real* Astate) = 0;
+	virtual bool outputAnalysis(const std::string& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);
 	void SCtranspose(const real* Cstate, real* Astate);
 	void FFtransform(const real* Astate, real* Cstate);
 
-	bool writeAsi(const QString& asiFileName);
-	bool writeNetCDF(const QString& netcdfFileName);
+	bool writeAsi(const std::string& asiFileName);
+	bool writeNetCDF(const std::string& netcdfFileName);
 	
 	void adjustInternalDomain(int increment);
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
@@ -80,9 +79,24 @@ protected:
 	void Htransform(const real* Cstate, real* Hstate);
 
 	// A couple of utilities functions to help query config values
-	bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }
-	bool isEqual(const char *flag, QString value) {
-	  return configHash->contains(flag) && configHash->value(flag) == value;
+  bool isTrue(const char *flag_in) {
+    std::string flag = flag_in;
+    if (configHash->find(flag) != configHash->end()) {
+      if ((*configHash)[flag] == "true") {
+        return true;
+      }
+    }
+    return false;
+  }
+
+	bool isEqual(const char *flag_in, std::string value) {
+    std::string flag = flag_in;
+    if (configHash->find(flag) != configHash->end()) {
+      if ((*configHash)[flag] == value) {
+        return true;
+      }
+    }
+    return false;
 	}
 	
 	void initBkgdErrors();
@@ -130,9 +144,9 @@ protected:
 	int basisappx;
 	real* basis0;
 	real* basis1;
-	const QHash<QString, QString>* configHash;
-	QHash<QString, int> bcHash;
-	QHash<int, int> rankHash;
+	std::unordered_map<std::string, std::string>* configHash;
+	std::unordered_map<std::string, int> bcHash;
+	std::unordered_map<int, int> rankHash;
 
 	enum BoundaryConditionTypes {
 		RX = -1,
@@ -159,7 +173,7 @@ protected:
 	RecursiveFilter* kFilter;
 
 	ReferenceState* refstate;
-	QDir outputPath;
+	std::string outputPath;
 
 	ErrorData variance;
 };

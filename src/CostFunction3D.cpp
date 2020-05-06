@@ -7,10 +7,6 @@
  */
 
 #include <cmath>
-#include <QString>
-#include <QStringList>
-#include <QTextStream>
-#include <QFile>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
 #include "CostFunction3D.h"
@@ -117,7 +113,7 @@ void CostFunction3D::finalize()
   fftw_free(kFFTout);
 }
 
-void CostFunction3D::initialize(const QHash<QString, QString>* config,
+void CostFunction3D::initialize(std::unordered_map<std::string, std::string>* config,
 				real* bgU, real* obs, ReferenceState* ref)
 {
 
@@ -127,73 +123,73 @@ void CostFunction3D::initialize(const QHash<QString, QString>* config,
   configHash = config;
 
   /* Set the output path */
-  outputPath.setPath(configHash->value("output_directory"));
+  outputPath = (*configHash)["output_directory"];
 
   // Horizontal boundary conditions
-  iBCL[0] = bcHash.value(configHash->value("i_rhou_bcL"));
-  iBCR[0] = bcHash.value(configHash->value("i_rhou_bcR"));
-  iBCL[1] = bcHash.value(configHash->value("i_rhov_bcL"));
-  iBCR[1] = bcHash.value(configHash->value("i_rhov_bcR"));
-  iBCL[2] = bcHash.value(configHash->value("i_rhow_bcL"));
-  iBCR[2] = bcHash.value(configHash->value("i_rhow_bcR"));
-  iBCL[3] = bcHash.value(configHash->value("i_tempk_bcL"));
-  iBCR[3] = bcHash.value(configHash->value("i_tempk_bcR"));
-  iBCL[4] = bcHash.value(configHash->value("i_qv_bcL"));
-  iBCR[4] = bcHash.value(configHash->value("i_qv_bcR"));
-  iBCL[5] = bcHash.value(configHash->value("i_rhoa_bcL"));
-  iBCR[5] = bcHash.value(configHash->value("i_rhoa_bcR"));
-  iBCL[6] = bcHash.value(configHash->value("i_qr_bcL"));
-  iBCR[6] = bcHash.value(configHash->value("i_qr_bcR"));
+  iBCL[0] = bcHash[(*configHash)["i_rhou_bcL"]];
+  iBCR[0] = bcHash[(*configHash)["i_rhou_bcR"]];
+  iBCL[1] = bcHash[(*configHash)["i_rhov_bcL"]];
+  iBCR[1] = bcHash[(*configHash)["i_rhov_bcR"]];
+  iBCL[2] = bcHash[(*configHash)["i_rhow_bcL"]];
+  iBCR[2] = bcHash[(*configHash)["i_rhow_bcR"]];
+  iBCL[3] = bcHash[(*configHash)["i_tempk_bcL"]];
+  iBCR[3] = bcHash[(*configHash)["i_tempk_bcR"]];
+  iBCL[4] = bcHash[(*configHash)["i_qv_bcL"]];
+  iBCR[4] = bcHash[(*configHash)["i_qv_bcR"]];
+  iBCL[5] = bcHash[(*configHash)["i_rhoa_bcL"]];
+  iBCR[5] = bcHash[(*configHash)["i_rhoa_bcR"]];
+  iBCL[6] = bcHash[(*configHash)["i_qr_bcL"]];
+  iBCR[6] = bcHash[(*configHash)["i_qr_bcR"]];
 
-  jBCL[0] = bcHash.value(configHash->value("j_rhou_bcL"));
-  jBCR[0] = bcHash.value(configHash->value("j_rhou_bcR"));
-  jBCL[1] = bcHash.value(configHash->value("j_rhov_bcL"));
-  jBCR[1] = bcHash.value(configHash->value("j_rhov_bcR"));
-  jBCL[2] = bcHash.value(configHash->value("j_rhow_bcL"));
-  jBCR[2] = bcHash.value(configHash->value("j_rhow_bcR"));
-  jBCL[3] = bcHash.value(configHash->value("j_tempk_bcL"));
-  jBCR[3] = bcHash.value(configHash->value("j_tempk_bcR"));
-  jBCL[4] = bcHash.value(configHash->value("j_qv_bcL"));
-  jBCR[4] = bcHash.value(configHash->value("j_qv_bcR"));
-  jBCL[5] = bcHash.value(configHash->value("j_rhoa_bcL"));
-  jBCR[5] = bcHash.value(configHash->value("j_rhoa_bcR"));
-  jBCL[6] = bcHash.value(configHash->value("j_qr_bcL"));
-  jBCR[6] = bcHash.value(configHash->value("j_qr_bcR"));
+  jBCL[0] = bcHash[(*configHash)["j_rhou_bcL"]];
+  jBCR[0] = bcHash[(*configHash)["j_rhou_bcR"]];
+  jBCL[1] = bcHash[(*configHash)["j_rhov_bcL"]];
+  jBCR[1] = bcHash[(*configHash)["j_rhov_bcR"]];
+  jBCL[2] = bcHash[(*configHash)["j_rhow_bcL"]];
+  jBCR[2] = bcHash[(*configHash)["j_rhow_bcR"]];
+  jBCL[3] = bcHash[(*configHash)["j_tempk_bcL"]];
+  jBCR[3] = bcHash[(*configHash)["j_tempk_bcR"]];
+  jBCL[4] = bcHash[(*configHash)["j_qv_bcL"]];
+  jBCR[4] = bcHash[(*configHash)["j_qv_bcR"]];
+  jBCL[5] = bcHash[(*configHash)["j_rhoa_bcL"]];
+  jBCR[5] = bcHash[(*configHash)["j_rhoa_bcR"]];
+  jBCL[6] = bcHash[(*configHash)["j_qr_bcL"]];
+  jBCR[6] = bcHash[(*configHash)["j_qr_bcR"]];
 
-  kBCL[0] = bcHash.value(configHash->value("k_rhou_bcL"));
-  kBCR[0] = bcHash.value(configHash->value("k_rhou_bcR"));
-  kBCL[1] = bcHash.value(configHash->value("k_rhov_bcL"));
-  kBCR[1] = bcHash.value(configHash->value("k_rhov_bcR"));
-  kBCL[2] = bcHash.value(configHash->value("k_rhow_bcL"));
-  kBCR[2] = bcHash.value(configHash->value("k_rhow_bcR"));
-  kBCL[3] = bcHash.value(configHash->value("k_tempk_bcL"));
-  kBCR[3] = bcHash.value(configHash->value("k_tempk_bcR"));
-  kBCL[4] = bcHash.value(configHash->value("k_qv_bcL"));
-  kBCR[4] = bcHash.value(configHash->value("k_qv_bcR"));
-  kBCL[5] = bcHash.value(configHash->value("k_rhoa_bcL"));
-  kBCR[5] = bcHash.value(configHash->value("k_rhoa_bcR"));
-  kBCL[6] = bcHash.value(configHash->value("k_qr_bcL"));
-  kBCR[6] = bcHash.value(configHash->value("k_qr_bcR"));
+  kBCL[0] = bcHash[(*configHash)["k_rhou_bcL"]];
+  kBCR[0] = bcHash[(*configHash)["k_rhou_bcR"]];
+  kBCL[1] = bcHash[(*configHash)["k_rhov_bcL"]];
+  kBCR[1] = bcHash[(*configHash)["k_rhov_bcR"]];
+  kBCL[2] = bcHash[(*configHash)["k_rhow_bcL"]];
+  kBCR[2] = bcHash[(*configHash)["k_rhow_bcR"]];
+  kBCL[3] = bcHash[(*configHash)["k_tempk_bcL"]];
+  kBCR[3] = bcHash[(*configHash)["k_tempk_bcR"]];
+  kBCL[4] = bcHash[(*configHash)["k_qv_bcL"]];
+  kBCR[4] = bcHash[(*configHash)["k_qv_bcR"]];
+  kBCL[5] = bcHash[(*configHash)["k_rhoa_bcL"]];
+  kBCR[5] = bcHash[(*configHash)["k_rhoa_bcR"]];
+  kBCL[6] = bcHash[(*configHash)["k_qr_bcL"]];
+  kBCR[6] = bcHash[(*configHash)["k_qr_bcR"]];
 
   // Define the Reference state
   refstate = ref;
 
   // Assign local object pointers
   bgFields = bgU;
-    
   rawObs = obs;
-  iMin = configHash->value("i_min").toFloat();
-  iMax = configHash->value("i_max").toFloat();
-  DI = configHash->value("i_incr").toFloat();
+  iMin = std::stof((*configHash)["i_min"]);
+  iMax = std::stof((*configHash)["i_max"]);
+  DI = std::stof((*configHash)["i_incr"]);
   iDim = (int)((iMax - iMin)/DI) + 1;
-  jMin = configHash->value("j_min").toFloat();
-  jMax = configHash->value("j_max").toFloat();
-  DJ = configHash->value("j_incr").toFloat();
+  jMin = std::stof((*configHash)["j_min"]);
+  jMax = std::stof((*configHash)["j_max"]);
+  DJ = std::stof((*configHash)["j_incr"]);
   jDim = (int)((jMax - jMin)/DJ) + 1;
-  kMin = configHash->value("k_min").toFloat();
-  kMax = configHash->value("k_max").toFloat();
-  DK = configHash->value("k_incr").toFloat();
+  kMin = std::stof((*configHash)["k_min"]);
+  kMax = std::stof((*configHash)["k_max"]);
+  DK = std::stof((*configHash)["k_incr"]);
   kDim = (int)((kMax - kMin)/DK) + 1;
+	std::cout << "done with stof conversion..." << std::endl;
 
   DIrecip = 1. / DI;
   DJrecip = 1. / DJ;
@@ -305,9 +301,9 @@ void CostFunction3D::initState(const int iteration)
 
     
   // Set up the recursive filter
-  iFilterScale = configHash->value("i_filter_length").toFloat();
-  jFilterScale = configHash->value("j_filter_length").toFloat();
-  kFilterScale = configHash->value("k_filter_length").toFloat();
+  iFilterScale = std::stof((*configHash)["i_filter_length"]);
+  jFilterScale = std::stof((*configHash)["j_filter_length"]);
+  kFilterScale = std::stof((*configHash)["k_filter_length"]);
   iFilter->setFilterLengthScale(iFilterScale);
   jFilter->setFilterLengthScale(jFilterScale);
   kFilter->setFilterLengthScale(kFilterScale);
@@ -318,63 +314,63 @@ void CostFunction3D::initState(const int iteration)
     jMaxWavenumber[i] = -1.0;
     kMaxWavenumber[i] = -1.0;
   }
-  if (!configHash->value("i_max_wavenumber").isEmpty()) {
+	if (configHash->find("i_max_wavenumber") != configHash->end()) {
     // Set all the variables to the same filter
     for (int i = 0; i < 7; i++) {
-      iMaxWavenumber[i] = configHash->value("i_max_wavenumber").toFloat();
+      iMaxWavenumber[i] = std::stof((*configHash)["i_max_wavenumber"]);
     }
   } else {
     // Set Fourier filter for individual variables
-    iMaxWavenumber[0] = configHash->value("i_max_wavenumber_rhou").toFloat();
-    iMaxWavenumber[1] = configHash->value("i_max_wavenumber_rhov").toFloat();
-    iMaxWavenumber[2] = configHash->value("i_max_wavenumber_rhow").toFloat();
-    iMaxWavenumber[3] = configHash->value("i_max_wavenumber_tempk").toFloat();
-    iMaxWavenumber[4] = configHash->value("i_max_wavenumber_qv").toFloat();
-    iMaxWavenumber[5] = configHash->value("i_max_wavenumber_rhoa").toFloat();
-    iMaxWavenumber[6] = configHash->value("i_max_wavenumber_qr").toFloat();
+    iMaxWavenumber[0] = std::stof((*configHash)["i_max_wavenumber_rhou"]);
+    iMaxWavenumber[1] = std::stof((*configHash)["i_max_wavenumber_rhov"]);
+    iMaxWavenumber[2] = std::stof((*configHash)["i_max_wavenumber_rhow"]);
+    iMaxWavenumber[3] = std::stof((*configHash)["i_max_wavenumber_tempk"]);
+    iMaxWavenumber[4] = std::stof((*configHash)["i_max_wavenumber_qv"]);
+    iMaxWavenumber[5] = std::stof((*configHash)["i_max_wavenumber_rhoa"]);
+    iMaxWavenumber[6] = std::stof((*configHash)["i_max_wavenumber_qr"]);
   }
 
-  if (!configHash->value("j_max_wavenumber").isEmpty()) {
+	if (configHash->find("j_max_wavenumber") != configHash->end()) {
     for (int i = 0; i < 7; i++) {
-      jMaxWavenumber[i] = configHash->value("j_max_wavenumber").toFloat();
+      jMaxWavenumber[i] = std::stof((*configHash)["j_max_wavenumber"]);
     }
   } else {
-    jMaxWavenumber[0] = configHash->value("j_max_wavenumber_rhou").toFloat();
-    jMaxWavenumber[1] = configHash->value("j_max_wavenumber_rhov").toFloat();
-    jMaxWavenumber[2] = configHash->value("j_max_wavenumber_rhow").toFloat();
-    jMaxWavenumber[3] = configHash->value("j_max_wavenumber_tempk").toFloat();
-    jMaxWavenumber[4] = configHash->value("j_max_wavenumber_qv").toFloat();
-    jMaxWavenumber[5] = configHash->value("j_max_wavenumber_rhoa").toFloat();
-    jMaxWavenumber[6] = configHash->value("j_max_wavenumber_qr").toFloat();
+    jMaxWavenumber[0] = std::stof((*configHash)["j_max_wavenumber_rhou"]);
+    jMaxWavenumber[1] = std::stof((*configHash)["j_max_wavenumber_rhov"]);
+    jMaxWavenumber[2] = std::stof((*configHash)["j_max_wavenumber_rhow"]);
+    jMaxWavenumber[3] = std::stof((*configHash)["j_max_wavenumber_tempk"]);
+    jMaxWavenumber[4] = std::stof((*configHash)["j_max_wavenumber_qv"]);
+    jMaxWavenumber[5] = std::stof((*configHash)["j_max_wavenumber_rhoa"]);
+    jMaxWavenumber[6] = std::stof((*configHash)["j_max_wavenumber_qr"]);
   }
 
-  if (!configHash->value("k_max_wavenumber").isEmpty()) {
+	if (configHash->find("k_max_wavenumber") != configHash->end()) {
     for (int i = 0; i < 7; i++) {
-      kMaxWavenumber[i] = configHash->value("k_max_wavenumber").toFloat();
+      jMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }
   } else {
-    kMaxWavenumber[0] = configHash->value("k_max_wavenumber_rhou").toFloat();
-    kMaxWavenumber[1] = configHash->value("k_max_wavenumber_rhov").toFloat();
-    kMaxWavenumber[2] = configHash->value("k_max_wavenumber_rhow").toFloat();
-    kMaxWavenumber[3] = configHash->value("k_max_wavenumber_tempk").toFloat();
-    kMaxWavenumber[4] = configHash->value("k_max_wavenumber_qv").toFloat();
-    kMaxWavenumber[5] = configHash->value("k_max_wavenumber_rhoa").toFloat();
-    kMaxWavenumber[6] = configHash->value("k_max_wavenumber_qr").toFloat();
+    kMaxWavenumber[0] = std::stof((*configHash)["k_max_wavenumber_rhou"]);
+    kMaxWavenumber[1] = std::stof((*configHash)["k_max_wavenumber_rhov"]);
+    kMaxWavenumber[2] = std::stof((*configHash)["k_max_wavenumber_rhow"]);
+    kMaxWavenumber[3] = std::stof((*configHash)["k_max_wavenumber_tempk"]);
+    kMaxWavenumber[4] = std::stof((*configHash)["k_max_wavenumber_qv"]);
+    kMaxWavenumber[5] = std::stof((*configHash)["k_max_wavenumber_rhoa"]);
+    kMaxWavenumber[6] = std::stof((*configHash)["k_max_wavenumber_qr"]);
   }
 
   // Set up the spline matrices
   setupSplines();
 
   // Flag whether or not to print the subgrid information
-  if ((configHash->value("output_mish") == "true") or
-      (configHash->value("save_mish") == "true")) {
+  if (((*configHash)["output_mish"] == "true") or
+      ((*configHash)["save_mish"] == "true")) {
     mishFlag = 1;
   } else {
     mishFlag = 0;
   }
 
   // Mass continuity weight
-  mcWeight = configHash->value("mc_weight").toFloat();
+  mcWeight = std::stof((*configHash)["mc_weight"]);
   cout << "Mass continuity weight set to " << mcWeight << endl;
 
   if (iteration == 1) {
@@ -391,7 +387,7 @@ void CostFunction3D::initState(const int iteration)
     // the same fixed value everywhere, and run the same transformations as with
     // the background
 
-    double *mishError = variance.init(configHash->value("fractl_nc_file"), configHash, varDim);
+    double *mishError = variance.init((*configHash)["fractl_nc_file"], configHash, varDim);
     if (mishError != NULL) {
       double *SBError = new double[nState];
       double *meshError = new double[nState];
@@ -407,8 +403,8 @@ void CostFunction3D::initState(const int iteration)
 	// variance.writeDebugNc("debug.out/std_errors_SA.nc", false, meshError);
       }
     }    	// end of background error transformations
-    
-    if (configHash->value("load_bg_coefficients") == "true") {
+ 
+    if ((*configHash)["load_bg_coefficients"] == "true") {
       for (int n = 0; n < nState; n++) {
 	stateA[n] = bgFields[n];
       }
@@ -493,7 +489,6 @@ void CostFunction3D::initState(const int iteration)
 
 real CostFunction3D::funcValue(real* state)
 {
-
   real qIP, obIP;
   qIP = 0.;
   obIP = 0.;
@@ -556,8 +551,9 @@ void CostFunction3D::updateBG()
   outputAnalysis("increment", stateC);
 
   // In BG update we are directly summing C + A
-  QString cFilename = outputPath.absoluteFilePath("samurai_Coefficients.out");
-  ofstream cstream(cFilename.toLatin1().data());
+  std::string cFilename = outputPath + "/samurai_Coefficients.out";
+  ofstream cstream(cFilename);
+
   cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -575,7 +571,6 @@ void CostFunction3D::updateBG()
   }
 
   outputAnalysis("analysis", bgState);
-
 }
 
 void CostFunction3D::calcInnovation()
@@ -1310,17 +1305,17 @@ bool CostFunction3D::setupSplines()
   // and manipulate the DC Filter
   real Pi = acos(-1.);
 
-  real cutoff_wl = configHash->value("i_spline_cutoff").toFloat();
+  real cutoff_wl = std::stof((*configHash)["i_spline_cutoff"]);
   cout << "i Spline cutoff set to " << cutoff_wl << endl;
   real eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(iDim, eq, iBCL, iBCR, iMin, DI, DIrecip, iLDim, iL, iGamma);
 
-  cutoff_wl = configHash->value("j_spline_cutoff").toFloat();
+  cutoff_wl = std::stof((*configHash)["j_spline_cutoff"]);
   cout << "j Spline cutoff set to " << cutoff_wl << endl;
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(jDim, eq, jBCL, jBCR, jMin, DJ, DJrecip, jLDim, jL, jGamma);
 
-  cutoff_wl = configHash->value("k_spline_cutoff").toFloat();
+  cutoff_wl = std::stof((*configHash)["k_spline_cutoff"]);
   cout << "k Spline cutoff set to " << cutoff_wl << endl;
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);

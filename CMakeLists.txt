@@ -17,10 +17,9 @@ set ( CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH} )
 # Tell CMake to run moc automatically when needed
 set(CMAKS_AUTOMOC ON)
 
-find_package(Qt5 COMPONENTS Core Widgets Xml REQUIRED)
-
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
-find_package ( LibZip REQUIRED )
+#find_package ( LibZip REQUIRED )
+
 find_package ( GeographicLib REQUIRED )
 find_package ( FFTW REQUIRED )
 find_package ( OpenMP REQUIRED )
@@ -119,9 +118,14 @@ set ( common_SRCS
 	src/Xml.cpp
 	src/Args.cpp
 	src/Params.cc	# generated file
+	src/XML/tinyxml2.cpp
+	src/LineSplit.cpp
+	src/datetime.cpp
+	src/FileList.cpp
 	)
 
 set (samurai_SRCS
+  ${common_SRCS}
 	src/main.cpp
 	)
 
@@ -137,7 +141,7 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/Bkg
 	)
 
 include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} )
-link_directories( /usr/local/lib ${LROSE_LIB_DIR}  /usr/lib/x86_64-linux-gnu/hdf5/serial )
+link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
 
 # Generate the argument files
 
@@ -149,48 +153,46 @@ add_custom_command (
 
 # We release an executable and both static and shared libraries
 
-add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
-add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+#add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+#add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 
 target_link_libraries(samurai
-  Qt5::Widgets Qt5::Xml
   Geographic fftw3
   ${LROSE_LIBRARIES}
   OpenMP::OpenMP_CXX
   bz2 z
   )
-target_link_libraries(samLibStatic
-  Qt5::Widgets Qt5::Xml
-  Geographic fftw3
-  ${LROSE_LIBRARIES}   
-  OpenMP::OpenMP_CXX
-  bz2 z
-  )
-target_link_libraries(samLibShared
-  Qt5::Widgets Qt5::Xml
-  Geographic fftw3
-  ${LROSE_LIBRARIES}
-  OpenMP::OpenMP_CXX
-  bz2 z
-)  
+#target_link_libraries(samLibStatic
+#  Geographic fftw3
+#  ${LROSE_LIBRARIES}   
+#  OpenMP::OpenMP_CXX
+#  #bz2 z
+#  )
+#target_link_libraries(samLibShared
+#  Geographic fftw3
+#  ${LROSE_LIBRARIES}
+#  OpenMP::OpenMP_CXX
+#  #  bz2 z
+#)  
 
-set_property ( TARGET samLibShared PROPERTY OUTPUT_NAME "samurai" )
-set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
+#set_property ( TARGET samLibShared PROPERTY OUTPUT_NAME "samurai" )
+#set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
 
-target_link_libraries ( samurai samLibStatic )
+#target_link_libraries ( samurai samLibStatic )
+target_link_libraries ( samurai )
 
-target_link_libraries ( samLibShared
-	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY} ${LROSE_LIBRARIES}
-	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
+#target_link_libraries ( samLibShared
+#	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY} ${LROSE_LIBRARIES}
+#	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
       
-target_link_libraries ( samLibStatic
-	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY} ${LROSE_LIBRARIES}
-	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
+#target_link_libraries ( samLibStatic
+#	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY} ${LROSE_LIBRARIES}
+#	${NETCDF_CPP_LIBRARY} ${GEOGRAPHIC_LIBRARY} ${OPENMP_LINK})
 
  # Where to install files
       
 install ( TARGETS samurai DESTINATION bin )
 install ( FILES src/samurai.h DESTINATION include )
-install ( TARGETS samLibShared DESTINATION lib )
-install ( TARGETS samLibStatic DESTINATION lib )
+#install ( TARGETS samLibShared DESTINATION lib )
+#install ( TARGETS samLibStatic DESTINATION lib )

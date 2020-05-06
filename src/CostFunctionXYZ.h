@@ -10,7 +10,7 @@
 #define COSTFUNCXYZ_H
 
 #include "CostFunction3D.h"
-#include <QString>
+#include <string>
 
 class CostFunctionXYZ: public CostFunction3D
 {
@@ -20,9 +20,9 @@ public:
 	~CostFunctionXYZ();
 	
 private:
-	bool outputAnalysis(const QString& suffix, real* Astate);
-	bool writeAsi(const QString& asiFileName);
-	bool writeNetCDF(const QString& netcdfFileName);
+	bool outputAnalysis(const std::string& suffix, real* Astate);
+	bool writeAsi(const std::string& asiFileName);
+	bool writeNetCDF(const std::string& netcdfFileName);
 	bool SItransform(size_t numVars, double *finalAnalysis, double *mishData, real *Astate, ofstream *outStream);
 
 	bool fractl_mode;

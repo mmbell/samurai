@@ -1,11 +1,17 @@
-// Create a QDomDocument from an XML file.
+// Create an XMLDocument (TinyXML2 library)
 
 #ifndef XML_H
 #define XML_H
 
-#include <QtCore>
-#include <QtXml>
+#include <vector>
+#include <string>
+#include "XML/tinyxml2.h"
 
-QDomDocument *readXmlConfig(const char *path);
+using namespace tinyxml2;
+
+XMLDocument readXmlConfig(const char *path);
+
+std::vector<const XMLElement* > XMLGetElements(const XMLNode* config);
+std::vector<const XMLAttribute* > XMLGetAttributes(const XMLElement* element);
 
 #endif

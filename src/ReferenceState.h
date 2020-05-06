@@ -11,13 +11,13 @@
 
 #include "precision.h"
 #include "BSpline.h"
-#include <QString>
+#include <string>
 
 class ReferenceState
 {
 
 public:
-    ReferenceState(const QString& config);
+    ReferenceState(const std::string& config);
     ~ReferenceState();
     real getReferenceVariable(const int& refVariable, const real& heightm, const int& dz = 0);
     real bhypTransform(const real& qv);

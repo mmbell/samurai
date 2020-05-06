@@ -7,24 +7,20 @@
  */
 
 #include "ReferenceState.h"
-#include <QString>
 #include <cmath>
 #include <iostream>
 #include <fstream>
-#include <QVector>
+#include <string>
+#include <vector>
 using namespace ReferenceVariable;
 
-ReferenceState::ReferenceState(const QString& config)
+ReferenceState::ReferenceState(const std::string& config)
 {
-	QVector<real> altitude, theta, qv, pi;
+	std::vector<real> altitude, theta, qv, pi;
 	real sfcpress;
-	std::ifstream refstream(config.toLatin1().data());
-	//QFile refFile(config);
-	//if(!refFile.open(QIODevice::ReadOnly)) {
+	std::ifstream refstream(config);
 	if (!refstream.good()) {
-	  std::cout << "Can't open Reference State file for reading, "
-		    << " '" << config.toLatin1().data()
-		    << "' using default..." << std::endl;
+	  std::cout << "Can't open Reference State file for reading,  '" << config << "' using default..." << std::endl;
 		sfcpress = 1014.80;
 		altitude.push_back(log(10.0)); theta.push_back(298.6949); qv.push_back(bhypTransform(18.63960));
 		altitude.push_back(log(124.0)); theta.push_back(299.6500); qv.push_back(bhypTransform(18.58188));
@@ -62,11 +58,11 @@ ReferenceState::ReferenceState(const QString& config)
 	qvSpline = new SplineD(&altitude.front(), altitude.size(), qv.data(), 0, SplineBase::BC_ZERO_FIRST);
 
 	// Integrate the hydrostatic equation
-	real finalalt = exp(altitude.last());
+	real finalalt = exp(altitude.back());
 	altitude.clear();
 
 	real gamma = 287.04/1005.7;
-	real qvsfc = bhypInvTransform(qv.first())/1000.0;
+	real qvsfc = bhypInvTransform(qv.front())/1000.0;
 	real pressa = sfcpress - sfcpress * (qvsfc / (qvsfc + 0.622));
 	real pisfc = pow((pressa/1000.0),gamma);
 	pi.push_back(pisfc);
@@ -76,7 +72,7 @@ ReferenceState::ReferenceState(const QString& config)
 		real height_d = log(i-1);
 		real theta_u = thetaSpline->evaluate(height_u);
 		real theta_d = thetaSpline->evaluate(height_d);
-		real newpi = pi.last() - 9.81/(1005.7 * 0.5*(theta_u + theta_d));
+		real newpi = pi.back() - 9.81/(1005.7 * 0.5*(theta_u + theta_d));
 		pi.push_back(newpi);
 		altitude.push_back(height_u);
 	}

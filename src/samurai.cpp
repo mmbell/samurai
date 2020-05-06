@@ -1,6 +1,4 @@
 #include <iostream>
-#include <QtCore>
-#include <QtXml>
 
 #include "samurai.h"
 #include "VarDriver3D.h"
@@ -44,25 +42,28 @@ extern "C" {
   // I recommend this one. A lots simpler, and no need to match
   // data structure from 2 different languages
 
+	XMLDocument xml;
   VarDriver3D *create_vardriver3D_From_File(const char *config_path, bool fixedGrid) {
     cout << "C API, create_vardriver3D_From_File" << endl;
-    QDomDocument *domDoc = readXmlConfig(config_path);
-
-    if (domDoc == NULL)
+    XMLError ec = xml.LoadFile(config_path);
+    if (ec != XML_SUCCESS) {
+      std::cout << "Error opening XML file: " << config_path << std::endl;
       return NULL;
+    }
+
+    XMLElement* root = xml.FirstChildElement("samurai");
+
 
     VarDriver3D *driver = new VarDriver3D();
     if (driver == NULL) {
       std:: cout << "Failed to create a VarDriver3D" << std::endl;
-      delete domDoc;
       return NULL;
     }
     driver->setGridFlag(fixedGrid);
     
-    if ( ! driver->initialize(domDoc->documentElement() )) {
+    if ( ! driver->initialize(*root)) {
       std:: cout << "Failed to initialize VarDriver3D with content of '" << config_path << "'"  << std::endl;
       delete driver;
-      delete domDoc;
       return NULL;
     }      
     return driver;
@@ -146,10 +147,9 @@ extern "C" {
   }
   
   // Call this to debug
-  void dump_hash(QHash<QString, QString> &hash) {
-    QHash<QString, QString>::iterator it;
-    for(it = hash.begin(); it != hash.end(); ++it)
-      std::cout << it.key().toLatin1().data() << ": "
-		<< it.value().toLatin1().data() << std::endl;
+  void dump_hash(std::unordered_map<std::string, std::string> &hash) {
+		for (auto &entry : hash) {
+			std::cout << entry.first << " : " << entry.second << std::endl;
+		}
   }
 }

@@ -19,12 +19,12 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
   _zd = nsigma;
 
   // set the time for the observations
-  _obTime.setTimeSpec(Qt::UTC);
-  _obTime = QDateTime::fromString(ctdg, "yyyyMMddhh");
-  _obTime = _obTime.addSecs(delta * iter);
-
-  std::cout << "Observations will be stamped " << _obTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()
-	    << " time_t: " << _obTime.toTime_t() << std::endl;
+	_obTime = ParseDate(ctdg, "%Y%m%d") + std::chrono::seconds(delta * iter);//  YYYMMDDHH_to_seconds(ctdg) + std::chrono::seconds(delta * iter));
+  {
+    using namespace date;
+    using namespace std::chrono;
+    std::cout << "Observations will be stamped " << _obTime << " time_t: " << std::chrono::system_clock::to_time_t(_obTime) << std::endl;
+  }
 
   _sigmas = sigmas;
   _lat_2d  = latitude;
@@ -51,11 +51,8 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
 {
   if(_curr_x >= _xd) return false;
 
-  // time = _obTime.toSecsSinceEpoch();  Qt5 only
-  time = _obTime.toTime_t();
 #if 0  
-  std::cout << "in next() time is " << _obTime.toString("yyyy-MM-dd-HH:mm:ss").toLatin1().data()
-	    << " time_t(): " << time << std::endl;
+  std::cout << "in next() time is " << _obTime << " time_t() : " << std::chrono::system_clock::to_time_t(_obTime) << std::endl;
 #endif  
   lat = item2d(_lat_2d, _curr_x, _curr_y);
   lon = item2d(_long_2d, _curr_x, _curr_y);

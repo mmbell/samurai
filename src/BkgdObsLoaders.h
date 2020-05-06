@@ -4,9 +4,8 @@
 #include <iostream>
 #include <vector>
 
-#include <QString>
-#include <QList>
-#include <QVector>
+#include <string>
+#include <unordered_map>
 
 #include <kd/kd.hh>	// KD Tree implementation from Lrose
 
@@ -27,28 +26,36 @@ class BkgdObsLoader {
   BkgdObsLoader();
   virtual ~BkgdObsLoader();
 
-  virtual bool loadBkgdObs(QList<real> &bgIn) = 0;
+  virtual bool loadBkgdObs(std::vector<real> &bgIn) = 0;
 
-  bool timeCheck(real time, QDateTime &startTime, QDateTime &endTime, int &tci);
+  bool timeCheck(real time, datetime& startTime, datetime& endTime, int &tci);
 
-  virtual bool initialize(QHash<QString, QString> *config,
+  virtual bool initialize(std::unordered_map<std::string, std::string> *config,
 			  std::vector<FrameCenter> frames,
 			  BkgdAdapter *adapter,
 			  Projection proj,
 			  ReferenceState *refSt,
 			  int uStSize,
-			  real *bgu,			// TODO s this right? QList<real> maybe
+			  real *bgu,			// TODO s this right? vector<real> maybe
 			  unsigned int varsNum,
 			  int id, int jd, int kd,
 			  float imn, float jmn, float kmn,
 			  float imx, float jmx, float kmx,
 			  real iinc, real jinc, real kinc);
   
-  KD_tree *buildKDTree(QList<double> &bgIn);
+  KD_tree *buildKDTree(std::vector<double> &bgIn);
   
-  bool fillHoles(QVector<int> &emptybg);
-  bool isTrue(const char *flag) { return configHash->contains(flag) && configHash->value(flag) == "true"; }  
-  void dumpBgIn(int from, int to, QList<real> &bgIn);
+  bool fillHoles(std::vector<int> &emptybg);
+  bool isTrue(const char *flag_in) { 
+		std::string flag = flag_in;
+		if (configHash->find(flag) != configHash->end()) {
+			if ((*configHash)[flag] == "true") {
+				return true;
+			} 
+		}
+		return false;
+	}
+  void dumpBgIn(int from, int to, std::vector<real> &bgIn);
   void dumpBgU(int from, int to, real *bgu);
   void bgu2nc(const char *fname, real *bgu);
   
@@ -76,7 +83,7 @@ class BkgdObsLoader {
   float imin, jmin, kmin;
   float imax, jmax, kmax;
   
-  QHash<QString, QString> *configHash;
+  std::unordered_map<std::string, std::string> *configHash;
   std::vector<FrameCenter> frameVector;
   Projection projection;
 
@@ -89,9 +96,9 @@ class BkgdObsLoader {
   real *bgWeights;
   real *bgU;
 
-  QVector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
+  std::vector<real> logheights, uBG, vBG, wBG, tBG, qBG, rBG, zBG;
 
-  QString interp_mode;
+  std::string interp_mode;
 
   real bgX, bgY, bgRadius, bgTheta;
   real bgZ;
@@ -110,7 +117,7 @@ class BkgdObsPreLoader : public BkgdObsLoader {
   BkgdObsPreLoader();
   ~BkgdObsPreLoader();
   
-  bool loadBkgdObs(QList<real> &bgIn);  
+  bool loadBkgdObs(std::vector<real> &bgIn);  
 };
 
 
@@ -128,9 +135,9 @@ class BkgdObsSplineLoader : public BkgdObsLoader {
   BkgdObsSplineLoader();
   ~BkgdObsSplineLoader();
 
-  bool loadBkgdObs(QList<real> &bgIn);
+  bool loadBkgdObs(std::vector<real> &bgIn);
   
-  bool initialize(QHash<QString, QString> *config,
+  bool initialize(std::unordered_map<std::string, std::string> *config,
 		  std::vector<FrameCenter> frames,
 		  BkgdAdapter *adapter,
 		  Projection proj,
@@ -161,13 +168,13 @@ class BkgdObsKDLoader : public BkgdObsLoader {
   ~BkgdObsKDLoader();
   
   // bool initialize();
-  bool loadBkgdObs(QList<real> &bgIn);
+  bool loadBkgdObs(std::vector<real> &bgIn);
   
  protected:
 
   bool fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
-		    QList<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
-		    QVector<int> &emptybg, int debug);
+		    std::vector<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
+		    std::vector<int> &emptybg, int debug);
   bool overwriteBgu(const char *fname);
 };
 
@@ -181,8 +188,8 @@ class BkgdObsFractlLoader : public BkgdObsLoader {
   ~BkgdObsFractlLoader();
   
   //  bool initialize();
-  bool loadBkgdObs(QList<real> &bgIn);
-  bool fillBguEntry(QList<real> &bgIn, real *bgU, int iIndex, int bIndex);
+  bool loadBkgdObs(std::vector<real> &bgIn);
+  bool fillBguEntry(std::vector<real> &bgIn, real *bgU, int iIndex, int bIndex);
 };
 
 // ------------- Object Factory --------------

@@ -9,11 +9,11 @@
 #include <iterator>
 #include <fstream>
 #include <cmath>
+#include <vector>
+#include <string>
+#include <regex>
+#include <set>
 
-#include <QTextStream>
-#include <QFile>
-#include <QVector>
-#include <QRegularExpression>
 #include <iomanip>
 // #include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
@@ -24,6 +24,8 @@
 #include "samurai.h"
 #include "timers.h"
 #include "BkgdObsLoaders.h"
+#include "LineSplit.h"
+#include "FileList.h"
 
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
@@ -52,7 +54,7 @@ bool VarDriver3D::initialize()
 
 // Initialize from parsed xml
 
-bool VarDriver3D::initialize(const QDomElement& configuration)
+bool VarDriver3D::initialize(const XMLNode& configuration)
 {
   // Run a 3D vortex background field
   cout << "Initializing SAMURAI 3D" << endl;
@@ -89,22 +91,22 @@ bool VarDriver3D::validateDriver()
   // dump_hash(configHash);
   
   // Validate the run geometry
-  if (configHash.value("mode") == "XYZ") {
+  if (configHash["mode"] == "XYZ") {
     runMode = XYZ;
-  } else if (configHash.value("mode") == "RTZ") {
+  } else if (configHash["mode"] == "RTZ") {
     runMode = RTZ;
   } else {
-    cout << "Unrecognized run mode " << configHash.value("mode").toStdString() << ", Aborting...\n";
+    cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";
     return false;
   }
 
-  bool fractlBkgd = ( configHash.value("bkgd_obs_interpolation") == "fractl" );
-  bool loadBG = ( configHash.value("load_background") == "true" );
+  bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
+  bool loadBG = ( configHash["load_background"] == "true" );
   
   // Warn is there are non-sensical combos of options.
   // Just 1 right now, so put it inlie
 
-  if (fractlBkgd && ( configHash.value("adjust_background") == "true"))
+  if (fractlBkgd && ( configHash["adjust_background"] == "true"))
     std::cout << "** Warning: 'adjust_background' set to 'true' "
 	      << "with 'bkgd_obs_interpolation' set to 'fractl' doesn't make sense."
 	      << std::endl;
@@ -120,21 +122,19 @@ bool VarDriver3D::validateDriver()
   projection.setProjection(projectionFromConfig());
 
   /* Set the data path */
-
-  dataPath.setPath(configHash.value("data_directory"));
-  if (dataPath.exists()) {
-    dataPath.setFilter(QDir::Files);
-    dataPath.setSorting(QDir::Name);
-  } else {
-    cout << "Can't find data directory: " << configHash.value("data_directory").toStdString() << endl;
+  // NOTE (NCAR): Originally we filtered these by 'files' and then sorted - this is doable with std::filesystem, but
+  // that's not fully implemented in some compilers yet, so for the moment we're just assuming it's a directory
+  dataPath = configHash["data_directory"];
+  if (!DirectoryExists(dataPath)) {
+    std::cout << "Can't find data directory: " << configHash["data_directory"] << endl;
     return false;
   }
 
   /* Check to make sure the output path exists */
 
-  QDir outputPath(configHash.value("output_directory"));
-  if (!outputPath.exists()) {
-    cout << "Can't find output directory: " << configHash.value("output_directory").toStdString() << endl;
+  std::string outputPath(configHash["output_directory"]);
+  if (!DirectoryExists(outputPath)) {
+    std::cout << "Can't find output directory: " << configHash["output_directory"] << endl;
     return false;
   }
 
@@ -163,9 +163,9 @@ bool VarDriver3D::validateDriver()
       return false;
 
     // Set the background Obs adapter to get data from a file (if config says so)
-    if (loadBG)
-      bkgdAdapter = new BkgdStream(dataPath.absoluteFilePath("samurai_Background.in").toLatin1().data());
-    
+    if (loadBG) {
+      bkgdAdapter = new BkgdStream((dataPath + "/samurai_Background.in").c_str()); // Not cross-platform with the '/', but that's fixable later, easily.
+    }
     return gridDependentInit();
   }
   
@@ -184,7 +184,7 @@ bool VarDriver3D::gridDependentInit()
 
   // Define the Reference state
 
-  QString refSounding = dataPath.absoluteFilePath(configHash.value("ref_state"));
+  std::string refSounding = configHash["ref_state"];
   refstate = new ReferenceState(refSounding);
   // cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
   for (real k = kmin; k < kmax + kincr; k += kincr) {
@@ -201,7 +201,7 @@ bool VarDriver3D::gridDependentInit()
   // Set the maximum number of iterations to the multipass reduction factor
   //  Multiple outer loops will reduce the cutoff wavelengths and background error variance
   
-  maxIter = configHash.value("num_iterations").toInt();
+  maxIter = std::stoi(configHash["num_iterations"]);
     
   // Read in the Frame centers (if runGrid, user is responsible for managing center
   // structure instead)
@@ -232,7 +232,7 @@ bool VarDriver3D::gridDependentInit()
 
   // Optionally load a set of background coefficients directly
   
-  QString loadBGcoeffs = configHash.value("load_bg_coefficients");
+  std::string loadBGcoeffs = configHash["load_bg_coefficients"];
 
   if (loadBGcoeffs == "true")
     if (! loadBackgroundCoeffs() )
@@ -256,7 +256,7 @@ bool VarDriver3D::gridDependentInit()
   // and match the supplied points exactly. In essence, do a SAMURAI analysis using
   // the background estimates as "observations"
 
-  QString adjustBG = configHash.value("adjust_background");
+  std::string adjustBG = configHash["adjust_background"];
   if ((adjustBG == "true") and numbgObs) {
     if ( ! adjustBackground()) {
       cout << "Error adjusting background\n";
@@ -282,21 +282,16 @@ bool VarDriver3D::gridDependentInit()
 
 bool VarDriver3D::findReferenceCenter()
 {
-  QTime reftime = QTime::fromString(configHash.value("ref_time"), "hh:mm:ss");
-  QString refstring = reftime.toString();
+	// NOTE (NCAR) : I'm not sure whether we're JUST comparing times, or if dates matter?  Seems not, but get clarification from CSU team
+  datetime reftime = ParseDate(configHash["ref_time"].c_str(), "%H:%M:%S");
 
   for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
-    QDateTime frametime = frameVector[fi].getTime();
-    if (reftime == frametime.time()) {
-      QString tempstring;
-      QDate refdate = frametime.date();
-      QDateTime unixtime(refdate, reftime, Qt::UTC);
-      configHash.insert("ref_lat", tempstring.setNum(frameVector[fi].getLat()));
-      configHash.insert("ref_lon", tempstring.setNum(frameVector[fi].getLon()));
-      // Overwrite hh:mm:ss string with epoch
-      configHash.insert("ref_time", tempstring.setNum(unixtime.toTime_t()));
-      cout << "Found matching reference time " << refstring.toStdString()
-	   << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
+    datetime frametime = frameVector[fi].getTime();
+    if (Time(reftime) == Time(frametime)) {
+      configHash.insert({"ref_lat", std::to_string(frameVector[fi].getLat())});
+      configHash.insert({"ref_lon", std::to_string(frameVector[fi].getLon())});
+      configHash.insert({"ref_time", PrintTime(frametime)});
+      cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
 
       return true;
     }
@@ -348,7 +343,7 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
     delete bkgdAdapter;
   
   // Set the background obs adapter to get data from the passed arrays
-  if (configHash.value("array_order") == "row-major")
+  if (configHash["array_order"] == "row-major")
     bkgdAdapter = new BkgdCArray(nx, ny, nsigma,
 				 cdtg, delta, iter,
 				 sigmas,
@@ -427,9 +422,9 @@ bool VarDriver3D::preProcessMetObs()
 
   // Convert the bg dBZ back to Z for further processing with real radar data
 
-  if ((configHash.value("qr_variable") == "dbz") and
-      (configHash.value("load_background") == "true") and
-      (configHash.value("adjust_background") == "false")) {
+  if ((configHash["qr_variable"] == "dbz") and
+      (configHash["load_background"] == "true") and
+      (configHash["adjust_background"] == "false")) {
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
 	for (int ii = -1; ii < (idim); ii++) {
@@ -455,7 +450,7 @@ bool VarDriver3D::preProcessMetObs()
   // Geographic functions
   //GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
-  real referenceLon = configHash.value("ref_lon").toFloat();
+  real referenceLon = std::stof(configHash["ref_lon"]);
 
   // Find the zero C line using Newton's method
 
@@ -478,42 +473,39 @@ bool VarDriver3D::preProcessMetObs()
   cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl;
 
   // Load Met. Observations
+  auto filenames = FileList(dataPath);
   
-  QStringList filenames = dataPath.entryList();
   int processedFiles = 0;
-  QList<MetObs>* metData = new QList<MetObs>;
+  std::vector<MetObs>* metData = new std::vector<MetObs>;
   cout << "Found " << filenames.size() << " data files to read..." << endl;
-  
+
   for (int i = 0; i < filenames.size(); ++i) {
     metData->clear();
-    QString file = filenames.at(i);
-    QStringList fileparts = file.split(".");
-    if (fileparts.isEmpty()) {
-      cout << "Unknown file! " << file.toLatin1().data() << endl;
+
+		if (filenames[i].empty()) {
+      cout << "Unknown file! " << filenames[i] << endl;
       continue;
     }
-    
-    QString suffix = fileparts.last();
-    QString prefix = fileparts.first();
-    
+
+		std::string file = filenames[i];
+    std::vector<std::string> parts = LineSplit(file, '.');
+    std::string suffix = parts[parts.size()-1];
+    std::string prefix = parts[0];
+		 
     if (prefix == "swp") {
       // Switch it to suffix
       suffix = "swp";
     }
     
     if (suffix == "nc") {	// cfrad file?
-      QRegularExpression re(".*cfrad.*\\.nc");
-      QRegularExpressionMatch match = re.match(file);
-      if (match.hasMatch())
-	suffix = "cfrad";
+			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc"))) 
+				suffix = "cfrad";
     }
     
-    cout << "Processing " << file.toLatin1().data() << " of type " << suffix.toLatin1().data() << endl;
-    QFile metFile(dataPath.filePath(file));
-    QString fullPath = dataPath.filePath(file);
+    cout << "Processing " << file << " of type " << suffix << endl;
     // Read different types of files
-    if (! read_met_obs_file(dataSuffix.value(suffix), metFile,
-			    fullPath, metData))
+    std::string fullpath = dataPath + "/" + file;
+    if (! read_met_obs_file(dataSuffix[suffix], fullpath, metData))
       continue;
 
     processedFiles++;
@@ -531,29 +523,28 @@ bool VarDriver3D::preProcessMetObs()
       return false;
     }
     
-    QDateTime startTime = frameVector.front().getTime();
-    QDateTime endTime = frameVector.back().getTime();
+    datetime startTime_ob = frameVector.front().getTime();
+    auto startTime = Time(startTime_ob);
+    datetime endTime_ob = frameVector.back().getTime(); 
+    auto endTime = Time(endTime_ob);
     int prevobs = obVector.size();
     
     for (int i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
       MetObs metOb = metData->at(i);
-      QDateTime obTime = metOb.getTime();
-      QString obstring = obTime.toString(Qt::ISODate);
-      QString tcstart = startTime.toString(Qt::ISODate);
-      QString tcend = endTime.toString(Qt::ISODate);
-      
+      datetime obTime_ob = metOb.getTime();
+      auto obTime = Time(obTime_ob);
+
+     
       if ((obTime < startTime) or (obTime > endTime)) {
 	timeProblem++;
 	
 	if (timeProblem < 10) 
-	  std::cout << "tcstart: " << tcstart.toLatin1().data()
-		    << ", tcend: " << tcend.toLatin1().data()
-		    << ", obTime: " << obstring.toLatin1().data()  << std::endl;
+				  std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
 	continue;
       }
-      int fi = startTime.secsTo(obTime);
+      int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
       if ((fi < 0) or (fi > (int)frameVector.size())) {
 	cout << "Time problem with observation " << fi << endl;
 	timeProblem++;
@@ -578,7 +569,7 @@ bool VarDriver3D::preProcessMetObs()
       real obZ = heightm/1000.;
       real obRadius = sqrt(obX*obX + obY*obY);
       real obTheta = 180.0 * atan2(obY, obX) / Pi;
-      if (configHash.value("allow_negative_angles") != "true")
+      if (configHash["allow_negative_angles"] != "true")
 	if (obTheta < 0)
 	  obTheta += 360.0;
 
@@ -610,7 +601,7 @@ bool VarDriver3D::preProcessMetObs()
       varOb.setRadius(obRadius);
       varOb.setTheta(obTheta);
       varOb.setAltitude(obZ);
-      varOb.setTime(obTime.toTime_t());
+      varOb.setTime(obTime);  // Check this, given Qt's handling of time vs. ours (NCAR)
 
       // Reference states
       real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
@@ -625,7 +616,6 @@ bool VarDriver3D::preProcessMetObs()
       }
       
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
-      
       switch (metOb.getObType()) {
 	
       case (MetObs::dropsonde):
@@ -650,7 +640,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  //cout << "RhoU: " << rhou << endl;
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("dropsonde_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_rhou_error"]));
 	  obVector.push_back(varOb);
 	  
 	  varOb.setWeight(0., 0);
@@ -662,7 +652,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("dropsonde_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 
@@ -672,7 +662,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 2);
 	  rhow = rho*w;
 	  varOb.setOb(rhow);
-	  varOb.setError(configHash.value("dropsonde_rhow_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_rhow_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 2);
 	}
@@ -680,7 +670,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // temperature 1 K error
 	  varOb.setWeight(1., 3);
 	  varOb.setOb(tempk - tBar);
-	  varOb.setError(configHash.value("dropsonde_tempk_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_tempk_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 3);
 	}
@@ -689,7 +679,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 4);
 	  qv = refstate->bhypTransform(qv);
 	  varOb.setOb(qv-qBar);
-	  varOb.setError(configHash.value("dropsonde_qv_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_qv_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 4);
 	}
@@ -697,7 +687,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // Rho prime .1 kg/m^3 error
 	  varOb.setWeight(1., 5);
 	  varOb.setOb((rhoa-rhoBar)*100);
-	  varOb.setError(configHash.value("dropsonde_rhoa_error").toFloat());
+	  varOb.setError(std::stof(configHash["dropsonde_rhoa_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 5);
 	}
@@ -725,7 +715,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("flightlevel_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_rhou_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 0);
 
@@ -736,7 +726,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("flightlevel_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 	}
@@ -745,7 +735,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 2);
 	  rhow = rho*w;
 	  varOb.setOb(rhow);
-	  varOb.setError(configHash.value("flightlevel_rhow_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_rhow_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 2);
 	}
@@ -753,7 +743,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // temperature 1 K error
 	  varOb.setWeight(1., 3);
 	  varOb.setOb(tempk - tBar);
-	  varOb.setError(configHash.value("flightlevel_tempk_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_tempk_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 3);
 	}
@@ -762,7 +752,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 4);
 	  qv = refstate->bhypTransform(qv);
 	  varOb.setOb(qv-qBar);
-	  varOb.setError(configHash.value("flightlevel_qv_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_qv_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 4);
 	}
@@ -770,7 +760,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // Rho prime .1 kg/m^3 error
 	  varOb.setWeight(1., 5);
 	  varOb.setOb((rhoa-rhoBar)*100);
-	  varOb.setError(configHash.value("flightlevel_rhoa_error").toFloat());
+	  varOb.setError(std::stof(configHash["flightlevel_rhoa_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 5);
 	}
@@ -799,7 +789,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  //cout << "RhoU: " << rhou << endl;
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("insitu_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_rhou_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 0);
 
@@ -810,7 +800,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("insitu_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 
@@ -820,7 +810,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 2);
 	  rhow = rho*w;
 	  varOb.setOb(rhow);
-	  varOb.setError(configHash.value("insitu_rhow_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_rhow_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 2);
 	}
@@ -828,7 +818,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // temperature 1 K error
 	  varOb.setWeight(1., 3);
 	  varOb.setOb(tempk - tBar);
-	  varOb.setError(configHash.value("insitu_tempk_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_tempk_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 3);
 	}
@@ -837,7 +827,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(1., 4);
 	  qv = refstate->bhypTransform(qv);
 	  varOb.setOb(qv-qBar);
-	  varOb.setError(configHash.value("insitu_qv_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_qv_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 4);
 	}
@@ -845,7 +835,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // Rho prime .1 kg/m^3 error
 	  varOb.setWeight(1., 5);
 	  varOb.setOb((rhoa-rhoBar)*100);
-	  varOb.setError(configHash.value("insitu_rhoa_error").toFloat());
+	  varOb.setError(std::stof(configHash["insitu_rhoa_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 5);
 	}
@@ -860,7 +850,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // temperature 1 K error
 	  varOb.setWeight(1., 3);
 	  varOb.setOb(tempk - tBar);
-	  varOb.setError(metOb.getTemperatureError() + configHash.value("mtp_tempk_error").toFloat());
+	  varOb.setError(metOb.getTemperatureError() + std::stof(configHash["mtp_tempk_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 3);
 	}
@@ -868,7 +858,7 @@ bool VarDriver3D::preProcessMetObs()
 	  // Rho prime .1 kg/m^3 error
 	  varOb.setWeight(1., 5);
 	  varOb.setOb((rhoa-rhoBar)*100);
-	  varOb.setError(configHash.value("mtp_rhoa_error").toFloat());
+	  varOb.setError(std::stof(configHash["mtp_rhoa_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 5);
 	}
@@ -884,7 +874,7 @@ bool VarDriver3D::preProcessMetObs()
 	//varOb.setWeight(1., 0);
 	varOb.setWeight(1., 1);
 	varOb.setOb(wspd);
-	varOb.setError(configHash.value("sfmr_windspeed_error").toFloat());
+	varOb.setError(std::stof(configHash["sfmr_windspeed_error"]));
 	obVector.push_back(varOb);
 	break;
 
@@ -903,7 +893,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  //cout << "RhoU: " << rhou << endl;
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("qscat_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["qscat_rhou_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 0);
 
@@ -915,7 +905,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("qscat_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["qscat_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 	}
@@ -936,7 +926,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  //cout << "RhoU: " << rhou << endl;
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("ascat_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["ascat_rhou_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 0);
 
@@ -948,7 +938,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("ascat_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["ascat_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 	}
@@ -969,7 +959,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  //cout << "RhoU: " << rhou << endl;
 	  varOb.setOb(rhou);
-	  varOb.setError(configHash.value("amv_rhou_error").toFloat());
+	  varOb.setError(std::stof(configHash["amv_rhou_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 0);
 
@@ -981,7 +971,7 @@ bool VarDriver3D::preProcessMetObs()
 	    rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	  }
 	  varOb.setOb(rhov);
-	  varOb.setError(configHash.value("amv_rhov_error").toFloat());
+	  varOb.setError(std::stof(configHash["amv_rhov_error"]));
 	  obVector.push_back(varOb);
 	  varOb.setWeight(0., 1);
 	}
@@ -1014,10 +1004,10 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setWeight(wWgt, 2);
 
 	  // Set the error according to the spectrum width and power
-	  real DopplerError = metOb.getSpectrumWidth()*configHash.value("lidar_sw_error").toFloat()
-	    + log(configHash.value("lidar_power_error").toFloat()/db);
-	  if (DopplerError < configHash.value("lidar_min_error").toFloat())
-	    DopplerError = configHash.value("lidar_min_error").toFloat();
+	  real DopplerError = metOb.getSpectrumWidth()*std::stof(configHash["lidar_sw_error"])
+	    + log(std::stof(configHash["lidar_power_error"])/db);
+	  if (DopplerError < std::stof(configHash["lidar_min_error"]))
+	    DopplerError = std::stof(configHash["lidar_min_error"]);
 	  varOb.setError(DopplerError);
 	  varOb.setOb(Vdopp);
 	  obVector.push_back(varOb);
@@ -1044,7 +1034,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  real wWgt = sin(el);
 	  // Restrict to horizontal component only
-	  if (configHash.value("horizontal_radar_appx") == "true")
+	  if (configHash["horizontal_radar_appx"] == "true") 
 	    wWgt = 0;
 
 	  // Fall speed
@@ -1054,7 +1044,7 @@ bool VarDriver3D::preProcessMetObs()
 	  if (Z > -999.0) {
 	    real H = metOb.getAltitude();
 	    ZZ=pow(10.0,(Z*0.1));
-	    real melting_zone = 1000 * configHash.value("melting_zone_width").toFloat();
+	    real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
 	    real hlow= zeroClevel;
 	    real hhi= hlow + melting_zone;
 
@@ -1073,8 +1063,8 @@ bool VarDriver3D::preProcessMetObs()
 	    /* Test if height is in the transition region between SNOW and RAIN
 	       defined as hlow in km < H < hhi in km
 	       if in the transition region do a linear weight of VTR and VTS */
-	    real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
-	    real rain_dbz = configHash.value("rain_dbz").toFloat();
+	    real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+	    real rain_dbz = std::stof(configHash["rain_dbz"]);
 	    if ((Z > mixed_dbz) and
 		(Z <= rain_dbz)) {
 	      real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
@@ -1102,17 +1092,21 @@ bool VarDriver3D::preProcessMetObs()
 	       varOb.setWeight(rhopWgt, 5); */
 
 	    // Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
-	    real DopplerError = fabs(wWgt)*configHash.value("radar_fallspeed_error").toFloat();
+	    real DopplerError = fabs(wWgt)*std::stof(configHash["radar_fallspeed_error"]);
 	    if (metOb.getSpectrumWidth() != -999.0) {
-	      DopplerError += metOb.getSpectrumWidth()*configHash.value("radar_sw_error").toFloat();
+	      DopplerError += metOb.getSpectrumWidth()*std::stof(configHash["radar_sw_error"]);
 	    }
-	    if (DopplerError < configHash.value("radar_min_error").toFloat())
-	      DopplerError = configHash.value("radar_min_error").toFloat();
+	    if (DopplerError < std::stof(configHash["radar_min_error"]))
+	      DopplerError = std::stof(configHash["radar_min_error"]);
 	    varOb.setError(DopplerError);
 	    varOb.setOb(Vdopp);
 
-	    real maxel = configHash.value("max_radar_elevation").toFloat();
-	    if (!maxel) maxel = 90.0;
+      real maxel;
+      if (configHash.find("bg_obs_error") == configHash.end()) {
+         maxel = 90.0;
+      } else {
+         maxel = std::stof(configHash["max_radar_elevation"]);
+       }
 	    if (fabs(metOb.getElevation() <= maxel))
 	      obVector.push_back(varOb);
 
@@ -1122,20 +1116,20 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 
 	  // Reflectivity observations
-	  QString gridref = configHash.value("qr_variable");
+	  std::string gridref = configHash["qr_variable"];
 	  real qr = 0.;
 	  if (ZZ > 0) {
 	    if (gridref == "qr") {
 	      // Do the gridding as part of the variational synthesis using Z-M relationships
 	      // Z-M relationships from Gamache et al (1993) JAS
 	      real H = metOb.getAltitude();
-	      real melting_zone = 1000 * configHash.value("melting_zone_width").toFloat();
+	      real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
 	      real hlow= zeroClevel;
 	      real hhi= hlow + melting_zone;
 	      real rainmass = pow(ZZ/14630.,(real)0.6905);
 	      real icemass = pow(ZZ/670.,(real)0.5587);
-	      real mixed_dbz = configHash.value("mixed_phase_dbz").toFloat();
-	      real rain_dbz = configHash.value("rain_dbz").toFloat();
+	      real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+	      real rain_dbz = std::stof(configHash["rain_dbz"]);
 	      if ((Z > mixed_dbz) and
 		  (Z <= rain_dbz)) {
 		real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
@@ -1167,9 +1161,9 @@ bool VarDriver3D::preProcessMetObs()
 	    }
 
 	    // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
-	    real iROI = configHash.value("i_reflectivity_roi").toFloat() / iincr;
-	    real jROI = configHash.value("j_reflectivity_roi").toFloat() / jincr;
-	    real kROI = configHash.value("k_reflectivity_roi").toFloat() / kincr;
+	    real iROI = std::stof(configHash["i_reflectivity_roi"]) / iincr;
+	    real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
+	    real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
 	    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
 	    for (int ki = 0; ki < (kdim-1); ki++) {
 	      for (int kmu = -1; kmu <= 1; kmu += 2) {
@@ -1241,7 +1235,7 @@ bool VarDriver3D::preProcessMetObs()
 	    }
 	    //cout << "RhoU: " << rhou << endl;
 	    varOb.setOb(rhou);
-	    varOb.setError(configHash.value("mesonet_rhou_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_rhou_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 0);
 
@@ -1252,7 +1246,7 @@ bool VarDriver3D::preProcessMetObs()
 	      rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	    }
 	    varOb.setOb(rhov);
-	    varOb.setError(configHash.value("mesonet_rhov_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_rhov_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 1);
 
@@ -1262,7 +1256,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setWeight(1., 2);
 	    rhow = rho*w;
 	    varOb.setOb(rhow);
-	    varOb.setError(configHash.value("mesonet_rhow_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_rhow_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 2);
 	  }
@@ -1270,7 +1264,7 @@ bool VarDriver3D::preProcessMetObs()
 	    // temperature 1 K error
 	    varOb.setWeight(1., 3);
 	    varOb.setOb(tempk - tBar);
-	    varOb.setError(configHash.value("mesonet_tempk_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_tempk_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 3);
 	  }
@@ -1279,7 +1273,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setWeight(1., 4);
 	    qv = refstate->bhypTransform(qv);
 	    varOb.setOb(qv-qBar);
-	    varOb.setError(configHash.value("mesonet_qv_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_qv_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 4);
 	  }
@@ -1287,7 +1281,7 @@ bool VarDriver3D::preProcessMetObs()
 	    // Rho prime .1 kg/m^3 error
 	    varOb.setWeight(1., 5);
 	    varOb.setOb((rhoa-rhoBar)*100);
-	    varOb.setError(configHash.value("mesonet_rhoa_error").toFloat());
+	    varOb.setError(std::stof(configHash["mesonet_rhoa_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 5);
 	  }
@@ -1318,7 +1312,7 @@ bool VarDriver3D::preProcessMetObs()
 	    }
 	    //cout << "RhoU: " << rhou << endl;
 	    varOb.setOb(rhou);
-	    varOb.setError(configHash.value("aeri_rhou_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_rhou_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 0);
 
@@ -1329,7 +1323,7 @@ bool VarDriver3D::preProcessMetObs()
 	      rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
 	    }
 	    varOb.setOb(rhov);
-	    varOb.setError(configHash.value("aeri_rhov_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_rhov_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 1);
 
@@ -1339,7 +1333,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setWeight(1., 2);
 	    rhow = rho*w;
 	    varOb.setOb(rhow);
-	    varOb.setError(configHash.value("aeri_rhow_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_rhow_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 2);
 	  }
@@ -1347,7 +1341,7 @@ bool VarDriver3D::preProcessMetObs()
 	    // temperature 1 K error
 	    varOb.setWeight(1., 3);
 	    varOb.setOb(tempk - tBar);
-	    varOb.setError(configHash.value("aeri_tempk_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_tempk_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 3);
 	  }
@@ -1356,7 +1350,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setWeight(1., 4);
 	    qv = refstate->bhypTransform(qv);
 	    varOb.setOb(qv-qBar);
-	    varOb.setError(configHash.value("aeri_qv_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_qv_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 4);
 	  }
@@ -1364,7 +1358,7 @@ bool VarDriver3D::preProcessMetObs()
 	    // Rho prime .1 kg/m^3 error
 	    varOb.setWeight(1., 5);
 	    varOb.setOb((rhoa-rhoBar)*100);
-	    varOb.setError(configHash.value("aeri_rhoa_error").toFloat());
+	    varOb.setError(std::stof(configHash["aeri_rhoa_error"]));
 	    obVector.push_back(varOb);
 	    varOb.setWeight(0., 5);
 	  }
@@ -1396,9 +1390,9 @@ bool VarDriver3D::preProcessMetObs()
   // Finish reflectivity interpolation
   
   Observation varOb;
-  varOb.setTime(configHash.value("ref_time").toInt());
-  real pseudow_weight = configHash.value("dbz_pseudow_weight").toFloat();
-  real mc_weight = configHash.value("mc_weight").toFloat();
+  varOb.setTime(std::stoi(configHash["ref_time"]));
+  real pseudow_weight = std::stof(configHash["dbz_pseudow_weight"]);
+  real mc_weight = std::stof(configHash["mc_weight"]);
   // Initialize the weights
   for (unsigned int var = 0; var < numVars; ++var) {
     for (unsigned int d = 0; d < numDerivatives; ++d) {
@@ -1429,7 +1423,7 @@ bool VarDriver3D::preProcessMetObs()
 		      if (bgWeights[bIndex] != 0) {
 			bgU[bIndex +6] /= bgWeights[bIndex];
 		      }
-		      if (configHash.value("qr_variable") == "dbz") {
+		      if (configHash["qr_variable"] == "dbz") {
 			if (bgU[bIndex +6] > 0) {
 			  real dbzavg = 10* log10(bgU[bIndex +6]);
 			  bgU[bIndex +6] = (dbzavg+35.)*0.1;
@@ -1512,8 +1506,8 @@ bool VarDriver3D::preProcessMetObs()
   cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
   // Write the Obs to a summary text file
-  QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-  ofstream obstream(obFilename.toLatin1().data());
+  std::string obFilename = dataPath + "/samurai_Observations.in";
+  ofstream obstream(obFilename);
   // Header messes up reload
   /*ostream_iterator<string> os(obstream, "\t ");
    *os++ = "Type";
@@ -1612,8 +1606,8 @@ bool VarDriver3D::loadPreProcessMetObs()
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
 
     // Open and read the file
-    QString obFilename = dataPath.absoluteFilePath("samurai_Observations.in");
-    ifstream obstream(obFilename.toLatin1().data());
+    std::string obFilename = dataPath + "/samurai_Observations.in";
+    ifstream obstream(obFilename);
     while (obstream >> ob >> error >> iPos >> jPos >> kPos >> type >> time
 			>> wgt[0][0] >> wgt[0][1] >> wgt[0][2] >> wgt[0][3]
 			>> wgt[1][0] >> wgt[1][1] >> wgt[1][2] >> wgt[1][3]
@@ -1694,9 +1688,9 @@ int VarDriver3D::loadBackgroundObs()
   // Default is Spline.
   
   BkgdObsLoader::bg_loader_t loaderType =  BkgdObsLoader::BG_LOADER_SPLINE;
-  if (configHash.value("bkgd_obs_interpolation") == "kd_tree")
+  if (configHash["bkgd_obs_interpolation"] == "kd_tree")
     loaderType = BkgdObsLoader::BG_LOADER_KD;
-  else if (configHash.value("bkgd_obs_interpolation") == "fractl")
+  else if (configHash["bkgd_obs_interpolation"] == "fractl")
     loaderType = BkgdObsLoader::BG_LOADER_FRACTL;  
   BkgdObsLoader *bkgdObsLoader = BkgdObsLoaderFactory::createBkgdObsLoader(loaderType);
   if (bkgdObsLoader == NULL)
@@ -1728,7 +1722,7 @@ bool VarDriver3D::adjustBackground()
   
   // Load the observations into a vector
   int numbgObs = bgIn.size() * 7 / 11;
-  if (configHash.value("mc_weight").toFloat() > 0) {
+  if (std::stof(configHash["mc_weight"]) > 0) {
     numbgObs += idim * jdim  * kdim;
   }
   bgObs = new real[numbgObs * (7 + numVars * numDerivatives)];
@@ -1767,17 +1761,17 @@ bool VarDriver3D::adjustBackground()
 
     for (unsigned int n = 0; n < numVars; n++) {
       bgObs[p] = bgIn[m + 4 + n];
-      if ((n == 6) and (configHash.value("qr_variable") == "dbz")) {
+      if ((n == 6) and (configHash["qr_variable"] == "dbz")) {
 	// Convert to dBZ control variable
 	real dbzavg = 10 * log10(bgIn[m + 4 + n]);
 	bgObs[p] = (dbzavg + 35.) * 0.1;
       }
       // Default error of background = 0.1
-      if (configHash.value("bg_obs_error").isEmpty() or
-	  (configHash.value("bg_obs_error").toFloat() <= 0.0)) {
+      if ((configHash.find("bg_obs_error") == configHash.end()) or
+	  (std::stof(configHash["bg_obs_error"]) <= 0.0)) {
 	bgObs[p + 1] = 100.;
       } else {
-	bgObs[p + 1] = 1.0 / configHash.value("bg_obs_error").toFloat();
+	bgObs[p + 1] = 1.0 / std::stof(configHash["bg_obs_error"]);
       }
       if (runMode == XYZ) {
 	bgObs[p + 2] = obX;
@@ -1796,7 +1790,7 @@ bool VarDriver3D::adjustBackground()
   }
 
   // Add mass continuity constraint
-  if (configHash.value("mc_weight").toFloat() > 0) {
+  if (std::stof(configHash["mc_weight"]) > 0) {
     for (int iIndex = 0; iIndex < idim; iIndex++) {
       real i = imin + iincr * iIndex;
       if (i > ((idim - 1) * iincr + imin)) continue;
@@ -1807,13 +1801,13 @@ bool VarDriver3D::adjustBackground()
 	  real k = kmin + kincr * kIndex;
 	  if (k > ((kdim - 1)*kincr + kmin)) continue;
 	  bgObs[p] = 0.0;
-	  bgObs[p+1] = configHash.value("mc_weight").toFloat();
+	  bgObs[p+1] = std::stof(configHash["mc_weight"]);
 	  bgObs[p+2] = i;
 	  bgObs[p+3] = j;
 	  bgObs[p+4] = k;
 	  // Null type
 	  bgObs[p + 5] = -1;
-	  bgObs[p + 6] = configHash.value("ref_time").toInt();
+	  bgObs[p + 6] = std::stoi(configHash["ref_time"]);
 	  if (runMode == XYZ) {
 	    bgObs[p + (7 * (1 + 1))] = 1.0;
 	    bgObs[p + (7 * (2 + 1)) + 1] = 1.0;
@@ -1834,19 +1828,19 @@ bool VarDriver3D::adjustBackground()
   }
 
   // Store and set the background errors
-  QString bgError[7];
-  bgError[0] = configHash.value("bg_rhou_error");
-  bgError[1] = configHash.value("bg_rhov_error");
-  bgError[2] = configHash.value("bg_rhow_error");
-  bgError[3] = configHash.value("bg_tempk_error");
-  bgError[4] = configHash.value("bg_qv_error");
-  bgError[5] = configHash.value("bg_rhoa_error");
-  bgError[6] = configHash.value("bg_qr_error");
+  std::string bgError[7];
+  bgError[0] = configHash["bg_rhou_error"];
+  bgError[1] = configHash["bg_rhov_error"];
+  bgError[2] = configHash["bg_rhow_error"];
+  bgError[3] = configHash["bg_tempk_error"];
+  bgError[4] = configHash["bg_qv_error"];
+  bgError[5] = configHash["bg_rhoa_error"];
+  bgError[6] = configHash["bg_qr_error"];
 
-  QString bg_interpolation_error = "1.0";
-  if ( ! configHash.value("bg_interpolation_error").isEmpty()) {
-    bg_interpolation_error = configHash.value("bg_interpolation_error");
-    cout << "Setting background interpolation error to " << bg_interpolation_error.toStdString() << "\n";
+  std::string bg_interpolation_error = "1.0";
+  if ( ! (configHash.find("bg_interpolation_error") == configHash.end())) {
+    bg_interpolation_error = configHash["bg_interpolation_error"];
+    cout << "Setting background interpolation error to " << bg_interpolation_error << "\n";
   } else {
     cout << "Using default background interpolation error of 1.0\n";
   }
@@ -1862,7 +1856,7 @@ bool VarDriver3D::adjustBackground()
   // Adjust the background field to the spline mish
   
   if (runMode == XYZ) {
-    if (configHash.value("output_pressure_increment").toFloat() > 0) {
+    if (std::stof(configHash["output_pressure_increment"]) > 0) {
       bgCost3D = new CostFunctionXYP(projection, numbgObs, bStateSize);
     } else {
       bgCost3D = new CostFunctionXYZ(projection, numbgObs, bStateSize);
@@ -1900,7 +1894,7 @@ bool VarDriver3D::adjustBackground()
 
   // Convert the dBZ back to Z for further processing
   
-  if (configHash.value("qr_variable") == "dbz") {
+  if (configHash["qr_variable"] == "dbz") {
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
 	for (int ii = -1; ii < (idim); ii++) {
@@ -1931,65 +1925,63 @@ bool VarDriver3D::adjustBackground()
 
 void VarDriver3D::updateAnalysisParams(const int& iteration)
 {
-    QString iter;
-    iter.setNum(iteration);
+    std::string iter = std::to_string(iteration);
 
-    QString key = "bg_rhou_error_" + iter;
-    QString val = configHash.value(key);
-    configHash.insert("bg_rhou_error", val);
+    std::string key = "bg_rhou_error_" + iter;
+    std::string val = configHash[key];
+    configHash.insert({"bg_rhou_error", val});
 
     key = "bg_rhov_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_rhov_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_rhov_error", val});
 
     key = "bg_rhow_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_rhow_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_rhow_error", val});
 
     key = "bg_tempk_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_tempk_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_tempk_error", val});
 
     key = "bg_qv_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_qv_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_qv_error", val});
 
     key = "bg_rhoa_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_rhoa_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_rhoa_error", val});
 
     key = "bg_qr_error_" + iter;
-    val = configHash.value(key);
-    configHash.insert("bg_qr_error", val);
+    val = configHash[key];
+    configHash.insert({"bg_qr_error", val});
 
     key = "mc_weight_" + iter;
-    val = configHash.value(key);
-    configHash.insert("mc_weight", val);
+    val = configHash[key];
+    configHash.insert({"mc_weight", val});
 
     key = "i_filter_length_" + iter;
-    val = configHash.value(key);
-    configHash.insert("i_filter_length", val);
+    val = configHash[key];
+    configHash.insert({"i_filter_length", val});
 
     key = "j_filter_length_" + iter;
-    val = configHash.value(key);
-    configHash.insert("j_filter_length", val);
+    val = configHash[key];
+    configHash.insert({"j_filter_length", val});
 
     key = "k_filter_length_" + iter;
-    val = configHash.value(key);
-    configHash.insert("k_filter_length", val);
+    val = configHash[key];
+    configHash.insert({"k_filter_length", val});
 
     key = "i_spline_cutoff_" + iter;
-    val = configHash.value(key);
-    configHash.insert("i_spline_cutoff", val);
+    val = configHash[key];
+    configHash.insert({"i_spline_cutoff", val});
 
     key = "j_spline_cutoff_" + iter;
-    val = configHash.value(key);
-    configHash.insert("j_spline_cutoff", val);
+    val = configHash[key];
+    configHash.insert({"j_spline_cutoff", val});
 
     key = "k_spline_cutoff_" + iter;
-    val = configHash.value(key);
-    configHash.insert("k_spline_cutoff", val);
-
+    val = configHash[key];
+    configHash.insert({"k_spline_cutoff", val});
 }
 
 /* This routine validates that all required parameters are present
@@ -1998,42 +1990,89 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
 bool VarDriver3D::validateConfig()
 {
     // Validate the hash -- multiple passes are not validated currently
-    QStringList configKeys;
-    configKeys << "mc_weight" << "i_filter_length" << "j_filter_length" << "k_filter_length"
-	       << "i_spline_cutoff" << "j_spline_cutoff" << "k_spline_cutoff"
-	       << "i_rhou_bcL" << "i_rhou_bcR" << "j_rhou_bcL" << "j_rhou_bcR" << "k_rhou_bcL"
-	       << "k_rhou_bcR" << "i_rhov_bcL" << "i_rhov_bcR" << "j_rhov_bcL" << "j_rhov_bcR"
-	       << "k_rhov_bcL" << "k_rhov_bcR" << "i_rhow_bcL" << "i_rhow_bcR" << "j_rhow_bcL"
-	       << "j_rhow_bcR" << "k_rhow_bcL" << "k_rhow_bcR" << "i_tempk_bcL" << "i_tempk_bcR"
-	       << "j_tempk_bcL" << "j_tempk_bcR" << "k_tempk_bcL" << "k_tempk_bcR" << "i_qv_bcL"
-	       << "i_qv_bcR" << "j_qv_bcL" << "j_qv_bcR" << "k_qv_bcL" << "k_qv_bcR" << "i_rhoa_bcL"
-	       << "i_rhoa_bcR" << "j_rhoa_bcL" << "j_rhoa_bcR" << "k_rhoa_bcL" << "k_rhoa_bcR"
-	       << "i_qr_bcL" << "i_qr_bcR" << "j_qr_bcL" << "j_qr_bcR" << "k_qr_bcL" << "k_qr_bcR"
-	       << "data_directory" << "output_directory";
+    std::set<std::string> configKeys;
+    configKeys.insert("mc_weight");
+    configKeys.insert("i_filter_length");
+    configKeys.insert("j_filter_length");
+    configKeys.insert("k_filter_length");
+    configKeys.insert("i_spline_cutoff");
+    configKeys.insert("j_spline_cutoff");
+    configKeys.insert("k_spline_cutoff");
+    configKeys.insert("i_rhou_bcL");
+    configKeys.insert("i_rhou_bcR");
+    configKeys.insert("j_rhou_bcL");
+    configKeys.insert("j_rhou_bcR");
+    configKeys.insert("k_rhou_bcL");
+    configKeys.insert("k_rhou_bcR");
+    configKeys.insert("i_rhov_bcL");
+    configKeys.insert("i_rhov_bcR");
+    configKeys.insert("j_rhov_bcL");
+    configKeys.insert("j_rhov_bcR");
+    configKeys.insert("k_rhov_bcL");
+    configKeys.insert("k_rhov_bcR");
+    configKeys.insert("i_rhow_bcL");
+    configKeys.insert("i_rhow_bcR");
+    configKeys.insert("j_rhow_bcL");
+    configKeys.insert("j_rhow_bcR");
+    configKeys.insert("k_rhow_bcL");
+    configKeys.insert("k_rhow_bcR");
+    configKeys.insert("i_tempk_bcL");
+    configKeys.insert("i_tempk_bcR");
+    configKeys.insert("j_tempk_bcL");
+    configKeys.insert("j_tempk_bcR");
+    configKeys.insert("k_tempk_bcL");
+    configKeys.insert("k_tempk_bcR");
+    configKeys.insert("i_qv_bcL");
+    configKeys.insert("i_qv_bcR");
+    configKeys.insert("j_qv_bcL");
+    configKeys.insert("j_qv_bcR");
+    configKeys.insert("k_qv_bcL");
+    configKeys.insert("k_qv_bcR");
+    configKeys.insert("i_rhoa_bcL");
+    configKeys.insert("i_rhoa_bcR");
+    configKeys.insert("j_rhoa_bcL");
+    configKeys.insert("j_rhoa_bcR");
+    configKeys.insert("k_rhoa_bcL");
+    configKeys.insert("k_rhoa_bcR");
+    configKeys.insert("i_qr_bcL");
+    configKeys.insert("i_qr_bcR");
+    configKeys.insert("j_qr_bcL");
+    configKeys.insert("j_qr_bcR");
+    configKeys.insert("k_qr_bcL");
+    configKeys.insert("k_qr_bcR");
+    configKeys.insert("data_directory");
+    configKeys.insert("output_directory");
 
-    if (fixedGrid)
-      configKeys << "i_min" << "i_max" << "i_incr"
-		 << "j_min" << "j_max" << "j_incr"
-		 << "k_min" << "k_max" << "k_incr";
+    if (fixedGrid) {
+    	configKeys.insert("i_min");
+    	configKeys.insert("i_max");
+    	configKeys.insert("i_incr");
+    	configKeys.insert("j_min");
+    	configKeys.insert("j_max");
+    	configKeys.insert("j_incr");
+    	configKeys.insert("k_min");
+    	configKeys.insert("k_max");
+    	configKeys.insert("k_incr");
+		}
 
-    for (int i = 0; i < configKeys.count(); i++) {
-        if ( !configHash.contains(configKeys.at(i))) {
-            cout <<	"No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << endl;
+    for (auto &key : configKeys) {
+        if ( configHash.find(key) == configHash.end() ) {
+            std::cout <<	"No configuration found for <" << key << "> aborting..." << std::endl;
             return false;
         }
     }
 
     // Add default values here
 
-    if ( ! configHash.contains("bkgd_obs_interpolation"))
-      configHash.insert("bkgd_obs_interpolation", "spline");
+    if ( configHash.find("bkgd_obs_interpolation") == configHash.end())
+      configHash.insert({"bkgd_obs_interpolation", "spline"});
     
-    if ( ! configHash.contains("bkgd_kd_num_neighbors"))
-      configHash.insert("bkgd_kd_num_neighbors", "6");
+    if ( configHash.find("bkgd_kd_num_neighbors") == configHash.end())
+      configHash.insert({"bkgd_kd_num_neighbors", "6"});
     
-    if ( ! configHash.contains("bkgd_kd_max_distance")) {
+    if ( configHash.find("bkgd_kd_max_distance") == configHash.end()) {
       // TODO What should the default max distance for a nearest neighbor be?
-      configHash.insert("bkgd_kd_max_distance", "100");
+      configHash.insert({"bkgd_kd_max_distance", "100"});
     }
 
     // All done
@@ -2046,24 +2085,30 @@ bool VarDriver3D::loadBackgroundCoeffs()
 	// Load a set of coefficients directly for the same grid
 	cout << "Loading previous coefficients from samurai_Coefficients.in" << endl;
 
-	QFile bgFile(dataPath.filePath("samurai_Coefficients.in"));
-	if (!bgFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream bgFile(dataPath + "/samurai_Coefficients.in");
+	if (!bgFile.is_open()) 
 		return false;
 
 	int numbgCoeffs = 0;
-	QTextStream in(&bgFile);
-	while (!in.atEnd()) {
-		QString line = in.readLine();
-		if (line.contains("Variable")) {
+	std::string line;
+
+	while (std::getline(bgFile, line)) {
+    std::istringstream iss(line);
+		if (line.find("Variable") != std::string::npos) {
 			continue;
 		} else {
-			QStringList lineparts = line.split(QRegExp("\\s+"));
-			int var = lineparts[0].toInt();
-			int iIndex = lineparts[1].toInt();
-			int jIndex = lineparts[2].toInt();
-			int kIndex = lineparts[3].toInt();
+			int var;
+			iss >> var;
+			int iIndex;
+			iss >> iIndex;
+			int jIndex;
+			iss >> jIndex;
+			int kIndex;
+			iss >> kIndex;
 			int bIndex = numVars*(idim+2)*(jdim+2)*kIndex + numVars*(idim+2)*jIndex +numVars*iIndex + var;
-			bgU[bIndex] = lineparts[5].toFloat();
+			float value;
+			iss >> value;
+			bgU[bIndex] = value;
 			numbgCoeffs++;
 		}
 	}
@@ -2113,16 +2158,14 @@ bool VarDriver3D::validateFractlGrid()
 {
   // Need to read grid from fractl file.
   Nc3Error err(Nc3Error::verbose_nonfatal);
-  // const char *fname = configHash->value("fractl_nc_file").toLatin1().data();  
-  QString fname = configHash.value("fractl_nc_file");
+  std::string fname = configHash["fractl_nc_file"];
   
    // Open the file.
-  Nc3File dataFile(fname.toLatin1().data(), Nc3File::ReadOnly);
+  Nc3File dataFile(fname.c_str(), Nc3File::ReadOnly);
    
    // Check to see if the file was opened.
    if(!dataFile.is_valid()) {
-     std::cout << "Failed to read FRACTL generated nc file " << fname.toLatin1().data()
-	       << std::endl;
+     std::cout << "Failed to read FRACTL generated nc file " << fname << std::endl;
      return false;
    }
 
@@ -2243,15 +2286,15 @@ bool VarDriver3D::validateFractlGrid()
 
      // CostFunction3D reads grid dims from the configHash
 
-     configHash["i_min"]  = QString::number(imin);
-     configHash["i_max"]  = QString::number(imax);
-     configHash["i_incr"] = QString::number(iincr);
-     configHash["j_min"]  = QString::number(jmin);
-     configHash["j_max"]  = QString::number(jmax);
-     configHash["j_incr"] = QString::number(jincr);
-     configHash["k_min"]  = QString::number(kmin);
-     configHash["k_max"]  = QString::number(kmax);
-     configHash["k_incr"] = QString::number(kincr);
+     configHash["i_min"]  = std::to_string(imin);
+     configHash["i_max"]  = std::to_string(imax);
+     configHash["i_incr"] = std::to_string(iincr);
+     configHash["j_min"]  = std::to_string(jmin);
+     configHash["j_max"]  = std::to_string(jmax);
+     configHash["j_incr"] = std::to_string(jincr);
+     configHash["k_min"]  = std::to_string(kmin);
+     configHash["k_max"]  = std::to_string(kmax);
+     configHash["k_incr"] = std::to_string(kincr);
 
      success = validateGrid();
    }
@@ -2272,21 +2315,19 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   clearCenters();
 
   // Compute ref_time
-  QDateTime cDateTime;
-  QString tString;
-  cDateTime.setTimeSpec(Qt::UTC);
-  cDateTime = QDateTime::fromString(cdtg, "yyyyMMddHH");
-  cDateTime = cDateTime.addSecs(delta * iter);
+  // NCAR - question for CSU - do we deal with time zones other than UTC?  That was specified in the original file (Qt::UTC)
+  std::string tString;
+  datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter); 
 
-  configHash.insert("ref_time", tString.setNum(cDateTime.toTime_t()));
-  configHash.insert("ref_lat",  tString.setNum(lat));
-  configHash.insert("ref_lat",  tString.setNum(lon));  
+  configHash.insert({"ref_time", PrintTime(cDateTime)});
+  configHash.insert({"ref_lat",  std::to_string(lat)});
+  configHash.insert({"ref_lat",  std::to_string(lon)});  
 
   // create 6 "centers" centered around the ref time, at 1 second intervals
 
   float zero = 0.0;	// Framecenter constructor needs a reference... why?
-  for(int delta = -2; delta <= 2; delta += 1) {
-    QDateTime tTime = cDateTime.addSecs(delta);
+  for(int delta2 = -2; delta2 <= 2; delta2 += 1) {
+    datetime tTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter) + std::chrono::seconds(delta2);
     frameVector.push_back(FrameCenter(tTime, lat, lon, zero, zero));
   }    
 }
@@ -2296,19 +2337,19 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
 bool VarDriver3D::validateFixedGrid()
 {
   // Define the grid dimensions
-  imin = configHash.value("i_min").toFloat();
-  imax = configHash.value("i_max").toFloat();
-  iincr = configHash.value("i_incr").toFloat();
+  imin = std::stof(configHash["i_min"]);
+  imax = std::stof(configHash["i_max"]);
+  iincr = std::stof(configHash["i_incr"]);
   idim = (int)((imax - imin) / iincr) + 1;
 
-  jmin = configHash.value("j_min").toFloat();
-  jmax = configHash.value("j_max").toFloat();
-  jincr = configHash.value("j_incr").toFloat();
+  jmin = std::stof(configHash["j_min"]);
+  jmax = std::stof(configHash["j_max"]);
+  jincr = std::stof(configHash["j_incr"]);
   jdim = (int)((jmax - jmin) / jincr) + 1;
 
-  kmin = configHash.value("k_min").toFloat();
-  kmax = configHash.value("k_max").toFloat();
-  kincr = configHash.value("k_incr").toFloat();
+  kmin = std::stof(configHash["k_min"]);
+  kmax = std::stof(configHash["k_max"]);
+  kincr = std::stof(configHash["k_incr"]);
   kdim = (int)((kmax - kmin)/kincr) + 1;
   
   return validateGrid();
@@ -2347,7 +2388,7 @@ bool VarDriver3D::loadMetObs()
   // Read in the meteorological observations, process them into weights and positions
   // Either preprocess from raw observations or load an already processed Observations.in file
 
-  QString preprocess = configHash.value("preprocess_obs");
+  std::string preprocess = configHash["preprocess_obs"];
   if (preprocess == "true") {
     bgWeights = new real[uStateSize];
     bool success = preProcessMetObs();
@@ -2377,9 +2418,12 @@ bool VarDriver3D::loadMetObs()
 bool VarDriver3D::initObCost3D()
 {
   if (runMode == XYZ) {
-    if (configHash.value("output_pressure_increment").toFloat() > 0) {
-      obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
-    } else if (configHash.value("output_COAMPS") == "true") {
+		// Apparently QHash automatically converts non-existent entries to zeros, so we'll test for existence then convert
+		if (configHash.find("output_pressure_increment") != configHash.end()) {
+    	if (std::stof(configHash["output_pressure_increment"]) > 0) {
+      	obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
+			}
+    } else if (configHash["output_COAMPS"] == "true") {
       CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
       cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
       obCost3D = cf;

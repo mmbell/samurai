@@ -7,7 +7,6 @@
  */
 
 #include "MetObs.h"
-#include <QTextStream>
 #include "math.h"
 #include <iostream>
 
@@ -28,8 +27,8 @@ MetObs::MetObs()
 	spectrumWidth = -999;
 	azimuth = -999;
 	elevation = -999;
-	stationName = QString();
-	time = QDateTime();	
+	stationName = "";
+	time = {};
 	obType = -1;
 
 }
@@ -67,12 +66,12 @@ bool MetObs::readObs()
 	return false;
 }
 
-QString MetObs::getStationName() const
+std::string MetObs::getStationName() const
 {
 	return stationName;
 }
 
-void MetObs::setStationName(const QString& name)
+void MetObs::setStationName(const std::string& name)
 {
 	stationName = name;
 }
@@ -108,14 +107,14 @@ void MetObs::setAltitude(const float& alt)
 	altitude = alt;
 }
 
-QDateTime MetObs::getTime() const
+datetime MetObs::getTime() const
 {
 	return time;
 }
 
-void MetObs::setTime(const QDateTime& obTime)
+void MetObs::setTime(const datetime& obTime)
 {
-	time = QDateTime(obTime);
+	time = obTime;
 }
 
 float  MetObs::getPressure() const
@@ -456,7 +455,7 @@ float MetObs::getTotalEnergy() const
 bool MetObs::operator ==(const MetObs &other)
 {
     
-	if((this->time.time() == other.time.time())
+	if((this->time == other.time)
 	   &&(this->stationName==other.stationName))
 		return true;
 	return false;
@@ -478,8 +477,9 @@ bool MetObs::operator > (const MetObs &other)
 
 void MetObs::printString()
 {
-	
-	QString printMessage(getStationName()+"_"+getTime().toString()+"_"+QString().setNum(getPressure()));
+  using namespace date;
+  using namespace std::chrono;
+	std::cout << getStationName() << "_" << getTime() << "_" << getPressure() << std::endl;
 	//std::cout << printMessage.toAscii();
 	
 }

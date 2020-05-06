@@ -6,14 +6,13 @@
  *
  */
 
+#include "FileList.h"
 #include "VarDriver.h"
 #include "Dorade.h"
 #include "ReferenceState.h"
+#include "LineSplit.h"
 #include <fstream>
 #include <cmath>
-#include <QTextStream>
-#include <QDomDocument>
-#include <QDomNodeList>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 #include <GeographicLib/LambertConformalConic.hpp>
 
@@ -24,6 +23,7 @@
 #include <Radx/RadxVol.hh>
 #include <Radx/NcfRadxFile.hh>
 
+#include <algorithm>
 // Constructor
 VarDriver::VarDriver()
 {
@@ -72,62 +72,56 @@ VarDriver::~VarDriver()
 bool VarDriver::readFrameCenters()
 {
   // Check the data directory for a centerfile
-  QStringList filenames = dataPath.entryList();
-  QString centerFilename;
-  for (int i = 0; i < filenames.size(); ++i) {
-    QString file = filenames.at(i);
-    QStringList fileparts = file.split(".");
-    if (fileparts.isEmpty()) {
-      continue;
-    }
-    QString suffix = fileparts.last();
+  std::vector<std::string> filenames = FileList(dataPath);
+  std::string centerFilename;
+  for (std::size_t i = 0; i < filenames.size(); ++i) {
+    std::string filename = filenames[i];
+		if (filename.empty()) { 
+			continue;
+		}
+    std::string suffix = Extension(filename);
+		suffix = suffix.substr(1);
     if (suffix == "cen") {
       // Match to centerfile
-      centerFilename = file;
+      centerFilename = filenames[i];
       break;
     }
   }
 
   // Open the file
-  QFile centerFile(dataPath.filePath(centerFilename));
-  if (!centerFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    std::cout << "Unable to open centerfile " << centerFilename.toLatin1().data() << std::endl;
+	std::ifstream centerFile(dataPath + "/" + centerFilename, std::ifstream::in);
+	if (!centerFile.is_open()) {
+    std::cout << "Unable to open centerfile " << centerFilename << std::endl;
     return false;
   }
 
   // Get the date from the filename
-  QString datestr = centerFilename.left(8);
-  QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
+  std::string datestr = centerFilename.substr(0,8);
+  datetime startDate = ParseDate(datestr.c_str(), "%Y%m%d");
 
   // Read the centers
-  QTextStream in(&centerFile);
-  while (!in.atEnd()) {
-    QDate date;
-    QString line = in.readLine();
-    QStringList lineparts = line.split(QRegExp("\\s+"));
-    QString timestr = lineparts[0];
-    int hour = timestr.left(2).toInt();
-    if (hour > 23) {
-      date = startDate.addDays(1);
-      hour -= 24;
-      QString newhr;
-      newhr.setNum(hour);
-      if (hour < 10) {
-	timestr.replace(0,1,"0");
-	timestr.replace(1,1,newhr);
-      } else {
-	timestr.replace(0,2,newhr);
-      }
+  std::string line;
+	float lat, lon, Vm, Um;
+  while (std::getline(centerFile, line)) {
+		std::istringstream iss(line);
+    datetime date;
+		std::string timestr;
+ 		iss >> timestr;
+    int hours = std::stoi(timestr.substr(0,2));
+    if (hours > 23) { // (FIXME : NCAR) The original code added a day here, then subtracted 24 from the hours, is this needed?
+      //fixme date = date::make_zoned(startDate + date::days{1});
+      hours -= 24;
     } else {
       date = startDate;
     }
-    QTime time = QTime::fromString(timestr, "HHmmss");
-    QDateTime datetime = QDateTime(date, time, Qt::UTC);
-    float lat = lineparts[1].toFloat();
-    float lon = lineparts[2].toFloat();
-    float Vm = lineparts[3].toFloat();
-    float Um = lineparts[4].toFloat();
-    FrameCenter center(datetime, lat, lon, Um, Vm);
+		int minutes = std::stoi(timestr.substr(2,2));
+		int seconds = std::stoi(timestr.substr(4,2));
+    datetime datetime_ = startDate + std::chrono::hours{hours} + std::chrono::minutes{minutes} + std::chrono::seconds{seconds};
+		iss >> lat;
+		iss >> lon;
+		iss >> Vm;
+		iss >> Um;
+    FrameCenter center(datetime_, lat, lon, Um, Vm);
     frameVector.push_back(center);
   }
 
@@ -145,12 +139,11 @@ void VarDriver::clearCenters()
 
 // Append a new center to the centers vector
 
-void VarDriver::appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um)
+void VarDriver::appendCenter(std::string date, std::string time, float lat, float lon, float Vm, float Um)
 {
-  QDateTime dateTime = QDateTime(QDate::fromString(date, "yyyyMMdd"),
-				 QTime::fromString(time, "HHmmss"),
-				 Qt::UTC);
-  frameVector.push_back(FrameCenter(dateTime, lat, lon, Um, Vm));
+  std::string in = date + time;
+  datetime datetime_ = ParseDate(in.c_str(), "%Y%m%d%H%M%S");
+  frameVector.push_back(FrameCenter(datetime_, lat, lon, Um, Vm));
 }
 
 // Pop the first center (Might add a date later if needed to remove a specific center)
@@ -162,9 +155,10 @@ void VarDriver::popCenter()
 
 // interface function to read radar data
 
-bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file,
-				  QList<MetObs>* metData)
+bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector<MetObs>* metData)
 {
+
+  std::string metFile = filename;
   switch (suffix) {
   case (frd):
     if (!read_frd(metFile, metData)) {
@@ -288,7 +282,7 @@ bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file,
   case (cen):
     return false;
   case(cfrad):
-    if (!read_cfrad(file, metData)) {
+    if (!read_cfrad(metFile, metData)) {
       cout << "Error reading cfrad file" << endl;
       return false;
     }
@@ -304,11 +298,12 @@ bool VarDriver::read_met_obs_file(int suffix, QFile& metFile, QString &file,
 
 /* This routine reads the FRD insitu format from NOAA/HRD */
 
-bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_frd(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
-
+/*
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
   QDateTime datetime;
@@ -352,17 +347,20 @@ bool VarDriver::read_frd(QFile& metFile, QList<MetObs>* metObVector)
       metObVector->push_back(ob);
     }
   }
+*/
   metFile.close();
   return true;
 }
 
 /* This routine reads the old CLASS dropsonde format from NCAR */
 
-bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_cls(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
 
+/*
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
   QDateTime datetime;
@@ -438,16 +436,20 @@ bool VarDriver::read_cls(QFile& metFile, QList<MetObs>* metObVector)
       metObVector->push_back(ob);
     }
   }
+*/
   metFile.close();
   return true;
 }
 
 /* This routine reads the modified CLASS dropsonde format from NCAR for the TPARC/TCS08 Dataset (and maybe TREX?) */
 
-bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_wwind(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
+
+/*
 
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
@@ -523,17 +525,20 @@ bool VarDriver::read_wwind(QFile& metFile, QList<MetObs>* metObVector)
       metObVector->push_back(ob);
     }
   }
+*/
   metFile.close();
   return true;
 }
 
 /* This routine reads the modified CLASS dropsonde format from NCAR for the PREDICT field project */
 
-bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
 
+/*
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
   QDateTime datetime;
@@ -603,6 +608,7 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
       metObVector->push_back(ob);
     }
   }
+*/
   metFile.close();
   return true;
 }
@@ -612,11 +618,13 @@ bool VarDriver::read_eol(QFile& metFile, QList<MetObs>* metObVector)
    TIME       Lat       Lon     Head   Track      GSpd     TAS    GAlt    Press     WndDr     WndSp   Tempr    Dewpt   DVal     PAlt     SurfP    VtWnd
    Pitch     Roll   Drift    Theta    Theta-e SFMRDown  SFMRSide */
 
-bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_sec(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
 
+/*
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
   QFileInfo info(metFile);
@@ -678,7 +686,7 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::flightlevel);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 
@@ -687,11 +695,13 @@ bool VarDriver::read_sec(QFile& metFile, QList<MetObs>* metObVector)
 /* This routine reads a 10 sec flight level data file from the data provided by the USAF Hurricane Hunters */
 /* GMT Time   AOA     BSP   CAS    CC     CSP    DPR     DVAL      GA     GPSA   GS      HSS     LAT      LON       PA PITCH       RA ROLL     SLP   SS     TA   TAS    TDA    TDD  THD   TRK    TT   V V     WD     WS Valid Flags Source Tags */
 
-bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_ten(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) 
     return false;
 
+/*
   QTextStream in(&metFile);
   QString datestr, timestr, aircraft;
   QFileInfo info(metFile);
@@ -744,7 +754,7 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::flightlevel);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 }
@@ -753,23 +763,23 @@ bool VarDriver::read_ten(QFile& metFile, QList<MetObs>* metObVector)
    This does not correctly read 'pure' Dorade files due to big-endian representation in that format,
    so it needs a byte swap which has not been implemented yet*/
 
-bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_dorade(std::string& filename, std::vector<MetObs>* metObVector)
 {
 
-  Dorade swpfile(metFile.fileName());
+  Dorade swpfile(filename);
 
   // Use a Transverse Mercator projection to map the radar gates to the grid
   //Geographiclib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
-  QString radardbz = configHash.value("radar_dbz");
-  QString radarvel = configHash.value("radar_vel");
-  QString radarsw = configHash.value("radar_sw");
+  std::string radardbz = configHash["radar_dbz"]; // If radar_dbz isn't found, this will create it -- switch to find/check? (bdobbins)
+  std::string radarvel = configHash["radar_vel"]; // See above (bdobbins)
+  std::string radarsw = configHash["radar_sw"];  // See above (bdobbins)
   if(!swpfile.readSwpfile(radardbz, radarvel, radarsw))
     return false;
 
-  int rayskip = configHash.value("radar_skip").toInt();
-  int minstride = configHash.value("radar_stride").toInt();
-  bool dynamicStride = configHash.value("dynamic_stride").toInt();
+  int rayskip = std::stoi(configHash["radar_skip"]);
+  int minstride = std::stoi(configHash["radar_stride"]);
+  bool dynamicStride = std::stoi(configHash["dynamic_stride"]);
   int stride = minstride;
   for (int i=0; i < swpfile.getNumRays(); i+=rayskip) {
     real radarLat = swpfile.getRadarLat(i);
@@ -780,7 +790,7 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
     float* refdata = swpfile.getReflectivity(i);
     float* veldata = swpfile.getRadialVelocity(i);
     float* swdata = swpfile.getSpectrumWidth(i);
-    QDateTime rayTime = swpfile.getRayTime(i);
+    datetime rayTime = swpfile.getRayTime(i);
     float* gatesp = swpfile.getGateSpacing();
     real gatelength = gatesp[1] - gatesp[0];
     real beamwidth = sin(swpfile.getBeamwidthDeg()*Pi/180.);
@@ -866,12 +876,13 @@ bool VarDriver::read_dorade(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads an old SFMR data format from CBLAST, not sure how current this is */
 
-bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_sfmr(std::string& filename, std::vector<MetObs>* metObVector)
 {
-
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
     return false;
-
+	}
+/*
   QTextStream in(&metFile);
   QString datestr, timestr;
   QDateTime datetime;
@@ -901,6 +912,7 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::sfmr);
     metObVector->push_back(ob);
   }
+*/
 
   metFile.close();
   return true;
@@ -909,12 +921,13 @@ bool VarDriver::read_sfmr(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads an ASCII dump of the Level II Quikscat data, see code for columns*/
 
-bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_qscat(std::string& filename, std::vector<MetObs>* metObVector)
 {
-
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
     return false;
-
+	}
+/* fixme
   QTextStream in(&metFile);
   QString year,jd,timestr;
   MetObs ob;
@@ -948,6 +961,7 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::qscat);
     metObVector->push_back(ob);
   }
+*/
 
   metFile.close();
   return true;
@@ -956,12 +970,14 @@ bool VarDriver::read_qscat(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads an ASCII dump of the ASCAT data, see code for columns*/
 
-bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_ascat(std::string& filename, std::vector<MetObs>* metObVector)
 {
-
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
     return false;
+	}
 
+/*fixme
   QTextStream in(&metFile);
   MetObs ob;
   QString unixtime = in.readLine();
@@ -981,7 +997,7 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::ascat);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 
@@ -989,12 +1005,14 @@ bool VarDriver::read_ascat(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads an ASCII dump of the Quikscat data for NOPP, see code for columns*/
 
-bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_nopp(std::string& filename, std::vector<MetObs>* metObVector)
 {
+  std::ifstream metFile(filename);
 
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  if (!metFile.is_open()) {
     return false;
-
+	}
+/*fixme
   QTextStream in(&metFile);
   MetObs ob;
   QDate startDate;
@@ -1022,7 +1040,7 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::qscat);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 
@@ -1032,12 +1050,14 @@ bool VarDriver::read_nopp(QFile& metFile, QList<MetObs>* metObVector)
    Pressure levels are converted to Heights via Newton's method and the background
    reference state */
 
-bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_cimss(std::string& filename, std::vector<MetObs>* metObVector)
 {
+  std::ifstream metFile(filename);
 
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  if (!metFile.is_open()) {
     return false;
-
+	}
+/*fixme
   QTextStream in(&metFile);
   MetObs ob;
   QDateTime datetime;
@@ -1077,7 +1097,7 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::AMV);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 
@@ -1085,12 +1105,14 @@ bool VarDriver::read_cimss(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads the LOS Doppler Wind Lidar data from TPARC, see code for columns*/
 
-bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_dwl(std::string& filename, std::vector<MetObs>* metObVector)
 {
+  std::ifstream metFile(filename);
 
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  if (!metFile.is_open()) {
     return false;
-
+	}
+/*fixme
   //GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
   QTextStream in(&metFile);
@@ -1167,25 +1189,28 @@ bool VarDriver::read_dwl(QFile& metFile, QList<MetObs>* metObVector)
 	  ob.setSpectrumWidth(sw);
 	  ob.setTime(datetime);
 	  metObVector->push_back(ob);
-	  /*cout << datetime.toString(Qt::ISODate).toStdString() << "\t"
-	    << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t"
-	    << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; */
+	  //cout << datetime.toString(Qt::ISODate).toStdString() << "\t"
+	  // << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t"
+	  //  << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; 
 	}
       }
     }
   }
-
+*/
   return true;
 
 }
 
 /* This routine reads a generic insitu format suitable for many different observation types
    TIME       Lat       Lon    Altitude   Pressure  Temperature (C)  Dewpoint (C)  WindDir   WindSpeed  VerticalVelocity*/
-bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_insitu(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
+  std::ifstream metFile(filename);
 
+  if (!metFile.is_open()) {
+    return false;
+	}
+/*fixme
   QTextStream in(&metFile);
   QString datestr, timestr, platform;
   QDateTime datetime;
@@ -1272,16 +1297,19 @@ bool VarDriver::read_insitu(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::insitu);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 }
 
-bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_mtp(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
+  std::ifstream metFile(filename);
 
+  if (!metFile.is_open()) {
+    return false;
+	}
+/*fixme
   QTextStream in(&metFile);
   QString datestr, timestr, platform;
   QDateTime datetime;
@@ -1339,7 +1367,7 @@ bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
       metObVector->push_back(ob);
     }
   }
-
+*/
   metFile.close();
   return true;
 }
@@ -1348,87 +1376,132 @@ bool VarDriver::read_mtp(QFile& metFile, QList<MetObs>* metObVector)
    and validates parameters that are common to all drivers
    Mode specific configs are validated in those drivers */
 
-bool VarDriver::parseXMLconfig(const QDomElement& config)
+bool VarDriver::parseXMLconfig(const XMLNode& config)
 {
+  // Parse the nodes to a hash:
+  // 1) Get the list (names) of elements for this node:
+  std::vector<const XMLElement* > elementList = XMLGetElements(&config);
 
-  cout << "Parsing configuration file...\n";
+	// 2) Loop over all the entries in the node list:
+	for (const auto element : elementList) {
 
-  // Parse the nodes to a hash
-  QDomNodeList nodeList = config.childNodes();
-  for (int i = 0; i < nodeList.count(); i++) {
-    QDomNode currNode = nodeList.item(i);
-    // Check to see if this is a set of pass parameters
-    QString iter = 0;
-    if (currNode.hasAttributes() and currNode.attributes().contains("iter")) {
-      iter = currNode.toElement().attribute("iter");
-    }
-    QDomNodeList configList = currNode.childNodes();
-    for (int j = 0; j < configList.count(); j++) {
-      QDomNode configItem = configList.item(j);
-      QDomElement group = configItem.toElement();
-      QString tag = group.tagName();
-      if (iter.toInt() > 1) {
-	// Append the pass number to the tagName
-	tag += "_" + iter;
-      }
-      if (!group.text().isEmpty()) {
-	configHash.insert(tag, group.text());
-      }
-    }
-  }
+		// 3) Assign the default 'iter' value, and check for the attribute:
+		std::string iter = std::to_string(0);
+
+		// 4) For each top-level node name, get its children:
+		std::vector<const XMLAttribute *> attributeList = XMLGetAttributes(element);
+
+		// 5) Loop over the children and check for 'iter':
+		for (auto &attribute : attributeList) {
+			if (std::string(attribute->Name()) == "iter" ) {
+				iter = attribute->Value();
+			} 
+		}
+
+		// 6) Build the list of children (config options):
+		std::vector<const XMLElement*> configList = XMLGetElements(element);
+
+		// 7) Loop over the children and if 'iter' > 1 then create hash with iter appended:
+		for (auto &config : configList) {
+			std::string tag(config->Name());
+			if (std::stoi(iter) > 1) {
+				tag +=  "_" + iter;
+			}
+			configHash.insert({tag, config->GetText()});
+		}
+	}
 
   // Validate the hash -- multiple passes are not validated currently
-  QStringList configKeys;
-  configKeys << "ref_state" << // "ref_time" << "reflat" << "reflon" are set by the VarDriver
-    "qr_variable" << "i_background_roi" << "j_background_roi" <<
-    "i_reflectivity_roi" << "j_reflectivity_roi" << "k_reflectivity_roi" <<
-    "load_background" << "adjust_background" <<
-    "radar_dbz" << "radar_vel" << "radar_sw" << "radar_skip" <<
-    "radar_stride" << "dynamic_stride" << "dbz_pseudow_weight" <<
-    "melting_zone_width" << "mixed_phase_dbz" << "rain_dbz" <<
-    "num_iterations" << "output_mish" << "output_txt" << "output_qc" <<
-    "output_netcdf" << "output_asi" << "preprocess_obs" << "mask_reflectivity" <<
-    "dropsonde_rhou_error" << "dropsonde_rhov_error" << "dropsonde_rhow_error" <<
-    "dropsonde_tempk_error" << "dropsonde_qv_error" << "dropsonde_rhoa_error" <<
-    "flightlevel_rhou_error" << "flightlevel_rhov_error" << "flightlevel_rhow_error" <<
-    "flightlevel_tempk_error" << "flightlevel_qv_error" << "flightlevel_rhoa_error" <<
-    "insitu_rhou_error" << "insitu_rhov_error" << "insitu_rhow_error" <<
-    "insitu_tempk_error" << "insitu_qv_error" << "insitu_rhoa_error" <<
-    "sfmr_windspeed_error" << "qscat_rhou_error" << "qscat_rhov_error" <<
-    "ascat_rhou_error" << "ascat_rhov_error" << "amv_rhou_error" << "amv_rhov_error" <<
-    "lidar_sw_error" << "lidar_power_error" << "lidar_min_error" <<
-    "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error" <<
-    "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" <<
-    "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error";
+  std::set<std::string> configKeys;
+	configKeys.insert("ref_state");
+	configKeys.insert("qr_variable");
+	configKeys.insert("i_background_roi");
+	configKeys.insert("j_background_roi");
+	configKeys.insert("i_reflectivity_roi");
+	configKeys.insert("j_reflectivity_roi");
+	configKeys.insert("k_reflectivity_roi");
+	configKeys.insert("load_background");
+	configKeys.insert("adjust_background");
+	configKeys.insert("radar_dbz");
+	configKeys.insert("radar_vel");
+	configKeys.insert("radar_sw");
+	configKeys.insert("radar_skip");
+	configKeys.insert("radar_stride");
+	configKeys.insert("dynamic_stride");
+	configKeys.insert("dbz_pseudow_weight");
+	configKeys.insert("melting_zone_width");
+	configKeys.insert("mixed_phase_dbz");
+	configKeys.insert("rain_dbz");
+	configKeys.insert("num_iterations");
+	configKeys.insert("output_mish");
+	configKeys.insert("output_txt");
+	configKeys.insert("output_qc");
+	configKeys.insert("output_netcdf");
+	configKeys.insert("output_asi");
+	configKeys.insert("preprocess_obs");
+	configKeys.insert("mask_reflectivity");
+	configKeys.insert("dropsonde_rhou_error");
+	configKeys.insert("dropsonde_rhov_error");
+	configKeys.insert("dropsonde_rhow_error");
+	configKeys.insert("dropsonde_tempk_error");
+	configKeys.insert("dropsonde_qv_error");
+	configKeys.insert("dropsonde_rhoa_error");
+	configKeys.insert("flightlevel_rhou_error");
+	configKeys.insert("flightlevel_rhov_error");
+	configKeys.insert("flightlevel_rhow_error");
+	configKeys.insert("flightlevel_tempk_error");
+	configKeys.insert("flightlevel_qv_error");
+	configKeys.insert("flightlevel_rhoa_error");
+	configKeys.insert("insitu_rhou_error");
+	configKeys.insert("insitu_rhov_error");
+	configKeys.insert("insitu_rhow_error");
+	configKeys.insert("insitu_tempk_error");
+	configKeys.insert("insitu_qv_error");
+	configKeys.insert("insitu_rhoa_error");
+	configKeys.insert("sfmr_windspeed_error");
+	configKeys.insert("qscat_rhou_error");
+	configKeys.insert("qscat_rhov_error");
+	configKeys.insert("ascat_rhou_error");
+	configKeys.insert("ascat_rhov_error");
+	configKeys.insert("amv_rhou_error");
+	configKeys.insert("amv_rhov_error");
+	configKeys.insert("lidar_sw_error");
+	configKeys.insert("lidar_power_error");
+	configKeys.insert("lidar_min_error");
+	configKeys.insert("radar_sw_error");
+	configKeys.insert("radar_fallspeed_error");
+	configKeys.insert("radar_min_error");
+	configKeys.insert("bg_rhou_error");
+	configKeys.insert("bg_rhov_error");
+	configKeys.insert("bg_rhow_error");
+	configKeys.insert("bg_tempk_error");
+	configKeys.insert("bg_qv_error");
+	configKeys.insert("bg_rhoa_error");
+	configKeys.insert("bg_qr_error");
 
-  if (fixedGrid)
-    configKeys << "ref_time";
+  if (fixedGrid) {
+    configKeys.insert("ref_time");
+	}
 
-  for (int i = 0; i < configKeys.count(); i++) {
-    if (!configHash.contains(configKeys.at(i))) {
-      cout <<	"No configuration found for <" << configKeys.at(i).toStdString()
-	   << "> aborting..." << endl;
+  for (auto& key : configKeys) {
+  if (configHash.find(key) == configHash.end()) {
+      cout <<	"No configuration found for <" << key << "> aborting..." << endl;
       return false;
     }
   }
 
   // Set default for Bkgd Obs reader (only used if passed as arrays)
-  
-  if (!configHash.contains("array_order"))
-    configHash.insert("array_order", "column-major");
+	if (configHash.find("array_order") == configHash.end()) {
+  	configHash.insert({"array_order", "column-major"});
+	}
 
   // Make sure we have a valid value for "array_order"
-
-  if ( (configHash.value("array_order") != "column-major") &&
-       (configHash.value("array_order") != "row-major")) {
-    cout << "Unsupported array_order" << configHash.value("array_order").toLatin1().data()
-	 << ". Only column-major and row-major are supported"
-	 << ". Aborting..." << endl;
+  if ( (configHash["array_order"] != "column-major") && (configHash["array_order"] != "row-major")) {
+    cout << "Unsupported array_order" << configHash["array_order"] << ". Only column-major and row-major are supported" << ". Aborting..." << endl;
     return false;
   }
-  
-  return true;
 
+  return true;
 }
 
 // This routine does the same thing as parseXMLconfig, excepts from a samurai_config structure instead of a QDomElement
@@ -1438,12 +1511,14 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   std::cout << "Parsing COAMPS structure ...\n";
 
   // Parse the values to a hash
-  QString tmpstr;
+  std::string tmpstr;
+/*fixme
   configHash.insert("num_iterations",tmpstr.setNum(config.num_iterations));
   configHash.insert("radar_skip",tmpstr.setNum(config.radar_skip));
   configHash.insert("radar_stride",tmpstr.setNum(config.radar_stride));
   configHash.insert("dynamic_stride",tmpstr.setNum(config.dynamic_stride));
   configHash.insert("spline_approximation",tmpstr.setNum(config.spline_approximation));
+*/
 #if 0 /* old style call */  
   configHash.insert("nx",tmpstr.setNum(config.nx));
   configHash.insert("ny",tmpstr.setNum(config.ny));
@@ -1459,7 +1534,7 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("k_max",tmpstr.setNum(config.k_max));
   configHash.insert("k_incr",tmpstr.setNum(config.k_incr));
 #endif
-  
+ /*fixme
   configHash.insert("i_background_roi",tmpstr.setNum(config.i_background_roi));
   configHash.insert("j_background_roi",tmpstr.setNum(config.j_background_roi));
   configHash.insert("i_reflectivity_roi",tmpstr.setNum(config.i_reflectivity_roi));
@@ -1517,11 +1592,13 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_sw_error",tmpstr.setNum(config.radar_sw_error));
   configHash.insert("radar_fallspeed_error",tmpstr.setNum(config.radar_fallspeed_error));
   configHash.insert("radar_min_error",tmpstr.setNum(config.radar_min_error));
+*/
 #if 0 /* old style */
   configHash.insert("delx",tmpstr.setNum(config.delx));
   configHash.insert("dely",tmpstr.setNum(config.dely));
 #endif
   
+/*fixme
   if (config.load_background) configHash.insert("load_background","true");
   else configHash.insert("load_background","false");
   if (config.adjust_background) configHash.insert("adjust_background","true");
@@ -1590,19 +1667,21 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_vel",config.radar_vel);
   configHash.insert("radar_sw",config.radar_sw);
   configHash.insert("mask_reflectivity",config.mask_reflectivity);
-  
+ */ 
 #if 0 /* old style */
   configHash.insert("ref_time",config.ref_time);
 #endif
-  
+ 
+/*fixme
   configHash.insert("ref_state",config.ref_state);
   configHash.insert("data_directory",config.data_directory);
   configHash.insert("output_directory",config.output_directory);
 
   configHash.insert("projection",config.projection);
-
+*/
   // Validate the hash -- multiple passes are not validated currently
-  QStringList configKeys;
+  std::vector<std::string> configKeys;
+/*fixme
   configKeys << "ref_state" << //  << "ref_time" << // "reflat" << "reflon" are set by the VarDriver
     "qr_variable" << "i_background_roi" << "j_background_roi" <<
     "i_reflectivity_roi" << "j_reflectivity_roi" << "k_reflectivity_roi" <<
@@ -1627,12 +1706,13 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   
   if (fixedGrid)
     configKeys << "ref_time";
+*/
   
-  for (int i = 0; i < configKeys.count(); i++) {
-    if (!configHash.contains(configKeys.at(i))) {
+  for (int i = 0; i < configKeys.size(); i++) {
+/*fixme    if (!configHash.contains(configKeys.at(i))) {
       std::cout << "No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << std::endl;
       return false;
-    }
+    }*/
   }
   return true;
 }
@@ -1642,7 +1722,7 @@ Projection::ProjectionType VarDriver::projectionFromConfig()
   // default value
   Projection::ProjectionType retVal =
     Projection::TRANSVERSE_MERCATOR_EXACT;
-  
+  /*fixme
   if (configHash.contains("projection")) {
     if (configHash.value("projection") == "lambert_conformal_conic")
       retVal = Projection::LAMBERT_CONFORMAL_CONIC;
@@ -1650,16 +1730,16 @@ Projection::ProjectionType VarDriver::projectionFromConfig()
       std::cerr << "Warning: Unrecognized projection type "
 		<< configHash.value("projection").toLatin1().data()
 		<< ". Defaulting to transverse_mercator_exact\n";
-  }
+  }*/
   return retVal;
 }
 
-bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_mesonet(std::string& filename, std::vector<MetObs>* metObVector)
 {
   Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
+  Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
@@ -1733,9 +1813,8 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 	ob.setAltitude(-999.0);
       }
 
-      QDateTime datetime;
-      datetime = QDateTime::fromTime_t(obtime[rec]);
-      ob.setTime(datetime.toUTC());
+      datetime datetime_;
+      datetime_ = std::chrono::seconds(long(obtime[rec])) + std::chrono::time_point<std::chrono::system_clock>{}; // bpd6 - casting issue?  What's 'rec'?
 
       if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) {
 	ob.setTemperature(temp[rec]);
@@ -1771,12 +1850,12 @@ bool VarDriver::read_mesonet(QFile& metFile, QList<MetObs>* metObVector)
 
 }
 
-bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_classnc(std::string& filename, std::vector<MetObs>* metObVector)
 {
   Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
+  Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
@@ -1831,10 +1910,8 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
   if (!pressVar->get(press, NREC))
     return false;
 
-  QDateTime datetime;
-  QStringList fileparts = metFile.fileName().split(".");
-  QDate startDate = QDate::fromString(fileparts[1], "yyyyMMdd");
-  QTime startTime = QTime::fromString(fileparts[2], "HHmmss");
+  datetime datetime_;
+  std::vector<std::string> fileparts = LineSplit(filename, '.');
 
   // Get the platform name
   MetObs ob;
@@ -1857,10 +1934,9 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 	ob.setAltitude(-999.0);
       }
 
-      QTime time(startTime);
-      time.addSecs(obtime[rec]);
-      datetime = QDateTime(startDate, time, Qt::UTC);
-      ob.setTime(datetime);
+      auto combined = fileparts[1] + fileparts[2];
+      datetime datetime_ = ParseDate(combined.c_str(), "%Y%m%d%H%M%S") + std::chrono::seconds(long(obtime[rec]));
+      ob.setTime(datetime_);
 
       if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) {
 	ob.setTemperature(temp[rec]+273.15);
@@ -1898,12 +1974,14 @@ bool VarDriver::read_classnc(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads the qcf composite data format*/
 
-bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_qcf(std::string& filename, std::vector<MetObs>* metObVector)
 {
+  std::ifstream metFile(filename);
 
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  if (!metFile.is_open()) 
     return false;
 
+/*fixme
   QTextStream in(&metFile);
   MetObs ob;
   QDate startDate;
@@ -1940,18 +2018,18 @@ bool VarDriver::read_qcf(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::mesonet);
     metObVector->push_back(ob);
   }
-
+*/
   metFile.close();
   return true;
 
 }
 
-bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_aeri(std::string& filename, std::vector<MetObs>* metObVector)
 {
   Nc3Error err(Nc3Error::verbose_nonfatal);
 
   // Read the file.
-  Nc3File dataFile(metFile.fileName().toLatin1(), Nc3File::ReadOnly);
+  Nc3File dataFile(filename.c_str());
 
   // Check to see if the file was read.
   if(!dataFile.is_valid())
@@ -2011,11 +2089,11 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
   if (!pressVar->get(&press[0][0], NREC, NLVL))
     return false;
 
-  QDateTime datetime;
+  datetime datetime_;
 
   // Get the platform name
   MetObs ob;
-  QStringList fileparts = metFile.fileName().split("_");
+  std::vector<std::string> fileparts = LineSplit(filename,'_');
   ob.setStationName(fileparts[0]);
   for (int rec = 0; rec < NREC; rec++) {
     for (int p = 0; p < NLVL; p++) {
@@ -2035,11 +2113,13 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 	ob.setAltitude(-999.0);
       }
 
+/*fixme
       datetime = QDateTime::fromTime_t(basetime);
       QString obstring = datetime.toString(Qt::ISODate);
       QDateTime obdatetime = datetime.addSecs(obtime[rec]).toUTC();
       obstring = obdatetime.toString(Qt::ISODate);
       ob.setTime(obdatetime);
+*/
 
       if ((temp[rec][p] != -9999.0) and (temp[rec][p] < 1.0e32)) {
 	ob.setTemperature(temp[rec][p]);
@@ -2069,15 +2149,17 @@ bool VarDriver::read_aeri(QFile& metFile, QList<MetObs>* metObVector)
 
 /* This routine reads the ascii radar data format*/
 
-bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
+bool VarDriver::read_rad(std::string& filename, std::vector<MetObs>* metObVector)
 {
+  std::ifstream metFile(filename);
 
-  if (!metFile.open(QIODevice::ReadOnly | QIODevice::Text))
+  if (!metFile.is_open()) {
     return false;
+	}
 
   // Use a Transverse Mercator projection to map the radar gates to the grid
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-		
+/*fixme		
   QTextStream in(&metFile);
   MetObs ob;
   QDate startDate;
@@ -2130,29 +2212,29 @@ bool VarDriver::read_rad(QFile& metFile, QList<MetObs>* metObVector)
     ob.setObType(MetObs::radar);
     metObVector->push_back(ob);
   }
+*/
 
   metFile.close();
   return true;
-
 }
 
 // This routing reads the Lrose Radx format
 
-bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
+bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVector)
 {
   RadxFile rxFile;
   RadxVol rxVol;
 
-  if ( ! rxFile.isSupported(fileName.toLatin1().data()) ) {
-    std::cerr << "ERROR - File '" << fileName.toLatin1().data()
+  if ( ! rxFile.isSupported(fileName) ) {
+    std::cerr << "ERROR - File '" << fileName
              << "' is not in a Radx supported format." << std::endl;
     return false;
   }
 
   rxFile.setReadPreserveSweeps(true); // prevent Radx from tossing away long sweeps
 
-  if (rxFile.readFromPath(fileName.toLatin1().data(), rxVol) ) {
-    std::cerr << "ERROR - reading file: " << fileName.toLatin1().data() << std::endl;
+  if (rxFile.readFromPath(fileName, rxVol) ) {
+    std::cerr << "ERROR - reading file: " << fileName << std::endl;
     std::cerr << rxFile.getErrStr() << std::endl;
     return false;
   }
@@ -2160,10 +2242,10 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
   // Name of the fields to use
   // TODO Should we use cfradial defaults if not specified?
   // DBZ, VEL, and WIDTH?
-  
-  QString radarDbzStr = configHash.value("radar_dbz");
-  QString radarVelStr = configHash.value("radar_vel");
-  QString radarSwStr  = configHash.value("radar_sw");
+ 
+  std::string radarDbzStr = configHash["radar_dbz"];
+  std::string radarVelStr = configHash["radar_vel"];
+  std::string radarSwStr  = configHash["radar_sw"];
   
   // Use a Transverse Mercator projection to map the radar gates to the grid
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
@@ -2179,7 +2261,7 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     RadxRay *ray = rays[index];
     if (ray == NULL) {
       std::cout << "Error: Failed to read ray " << index
-               << " from file " << fileName.toLatin1().data() << std::endl;
+               << " from file " << fileName << std::endl;
       return false;
     }
 
@@ -2208,32 +2290,26 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     }
     
     // Qt 5.8 //  QDateTime rayTime = QDateTime::fromSecsSinceEpoch(ray->getTimeSecs());
-    QDateTime rayTime = QDateTime::fromTime_t(ray->getTimeSecs());
+    datetime rayTime = date::sys_seconds(std::chrono::seconds(ray->getTimeSecs()));
     double az = ray->getAzimuthDeg();
     double el = ray->getElevationDeg();
 
     // Get the ref, vel, and swdata
     
-    RadxField *radarDbz = ray->getField(radarDbzStr.toLatin1().data());
+    RadxField *radarDbz = ray->getField(radarDbzStr);
     if (radarDbz == NULL) {
-      std::cout << "Failed to get variable " <<
-	radarDbzStr.toLatin1().data() << " from " <<
-	fileName.toLatin1().data() << std::endl;
+      std::cout << "Failed to get variable " << radarDbzStr << " from " << fileName << std::endl;
       return false;
     }
 	
-    RadxField *radarVel = ray->getField(radarVelStr.toLatin1().data());
+    RadxField *radarVel = ray->getField(radarVelStr);
     if (radarVel == NULL) {
-      std::cout << "Failed to get variable " <<
-	radarVelStr.toLatin1().data() << " from " <<
-	fileName.toLatin1().data() << std::endl;
+      std::cout << "Failed to get variable " << radarVelStr << " from " << fileName << std::endl;
       return false;
     }
-    RadxField *radarSw  = ray->getField(radarSwStr.toLatin1().data());
+    RadxField *radarSw  = ray->getField(radarSwStr);
     if (radarSw == NULL) {
-      std::cout << "Failed to get variable " <<
-	radarSwStr.toLatin1().data() << " from " <<
-	fileName.toLatin1().data() << std::endl;
+      std::cout << "Failed to get variable " << radarSwStr << " from " << fileName << std::endl;
       return false;
     }
 
@@ -2245,8 +2321,8 @@ bool VarDriver::read_cfrad(QString &fileName, QList<MetObs>* metObVector)
     float gatelength = ray->getGateSpacingKm() * 1000;
     
     //    int rayskip = configHash.value("radar_skip").toInt();
-    int minstride = configHash.value("radar_stride").toInt();
-    bool dynamicStride = configHash.value("dynamic_stride").toInt();
+    int minstride = std::stoi(configHash["radar_stride"]);
+    bool dynamicStride = std::stoi(configHash["dynamic_stride"]); 
     int stride = minstride;
 
     // std::cout << "-I- Gates: " << nGates << ", stride: " << stride

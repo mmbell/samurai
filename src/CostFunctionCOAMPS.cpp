@@ -8,10 +8,7 @@
 
 #include "CostFunctionCOAMPS.h"
 #include <cmath>
-#include <QTextStream>
-#include <QDataStream>
-#include <QDir>
-#include <QDateTime>
+#include "datetime.h"
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 
@@ -31,14 +28,15 @@ void CostFunctionCOAMPS::setSigmas(float *sigmas, int size) {
   sDim = size;
 }
 
-bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
+bool CostFunctionCOAMPS::outputAnalysis(const std::string& suffix, real* Astate)
 {
-  cout << "Outputting " << suffix.toStdString() << "...\n";
+/* NCAR FIXME
+  cout << "Outputting " << suffix << "...\n";
   // H --> to Mish for output
-  QString samuraiout = "samurai_COAMPS_" + suffix + ".out";
+  std::string samuraiout = "samurai_COAMPS_" + suffix + ".out";
   ofstream samuraistream;
-  if (configHash->value("output_txt") == "true") {
-    samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
+  if ((*configHash)["output_txt"] == "true") {
+    samuraistream.open(outputPath + "/" + samuraiout);
     samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
     samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
     samuraistream.precision(10);
@@ -187,7 +185,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 		}
 
 		// Save mish values for future iterations
-		QString gridref = configHash->value("qr_variable");
+		std::string gridref = (*configHash)["qr_variable"];
 		if ((imu != 0) and (jmu != 0) and (kmu != 0)) {
 		  int uJ = jIndex * 2 + (jmu+1)/2;
 		  int uI = iIndex * 2 + (imu+1)/2;
@@ -204,7 +202,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 		  bgFields[uIndex + 6] = qrprime;
 		}
 
-		if ((configHash->value("output_mish") == "false")
+		if (((*configHash)["output_mish"] == "false")
 		    and (ihalf or jhalf or khalf)) continue;
 
 		// Output it
@@ -317,7 +315,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 		real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.) / 180); // Units 10^-5 s-1
 		real absVorticity = vorticity + Coriolisf;
 
-		QString refmask = configHash->value("mask_reflectivity");
+		std::string refmask = (*configHash)["mask_reflectivity"];
 		if (refmask != "None") {
 		  real refthreshold = refmask.toFloat();
 		  if (qr < refthreshold) {
@@ -358,7 +356,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 		  }
 		}
 
-		if (configHash->value("output_txt") == "true") {
+		if ((*configHash)["output_txt"] == "true") {
 		  samuraistream << scientific << i << "\t" << j << "\t"  << k
 				<< "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 				<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
@@ -442,14 +440,14 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   }
 
 
-  QString fileName = "samurai_COAMPS_" + suffix;
-  QString outFileName = outputPath.absoluteFilePath(fileName);
+  std::string fileName = "samurai_COAMPS_" + suffix;
+  std::string outFileName = outputPath+ "/" + fileName;
 
   // Write the Obs to a summary text file
-  if (configHash->value("output_qc") == "true") {
-    QString qcout = "samurai_QC_" + suffix + ".out";
-    QString qcFileName = outputPath.absoluteFilePath(qcout);
-    ofstream qcstream(qcFileName.toLatin1().data());
+  if ((*configHash)["output_qc"] == "true") {
+    std::string qcout = "samurai_QC_" + suffix + ".out";
+    std::string qcFileName = outputPath + "/" + qcout;
+    ofstream qcstream(qcFileName);
     ostream_iterator<string> os(qcstream, "\t ");
     *os++ = "Observation";
     *os++ = "Inverse Error";
@@ -511,11 +509,11 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 	*od++ = obsVector[mi+t];
       }
       int unixtime = (int)obsVector[mi+6];
-      QDateTime obtime;
+      datetime obtime;
       obtime.setTime_t(unixtime);
-      obtime.setTimeSpec(Qt::UTC);
-      QString timestring = obtime.toString("hh:mm:ss.zzz");
-      qcstream << timestring.toStdString() << "\t";
+      //obtime.setTimeSpec(Qt::UTC); 
+      //std::string timestring = obtime.toString("hh:mm:ss.zzz");
+      qcstream << obTtime << "\t";
 
       // Multiply the weight by the ob -- Observations.in has individual weights already
       // Only non-derivative for now
@@ -531,7 +529,7 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   }
 
   // Write out COAMPS flatfiles
-  QString flatFileName = outFileName + "_uuwind_sig_029385";
+  std::string flatFileName = outFileName + "_uuwind_sig_029385";
   writeFlatfile(flatFileName, 0);
 
   flatFileName = outFileName + "_vvwind_sig_029385";
@@ -541,16 +539,16 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
   sDim -= 2;
 
   // Write out to a netCDF file
-  if (configHash->value("output_netcdf") == "true") {
-    QString cdfFileName = outFileName + ".nc";
-    if ( ! writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-      cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+  if ((*configHash)["output_netcdf"] == "true") {
+    std::string cdfFileName = outFileName + ".nc";
+    if ( ! writeNetCDF(outputPath + "/" + cdfFileName))
+      std::cout << "Error writing netcdf file " << cdfFileName << std::endl;
   }
   // Write out to an asi file
-  if (configHash->value("output_asi") == "true") {
-    QString asiFileName = outFileName + ".asi";
-    if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-      cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+  if ((*configHash)["output_asi"] == "true") {
+    std::string asiFileName = outFileName + ".asi";
+    if (!writeAsi(outputPath + "/" + asiFileName))
+      std::cout << "Error writing asi file " << asiFileName << std::endl;
   }
 
   // Set the domain back
@@ -562,24 +560,18 @@ bool CostFunctionCOAMPS::outputAnalysis(const QString& suffix, real* Astate)
 
   if (suffix != "analysis") 	// TODO: Need the keep analysis for return arrays
     delete[] finalAnalysis;
-
+*/
   return true;
 
 }
 
-bool CostFunctionCOAMPS::writeFlatfile(const QString& flatFileName, const int var)
+bool CostFunctionCOAMPS::writeFlatfile(const std::string& flatFileName, const int var)
 {
+/*fixme
 	// Write out a binary file for use with COAMPS
-	QFile file(flatFileName);
-	if (! file.open(QIODevice::WriteOnly)) {
-	  std::cerr << "CostFunctionCOAMPS::writeFlatfile: Failed to open " << flatFileName.toLatin1().data() << std::endl;
-	  return false;
-	}
-	QDataStream out(&file);
-	out.setFloatingPointPrecision(QDataStream::SinglePrecision);
-	if (out.status() != QDataStream::Ok) {
-	  std::cerr << "CostFunctionCOAMPS::writeFlatfile: Failed to write to "
-		    << flatFileName.toLatin1().data() << std::endl;
+	std::ofstream file(flatFileName);
+	if (! file.is_open()) {
+	  std::cerr << "CostFunctionCOAMPS::writeFlatfile: Failed to open " << flatFileName << std::endl;
 	  return false;
 	}
 
@@ -594,18 +586,20 @@ bool CostFunctionCOAMPS::writeFlatfile(const QString& flatFileName, const int va
 		}
 	}
 	file.close();
+*/
 	return true;
 
 }
 
-bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
+bool CostFunctionCOAMPS::writeNetCDF(const std::string& netcdfFileName)
 {
+/* fixme
 	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
 	// Create the file.
-	std::cout << "Writing " << netcdfFileName.toLatin1().data() << std::endl;
-	Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
+	std::cout << "Writing " << netcdfFileName << std::endl;
+	Nc3File dataFile(netcdfFileName, Nc3File::Replace);
 
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -733,7 +727,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	if (!(h = dataFile.add_var("H", nc3Float, timeDim,
                                lvlDim, latDim, lonDim)))
 		return NC_ERR;
-	if (configHash->value("qr_variable") == "dbz") {
+	if ((*configHash)["qr_variable"] == "dbz") {
 	  if (!(qr = dataFile.add_var("DBZ", nc3Float, timeDim,
                                     lvlDim, latDim, lonDim)))
             return NC_ERR;
@@ -871,7 +865,7 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("units", "kJ"))
 		return NC_ERR;
-	if (configHash->value("qr_variable") == "dbz") {
+	if ((*configHash)["qr_variable"] == "dbz") {
 	  if (!qr->add_att("units", "dBZ"))
             return NC_ERR;
 	} else {
@@ -1259,9 +1253,9 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	int time[2];
 
 	// Reference time and position from center file
-	time[0] = configHash->value("ref_time").toInt();
-	real latReference = configHash->value("ref_lat").toFloat();
-	real lonReference = configHash->value("ref_lon").toFloat();
+	time[0] = std::stoi((*configHash)["ref_time"]);
+	real latReference = std::stof((*configHash)["ref_lat"]);
+	real lonReference = std::stof((*configHash)["ref_lon"]);
 	real refX, refY;
 
 	// GeographicLib::LambertConformalConic tm = GeographicLib::LambertConformalConic::Mercator();
@@ -1428,11 +1422,12 @@ bool CostFunctionCOAMPS::writeNetCDF(const QString& netcdfFileName)
 	delete[] levs;
 	delete[] x;
 	delete[] y;
+*/
 	return true;
 
 }
 
-bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
+bool CostFunctionCOAMPS::writeAsi(const std::string& asiFileName)
 {
 	// Initialize header
 	int id[511];
@@ -1441,13 +1436,41 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 	}
 
 	// Calculate headers
-	QStringList fieldNames;
-	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
-	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
+	/*fixme
+	std::vector<std::string> fieldNames;
+	fieldNames.push_back("U");
+	fieldNames.push_back("V");
+	fieldNames.push_back("W");
+	fieldNames.push_back("WS");
+	fieldNames.push_back("RH");
+	fieldNames.push_back("HP");
+	fieldNames.push_back("QP");
+	fieldNames.push_back("RP");
+	fieldNames.push_back("TP");
+	fieldNames.push_back("PP");
+	fieldNames.push_back("VO");
+	fieldNames.push_back("DV");
+	fieldNames.push_back("OW");
+	fieldNames.push_back("S");
+	fieldNames.push_back("PW");
+	fieldNames.push_back("MU");
+	fieldNames.push_back("MV");
+	fieldNames.push_back("MW");
+	fieldNames.push_back("RO");
+	fieldNames.push_back("PS");
+	fieldNames.push_back("TK");
+	fieldNames.push_back("QV");
+	fieldNames.push_back("HH");
+	fieldNames.push_back("DZ");
+	fieldNames.push_back("AV");
+	fieldNames.push_back("DP");
+	fieldNames.push_back("TH");
+	fieldNames.push_back("TE");
+	fieldNames.push_back("TS");
 	id[175] = fieldNames.size();
 	for(int n = 0; n < id[175]; n++) {
-		QString name_1 = fieldNames.at(n).left(1);
-		QString name_2 = fieldNames.at(n).mid(1,1);
+		std::string name_1 = fieldNames.at(n).substr(1);
+		std::string name_2 = fieldNames.at(n).substr(fieldNames.at(n).length()/2,1);  // Possibly wrong; unsure how Qt's 'mid' corresponds to a substr in the middle (C++11)
 		int int_1 = *name_1.toLatin1().data();
 		int int_2 = *name_2.toLatin1().data();
 		id[176 + (5 * n)] = (int_1 * 256) + int_2;
@@ -1455,7 +1478,7 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 		id[178 + (5 * n)] = 8224;
 		id[179 + (5 * n)] = 8224;
 		id[180 + (5 * n)] = 1;
-	}
+	}*/
 
 	// Cartesian file
 	id[16] = 17217;
@@ -1515,19 +1538,18 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
-	QFile asiFile(asiFileName);
-	if(!asiFile.open(QIODevice::WriteOnly)) {
-		cout << "Can't open CAPPI file for writing" << endl;
+/*fixme
+	std::ofstream out(asiFileName);
+	if(!out.is_open()) {
+		std::cout << "Can't open CAPPI file for writing" << std::endl;
 		return false;
 	}
-
-	QTextStream out(&asiFile);
 
 	// Write header
     int line = 0;
 	for (int n = 1; n <= 510; n++) {
 		line++;
-		out << qSetFieldWidth(8) << id[n];
+		out.width(8) << id[n];
 		if (line == 10) {
 			out << endl;
             line = 0;
@@ -1543,7 +1565,9 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 				out << reset << left << fieldNames.at(n) << endl;
 				int line = 0;
 				for (int i = 0; i < iDim;  i++){
-					out << reset << qSetRealNumberPrecision(3) << scientific << qSetFieldWidth(10) <<
+					out << reset;
+					out.precision(3) << scientific
+					out.width(10) << qSetFieldWidth(10) <<
 					finalAnalysis[iDim*jDim*kDim*n +iDim*jDim*k + iDim*j + i];
 					line++;
 					if (line == 8) {
@@ -1557,6 +1581,6 @@ bool CostFunctionCOAMPS::writeAsi(const QString& asiFileName)
 			}
 		}
 	}
-
+*/
 	return true;
 }

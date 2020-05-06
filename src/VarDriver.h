@@ -15,14 +15,12 @@
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include "ReferenceState.h"
+#include "Xml.h"
 
 #include <iostream>
 #include <vector>
-#include <QHash>
-#include <QDir>
-#include <QList>
-#include <QString>
-#include <QDomDocument>
+#include <unordered_map>
+#include <string>
 
 
 #include <string>
@@ -40,7 +38,7 @@ class VarDriver
 
   VarDriver();
   virtual ~VarDriver();
-  virtual bool initialize(const QDomElement& configuration) = 0;
+  virtual bool initialize(const XMLNode& configuration) = 0;
   virtual bool initialize(const samurai_config &configSam) = 0;
   virtual bool initialize() = 0;  
 
@@ -73,10 +71,10 @@ class VarDriver
   virtual bool finalize() = 0;
 	
   void clearCenters();
-  void appendCenter(QString date, QString time, float lat, float lon, float Vm, float Um);
+  void appendCenter(std::string date, std::string time, float lat, float lon, float Vm, float Um);
   void popCenter();
 
-  QHash<QString, QString> *getConfigHash() { return &configHash; }
+  std::unordered_map<std::string, std::string> *getConfigHash() { return &configHash; }
   
  protected:
 	
@@ -91,12 +89,11 @@ class VarDriver
   unsigned int maxJdim;
   unsigned int maxKdim;
   vector<FrameCenter> frameVector;
-  QDomDocument domDoc;
-  QHash<QString, QString> configHash;
+  std::unordered_map<std::string, std::string> configHash;
   ReferenceState* refstate;
   // Data Processing
-  QHash<QString, int> dataSuffix;
-  QDir dataPath;
+  std::unordered_map<std::string, int> dataSuffix;
+  std::string dataPath;
   enum dataFormats {
     unknown,
     cen,
@@ -124,30 +121,30 @@ class VarDriver
   };
   Projection projection;
 
-  bool read_met_obs_file(int suffix, QFile& metFile, QString &file, QList<MetObs>* metObVector);
-  bool read_frd(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_cls(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_wwind(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_eol(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_sec(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_ten(QFile& metFile, QList<MetObs>*metObVector);
-  bool read_dorade(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_sfmr(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_qscat(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_ascat(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_nopp(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_cimss(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_dwl(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_insitu(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_mtp(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_mesonet(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_classnc(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_qcf(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_aeri(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_rad(QFile& metFile, QList<MetObs>* metObVector);
-  bool read_cfrad(QString &fileName, QList<MetObs>* metObVector);
+  bool read_met_obs_file(int suffix, std::string &filename, std::vector<MetObs>* metObVector);
+  bool read_frd(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_cls(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_wwind(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_eol(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_sec(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_ten(std::string& filename, std::vector<MetObs>*metObVector);
+  bool read_dorade(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_sfmr(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_qscat(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_ascat(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_nopp(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_cimss(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_dwl(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_insitu(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_mtp(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_mesonet(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_classnc(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_qcf(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_aeri(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_rad(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_cfrad(std::string &fileName, std::vector<MetObs>* metObVector);
   bool readFrameCenters();
-  bool parseXMLconfig(const QDomElement& config);
+  bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);
   Projection::ProjectionType projectionFromConfig();
 };

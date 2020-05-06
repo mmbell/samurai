@@ -20,12 +20,9 @@
 #include "MetObs.h"
 #include "FrameCenter.h"
 #include "BkgdAdapter.h"
+#include "Xml.h"
 #include <iostream>
 #include <vector>
-#include <QHash>
-#include <QDir>
-#include <QList>
-#include <QString>
 
 using namespace std;
 
@@ -37,7 +34,7 @@ public:
 	virtual ~VarDriver3D();
 
 	// ESMF type calls
-	bool initialize(const QDomElement& configuration);
+	bool initialize(const XMLNode& configuration);
 	bool initialize(const samurai_config &configSam);
 	bool initialize();
 	
@@ -118,8 +115,8 @@ private:
 
 	bool findReferenceCenter();
 	
-	QList<real> bgIn;
-	QList<Observation> obVector;
+	std::vector<real> bgIn;
+	std::vector<Observation> obVector;
 	int maxIter;
 
 	// Cost Functions

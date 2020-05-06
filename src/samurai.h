@@ -3,8 +3,8 @@
 #ifndef SAMURAI_CONFIG_H
 #define SAMURAI_CONFIG_H
 
-#include <QString>
-#include <QHash>
+#include <unordered_map>
+#include <string>
 
 struct samurai_config {
   // operation
@@ -248,7 +248,7 @@ extern "C" {
 		     float vm, float um);
 
   // debug stuff
-  void dump_hash(QHash<QString, QString> &hash);
+  void dump_hash(std::unordered_map<std::string, std::string> &hash);
 }
 
 #endif /* SAMURAI_CONFIG_H */

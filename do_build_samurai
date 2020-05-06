@@ -66,6 +66,7 @@ echo "      lrose_install_dir: $lrose_install_dir"
 echo "      do_install: $do_install"
 
 export LROSE_PREFIX=$prefix
+export LROSE_ROOT_DIR=$lrose_install_dir
 export LROSE_INCLUDE_DIRS=$prefix/include
 export LROSE_LIB_DIR=$prefix/lib
 export LROSE_BIN_DIR=$prefix/bin
