@@ -19,11 +19,11 @@ The analysis is performed in a manner similar to the spectral transform method M
 
 A more technical description of SAMURAI is given in the documentation and in Bell et al. (2012).
 
-Please reference Bell et al. (2012) if you use SAMURAI in your research. A description of the 3D version including analytic tests is currently in preparation, and will serve as a useful citation for v1.x shortly.
+Please reference Bell et al. (2012) if you use SAMURAI in your research. A description of the 3D version is included in the appendix of Foerster et al. (2014). The thermodynamic retrieval (SAMURAI-TR) described in Foerster and Bell (2017) is accessible via the 'thermoretrieval' branch.
 
 ## Compilation
 
-To compile, use [CMake] (http://www.cmake.org) from the top-level directory:
+To compile, use [CMake](http://www.cmake.org) from the top-level directory:
 
      $ cmake .
 
@@ -42,19 +42,19 @@ The program is known to work with GCC and Intel compilers, but has not been test
 
 A few external libraries are required:
 
-[Geographiclib] (http://geographiclib.sourceforge.net) is used for geolocation of data and map projection.
+[Geographiclib](http://geographiclib.sourceforge.net) is used for geolocation of data and map projection.
 
-[Qt] (http://qt.nokia.com/products) is used for helper classes including XML parsing. A graphical user interface based on Qt will be available in a future release.
+[Qt](http://qt.nokia.com/products) is used for helper classes including XML parsing. This dependency will be removed in future releases.
 
-[NetCDF] (http://www.unidata.ucar.edu/software/netcdf) is used for output of the gridded analysis results.
+[NetCDF](http://www.unidata.ucar.edu/software/netcdf) is used for output of the gridded analysis results.
 
-[cURL] (http://curl.haxx.se/libcurl) and [HDF5] (http://www.hdfgroup.org/HDF5) are prerequisites for NetCDF4.
+[cURL](http://curl.haxx.se/libcurl) and [HDF5](http://www.hdfgroup.org/HDF5) are prerequisites for NetCDF4.
 
-[FFTW] (http://www.fftw.org/) is used for Fourier filtering in periodic domains
+[FFTW](http://www.fftw.org/) is used for Fourier filtering in periodic domains
 
-### Notes for Mac OSX Yosemite and El Capitan
+### Notes for Mac OSX
 
-[Homebrew] (http://brew.sh) can provide all of the libraries listed above to run SAMURAI on the Mac, but a few tweaks are required.
+[Homebrew](http://brew.sh) can provide all of the libraries listed above to run SAMURAI on the Mac, but a few tweaks are required.
 
 NetCDF introduced new C++ bindings in later versions, and these are not compiled by default. To install a compatible netCDF version use:
 
@@ -73,9 +73,9 @@ in the terminal will do the same thing.
 
 ## Running SAMURAI
 
-The program takes a single argument in the form of an XML configuration file describing the run. Observational data and reference frame information should be placed in a subdirectory specified in the configuration. 
+The program takes a single argument in the form of an TDRP parameter file or legacy XML configuration file describing the run. Observational data and reference frame information should be placed in a subdirectory specified in the configuration. 
 
-The current interface is available for 3D Cartesian and 3D cylindrical analysis. The 2D Cylindrical interface will be added soon. 
+The current interface is available for 3D Cartesian and 3D cylindrical analysis. 2D analyses can be performed by using the Fourier filter and periodic boundary conditions in one of the dimensions.
 
 Several utility scripts are included in the `util` subdirectory, and more will be added as available.
 
@@ -104,7 +104,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-See LICENSE for a copy of the GNU General Public License, or [gnu.org] (http://www.gnu.org/licenses/).
+See LICENSE for a copy of the GNU General Public License, or [gnu.org](http://www.gnu.org/licenses/).
 
 ### References
 Bell, M. M., M. T. Montgomery, and K. A. Emanuel, 2012: Air-sea enthalpy and momentum exchange at major hurricane wind speeds observed during CBLAST. *J. Atmos. Sci.*, **69**, 3197-3122.
