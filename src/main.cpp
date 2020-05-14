@@ -3,6 +3,7 @@
 #include "VarDriver3D.h"
 #include "Xml.h"
 #include <iostream>
+#include "timing/gptl.h"
 #include "Args.h"
 #include "Strings.h" // Helper functions, eg: 'endsWith' (which will be in C++20)
 
@@ -12,10 +13,13 @@ void usage() {
 }
 
 int main (int argc, char *argv[]) {
+  // Initialize our timers:
+  GPTLinitialize();
+  GPTLstart("Total");
 	// Set up our XML document:
   XMLDocument xml;
 
-  // Read the command line argument to get the XML configuration file
+    GPTLstart("Main::Init");
 
   // Generic driver which will be instanced by the configuration specification
   VarDriver *driver = new VarDriver3D();
@@ -60,19 +64,27 @@ int main (int argc, char *argv[]) {
     }
     // Parse was fine. Fall through
   }
+  GPTLstop("Main::Init");
   
   // Do the analysis
 	
+  GPTLstart("Main::Run");
   if(!driver->run()) {
     delete driver;
     return EXIT_FAILURE;
   }
+  GPTLstop("Main::Run");
+  GPTLstart("Main::Finalize");
   if(!driver->finalize()) {
     delete driver;
     return EXIT_FAILURE;
   }
+  GPTLstop("Main::Finalize");
     
   delete driver;
   std::cout << "Analysis successful!\n";
+  GPTLstop("Total");
+  GPTLpr(0);
+  GPTLfinalize();
   return EXIT_SUCCESS;
 }

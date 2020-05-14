@@ -10,6 +10,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include "timing/gptl.h"
 
 CostFunction::CostFunction(const Projection& proj, const int& numObs, const int& stateSize) :
 	projection(proj)
@@ -45,11 +46,14 @@ int CostFunction::getLengthStateVector()
 
 bool CostFunction::minimize()
 {
+  GPTLstart("CostFunction::minimize");
 	
 	real ftol = 1.0e-5;
 	real minimum = 1e34;
 	cout << "\tInner Loop Conjugate Gradient" << endl;
 	conjugateGradient(currState, currGradient, ftol, minimum);
+
+  GPTLstop("CostFunction::minimize");
 	return true;
 	
 }
@@ -57,6 +61,8 @@ bool CostFunction::minimize()
 
 void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fret)
 {
+  GPTLstart("CostFunction::ConjugateGradient");
+
 	const int ITMAX = 2000;
 	const real EPS = 1.0e-18;
 	int j, its;
@@ -79,6 +85,7 @@ void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fr
 			cout << "\tFound minimum in " << its << " iterations." << endl;
 			delete[] g;
 			delete[] h;
+			GPTLstop("CostFunction::ConjugateGradient");
 			return;
 		}
 		fq = fret;
@@ -89,6 +96,7 @@ void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fr
 			dgg += (xi[j]+g[j])*xi[j];
 		}
 		if (gg == 0.0) {
+		  GPTLstop("CostFunction::ConjugateGradient");
 			return;
 		}
 		gam = dgg/gg;
@@ -101,11 +109,13 @@ void CostFunction::conjugateGradient(real* q, real* xi, const real ftol, real fr
 	delete[] g;
 	delete[] h;
 	cout << "Iterations exceeded in inner minimization loop" << endl;
+	GPTLstop("CostFunction::ConjugateGradient");
 	return;
 }
 
 void CostFunction::dlinmin(real* &p, real* &xi, real &fret)
 {
+  GPTLstart("CostFunction::dlinmin");
 	const real TOL=2.0e-8;
 	int j;
 	real xx,xmin,fx,fb,fa,bx,ax;
@@ -124,19 +134,27 @@ void CostFunction::dlinmin(real* &p, real* &xi, real &fret)
 		xi[j] *= xmin;
 		p[j] += xi[j];
 	}
+  GPTLstop("CostFunction::dlinmin");
 }
 
+//evaluate function
 real CostFunction::f1dim(const real x)
 {
+  GPTLstart("CostFunction::f1dim");
 	int j;
 	real f1 = 0.0;
 	for (j=0; j<nState; j++) xt[j] = tempState[j] + x*tempGradient[j];
 	f1 = funcValue(xt);
+	
+	
+  GPTLstop("CostFunction::f1dim");
 	return f1;
 }
 
+//evaluate function derivative
 real CostFunction::df1dim(const real x)
 {
+  GPTLstart("CostFunction::df1dim");
 	int j;
 	real df1 = 0.0;
 	for (j=0; j<nState; j++) {
@@ -145,18 +163,25 @@ real CostFunction::df1dim(const real x)
 	}
 	funcGradient(xt, df);
 	for (j=0; j<nState; j++) df1 += df[j]*tempGradient[j];
+
+
+  GPTLstop("CostFunction::df1dim");
 	return df1;
 }
 
 inline void CostFunction::mov3(real &a, real &b, real &c,
 							   const real d, const real e, const real f)
 {
+  GPTLstart("CostFunction::mov3");
 	a=d; b=e; c=f;
+  GPTLstop("CostFunction::mov3");
 }
 
+/* Brent's line seach method - uses derivatives */
 real CostFunction::dbrent(const real ax, const real bx, const real cx,
 							const real tol, real &xmin)
 {
+  GPTLstart("CostFunction::dbrent");
 	const int ITMAX=100;
 	const real ZEPS=numeric_limits<real>::epsilon()*1.0e-3; // Replace with actual machine epsilon
 	bool ok1, ok2;
@@ -175,6 +200,7 @@ real CostFunction::dbrent(const real ax, const real bx, const real cx,
 		tol2 = 2.0*tol1;
 		if (fabs(x-xm) <= (tol2-0.5*(b-a))) {
 			xmin = x;
+		  GPTLstop("CostFunction::dbrent");
 			return fx;
 		}
 		if (fabs(e) > tol1) {
@@ -216,6 +242,7 @@ real CostFunction::dbrent(const real ax, const real bx, const real cx,
 			fu = f1dim(u);
 			if (fu > fx) {
 				xmin = x;
+				GPTLstop("CostFunction::dbrent");
 				return fx;
 			}
 		}
@@ -236,19 +263,24 @@ real CostFunction::dbrent(const real ax, const real bx, const real cx,
 		}
 	}
 	// Too many iterations
+	GPTLstop("CostFunction::dbrent");
 	return 0.0;
 }
 
 inline void CostFunction::shft3(real &a, real &b, real &c, const real d)
 {
+  GPTLstart("CostFunction::shft3");
 	a=b;
 	b=c;
 	c=d;
+  GPTLstop("CostFunction::shft3");
 }
 
+/* Bracketing the minumum of  readl funtion - given 3 points ax, bx, cx */
 void CostFunction::mnbrack(real &ax, real &bx, real &cx, 
 						   real &fa, real &fb, real &fc)
 {
+  GPTLstart("CostFunction::mnbrack");
 	const real GOLD=1.618034, GLIMIT=100.0, TINY=1.0e-20;
 	real ulim,u,r,q,fu;
 	
@@ -273,10 +305,12 @@ void CostFunction::mnbrack(real &ax, real &bx, real &cx,
 				bx = u;
 				fa = fb;
 				fb = fu;
+        GPTLstop("CostFunction::mnbrack");
 				return;
 			} else if (fu > fb) {
 				cx = u;
 				fc = fu;
+        GPTLstop("CostFunction::mnbrack");
 				return;
 			}
 			u = cx + GOLD*(cx-bx);
@@ -297,6 +331,7 @@ void CostFunction::mnbrack(real &ax, real &bx, real &cx,
 		shft3(ax,bx,cx,u);
 		shft3(fa,fb,fc,fu);
 	}
+  GPTLstop("CostFunction::mnbrack");
 }
 
 

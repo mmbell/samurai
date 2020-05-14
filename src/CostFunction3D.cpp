@@ -11,6 +11,7 @@
 
 #include "CostFunction3D.h"
 #include "MetObs.h"
+#include "timing/gptl.h"
 
 CostFunction3D::CostFunction3D(const Projection& proj, const int& numObs, const int& stateSize)
   : CostFunction(proj, numObs, stateSize)
@@ -283,6 +284,7 @@ void CostFunction3D::initialize(HashMap* config,
 
 void CostFunction3D::initState(const int iteration)
 {
+  GPTLstart("CostFunction3D::initState");
   // Clear the state vector
   cout << "Initializing state vector..." << endl;
   for (int n = 0; n < nState; n++) {
@@ -296,7 +298,6 @@ void CostFunction3D::initState(const int iteration)
     stateB[n] = 0.0;
     stateC[n] = 0.0;
   }
-
 
     
   // Set up the recursive filter
@@ -484,16 +485,21 @@ void CostFunction3D::initState(const int iteration)
   SCtransform(stateB, CTHTd);
 
   //Htransform(stateB);
+  GPTLstop("CostFunction3D::initState");
 }
 
 real CostFunction3D::funcValue(real* state)
 {
   real qIP, obIP;
+  GPTLstart("CostFunction3D::funcValue");
   qIP = 0.;
   obIP = 0.;
 
+  GPTLstart("CostFunction3D::funcValue:updateHCq");
   updateHCq(state);
+  GPTLstop("CostFunction3D::funcValue:updateHCq");
 
+  GPTLstart("CostFunction3D::funcValue:other");
   // Compute inner product of state vector
   //#pragma omp parallel for reduction(+:qIP)
   for (int n = 0; n < nState; n++) {
@@ -506,42 +512,60 @@ real CostFunction3D::funcValue(real* state)
     int obIndex = m*(7+varDim*derivDim) + 1;
     obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
   }
+  GPTLstop("CostFunction3D::funcValue:other");
 
   real J = 0.5*(qIP + obIP);
+  GPTLstop("CostFunction3D::funcValue");
   return J;
 
 }
 
 void CostFunction3D::funcGradient(real* state, real* gradient)
 {
+  GPTLstart("CostFunction3D::funcGradient");
 
+  GPTLstart("CostFunction3D::funcGradient:updateHCq");
   updateHCq(state);
+  GPTLstop("CostFunction3D::funcGradient:updateHCq");
 
+  GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
   // HTHCq
   calcHTranspose(HCq, stateC);
-  FFtransform(stateC, stateA);
-  SAtransform(stateA, stateB);
-  SCtransform(stateB, stateC);
+  GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
+  GPTLstart("CostFunction3D::funcGradient:FFtransform");
+  FFtransform(stateC, stateA);
+  GPTLstop("CostFunction3D::funcGradient:FFtransform");
+  GPTLstart("CostFunction3D::funcGradient:SAtransform");
+  SAtransform(stateA, stateB);
+  GPTLstop("CostFunction3D::funcGradient:SAtransform");
+  GPTLstart("CostFunction3D::funcGradient:SCtransform");
+  SCtransform(stateB, stateC);
+  GPTLstop("CostFunction3D::funcGradient:SCtransform");
+
+  GPTLstart("CostFunction3D::funcGradient:gradient");
   for (int n = 0; n < nState; n++) {
     gradient[n] = state[n] + stateC[n] - CTHTd[n];
   }
+  GPTLstop("CostFunction3D::funcGradient:gradient");
 
-
+  GPTLstop("CostFunction3D::funcGradient");
 }
 
 void CostFunction3D::updateHCq(real* state)
 {
-
+  GPTLstart("CostFunction3D::updateHCq");
   SCtransform(state, stateB);
   SAtransform(stateB, stateA);
   FFtransform(stateA, stateC);
   Htransform(stateC, HCq);
 
+  GPTLstop("CostFunction3D::updateHCq");
 }
 
 void CostFunction3D::updateBG()
 {
+  GPTLstart("CostFunction3D::updateBG");
 
   // S (SA transform) yield A's
   SCtransform(currState, stateB);
@@ -570,10 +594,12 @@ void CostFunction3D::updateBG()
   }
 
   outputAnalysis("analysis", bgState);
+  GPTLstop("CostFunction3D::updateBG");
 }
 
 void CostFunction3D::calcInnovation()
 {
+  GPTLstart("CostFunction3D::calcInnovation");
   // Initialize and fill the innovation vector
   cout << "Initializing innovation vector..." << endl;
 
@@ -593,10 +619,12 @@ void CostFunction3D::calcInnovation()
   innovationRMS = sqrt(innovationRMS);
   cout << "Innovation RMS : " << innovationRMS << endl;
 
+  GPTLstop("CostFunction3D::calcInnovation");
 }
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
+  GPTLstart("CostFunction3D::calcHTranspose");
 
   // Clear the Astate
   for (int n = 0; n < nState; n++) {
@@ -615,10 +643,12 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
     }
   }
 
+  GPTLstop("CostFunction3D::calcHTranspose");
 }
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
+  GPTLstart("CostFunction3D::SAtransform");
 
 #pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
@@ -789,11 +819,13 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
     delete[] a;
   }
 
+  GPTLstop("CostFunction3D::SAtransform");
   return true;
 }
 
 bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 {
+  GPTLstart("CostFunction3D::SAtranspose");
 
   //#pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
@@ -958,11 +990,13 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 
   }
 
+  GPTLstop("CostFunction3D::SAtranspose");
   return true;
 }
 
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
+  GPTLstart("CostFunction3D::SBtransform");
   // Clear the Bstate
   for (int n = 0; n < nState; n++) {
     Bstate[n] = 0.;
@@ -1019,11 +1053,13 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
       }
     }
   }
+  GPTLstop("CostFunction3D::SBtransform");
 }
 
 
 void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 {
+  GPTLstart("CostFunction3D::SBtranspose");
 
   // Clear the Ustate
   for (int n = 0; n < nState; n++) {
@@ -1081,10 +1117,12 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
       }
     }
   }
+  GPTLstop("CostFunction3D::SBtranspose");
 }
 
 void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 {
+  GPTLstart("CostFunction3D::SCtransform");
   // Disable recursive filter if less than 1
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
 #pragma omp parallel for
@@ -1140,10 +1178,12 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
       delete[] kTemp;
     }
   }
+  GPTLstop("CostFunction3D::SCtransform");
 }
 
 void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 {
+  GPTLstart("CostFunction3D::SCtranspose");
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
 #pragma omp parallel for
     for (int n = 0; n < nState; n++) {
@@ -1295,10 +1335,12 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 
     }
   }
+  GPTLstop("CostFunction3D::SCtranspose");
 }
 
 bool CostFunction3D::setupSplines()
 {
+  GPTLstart("CostFunction3D::setupSplines");
 
   // Do the spline via a Cholesky decomposition
   // and manipulate the DC Filter
@@ -1319,12 +1361,14 @@ bool CostFunction3D::setupSplines()
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
 
+  GPTLstop("CostFunction3D::setupSplines");
   return true;
 
 }
 
 
 void CostFunction3D::obAdjustments() {
+  GPTLstart("CostFunction3D::obAdjustments");
 
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
   for (int m = 0; m < mObs; m++) {
@@ -1396,6 +1440,7 @@ void CostFunction3D::obAdjustments() {
       obsVector[mi] *= rhoBG;
     }
   }
+  GPTLstop("CostFunction3D::obAdjustments");
 }
 
 void CostFunction3D::fillBasisLookup()
@@ -2088,6 +2133,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 
 void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
+  GPTLstart("CostFunction3D::FFtransform");
   // Copy to the new state in case no FFT is enforced
 #pragma omp parallel for
   for (int n = 0; n < nState; n++) {
@@ -2153,10 +2199,12 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       }
     }
   }
+  GPTLstop("CostFunction3D::FFtransform");
 }
 
 void CostFunction3D::calcHmatrix()
 {
+  GPTLstart("CostFunction3D::calcHmatrix");
 
   std::cout << "Build H transform matrix...\n";
 
@@ -2250,10 +2298,12 @@ void CostFunction3D::calcHmatrix()
   delete[] Hbuild;
   delete[] JHbuild;
 
+  GPTLstop("CostFunction3D::calcHmatrix");
 }
 
 void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
 {
+  GPTLstart("CostFunction3D::Htransform");
   // Multiply the state by the observation matrix
 #pragma omp parallel for
   for(int i=0; i<mObs; ++i) {
@@ -2265,6 +2315,7 @@ void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
     }
   }
 
+  GPTLstop("CostFunction3D::Htransform");
 }
 
 // Copy the final results into the given arrays
