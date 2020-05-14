@@ -248,7 +248,7 @@ extern "C" {
 		     float vm, float um);
 
   // debug stuff
-  void dump_hash(std::unordered_map<std::string, std::string> &hash);
+  void dump_hash(HashMap &hash);
 }
 
 #endif /* SAMURAI_CONFIG_H */

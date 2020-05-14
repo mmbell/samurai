@@ -13,6 +13,7 @@
 #include "BkgdAdapter.h"
 #include "Projection.h"
 #include "ReferenceState.h"
+#include "HashMap.h"
 
 #include "precision.h"
 
@@ -30,7 +31,7 @@ class BkgdObsLoader {
 
   bool timeCheck(real time, datetime& startTime, datetime& endTime, int &tci);
 
-  virtual bool initialize(std::unordered_map<std::string, std::string> *config,
+  virtual bool initialize(HashMap *config,
 			  std::vector<FrameCenter> frames,
 			  BkgdAdapter *adapter,
 			  Projection proj,
@@ -48,10 +49,8 @@ class BkgdObsLoader {
   bool fillHoles(std::vector<int> &emptybg);
   bool isTrue(const char *flag_in) { 
 		std::string flag = flag_in;
-		if (configHash->find(flag) != configHash->end()) {
-			if ((*configHash)[flag] == "true") {
-				return true;
-			} 
+		if ((*configHash)[flag] == "true") {
+		  return true;
 		}
 		return false;
 	}
@@ -83,7 +82,7 @@ class BkgdObsLoader {
   float imin, jmin, kmin;
   float imax, jmax, kmax;
   
-  std::unordered_map<std::string, std::string> *configHash;
+  HashMap* configHash;
   std::vector<FrameCenter> frameVector;
   Projection projection;
 
@@ -137,7 +136,7 @@ class BkgdObsSplineLoader : public BkgdObsLoader {
 
   bool loadBkgdObs(std::vector<real> &bgIn);
   
-  bool initialize(std::unordered_map<std::string, std::string> *config,
+  bool initialize(HashMap *config,
 		  std::vector<FrameCenter> frames,
 		  BkgdAdapter *adapter,
 		  Projection proj,

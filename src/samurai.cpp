@@ -147,7 +147,7 @@ extern "C" {
   }
   
   // Call this to debug
-  void dump_hash(std::unordered_map<std::string, std::string> &hash) {
+  void dump_hash(HashMap &hash) {
 		for (auto &entry : hash) {
 			std::cout << entry.first << " : " << entry.second << std::endl;
 		}

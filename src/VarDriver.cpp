@@ -1407,7 +1407,7 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 			if (std::stoi(iter) > 1) {
 				tag +=  "_" + iter;
 			}
-			configHash.insert({tag, config->GetText()});
+			configHash.insert(tag, config->GetText());
 		}
 	}
 
@@ -1484,15 +1484,15 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 	}
 
   for (auto& key : configKeys) {
-  if (configHash.find(key) == configHash.end()) {
+  if (configHash.exists(key) == false) {
       cout <<	"No configuration found for <" << key << "> aborting..." << endl;
       return false;
     }
   }
 
   // Set default for Bkgd Obs reader (only used if passed as arrays)
-	if (configHash.find("array_order") == configHash.end()) {
-  	configHash.insert({"array_order", "column-major"});
+	if (configHash.exists("array_order") == false) {
+  	configHash.insert("array_order", "column-major");
 	}
 
   // Make sure we have a valid value for "array_order"

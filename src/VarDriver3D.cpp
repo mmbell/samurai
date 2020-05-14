@@ -288,9 +288,9 @@ bool VarDriver3D::findReferenceCenter()
   for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
     datetime frametime = frameVector[fi].getTime();
     if (Time(reftime) == Time(frametime)) {
-      configHash.insert({"ref_lat", std::to_string(frameVector[fi].getLat())});
-      configHash.insert({"ref_lon", std::to_string(frameVector[fi].getLon())});
-      configHash.insert({"ref_time", PrintTime(frametime)});
+      configHash.insert("ref_lat", std::to_string(frameVector[fi].getLat()));
+      configHash.insert("ref_lon", std::to_string(frameVector[fi].getLon()));
+      configHash.insert("ref_time", PrintTime(frametime));
       cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
 
       return true;
@@ -1102,7 +1102,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setOb(Vdopp);
 
       real maxel;
-      if (configHash.find("bg_obs_error") == configHash.end()) {
+      if (configHash.exists("bg_obs_error")) {
          maxel = 90.0;
       } else {
          maxel = std::stof(configHash["max_radar_elevation"]);
@@ -1767,8 +1767,7 @@ bool VarDriver3D::adjustBackground()
 	bgObs[p] = (dbzavg + 35.) * 0.1;
       }
       // Default error of background = 0.1
-      if ((configHash.find("bg_obs_error") == configHash.end()) or
-	  (std::stof(configHash["bg_obs_error"]) <= 0.0)) {
+      if ((configHash.exists("bg_obs_error") or (std::stof(configHash["bg_obs_error"]) <= 0.0))) {
 	bgObs[p + 1] = 100.;
       } else {
 	bgObs[p + 1] = 1.0 / std::stof(configHash["bg_obs_error"]);
@@ -1838,7 +1837,7 @@ bool VarDriver3D::adjustBackground()
   bgError[6] = configHash["bg_qr_error"];
 
   std::string bg_interpolation_error = "1.0";
-  if ( ! (configHash.find("bg_interpolation_error") == configHash.end())) {
+  if (configHash.exists("bg_interpolation_error")) {
     bg_interpolation_error = configHash["bg_interpolation_error"];
     cout << "Setting background interpolation error to " << bg_interpolation_error << "\n";
   } else {
@@ -1929,59 +1928,59 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
 
     std::string key = "bg_rhou_error_" + iter;
     std::string val = configHash[key];
-    configHash.insert({"bg_rhou_error", val});
+    configHash.insert("bg_rhou_error", val);
 
     key = "bg_rhov_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_rhov_error", val});
+    configHash.insert("bg_rhov_error", val);
 
     key = "bg_rhow_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_rhow_error", val});
+    configHash.insert("bg_rhow_error", val);
 
     key = "bg_tempk_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_tempk_error", val});
+    configHash.insert("bg_tempk_error", val);
 
     key = "bg_qv_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_qv_error", val});
+    configHash.insert("bg_qv_error", val);
 
     key = "bg_rhoa_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_rhoa_error", val});
+    configHash.insert("bg_rhoa_error", val);
 
     key = "bg_qr_error_" + iter;
     val = configHash[key];
-    configHash.insert({"bg_qr_error", val});
+    configHash.insert("bg_qr_error", val);
 
     key = "mc_weight_" + iter;
     val = configHash[key];
-    configHash.insert({"mc_weight", val});
+    configHash.insert("mc_weight", val);
 
     key = "i_filter_length_" + iter;
     val = configHash[key];
-    configHash.insert({"i_filter_length", val});
+    configHash.insert("i_filter_length", val);
 
     key = "j_filter_length_" + iter;
     val = configHash[key];
-    configHash.insert({"j_filter_length", val});
+    configHash.insert("j_filter_length", val);
 
     key = "k_filter_length_" + iter;
     val = configHash[key];
-    configHash.insert({"k_filter_length", val});
+    configHash.insert("k_filter_length", val);
 
     key = "i_spline_cutoff_" + iter;
     val = configHash[key];
-    configHash.insert({"i_spline_cutoff", val});
+    configHash.insert("i_spline_cutoff", val);
 
     key = "j_spline_cutoff_" + iter;
     val = configHash[key];
-    configHash.insert({"j_spline_cutoff", val});
+    configHash.insert("j_spline_cutoff", val);
 
     key = "k_spline_cutoff_" + iter;
     val = configHash[key];
-    configHash.insert({"k_spline_cutoff", val});
+    configHash.insert("k_spline_cutoff", val);
 }
 
 /* This routine validates that all required parameters are present
@@ -2056,7 +2055,7 @@ bool VarDriver3D::validateConfig()
 		}
 
     for (auto &key : configKeys) {
-        if ( configHash.find(key) == configHash.end() ) {
+        if ( configHash.exists(key) == false ) {
             std::cout <<	"No configuration found for <" << key << "> aborting..." << std::endl;
             return false;
         }
@@ -2064,15 +2063,15 @@ bool VarDriver3D::validateConfig()
 
     // Add default values here
 
-    if ( configHash.find("bkgd_obs_interpolation") == configHash.end())
-      configHash.insert({"bkgd_obs_interpolation", "spline"});
+    if ( configHash.exists("bkgd_obs_interpolation") == false)
+      configHash.insert("bkgd_obs_interpolation", "spline");
     
-    if ( configHash.find("bkgd_kd_num_neighbors") == configHash.end())
-      configHash.insert({"bkgd_kd_num_neighbors", "6"});
+    if ( configHash.exists("bkgd_kd_num_neighbors") == false)
+      configHash.insert("bkgd_kd_num_neighbors", "6");
     
-    if ( configHash.find("bkgd_kd_max_distance") == configHash.end()) {
+    if ( configHash.exists("bkgd_kd_max_distance") == false) {
       // TODO What should the default max distance for a nearest neighbor be?
-      configHash.insert({"bkgd_kd_max_distance", "100"});
+      configHash.insert("bkgd_kd_max_distance", "100");
     }
 
     // All done
@@ -2319,9 +2318,9 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   std::string tString;
   datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter); 
 
-  configHash.insert({"ref_time", PrintTime(cDateTime)});
-  configHash.insert({"ref_lat",  std::to_string(lat)});
-  configHash.insert({"ref_lat",  std::to_string(lon)});  
+  configHash.insert("ref_time", PrintTime(cDateTime));
+  configHash.insert("ref_lat",  std::to_string(lat));
+  configHash.insert("ref_lat",  std::to_string(lon));  
 
   // create 6 "centers" centered around the ref time, at 1 second intervals
 
@@ -2418,18 +2417,17 @@ bool VarDriver3D::loadMetObs()
 bool VarDriver3D::initObCost3D()
 {
   if (runMode == XYZ) {
-		// Apparently QHash automatically converts non-existent entries to zeros, so we'll test for existence then convert
-		if (configHash.find("output_pressure_increment") != configHash.end()) {
+		if (configHash.exists("output_pressure_increment")) {
     	if (std::stof(configHash["output_pressure_increment"]) > 0) {
       	obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
-			}
-    } else if (configHash["output_COAMPS"] == "true") {
-      CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
-      cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
-      obCost3D = cf;
-    } else {
-      obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
-    }
+      } else if (configHash["output_COAMPS"] == "true") {
+        CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
+        cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
+        obCost3D = cf;
+      } else {
+        obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
+      }
+	  }
   } else if (runMode == RTZ) {
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }

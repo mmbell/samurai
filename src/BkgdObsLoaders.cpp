@@ -37,7 +37,7 @@ BkgdObsLoader::~BkgdObsLoader()
 
 // Set various variables used by member functions
 
-bool BkgdObsLoader::initialize(std::unordered_map<std::string, std::string> *config,
+bool BkgdObsLoader::initialize(HashMap *config,
 			       std::vector<FrameCenter> frames,
 			       BkgdAdapter *adapter,
 			       Projection proj,
@@ -374,7 +374,7 @@ BkgdObsSplineLoader::~BkgdObsSplineLoader()
   delete[] bgWeights;
 }
 
-bool BkgdObsSplineLoader::initialize(std::unordered_map<std::string, std::string> *config,
+bool BkgdObsSplineLoader::initialize(HashMap *config,
 				     std::vector<FrameCenter> frames,
 				     BkgdAdapter *adapter,
 				     Projection proj,
@@ -717,7 +717,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     dumpBgU(0, uStateSize, bgU);
   }
 
-  if (configHash->find("debug_bgu_nc") != configHash->end()) 
+  if (configHash->exists("debug_bgu_nc"))
     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
 
   return true;
@@ -927,13 +927,13 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
   int domainProblem = 0;
 
   int debugKd = 0;
-  if (configHash->find("debug_kd") != configHash->end()) {
+  if (configHash->exists("debug_kd")) {
     debugKd = std::stoi((*configHash)["debug_kd"]);
     std::cout << "*** dbugKD: " << debugKd << std::endl;    
   }
 
   int debugKdStep = 0;
-  if (configHash->find("debug_kd_step") != configHash->end() ) {
+  if (configHash->exists("debug_kd_step")) {
     debugKdStep = std::stoi((*configHash)["debug_kd_step"]);
     std::cout << "*** Debug KD Step: " << debugKdStep << std::endl;
   }
@@ -1126,14 +1126,14 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
   if (debugKd)
     std::cout << "--- end of debug kd" << std::endl;
 
-  if (configHash->find("debug_bgu_overwrite") != configHash->end())
+  if (configHash->exists("debug_bgu_overwrite"))
     overwriteBgu((*configHash)["debug_bgu_overwrite"].c_str());
   
   if (isTrue("debug_bgu")) {
     dumpBgU(0, uStateSize, bgU);
   }
   
-  if (configHash->find("debug_bgu_nc") != configHash->end())
+  if (configHash->exists("debug_bgu_nc"))
     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
   return true;
 }
@@ -1490,7 +1490,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
   if (isTrue("debug_bgu"))
     dumpBgU(0, uStateSize, bgU);
   
-  if (configHash->find("debug_bgu_nc") != configHash->end())
+  if (configHash->exists("debug_bgu_nc"))
     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
    
    delete[] lats;

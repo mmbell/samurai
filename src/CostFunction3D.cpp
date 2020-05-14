@@ -113,10 +113,9 @@ void CostFunction3D::finalize()
   fftw_free(kFFTout);
 }
 
-void CostFunction3D::initialize(std::unordered_map<std::string, std::string>* config,
+void CostFunction3D::initialize(HashMap* config,
 				real* bgU, real* obs, ReferenceState* ref)
 {
-
   // Initialize number of variables
   varDim = 7;
   derivDim = 4;
@@ -314,7 +313,7 @@ void CostFunction3D::initState(const int iteration)
     jMaxWavenumber[i] = -1.0;
     kMaxWavenumber[i] = -1.0;
   }
-	if (configHash->find("i_max_wavenumber") != configHash->end()) {
+	if (configHash->exists("i_max_wavenumber")) {
     // Set all the variables to the same filter
     for (int i = 0; i < 7; i++) {
       iMaxWavenumber[i] = std::stof((*configHash)["i_max_wavenumber"]);
@@ -330,7 +329,7 @@ void CostFunction3D::initState(const int iteration)
     iMaxWavenumber[6] = std::stof((*configHash)["i_max_wavenumber_qr"]);
   }
 
-	if (configHash->find("j_max_wavenumber") != configHash->end()) {
+	if (configHash->exists("j_max_wavenumber")) {
     for (int i = 0; i < 7; i++) {
       jMaxWavenumber[i] = std::stof((*configHash)["j_max_wavenumber"]);
     }
@@ -344,7 +343,7 @@ void CostFunction3D::initState(const int iteration)
     jMaxWavenumber[6] = std::stof((*configHash)["j_max_wavenumber_qr"]);
   }
 
-	if (configHash->find("k_max_wavenumber") != configHash->end()) {
+	if (configHash->exists("k_max_wavenumber")) {
     for (int i = 0; i < 7; i++) {
       jMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }

@@ -6,7 +6,7 @@
 
 // This returns a one dimentional array of error data for the Mish
 
-double  *ErrorData::init(std::string fname, std::unordered_map<std::string, std::string>* config, size_t numVar)
+double  *ErrorData::init(std::string fname, HashMap* config, size_t numVar)
 {
   configHash = config;
   varDim = numVar;
@@ -25,7 +25,7 @@ double  *ErrorData::init(std::string fname, std::unordered_map<std::string, std:
   // Set use_fractl_errors to true if you want to use the fractl errors instead
   
   useDefaultValues = true;
-  if (configHash->find("use_fractl_errors") != configHash->end()) {
+  if (configHash->exists("use_fractl_errors")) {
     useDefaultValues = (*configHash)["use_fractl_errors"] == "false";
   }
 

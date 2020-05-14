@@ -60,15 +60,15 @@ bool Args::parseArgs(int argc, char *argv[])
 #define STR_HELPER(_X_) std::string(#_X_)
 #define STR(_X_) STR_HELPER(_X_)
 
-#define CONFIG_INSERT_BOOL(_X_) configHash->emplace(#_X_, params._X_ ? "true" : "false")
-#define CONFIG_INSERT_INT(_X_) configHash->emplace(#_X_, std::to_string(params._X_))
-#define CONFIG_INSERT_FLOAT(_X_) configHash->emplace(#_X_, std::to_string(params._X_))
-#define CONFIG_INSERT_STR(_X_) configHash->emplace(#_X_, params._X_)
+#define CONFIG_INSERT_BOOL(_X_) configHash->insert(#_X_, params._X_ ? "true" : "false")
+#define CONFIG_INSERT_INT(_X_) configHash->insert(#_X_, std::to_string(params._X_))
+#define CONFIG_INSERT_FLOAT(_X_) configHash->insert(#_X_, std::to_string(params._X_))
+#define CONFIG_INSERT_STR(_X_) configHash->insert(#_X_, params._X_)
 #define CONFIG_INSERT_FLOAT_ARRAY(zZz, _iter_) \
-  configHash->emplace(STR(zZz) + "_" + std::to_string(iter), std::to_string(params._##zZz[_iter_ - 1])); \
-  configHash->emplace(#zZz, std::to_string(params._##zZz[0]))
+  configHash->insert(STR(zZz) + "_" + std::to_string(iter), std::to_string(params._##zZz[_iter_ - 1])); \
+  configHash->insert(#zZz, std::to_string(params._##zZz[0]))
 
-#define CONFIG_INSERT_MAP_VALUE(_X_, _table_) configHash->emplace(#_X_, _table_[params._X_])
+#define CONFIG_INSERT_MAP_VALUE(_X_, _table_) configHash->insert(#_X_, _table_[params._X_])
 
 // This needs to match bkgd_interp_method_t in paramdef.samurai
 
@@ -83,7 +83,7 @@ std::string mode_map[] = { "XYZ", "RTZ" };
 std::string projection_map[] = { "lambert_conformal_conic",
 			     "transverse_mercator_exact" };
 
-bool Args::paramsToHash(std::unordered_map<std::string, std::string> *configHash) {
+bool Args::paramsToHash(HashMap *configHash) {
 
   // string arguments
 

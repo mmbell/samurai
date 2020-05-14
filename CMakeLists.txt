@@ -5,7 +5,7 @@ set (CMAKE_CXX_STANDARD 11)
 add_definitions (-Wall)
 
 set ( CMAKE_BUILD_TYPE Release )
-set ( CMAKE_CXX_FLAGS_DEBUG "-v -gdwarf-4 -g -std=c++11" )
+set ( CMAKE_CXX_FLAGS_DEBUG "-v -gdwarf-4 -g -O0 -std=c++11" )
 
 set (NETCDF_CXX)
 
@@ -122,6 +122,7 @@ set ( common_SRCS
 	src/LineSplit.cpp
 	src/datetime.cpp
 	src/FileList.cpp
+  src/HashMap.cpp
 	)
 
 set (samurai_SRCS

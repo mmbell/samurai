@@ -16,6 +16,7 @@
 #include "FrameCenter.h"
 #include "ReferenceState.h"
 #include "Xml.h"
+#include "HashMap.h"
 
 #include <iostream>
 #include <vector>
@@ -74,7 +75,7 @@ class VarDriver
   void appendCenter(std::string date, std::string time, float lat, float lon, float Vm, float Um);
   void popCenter();
 
-  std::unordered_map<std::string, std::string> *getConfigHash() { return &configHash; }
+  HashMap *getConfigHash() { return &configHash; }
   
  protected:
 	
@@ -89,7 +90,7 @@ class VarDriver
   unsigned int maxJdim;
   unsigned int maxKdim;
   vector<FrameCenter> frameVector;
-  std::unordered_map<std::string, std::string> configHash;
+  HashMap configHash;
   ReferenceState* refstate;
   // Data Processing
   std::unordered_map<std::string, int> dataSuffix;

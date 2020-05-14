@@ -1,5 +1,6 @@
 #include <string>
 #include <unordered_map>
+#include "HashMap.h"
 
 // Class to encapsulate error data read from Fractl
 
@@ -10,7 +11,7 @@ class ErrorData {
   ErrorData() { mishData = meshData = finalData = NULL; }
   ~ErrorData();
   
-  double *init(std::string fname, std::unordered_map<std::string, std::string>* config, size_t numVar);
+  double *init(std::string fname, HashMap* config, size_t numVar);
 
   double *getMeshVar(size_t var);	// After SA. Do we care anymore? TODO
   
@@ -40,7 +41,7 @@ class ErrorData {
   size_t mish_nx, mish_ny, mish_nz;	// size of the mish
   size_t mesh_nx, mesh_ny, mesh_nz;	// size of the mesh
   
-  std::unordered_map <std::string, std::string> *configHash;
+  HashMap *configHash;
   double bgError[7];	// default fixed values from XML file.
   double *mishData;	// mish grid from the fractl ncd file
   double *meshData;	// DB + SA transformation of SBData

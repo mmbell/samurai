@@ -16,6 +16,7 @@
 #include "ReferenceState.h"
 // #include "VarDriver3D.h"
 #include "ErrorData.h"
+#include "HashMap.h"
 
 #include <iostream>
 #include <fstream>
@@ -34,7 +35,7 @@ public:
 
 CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(std::unordered_map<std::string, std::string>* config, real* bgU, real* obs, ReferenceState* ref);
+    void initialize(HashMap* config, real* bgU, real* obs, ReferenceState* ref);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
@@ -81,20 +82,16 @@ protected:
 	// A couple of utilities functions to help query config values
   bool isTrue(const char *flag_in) {
     std::string flag = flag_in;
-    if (configHash->find(flag) != configHash->end()) {
-      if ((*configHash)[flag] == "true") {
-        return true;
-      }
+    if ((*configHash)[flag] == "true") {
+      return true;
     }
     return false;
   }
 
 	bool isEqual(const char *flag_in, std::string value) {
     std::string flag = flag_in;
-    if (configHash->find(flag) != configHash->end()) {
-      if ((*configHash)[flag] == value) {
-        return true;
-      }
+    if ((*configHash)[flag] == value) {
+      return true;
     }
     return false;
 	}
@@ -144,7 +141,7 @@ protected:
 	int basisappx;
 	real* basis0;
 	real* basis1;
-	std::unordered_map<std::string, std::string>* configHash;
+	HashMap* configHash;
 	std::unordered_map<std::string, int> bcHash;
 	std::unordered_map<int, int> rankHash;
 
