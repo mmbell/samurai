@@ -125,13 +125,22 @@ set ( common_SRCS
   src/HashMap.cpp
 	)
 
+set (gptl_SRCS 
+  src/timing/gptl.c
+  src/timing/GPTLget_memusage.c
+  src/timing/GPTLprint_memusage.c
+  src/timing/GPTLutil.c
+  )
+
 set (samurai_SRCS
   ${common_SRCS}
+  ${gptl_SRCS}
 	src/main.cpp
 	)
 
 set (lib_SRCS
 	${common_SRCS}		
+  ${gptl_SRCS}
 	src/samurai.cpp
 	)
 
@@ -141,7 +150,7 @@ set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/Bkg
 	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
 	)
 
-include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} )
+include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
 link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
 
 # Generate the argument files
