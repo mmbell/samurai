@@ -1165,6 +1165,7 @@ bool VarDriver3D::preProcessMetObs()
 	    real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
 	    real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
 	    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+#pragma omp parallel for
 	    for (int ki = 0; ki < (kdim-1); ki++) {
 	      for (int kmu = -1; kmu <= 1; kmu += 2) {
 		real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));

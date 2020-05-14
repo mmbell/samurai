@@ -501,13 +501,13 @@ real CostFunction3D::funcValue(real* state)
 
   GPTLstart("CostFunction3D::funcValue:other");
   // Compute inner product of state vector
-  //#pragma omp parallel for reduction(+:qIP)
+  #pragma omp parallel for reduction(+:qIP)
   for (int n = 0; n < nState; n++) {
     qIP += state[n]*state[n];
   }
 
   // Subtract d from HCq to yield mObs length vector and compute inner product
-  //#pragma omp parallel for reduction(+:obIP)
+  #pragma omp parallel for reduction(+:obIP)
   for (int m = 0; m < mObs; m++) {
     int obIndex = m*(7+varDim*derivDim) + 1;
     obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
@@ -1125,7 +1125,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
   GPTLstart("CostFunction3D::SCtransform");
   // Disable recursive filter if less than 1
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-#pragma omp parallel for
+#pragma omp parallel for private(n) //[5.1]
     for (int n = 0; n < nState; n++) {
       Cstate[n]= Astate[n] * bgStdDev[n];
     }
@@ -2135,7 +2135,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
   GPTLstart("CostFunction3D::FFtransform");
   // Copy to the new state in case no FFT is enforced
-#pragma omp parallel for
+  #pragma omp parallel for //[8]
   for (int n = 0; n < nState; n++) {
     Cstate[n]= Astate[n];
   }
