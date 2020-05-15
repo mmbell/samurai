@@ -1125,7 +1125,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
   GPTLstart("CostFunction3D::SCtransform");
   // Disable recursive filter if less than 1
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-#pragma omp parallel for private(n) //[5.1]
+//#pragma omp parallel for private(n) //[5.1]
     for (int n = 0; n < nState; n++) {
       Cstate[n]= Astate[n] * bgStdDev[n];
     }
