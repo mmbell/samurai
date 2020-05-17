@@ -21,6 +21,7 @@ public:
 	~RecursiveFilter();
     void setFilterLengthScale(const double& fLengthScale);
 	bool filterArray(double* array, const int& arrLength);
+	bool filterArray(double* array, double *q, double *s, const int& arrLength);
 	bool aniFilterArray(double* array, const int& arrLength);
 
 private:

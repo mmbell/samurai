@@ -293,6 +293,85 @@ bool RecursiveFilter::filterArray(double* array, const int& arrLength)
 	
 }
 
+bool RecursiveFilter::filterArray(double* array, double *q, double *s, const int& arrLength)
+{
+	int maxi = arrLength-1;
+	double* p = array;
+	double A[4],B[4];
+
+#if 0
+        double q[arrLength],s[arrLength];
+        //double A[4],B[4];
+	//double* q = new double[arrLength];
+	//double* s = new double[arrLength];
+	//
+ 	double * q, * s;
+	q = (double *) malloc(sizeof(double)*arrLength);
+	s = (double *) malloc(sizeof(double)*arrLength);
+#endif
+
+
+	for (int i=0; i<= maxi; i++) {
+		q[i] = 0;
+		s[i] = 0;
+	}
+        
+	
+	q[0]=beta*p[0];
+	q[1]=beta*p[1] + alpha[1]*q[0];
+	q[2]=beta*p[2] + alpha[1]*q[1] + alpha[2]*q[0];
+	q[3]=beta*p[3] + alpha[1]*q[2] + alpha[2]*q[1] + alpha[3]*q[0];	
+	for (int i=order; i<= maxi; i++) {
+		q[i] = beta*p[i] + alpha[1]*q[i-1]
+		+ alpha[2]*q[i-2] + alpha[3]*q[i-3] + alpha[4]*q[i-4];
+	}
+	
+    // Invert Sn
+	// Create a temporary copy of Sn just in case it gets thrashed in the Gaussian Elimination
+	double Stmp[5][5];
+	for (int i=0;i<=4;i++) {
+		for (int j=0;j<=4;j++) {
+			Stmp[i][j] = Sn[i][j];
+		}
+	}
+
+	//double* A = new double[4];
+	//double* B = new double[4];
+	for (int i=maxi-order+1; i<= maxi; i++) {
+		B[i-(maxi-order+1)] = q[i];
+	}
+	solveBC(A, B, Stmp);
+	for (int i=maxi; i>= (maxi-order+1); i--) {
+		s[i] = A[i-(maxi-order+1)];
+	}
+	for (int i=maxi-order;i>=0;i--) {
+		s[i] = beta*q[i] + alpha[1]*s[i+1]
+		+ alpha[2]*s[i+2] + alpha[3]*s[i+3] + alpha[4]*s[i+4];
+		// std::cout << s[i] << std::endl;
+	}
+	//delete[] A;
+	//delete[] B;
+	
+	
+	for (int i=0; i<= maxi; i++) {
+		// To get a 'true' Gaussian, need to scale by this factor
+		// To preserve total quantity (needed for Variational analysis)
+		// Do not scale resulting vector
+		//double Pi = 3.141592653589793238462643;
+		//array[i] = s[i]*sqrt(2*Pi)*lengthScale;
+		array[i] = s[i];
+	}
+	//delete[] q;
+	//delete[] s;
+#if 0
+        free(q);
+        free(s);
+#endif
+	
+	return true;
+	
+}
+
 double RecursiveFilter::factorial(const double& max) 
 {
 	double n = 1;

@@ -13,6 +13,9 @@
 #include "MetObs.h"
 #include "timing/gptl.h"
 
+#define INDEX(i, j, k, idim, jdim, vdim, var) ((vdim) * ((idim) * ((jdim) * (k) + j) + i) + var)
+#define KINDEX(i,dim,var) (dim * var + i)
+
 CostFunction3D::CostFunction3D(const Projection& proj, const int& numObs, const int& stateSize)
   : CostFunction(proj, numObs, stateSize)
 {
@@ -88,6 +91,7 @@ void CostFunction3D::finalize()
   delete[] H;
   delete[] JH;
   delete[] IH;
+
   if (basisappx > 0) {
     delete[] basis0;
     delete[] basis1;
@@ -100,6 +104,10 @@ void CostFunction3D::finalize()
     delete[] jL[var];
     delete[] kL[var];
   }
+
+
+  delete[] kGammaL;
+  delete[] kLL;
   fftw_destroy_plan(iForward);
   fftw_destroy_plan(iBackward);
   fftw_destroy_plan(jForward);
@@ -242,6 +250,7 @@ void CostFunction3D::initialize(HashMap* config,
   } else {
     kLDim = 4;
   }
+  kRankMax=0;
   for (int var = 0; var < varDim; ++var) {
     iRank[var] = iDim - rankHash[iBCL[var]] - rankHash[iBCR[var]];
     if (iBCL[var] == PERIODIC) iRank[var]--;
@@ -256,8 +265,13 @@ void CostFunction3D::initialize(HashMap* config,
     iGamma[var] = new real[iRank[var] * iDim];
     jGamma[var] = new real[jRank[var] * jDim];
     kGamma[var] = new real[kRank[var] * kDim];
-
+    kRankMax = max(kRank[var],kRankMax);
   }
+  
+  kGammaL = new real[kRankMax * varDim * kDim];
+  kLL     = new real[kRankMax * varDim * kLDim];
+  cout << "kRankMax: " << kRankMax << "\n"; 
+
   /* Precalculate the basis functions for lookup table option
      basisappx = configHash->value("spline_approximation").toInt();
      if (basisappx > 0) {
@@ -648,178 +662,176 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
+  real kB[kDim], xk[kDim];
+  real jB[jDim], xj[jDim];
+  real iB[iDim], xi[iDim];
+  int kRankVar;
+  int iIndex,jIndex,kIndex;
+  int i,j,k,l,m;
+  real tmp;
+
   GPTLstart("CostFunction3D::SAtransform");
-
-#pragma omp parallel for
+  //cout << "SAtransform:: point #1 \n";
   for (int var = 0; var < varDim; var++) {
-    int l;
-    real* kB = new real[kDim];
-    real* x = new real[kDim];
-    real* b = new real[kRank[var]];
-    real* a = new real[kDim];
-    for (int iIndex = 0; iIndex < iDim; iIndex++) {
-      for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  kB[kIndex] = Bstate[varDim * iDim * jDim * kIndex
-			      + varDim * iDim * jIndex
-			      + varDim * iIndex + var];
-	}
+    kRankVar = kRank[var];
+    //GPTLstart("IJK Loop");
+    //std::cout << "kDim: " << kDim << " kRankVar: " << kRankVar  << " kLDim: " << kLDim << std::endl;
 
-	// Multiply by gamma
-	for (int m = 0; m < kRank[var]; m++) {
-	  b[m] = 0;
-	  for (int k = 0; k < kDim; k++) {
-	    b[m] += kGamma[var][kDim * m + k] * kB[k];
-	  }
-	  // std::cout << "m: " << m << " b[" << m << "]: " << b[m] << std
-	}
+    //cout << "SAtransform:: point #2 \n";
+    #pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
+    for (iIndex = 0; iIndex < iDim; iIndex++) {
+      for (jIndex = 0; jIndex < jDim; jIndex++) {
+	      for (k = 0; k < kDim; k++) {
+                kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
+	        kB[k] = Bstate[kIndex];
+	      }
 
-	// Solve for A's using compact storage
-	
-	real sum = 0;
-	for (int k = 0; k < kRank[var]; k++) {
-	  for (sum=b[k], l=-1;l>=-(kLDim-1);l--) {
-	    if ((k + l >= 0) and ((k * kLDim - l) >= 0))
-	      sum -= kL[var][k * kLDim - l] *x[k + l];
-	  }
-	  x[k] = sum / kL[var][k * kLDim];
-	}
-	for (int k = kRank[var] - 1; k >= 0; k--) {
-	  for (sum= x[k], l = 1; l <= (kLDim - 1); l++) {
-	    if ((k + l < kRank[var]) and (((k + l) * kLDim + l) < kRank[var] * kLDim))
-	      sum -= kL[var][(k + l) * kLDim +l] * x[k + l];
-	  }
-	  x[k] = sum / kL[var][k * kLDim];
-	}
+      	      // Multiply by gamma
+	      for (m = 0; m < kRankVar; m++) {
+	        //bk[m] = 0;
+                tmp = 0;
+	        for (k = 0; k < kDim; k++) {
+	          //tmp += kGamma[var][kDim * m + k] * kB[k];
+	          tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * kB[k];
+	        }
+	        // std::cout << "m: " << m << " bk[" << m << "]: " << bk[m] << std
+	        // Solve for A's using compact storage
+                //cout << "-1:" << -(kLDim-1) << "\n"; 
+	        for (l=-1;l>=-(kLDim-1);l--) {
+	          if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
+	            //tmp -= kL[var][m * kLDim - l] *xk[m + l];
+	            tmp -= kLL[KINDEX(m * kLDim - l,kRankMax*kLDim,var)] *xk[m + l];
+                  }
+	        }
+	        //xk[m] = tmp / kL[var][m * kLDim];
+	        xk[m] = tmp / kLL[KINDEX(m * kLDim,kRankMax*kLDim,var)];
+	      }
+	      for (k = kRankVar - 1; k >= 0; k--) {
+                tmp = xk[k];
+	        for (l = 1; l <= (kLDim - 1); l++) {
+	          if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
+	            //tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
+	            tmp -= kLL[KINDEX((k + l) * kLDim +l,kRankMax*kLDim,var)] * xk[k + l];
+                  }
+	        }
+	        //xk[k] = tmp / kL[var][k * kLDim];
+	        xk[k] = tmp / kLL[KINDEX(k * kLDim,kRankMax*kLDim,var)];
+	      }
 
-	// Multiply by gammaT
-	for (int k = 0; k < kDim; k++) {
-	  a[k] = 0;
-	  for (int m = 0; m < kRank[var]; m++) {
-	    a[k] += kGamma[var][kDim * m + k] * x[m];
-	  }
-	  // std::cout << "k: " << k << " a[" << k << "]: " << a[k] << "\n";
-	}
-
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  Astate[varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var]
-	    = a[kIndex];
-	}
+	      for (k = 0; k < kDim; k++) {
+	        // Multiply by gammaT
+	        tmp = 0;
+	        for (m = 0; m < kRankVar; m++) {
+	          //tmp += kGamma[var][kDim * m + k] * xk[m];
+	          tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * xk[m];
+	        }
+	        // std::cout << "k: " << k << " ak[" << k << "]: " << ak[k] << "\n";
+                kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
+	        //Astate[INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var)] = tmp; 
+	        Astate[kIndex] = tmp; 
+	      }
       }
     }
-    delete[] kB;
-    delete[] b;
-    delete[] x;
-    delete[] a;
+    //GPTLstop("IJK Loop");
+    // cout << "SAtransform:: point #3 \n";
 
-    real* jB = new real[jDim];
-    x = new real[jDim];
-    b = new real[jRank[var]];
-    a = new real[jDim];
-    for (int kIndex = 0; kIndex < kDim; kIndex++) {
-      for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	  jB[jIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-	}
-	// Multiply by gamma
-	for (int m = 0; m < jRank[var]; m++) {
-	  b[m] = 0;
-	  for (int j = 0; j < jDim; j++) {
-	    b[m] += jGamma[var][jDim*m + j]*jB[j];
-	  }
-	}
+    //GPTLstart("IKJ Loop");
+    #pragma omp parallel for private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
+    for (iIndex = 0; iIndex < iDim; iIndex++) {
+      for (kIndex = 0; kIndex < kDim; kIndex++) {
+	      for (j = 0; j < jDim; j++) {
+	        jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
+	      }
+	      for (m = 0; m < jRank[var]; m++) {
+	        // Multiply by gamma
+                tmp = 0;
+	        for (j = 0; j < jDim; j++) {
+	          tmp += jGamma[var][jDim*m + j]*jB[j];
+	        }
+	        // Solve for A's using compact storage
+	        for (l=-1;l>=-(jLDim-1);l--) {
+	          if ((m+l >= 0) and ((m*jLDim-l) >= 0)) {
+	            tmp -= jL[var][m*jLDim-l]*xj[m+l];
+                  }
+	        }
+	        xj[m] = tmp/jL[var][m*jLDim];
+	      }
 
-	// Solve for A's using compact storage
-	real sum = 0;
-	for (int j = 0; j < jRank[var]; j++) {
-	  for (sum=b[j], l=-1;l>=-(jLDim-1);l--) {
-	    if ((j+l >= 0) and ((j*jLDim-l) >= 0))
-	      sum -= jL[var][j*jLDim-l]*x[j+l];
-	  }
-	  x[j] = sum/jL[var][j*jLDim];
-	}
-	for (int j=jRank[var]-1;j>=0;j--) {
-	  for (sum=x[j], l=1;l<=(jLDim-1);l++) {
-	    if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim))
-	      sum -= jL[var][(j+l)*jLDim+l]*x[j+l];
-	  }
-	  x[j] = sum/jL[var][j*jLDim];
-	}
+	      for (j=jRank[var]-1;j>=0;j--) {
+                tmp=xj[j];
+	        for (l=1;l<=(jLDim-1);l++) {
+	          if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim)) {
+	            tmp -= jL[var][(j+l)*jLDim+l]*xj[j+l];
+                  }
+	        }
+	        xj[j] = tmp/jL[var][j*jLDim];
+	      }
 
-	// Multiply by gammaT
-	for (int j = 0; j < jDim; j++) {
-	  a[j] = 0;
-	  for (int m = 0; m < jRank[var]; m++) {
-	    a[j] += jGamma[var][jDim*m + j]*x[m];
-	  }
-	  // std::cout << "j: " << j << " a[" << j << "]: " << a[j] << "\n";
-	}
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	  Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[jIndex];
-	}
+	      for (j = 0; j < jDim; j++) {
+	        // Multiply by gammaT
+                tmp = 0;
+	        for (m = 0; m < jRank[var]; m++) {
+	          tmp += jGamma[var][jDim*m + j]*xj[m];
+	        }
+	        // std::cout << "i: " << i << " aj[" << j << "]: " << tmp << "\n";	  
+	        Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
+	      }
       }
     }
-    delete[] jB;
-    delete[] x;
-    delete[] b;
-    delete[] a;
+    //GPTLstop("IKJ Loop");
+    //cout << "SAtransform:: point #4 \n";
+    //GPTLstart("JKI Loop");
+    #pragma omp parallel for private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
+    for (jIndex = 0; jIndex < jDim; jIndex++) {
+      for (kIndex = 0; kIndex < kDim; kIndex++) {
+	      for (i = 0; i < iDim; i++) {
+	        iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
+	      }
+	      // Multiply by gamma
+	      for (m = 0; m < iRank[var]; m++) {
+	        //bi[m] = 0;
+	        tmp = 0;
+	        for (i = 0; i < iDim; i++) {
+	          tmp += iGamma[var][iDim*m + i]*iB[i];
+	        }
+	        // Solve for A's using compact storage
+	        for (l=-1;l>=-(iLDim-1);l--) {
+	          if ((m+l >= 0) and ((m*iLDim-l) >= 0)) {
+	            tmp -= iL[var][m*iLDim-l]*xi[m+l];
+                  }
+	        }
+	        xi[m] = tmp/iL[var][m*iLDim];
+	      }
+	      for (i=iRank[var]-1;i>=0;i--) {
+                tmp=xi[i];
+	        for (l=1;l<=(iLDim-1);l++) {
+	          if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim)) {
+	            tmp -= iL[var][(i+l)*iLDim+l]*xi[i+l];
+                  }
+	        }
+	        xi[i] = tmp/iL[var][i*iLDim];
+	      }
 
-    real* iB = new real[iDim];
-    x = new real[iDim];
-    b = new real[iRank[var]];
-    a = new real[iDim];
-    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-      for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	  iB[iIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var];
-	}
-	// Multiply by gamma
-	for (int m = 0; m < iRank[var]; m++) {
-	  b[m] = 0;
-	  for (int i = 0; i < iDim; i++) {
-	    b[m] += iGamma[var][iDim*m + i]*iB[i];
-	  }
-	}
-
-	// Solve for A's using compact storage
-	real sum = 0;
-	for (int i = 0; i < iRank[var]; i++) {
-	  for (sum=b[i], l=-1;l>=-(iLDim-1);l--) {
-	    if ((i+l >= 0) and ((i*iLDim-l) >= 0))
-	      sum -= iL[var][i*iLDim-l]*x[i+l];
-	  }
-	  x[i] = sum/iL[var][i*iLDim];
-	}
-	for (int i=iRank[var]-1;i>=0;i--) {
-	  for (sum=x[i], l=1;l<=(iLDim-1);l++) {
-	    if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim))
-	      sum -= iL[var][(i+l)*iLDim+l]*x[i+l];
-	  }
-	  x[i] = sum/iL[var][i*iLDim];
-	}
-
-	// Multiply by gammaT
-	for (int i = 0; i < iDim; i++) {
-	  a[i] = 0;
-	  for (int m = 0; m < iRank[var]; m++) {
-	    a[i] += iGamma[var][iDim*m + i]*x[m];
-	  }
-	  // std::cout << "i: " << i << " a[" << i << "]: " << a[i] << "\n";	  
-	}
-
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	  Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = a[iIndex];
-	}
+	      // Multiply by gammaT
+	      for (i = 0; i < iDim; i++) {
+	        //ai[i] = 0;
+                tmp=0;
+	        for (m = 0; m < iRank[var]; m++) {
+	          tmp += iGamma[var][iDim*m + i]*xi[m];
+	        }
+	        // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
+	        Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
+	      }
 
       }
     }
-    delete[] iB;
-    delete[] x;
-    delete[] b;
-    delete[] a;
+    //GPTLstop("JKI Loop");
+    //cout << "SAtransform:: point #5 \n";
+    //delete[] kGammaTmp;
+
   }
-
   GPTLstop("CostFunction3D::SAtransform");
+
   return true;
 }
 
@@ -996,63 +1008,74 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
+  int n,var;
+  int is,ie,js,je,ks,ke;
+
+  int ii,iIndex,imu,iNode,uI;
+  int jj,jIndex,jmu,jNode,uJ;
+  int kk,kIndex,kmu,kNode;
+  int ui,bi;
+  int iis,iie,jjs,jje,kks,kke;
+
+  real i, ibasis;
+  real j, jbasis;
+  real k, kbasis;
   GPTLstart("CostFunction3D::SBtransform");
   // Clear the Bstate
-  for (int n = 0; n < nState; n++) {
+  for (n = 0; n < nState; n++) {
     Bstate[n] = 0.;
   }
   real gausspoint = 0.5*sqrt(1./3.);
 
-  //#pragma omp parallel for
-  for (int var = 0; var < varDim; var++) {
-    for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
-      for (int imu = -1; imu <= 1; imu += 2) {
-	real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
-	int ii = (int)((i - iMin)*DIrecip);
-	for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-	  int iNode = iiNode;
-	  if ((iNode < 0) or (iNode >= iDim)) continue;
-	  real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-	  int uI = iIndex*2 + (imu+1)/2;
-	  for (int jIndex = min(rankHash[jBCL[var]],1); jIndex < max(jDim-1-rankHash[jBCR[var]],jDim-2); jIndex++) {
-	    for (int jmu = -1; jmu <= 1; jmu += 2) {
-	      real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
-	      int jj = (int)((j - jMin)*DJrecip);
-	      for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-		int jNode = jjNode;
-		if ((jNode < 0) or (jNode >= jDim)) continue;
-		real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-		int uJ = jIndex*2 + (jmu+1)/2;
-		real ijbasis = ibasis * jbasis;
-		for (int kIndex = min(rankHash[kBCL[var]],1); kIndex < max(kDim-1-rankHash[kBCR[var]],kDim-2); kIndex++) {
-		  for (int kmu = -1; kmu <= 1; kmu += 2) {
-		    real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
-		    int kk = (int)((k - kMin)*DKrecip);
-		    for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
-		      int kNode = kkNode;
-		      if ((kNode < 0) or (kNode >= kDim)) continue;
-		      real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-		      real ijkbasis = 0.125 * ijbasis * kbasis;
-		      int uK = kIndex*2 + (kmu+1)/2;
-		      int uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
-			+ varDim * (iDim -1 ) * 2 * uJ + varDim * uI;
-		      int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+  for (var = 0; var < varDim; var++) {
+    cout << " min(rankHash[iBCL[var]],1): " <<  min(rankHash[iBCL[var]],1) << " max(iDim-1-rankHash[iBCR[var]],iDim-2): " << max(iDim-1-rankHash[iBCR[var]],iDim-2) << "\n";
+    is = min(rankHash[iBCL[var]],1);
+    ie = max(iDim-1-rankHash[iBCR[var]],iDim-2);
+    js = min(rankHash[jBCL[var]],1);
+    je =  max(jDim-1-rankHash[jBCR[var]],jDim-2);
+    ks = min(rankHash[kBCL[var]],1);
+    ke = max(kDim-1-rankHash[kBCR[var]],kDim-2);
+    //#pragma acc parallel loop private(ii,iIndex,imu,iNode,uI,jj,jIndex,jmu,jNode,uJ,kk,kIndex,kmu,kNode,ui,bi,iis,iie,jjs,jje,kks,kke,i, ibasis,j, jbasis,k, kbasis)
+    for (iIndex = is; iIndex < ie; iIndex++) {
+      for (imu = -1; imu <= 1; imu += 2) {
+				i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
+				ii = (int)((i - iMin)*DIrecip);
+        iis=max(0,ii-1);iie=min(ii+2,iDim);
+				for (iNode = iis; iNode <= iie; ++iNode) {
+	  			ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+	  			uI = iIndex*2 + (imu+1)/2;
 
-		      int ui = uIndex + var;
-		      if (Ustate[ui] == 0) continue;
-		      int bi = bIndex + var;
-		      //#pragma omp atomic
-		      Bstate[bi] += Ustate[ui] * ijkbasis;
-		    }
-		  }
-		}
-	      }
-	    }
-	  }
-	}
+	  			for (jIndex = js; jIndex < je; jIndex++) {
+	    			for (jmu = -1; jmu <= 1; jmu += 2) {
+	      			j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
+	      			jj = (int)((j - jMin)*DJrecip);
+              jjs=max(0,jj-1);jje=min(jj+2,jDim);
+	      			for (jNode = jjs; jNode <= jje; ++jNode) {
+								jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+								uJ = jIndex*2 + (jmu+1)/2;
+
+								for (kIndex = ks; kIndex < ke; kIndex++) {
+		  						for (kmu = -1; kmu <= 1; kmu += 2) {
+		    						k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
+		    						kk = (int)((k - kMin)*DKrecip);
+                    kks=max(0,kk-1);kke=min(kk+2,kDim);
+		    						for (kNode = kks; kNode <= kke; ++kNode) {
+
+                      ui = INDEX(uI, uJ, kIndex*2 + (kmu+1)/2, (iDim-1)*2, (jDim-1)*2, varDim, var);
+		      						if (Ustate[ui] == 0) continue;
+		     							kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+		      						bi = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, var);
+		      						Bstate[bi] += Ustate[ui] * 0.125 * ibasis * jbasis * kbasis;
+		    						}
+		  						}
+								}
+	      			}
+	    			}
+	  			}
+				}
       }
-    }
-  }
+    } // iIndex loop
+  } // var loop
   GPTLstop("CostFunction3D::SBtransform");
 }
 
@@ -1122,62 +1145,69 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 
 void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 {
+  real iTemp[iDim], iq[iDim],is[iDim];
+  real jTemp[jDim], jq[jDim],js[jDim];
+  real kTemp[kDim], kq[kDim],ks[kDim];
+  int n,iIndex,jIndex,kIndex,index;
+
   GPTLstart("CostFunction3D::SCtransform");
   // Disable recursive filter if less than 1
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-//#pragma omp parallel for private(n) //[5.1]
-    for (int n = 0; n < nState; n++) {
+    #pragma omp parallel for private(n) //[5.1]
+  	for (n = 0; n < nState; n++) {
       Cstate[n]= Astate[n] * bgStdDev[n];
     }
   } else {
     // Isotropic Recursive filter, no anisotropic "triad" working yet
-#pragma omp parallel for
     for (int var = 0; var < varDim; var++) {
-      real* jTemp = new real[jDim];
-      real* iTemp = new real[iDim];
-      real* kTemp = new real[kDim];
-      for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	  for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	    kTemp[kIndex] = Astate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-	  }
-	  if (kFilterScale > 0) kFilter->filterArray(kTemp, kDim);
-	  for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	    Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kTemp[kIndex];
-	  }
-	}
+
+      #pragma omp parallel for private(iIndex,jIndex,kIndex,index,kTemp,kq,ks) //[5.2]
+      for (iIndex = 0; iIndex < iDim; iIndex++) {
+				for (jIndex = 0; jIndex < jDim; jIndex++) {
+	  			for (kIndex = 0; kIndex < kDim; kIndex++) {
+            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			kTemp[kIndex] = Astate[index];
+	  			}
+	  			if (kFilterScale > 0) kFilter->filterArray(kTemp, kq,ks,kDim);
+	  			for (kIndex = 0; kIndex < kDim; kIndex++) {
+            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			Cstate[index] = kTemp[kIndex];
+	  			}
+				}
       }
-      //FJ
-      for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    jTemp[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-	  }
-	  if (jFilterScale > 0) jFilter->filterArray(jTemp, jDim);
-	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jTemp[jIndex];
-	  }
-	}
+
+			#pragma omp parallel for private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
+      for (iIndex = 0; iIndex < iDim; iIndex++) {
+        for (kIndex = 0; kIndex < kDim; kIndex++) {
+	  			for (jIndex = 0; jIndex < jDim; jIndex++) {
+            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			jTemp[jIndex] = Cstate[index];
+	  			}
+	  			if (jFilterScale > 0) jFilter->filterArray(jTemp, jq, js, jDim);
+	  			for (jIndex = 0; jIndex < jDim; jIndex++) {
+            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			Cstate[index] = jTemp[jIndex];
+	  			}
+				}
       }
-      //FI
-      for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    iTemp[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
-	  }
-	  if (iFilterScale > 0) iFilter->filterArray(iTemp, iDim);
-	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    // D
-	    int cIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-	    Cstate[cIndex] = iTemp[iIndex] * bgStdDev[cIndex];
-	  }
-	}
+
+			#pragma omp parallel for private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
+      for (jIndex = 0; jIndex < jDim; jIndex++) {
+				for (kIndex = 0; kIndex < kDim; kIndex++) {
+	  			for (iIndex = 0; iIndex < iDim; iIndex++) {
+            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			iTemp[iIndex] = Cstate[index];
+	  			}
+	  			if (iFilterScale > 0) iFilter->filterArray(iTemp, iq, is, iDim);
+	  			for (iIndex = 0; iIndex < iDim; iIndex++) {
+	    			// D
+	    			index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    			Cstate[index] = iTemp[iIndex] * bgStdDev[index];
+	  			}
+				}
       }
-      delete[] iTemp;
-      delete[] jTemp;
-      delete[] kTemp;
-    }
-  }
+    }  // end var for loop
+  } // end else
   GPTLstop("CostFunction3D::SCtransform");
 }
 
@@ -1340,6 +1370,8 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 
 bool CostFunction3D::setupSplines()
 {
+  int var,k;
+  int index;
   GPTLstart("CostFunction3D::setupSplines");
 
   // Do the spline via a Cholesky decomposition
@@ -1361,6 +1393,19 @@ bool CostFunction3D::setupSplines()
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
 
+  cout << "Before linearlization of kGammaL array\n";
+  for (var=0;var<varDim;var++) {
+    // Linearlize the kGamma array 
+    for (k=0;k<kRankMax*kDim;k++) {
+     index = KINDEX(k,kRankMax*kDim,var);
+     kGammaL[index]=kGamma[var][k];
+    }
+    // Linearlize the kL array 
+    for (k=0;k<kRankMax*kLDim;k++) {
+     index = KINDEX(k,kRankMax*kLDim,var);
+     kLL[index]=kL[var][k];
+    }
+  }
   GPTLstop("CostFunction3D::setupSplines");
   return true;
 

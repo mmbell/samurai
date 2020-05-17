@@ -102,6 +102,7 @@ protected:
 	int iDim, jDim, kDim;
 	int iLDim, jLDim, kLDim;
 	int iRank[7], jRank[7], kRank[7];
+  int kRankMax;
 	real iMin, iMax, DI, DIrecip;
 	real jMin, jMax, DJ, DJrecip;
 	real kMin, kMax, DK, DKrecip;
@@ -123,6 +124,8 @@ protected:
 	real* iGamma[7];
 	real* jGamma[7];
 	real* kGamma[7];
+  real* kGammaL;
+	real* kLL;
 	real* finalAnalysis;
 	int varDim;
 	int derivDim;
