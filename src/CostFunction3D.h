@@ -46,6 +46,7 @@ protected:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
+	void updateHCq(double* state, double* HCq);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin,
 			   const real& DX, const real& DXrecip, const int& derivative,
 			   const int& BL, const int& BR, const real& lambda = 0);
@@ -110,6 +111,7 @@ protected:
 	real* bgState;
 	real* bgStdDev;
 	real* obsVector;
+  real* obsData;  // This only contains data that is needed by the calcHTranspose2 subroutine
 	real* rawObs;
 	real* stateA;
 	real* stateB;
@@ -139,7 +141,8 @@ protected:
 	fftw_complex *iFFTout, *jFFTout, *kFFTout;
 	fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
 	real *H;
-	int *IH, *JH;
+	integer *IH, *I2H,*JH;
+  integer *mPtr, *mVal;
 		
 	int basisappx;
 	real* basis0;

@@ -11,5 +11,6 @@
 #define PRECISION_H
 
 typedef double real;
+typedef unsigned long int integer;
 
 #endif
