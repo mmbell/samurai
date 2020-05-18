@@ -1102,7 +1102,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setOb(Vdopp);
 
       real maxel;
-      if (configHash.exists("bg_obs_error")) {
+      if (configHash.exists("bg_obs_error") == false) {
          maxel = 90.0;
       } else {
          maxel = std::stof(configHash["max_radar_elevation"]);
