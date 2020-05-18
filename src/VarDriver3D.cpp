@@ -2418,21 +2418,19 @@ bool VarDriver3D::loadMetObs()
 bool VarDriver3D::initObCost3D()
 {
   if (runMode == XYZ) {
-		if (configHash.exists("output_pressure_increment")) {
-    	if (std::stof(configHash["output_pressure_increment"]) > 0) {
-      	obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
-      } else if (configHash["output_COAMPS"] == "true") {
-        CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
-        cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
-        obCost3D = cf;
-      } else {
-        obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
-      }
-	  }
+		if (std::stof(configHash["output_pressure_increment"]) > 0) {
+      obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
+    } else if (configHash["output_COAMPS"] == "true") {
+      CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);
+      cf->setSigmas(sigmaTable, kdim); // TODO kdim (grid) vs. number of sigmas. Same?
+      obCost3D = cf;
+    } else {
+      obCost3D = new CostFunctionXYZ(projection, obVector.size(), bStateSize);
+    }
   } else if (runMode == RTZ) {
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }
-  
+ 
   obCost3D->initialize(&configHash, bgU, obs, refstate);
   return true;
 }

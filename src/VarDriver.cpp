@@ -765,7 +765,6 @@ bool VarDriver::read_ten(std::string& filename, std::vector<MetObs>* metObVector
 
 bool VarDriver::read_dorade(std::string& filename, std::vector<MetObs>* metObVector)
 {
-
   Dorade swpfile(filename);
 
   // Use a Transverse Mercator projection to map the radar gates to the grid

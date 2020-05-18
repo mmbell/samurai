@@ -1229,16 +1229,14 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	/* Modified to read all fields, but record ref, vel, and sw indices - MB */
 	std::string fld_name(tempname);
 	if (fld_name.size() > 8) fld_name.resize(8);
-	std::regex rx("[\\s+]");
-	fld_name = std::regex_replace(fld_name, rx, std::string(""));
-  fld_name.erase(remove_if(fld_name.begin(), fld_name.end(), isspace), fld_name.end());
-	if (fld_name == ref_fld) {
+	/*fixme fld_name.remove(QRegExp("[\\s+]"));
+	if (fld_name.trimmed() == ref_fld) {
 		refIndex = fld_num;
 	} else if (fld_name == vel_fld) {
 		velIndex = fld_num;
 	} else if (fld_name == sw_fld) {
 		swIndex = fld_num;
-	}
+	}*/
 
 	*match=true;
 	/* CALCULATE SIZE OF DATA */
