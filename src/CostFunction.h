@@ -27,6 +27,7 @@ public:
 	bool minimize();
 	
 protected:
+	int ls_cnt; 
 	int mObs;
 	int nState;
 	real* currState;
@@ -35,16 +36,21 @@ protected:
 	real* tempGradient;
 	real* xt;
 	real* df;
+	real* mt_work;
 	const Projection& projection;
 	       
 	       
 	virtual real funcValue(real* state) = 0;
 	virtual void funcGradient(real* state, real* gradient) = 0;
+	virtual real funcValueAndGradient(real* state, real* gradient) = 0;
+	virtual void funcHessian(real *x, real *hessian) = 0;
 	
+	void truncatedNewton(real* q, real* xi, const real ftol);
 	void conjugateGradient(real* q, real* xi, const real ftol, real funcMin);
 	void dlinmin(real* &p, real* &xi, real &fret);
 	real f1dim(const real x);
 	real df1dim(const real x);
+	real f1dim_and_df1dim(const real x, real *grad);
 	inline void mov3(real &a, real &b, real &c,
 					 const real d, const real e, const real f);
 	real dbrent(const real ax, const real bx, const real cx,
@@ -52,13 +58,20 @@ protected:
 	inline void shft3(real &a, real &b, real &c, const real d);
 	void mnbrack(real &ax, real &bx, real &cx, 
 				 real &fa, real &fb, real &fc);
+	int MTLineSearch(real* &x, real* &g, real *s, real *fval, real initstep);
+	int MTcstep(real *stx, real *fx, real *dx, real* sty, real *fy, real *dy, 
+		    real *stp, real *fp, real *dp, int *bracket, real *stepmin, 
+		    real *stepmax);
+
 	
 private:
-	inline real MAX(const real &a, const real &b) 
+	inline real CF_MAX(const real &a, const real &b) 
 	{return b > a ? (b) : (a); }
-	inline real SIGN(const real &a, const real &b) 
+	inline real CF_MIN(const real &a, const real &b) 
+	{return b < a ? (b) : (a); }
+	inline real CF_SIGN(const real &a, const real &b) 
 	{return b >= 0 ? (a >= 0 ? a : -a) : (a >= 0 ? -a : a); }
-	inline void SWAP(real &a, real &b)
+	inline void CF_SWAP(real &a, real &b)
 	{real dum=a; a=b; b=dum;}
 	
 };

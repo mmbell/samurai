@@ -1,0 +1,14 @@
+#ifndef SOLVER_INC_H_
+#define SOLVER_INC_H_
+
+const int S_MAXITER = ${SOLVER_MAXITER};
+const int S_INNER_MAXITER = ${SOLVER_INNER_MAXITER};
+const real S_EPS =  ${SOLVER_CG_EPSILON};
+const int S_BETA_TYPE = ${SOLVER_CG_BETA_TYPE};
+const int S_SOLVER = ${SOLVER_SAMURAI};
+const int S_CG_CONV_TYPE = ${SOLVER_CG_CONV_TYPE};
+const real S_CONV_TOL = ${SOLVER_CONV_TOL};
+const real S_INNER_CONV_TOL = ${SOLVER_INNER_CONV_TOL};
+const int S_VERBOSE = ${SOLVER_VERBOSE};
+
+#endif // SOLVER_INC_H_

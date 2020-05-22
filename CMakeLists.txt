@@ -24,6 +24,19 @@ find_package ( GeographicLib REQUIRED )
 find_package ( FFTW REQUIRED )
 find_package ( OpenMP REQUIRED )
 
+# Configure the solver.inc file (settings for the minimize() solve in src/CostFunction.cpp)
+set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp)
+set ( SOLVER_INNER_MAXITER 1000 )  # max interations for inner loop with TN solver
+set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
+set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
+set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
+set ( SOLVER_SAMURAI 1)          # 1= truncated Newton solver, 2 = Samurai CG (orig), 3 = Petsc solver (TN by default)
+                     # Note: to use PETSC solver, must compile with petsc (note: Petsc solver type and params can be modified with run-tme options)
+set ( SOLVER_CONV_TOL 1.0e-4 )     # solver convergence tolerance
+set ( SOLVER_INNER_CONV_TOL 1.0e-4)  # solver convergence tolerance for the inner loop with TN (usually = conv_tol for best results)
+set ( SOLVER_VERBOSE 1)            # 1 = print out extra solver converegnce info. (0 =  no extra printing)
+configure_file ( src/solver.inc.in src/solver.inc )
+
 # Set RPATH so that executable finds lrose libraries without needing LD_LIBRARY_PATH
 
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)

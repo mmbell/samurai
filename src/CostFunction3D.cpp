@@ -508,7 +508,7 @@ real CostFunction3D::funcValue(real* state)
 {
   real J,qIP, obIP;
 
-  int m,obIndex;
+  int m;
   
   qIP = 0.;
   obIP = 0.;
@@ -529,7 +529,6 @@ real CostFunction3D::funcValue(real* state)
   // Subtract d from HCq to yield mObs length vector and compute inner product
   #pragma omp parallel for reduction(+:obIP)
   for (m = 0; m < mObs; m++) {
-    //obIndex = m*(7+varDim*derivDim) + 1;
     //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
     obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
   }
@@ -546,7 +545,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   GPTLstart("CostFunction3D::funcGradient");
 
   GPTLstart("CostFunction3D::funcGradient:updateHCq");
-  updateHCq(state);
+  updateHCq(state,HCq);
   GPTLstop("CostFunction3D::funcGradient:updateHCq");
 
   GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
@@ -573,15 +572,78 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   GPTLstop("CostFunction3D::funcGradient");
 }
 
-void CostFunction3D::updateHCq(real* state)
-{
-  GPTLstart("CostFunction3D::updateHCq");
-  SCtransform(state, stateB);
-  SAtransform(stateB, stateA);
-  FFtransform(stateA, stateC);
-  Htransform(stateC, HCq);
 
-  GPTLstop("CostFunction3D::updateHCq");
+
+/* calculate objective function value and gridient vector in
+   one function */
+real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
+{
+  GPTLstart("CostFunction3D::funcValueAndGradient");
+  real qIP, obIP;
+  real J;
+  int n, m;
+
+  qIP = 0.;
+  obIP = 0.;
+  //  cout << "CostFunction3D::funcValueAndGradient\n";
+
+  //update global HCq variable
+  updateHCq(state,HCq);
+
+  //Func Value
+  // Compute inner product of state vector                                                                                                                                
+  //#pragma omp parallel for reduction(+:qIP)
+  for (n = 0; n < nState; n++) {
+    qIP += state[n]*state[n];
+  }
+  // Subtract d from HCq to yield mObs length vector and compute inner product         
+  //#pragma omp parallel for reduction(+:obIP)
+  for (m = 0; m < mObs; m++) {
+    //int obIndex = m*(7+varDim*derivDim) + 1;
+    //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+    obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
+  }
+  //function value J
+  J = 0.5*(qIP + obIP);
+
+  //Now Gradient (also uses HCq)
+  calcHTranspose(HCq, stateC);
+  FFtransform(stateC, stateA);
+  SAtransform(stateA, stateB);
+  SCtransform(stateB, stateC);
+  //calc gradient
+  for (n = 0; n < nState; n++) {
+    gradient[n] = state[n] + stateC[n] - CTHTd[n];
+  }
+
+  GPTLstop("CostFunction3D::funcValueAndGradient");
+	//cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << "\n"; 
+	return J;
+
+}
+
+/*calculate the product of the Hessian and vector x */
+void CostFunction3D::funcHessian(real* x, real *hessian)
+{
+  GPTLstart("CostFunction3D::Hessian");
+  int n;
+  //DBG cout << "CostFunction3D::funcHessian\n";
+{
+  //calc HCx (store in global variable HCq)
+  updateHCq(x,HCq);
+                                                               
+  calcHTranspose(HCq, stateC);
+  FFtransform(stateC, stateA);
+  SAtransform(stateA, stateB);
+  SCtransform(stateB, stateC);
+
+  // [I + C^T*H^T*R^-1*H*Q]x
+  for (n = 0; n < nState; n++) {
+    hessian[n] = x[n] + stateC[n];
+  }
+}
+  GPTLstop("CostFunction3D::Hessian");
+
 }
 
 void CostFunction3D::updateHCq(real* state,real* HCq)

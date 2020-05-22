@@ -46,6 +46,8 @@ protected:
 	double funcValue(double* state);
 	void funcGradient(double* state, double* gradient);
 	void updateHCq(double* state);
+	double funcValueAndGradient(double *state, double *gradient);
+	void funcHessian(double *x, double *hessian);
 	void updateHCq(double* state, double* HCq);
 	real Basis(const int& m, const real& x, const int& M,const real& xmin,
 			   const real& DX, const real& DXrecip, const int& derivative,
