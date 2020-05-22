@@ -476,10 +476,12 @@ bool VarDriver3D::preProcessMetObs()
   auto filenames = FileList(dataPath);
   
   int processedFiles = 0;
+  int attemptedFiles = 0;
   std::vector<MetObs>* metData = new std::vector<MetObs>;
   cout << "Found " << filenames.size() << " data files to read..." << endl;
 
-  for (int i = 0; i < filenames.size(); ++i) {
+  int totalFiles = filenames.size();
+  for (std::size_t i = 0; i < filenames.size(); ++i) {
     metData->clear();
 
 		if (filenames[i].empty()) {
@@ -503,6 +505,7 @@ bool VarDriver3D::preProcessMetObs()
     }
     
     cout << "Processing " << file << " of type " << suffix << endl;
+    attemptedFiles++;
     // Read different types of files
     std::string fullpath = dataPath + "/" + file;
     if (! read_met_obs_file(dataSuffix[suffix], fullpath, metData))
@@ -529,7 +532,7 @@ bool VarDriver3D::preProcessMetObs()
     auto endTime = Time(endTime_ob);
     int prevobs = obVector.size();
     
-    for (int i = 0; i < metData->size(); ++i) {
+    for (std::size_t i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
       MetObs metOb = metData->at(i);
@@ -538,17 +541,17 @@ bool VarDriver3D::preProcessMetObs()
 
      
       if ((obTime < startTime) or (obTime > endTime)) {
-	timeProblem++;
+				timeProblem++;
 	
-	if (timeProblem < 10) 
+				if (timeProblem < 10) 
 				  std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
-	continue;
+				continue;
       }
       int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
       if ((fi < 0) or (fi > (int)frameVector.size())) {
-	cout << "Time problem with observation " << fi << endl;
-	timeProblem++;
-	continue;
+				cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
+				timeProblem++;
+				continue;
       }
       real Um = frameVector[fi].getUmean();
       real Vm = frameVector[fi].getVmean();
@@ -610,11 +613,11 @@ bool VarDriver3D::preProcessMetObs()
 
       // Initialize the weights
       for (unsigned int var = 0; var < numVars; ++var) {
-	for (unsigned int d = 0; d < numDerivatives; ++d) {
-	  varOb.setWeight(0.0, var, d);
-	}
+				for (unsigned int d = 0; d < numDerivatives; ++d) {
+	  			varOb.setWeight(0.0, var, d);
+				}
       }
-      
+
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
       switch (metOb.getObType()) {
 	
@@ -1383,7 +1386,7 @@ bool VarDriver3D::preProcessMetObs()
     } else {
       cout << "No valid observations in file\n";
     }
-    cout << obVector.size() << " total observations." << endl;
+    cout << obVector.size() << " total observations." << " ( " << attemptedFiles << " of " << totalFiles << " files processed ) " << endl;
   }
 
   delete metData;

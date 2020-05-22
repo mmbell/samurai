@@ -444,12 +444,11 @@ void CostFunction3D::initState(const int iteration)
     // Init node variance
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  int bIndex = varDim * iDim * jDim*kIndex
-	    + varDim * iDim * jIndex
-	    + varDim * iIndex + var;
-	  bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
-	}
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  			//int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+	  			int bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
+				}
       }
     }
   }
@@ -459,12 +458,11 @@ void CostFunction3D::initState(const int iteration)
     real varScale = 0;
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  int bIndex = varDim * iDim * jDim * kIndex
-	    + varDim * iDim * jIndex
-	    + varDim * iIndex + var;
-	  varScale += bgState[bIndex] * bgState[bIndex];
-	}
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  			//int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+	  			int bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			varScale += bgState[bIndex] * bgState[bIndex];
+				}
       }
     }
     varScale = sqrt(varScale / (iDim * jDim * kDim));
@@ -677,14 +675,15 @@ void CostFunction3D::updateBG()
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
-	  int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-	  cstream << bgState[bgIndex] << "\t";
-	  bgState[bgIndex] += stateC[bgIndex];
-	  cstream << bgState[bgIndex] << "\t";
-	  cstream << stateC[bgIndex] << endl;
-	}
+				for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  			cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
+	  			//int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+	  			int bgIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			cstream << bgState[bgIndex] << "\t";
+	  			bgState[bgIndex] += stateC[bgIndex];
+	  			cstream << bgState[bgIndex] << "\t";
+	  			cstream << stateC[bgIndex] << endl;
+				}
       }
     }
   }
@@ -1542,11 +1541,11 @@ void CostFunction3D::obAdjustments() {
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
-	  qvprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 4] * ibasis * jbasis * kbasis;
+	  qvprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4)] * ibasis * jbasis * kbasis;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
-	  rhoprime += bgState[varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode + 5] * ibasis * jbasis * kbasis;
+	  rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
 	}
       }
     }
@@ -2280,7 +2279,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       for (int iIndex = 0; iIndex < iDim; iIndex++) {
         for (int jIndex = 0; jIndex < jDim; jIndex++) {
           for (int kIndex = 0; kIndex < kDim; kIndex++) {
-            kFFTin[kIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+            kFFTin[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
           }
           fftw_execute(kForward);
           for (int kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
@@ -2289,7 +2288,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
           }
           fftw_execute(kBackward);
           for (int kIndex = 0; kIndex < kDim; kIndex++) {
-            Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = kFFTin[kIndex]/kDim;
+            Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTin[kIndex]/kDim;
           }
         }
       }
@@ -2300,7 +2299,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    jFFTin[jIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+	    jFFTin[jIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
 	  }
 	  fftw_execute(jForward);
 	  for (int jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
@@ -2309,7 +2308,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 	  }
 	  fftw_execute(jBackward);
 	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = jFFTin[jIndex]/jDim;
+	    Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = jFFTin[jIndex]/jDim;
 	  }
 	}
       }
@@ -2318,7 +2317,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	for (int jIndex = 0; jIndex < jDim; jIndex++) {
 	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    iFFTin[iIndex] = Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex + varDim*iIndex + var];
+	    iFFTin[iIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
 	  }
 	  fftw_execute(iForward);
 	  for (int iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
@@ -2327,7 +2326,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 	  }
 	  fftw_execute(iBackward);
 	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    Cstate[varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var] = iFFTin[iIndex]/iDim;
+	    Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = iFFTin[iIndex]/iDim;
 	  }
 	}
       }
