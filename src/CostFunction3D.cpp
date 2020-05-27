@@ -78,17 +78,26 @@ void CostFunction3D::finalize()
   delete[] tempGradient;
   delete[] xt;
   delete[] df;
+  #pragma acc exit data delete(CTHTd)
   delete[] CTHTd;
   delete[] stateU;
+  #pragma acc exit data delete(obsData)
   delete[] obsData;
   delete[] obsVector;
   delete[] HCq;
+  #pragma acc exit data delete(innovation)
   delete[] innovation;
   delete[] bgState;
   delete[] bgStdDev;
   delete[] stateA;
   delete[] stateB;
   delete[] stateC;
+  // deallocate Clean-up the data that correspond to the H matrix
+  #pragma acc exit data delete(mPtr,mVal,I2H)
+  delete[] mPtr;
+  delete[] mVal;
+  delete[] I2H;
+  #pragma acc exit data delete(H,JH,IH)
   delete[] H;
   delete[] JH;
   delete[] IH;
@@ -106,7 +115,7 @@ void CostFunction3D::finalize()
     delete[] kL[var];
   }
 
-
+  #pragma acc exit data delete(kGammaL,kLL)
   delete[] kGammaL;
   delete[] kLL;
   fftw_destroy_plan(iForward);
@@ -413,7 +422,10 @@ void CostFunction3D::initState(const int iteration)
 	// variance.writeDebugNc("debug.out/std_errors.nc", true, mishError);
 	SBtransform(mishError, SBError);
 	// variance.writeDebugNc("debug.out/std_errors_SB.nc", false, SBError);
-	SAtransform(SBError, meshError);
+  #pragma acc data copyin(SBError[0:nState]) copyout(meshError[0:nState])
+  {
+		SAtransform(SBError, meshError);
+	}
 	variance.setMeshData(meshError);
 	delete[] SBError;
 	// variance.writeDebugNc("debug.out/std_errors_SA.nc", false, meshError);
@@ -430,7 +442,11 @@ void CostFunction3D::initState(const int iteration)
       SBtransform(bgFields, stateB);
       // variance.writeDebugNc("debug.out/StateB.nc", false, stateB);			// mesh sized DEBUG
       // SA transform = bg B's -> bg A's
-      SAtransform(stateB, stateA);
+
+			#pragma acc data copyin(stateB[0:nState]) copyout(stateA[0:nState])
+			{
+      	SAtransform(stateB, stateA);
+			}
       // variance.writeDebugNc("debug.out/StateA.nc", false, stateA);			// mesh sized DEBUG
     }
 
@@ -494,9 +510,15 @@ void CostFunction3D::initState(const int iteration)
   // HTd
   calcHTranspose(innovation, stateC);
 
-  FFtransform(stateC, stateA);
-  SAtransform(stateA, stateB);
-  SCtransform(stateB, CTHTd);
+	#pragma acc data create(stateB[0:nState])
+	{
+  	#pragma acc update self(stateC)
+  	FFtransform(stateC, stateA);
+  	#pragma acc update device(stateA[0:nState])
+  	SAtransform(stateA, stateB);
+  	SCtransform(stateB, CTHTd);
+	}
+  #pragma acc enter data copyin(CTHTd)
 
   //Htransform(stateB);
   GPTLstop("CostFunction3D::initState");
@@ -506,66 +528,80 @@ real CostFunction3D::funcValue(real* state)
 {
   real J,qIP, obIP;
 
-  int m;
+  int m, obIndex;
   
   qIP = 0.;
   obIP = 0.;
 
   GPTLstart("CostFunction3D::funcValue");
+	#pragma acc data copyin(state)
+	{
   
-  GPTLstart("CostFunction3D::funcValue:updateHCq");
-  updateHCq(state,HCq);
-  GPTLstop("CostFunction3D::funcValue:updateHCq");
+  	GPTLstart("CostFunction3D::funcValue:updateHCq");
+  	updateHCq(state,HCq);
+  	GPTLstop("CostFunction3D::funcValue:updateHCq");
 
-  GPTLstart("CostFunction3D::funcValue:other");
-  // Compute inner product of state vector
-  #pragma omp parallel for reduction(+:qIP)
-  for (int n = 0; n < nState; n++) {
-    qIP += state[n]*state[n];
-  }
+  	GPTLstart("CostFunction3D::funcValue:other");
+  	// Compute inner product of state vector
+  	#pragma omp parallel for reduction(+:qIP)
+  	#pragma acc parallel loop reduction(+:qIP)
+  	for (int n = 0; n < nState; n++) {
+    	qIP += state[n]*state[n];
+  	}
 
-  // Subtract d from HCq to yield mObs length vector and compute inner product
-  #pragma omp parallel for reduction(+:obIP)
-  for (m = 0; m < mObs; m++) {
-    //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-    obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
-  }
-  GPTLstop("CostFunction3D::funcValue:other");
+  	// Subtract d from HCq to yield mObs length vector and compute inner product
+  	#pragma omp parallel for reduction(+:obIP)
+  	#pragma acc parallel loop reduction(+:obIP) private(obIndex,m)
+  	for (m = 0; m < mObs; m++) {
+    	//obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+    	obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
+  	}
+  	GPTLstop("CostFunction3D::funcValue:other");
+	}
 
-  J = 0.5*(qIP + obIP);
-  GPTLstop("CostFunction3D::funcValue");
-  return J;
-
+ 	J = 0.5*(qIP + obIP);
+ 	GPTLstop("CostFunction3D::funcValue");
+ 	return J;
 }
 
 void CostFunction3D::funcGradient(real* state, real* gradient)
 {
+  int n;
+
   GPTLstart("CostFunction3D::funcGradient");
+	#pragma acc data copyin(state) copyout(gradient)
+	{
 
-  GPTLstart("CostFunction3D::funcGradient:updateHCq");
-  updateHCq(state,HCq);
-  GPTLstop("CostFunction3D::funcGradient:updateHCq");
+  	GPTLstart("CostFunction3D::funcGradient:updateHCq");
+  	updateHCq(state,HCq);
+  	GPTLstop("CostFunction3D::funcGradient:updateHCq");
 
-  GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
-  // HTHCq
-  calcHTranspose(HCq, stateC);
-  GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
+  	GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
+  	// HTHCq
+  	calcHTranspose(HCq, stateC);
+  	GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
-  GPTLstart("CostFunction3D::funcGradient:FFtransform");
-  FFtransform(stateC, stateA);
-  GPTLstop("CostFunction3D::funcGradient:FFtransform");
-  GPTLstart("CostFunction3D::funcGradient:SAtransform");
-  SAtransform(stateA, stateB);
-  GPTLstop("CostFunction3D::funcGradient:SAtransform");
-  GPTLstart("CostFunction3D::funcGradient:SCtransform");
-  SCtransform(stateB, stateC);
-  GPTLstop("CostFunction3D::funcGradient:SCtransform");
+  	GPTLstart("CostFunction3D::funcGradient:FFtransform");
+  	#pragma acc update self(stateC)
+  	FFtransform(stateC, stateA);
+  	#pragma acc update device(stateA[0:nState])  // Update stateA on GPU
+  	GPTLstop("CostFunction3D::funcGradient:FFtransform");
 
-  GPTLstart("CostFunction3D::funcGradient:gradient");
-  for (int n = 0; n < nState; n++) {
-    gradient[n] = state[n] + stateC[n] - CTHTd[n];
-  }
-  GPTLstop("CostFunction3D::funcGradient:gradient");
+  	GPTLstart("CostFunction3D::funcGradient:SAtransform");
+  	SAtransform(stateA, stateB);
+  	GPTLstop("CostFunction3D::funcGradient:SAtransform");
+  	GPTLstart("CostFunction3D::funcGradient:SCtransform");
+  	SCtransform(stateB, stateC);
+  	GPTLstop("CostFunction3D::funcGradient:SCtransform");
+
+  	GPTLstart("CostFunction3D::funcGradient:gradient");
+  	#pragma acc parallel loop gang vector vector_length(32) private(n)
+  	for (n = 0; n < nState; n++) {
+    	gradient[n] = state[n] + stateC[n] - CTHTd[n];
+  	}
+  	GPTLstop("CostFunction3D::funcGradient:gradient");
+
+	}
 
   GPTLstop("CostFunction3D::funcGradient");
 }
@@ -585,36 +621,44 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   obIP = 0.;
   //  cout << "CostFunction3D::funcValueAndGradient\n";
 
-  //update global HCq variable
-  updateHCq(state,HCq);
+	#pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
+	{
+  	//update global HCq variable
+  	updateHCq(state,HCq);
 
-  //Func Value
-  // Compute inner product of state vector                                                                                                                                
-  //#pragma omp parallel for reduction(+:qIP)
-  for (n = 0; n < nState; n++) {
-    qIP += state[n]*state[n];
-  }
-  // Subtract d from HCq to yield mObs length vector and compute inner product         
-  //#pragma omp parallel for reduction(+:obIP)
-  for (m = 0; m < mObs; m++) {
-    //int obIndex = m*(7+varDim*derivDim) + 1;
-    //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-    obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
-  }
-  //function value J
-  J = 0.5*(qIP + obIP);
+  	//Func Value
+  	// Compute inner product of state vector                                                                                                                                
+  	//#pragma omp parallel for reduction(+:qIP)
+  	#pragma acc parallel loop reduction(+:qIP)
+  	for (n = 0; n < nState; n++) {
+    	qIP += state[n]*state[n];
+  	}
+  	// Subtract d from HCq to yield mObs length vector and compute inner product         
+  	//#pragma omp parallel for reduction(+:obIP)
+  	#pragma acc parallel loop reduction(+:obIP) private(m)
+  	for (m = 0; m < mObs; m++) {
+			//int obIndex = m*(7+varDim*derivDim) + 1;
+    	//obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+    	obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
+  	}
+  	//function value J
+  	J = 0.5*(qIP + obIP);
 
-  //Now Gradient (also uses HCq)
-  calcHTranspose(HCq, stateC);
-  FFtransform(stateC, stateA);
-  SAtransform(stateA, stateB);
-  SCtransform(stateB, stateC);
-  //calc gradient
-  for (n = 0; n < nState; n++) {
-    gradient[n] = state[n] + stateC[n] - CTHTd[n];
-  }
+  	//Now Gradient (also uses HCq)
+		calcHTranspose(HCq, stateC);
+  	#pragma acc update self(stateC)
+  	FFtransform(stateC, stateA);
+  	#pragma acc update self(stateC)
+  	SAtransform(stateA, stateB);
+  	SCtransform(stateB, stateC);
+  	//calc gradient
+  	#pragma acc parallel loop gang vector vector_length(32) private(n)
+  	for (n = 0; n < nState; n++) {
+    	gradient[n] = state[n] + stateC[n] - CTHTd[n];
+  	}
 
-  GPTLstop("CostFunction3D::funcValueAndGradient");
+  	GPTLstop("CostFunction3D::funcValueAndGradient");
+	}
 	//cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << "\n"; 
 	return J;
 
@@ -626,33 +670,44 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
   GPTLstart("CostFunction3D::Hessian");
   int n;
   //DBG cout << "CostFunction3D::funcHessian\n";
-{
-  //calc HCx (store in global variable HCq)
-  updateHCq(x,HCq);
+	#pragma acc data copyin(x[0:nState]) copyout(hessian[0:nState])
+	{
+  	//calc HCx (store in global variable HCq)
+  	updateHCq(x,HCq);
                                                                
-  calcHTranspose(HCq, stateC);
-  FFtransform(stateC, stateA);
-  SAtransform(stateA, stateB);
-  SCtransform(stateB, stateC);
+  	calcHTranspose(HCq, stateC);
+ 		#pragma acc update self(stateC)
+  	FFtransform(stateC, stateA);
+  	#pragma acc update device(stateA[0:nState])
+  	SAtransform(stateA, stateB);
+  	SCtransform(stateB, stateC);
+  	//#pragma acc update device(stateC[0:nState]) 
 
-  // [I + C^T*H^T*R^-1*H*Q]x
-  for (n = 0; n < nState; n++) {
-    hessian[n] = x[n] + stateC[n];
-  }
-}
+  	// [I + C^T*H^T*R^-1*H*Q]x
+  	#pragma acc parallel loop gang vector vector_length(32) private(n)
+  	for (n = 0; n < nState; n++) {
+    	hessian[n] = x[n] + stateC[n];
+  	}
+	}
   GPTLstop("CostFunction3D::Hessian");
 
 }
 
 void CostFunction3D::updateHCq(real* state,real* HCq)
 {
-  GPTLstart("CostFunction3D::updateHCq");
-  SCtransform(state, stateB);
-  SAtransform(stateB, stateA);
-  FFtransform(stateA, stateC);
-  Htransform(stateC, HCq);
-  GPTLstop("CostFunction3D::updateHCq");
-  
+	//#pragma acc data present(state[0:nState],HCq) create(stateB[0:nState])
+	#pragma acc data present(state[0:nState],HCq)
+	{
+  	GPTLstart("CostFunction3D::updateHCq");
+  	SCtransform(state, stateB);
+  	SAtransform(stateB, stateA);
+  	#pragma acc update self(statea[0:nstate])
+  	FFtransform(stateA, stateC);
+  	#pragma acc update device(stateC[0:nState])
+  	Htransform(stateC, HCq);
+  	#pragma acc update self(HCq[mObs+(iDim*jDim*kDim)]) //EXCESSIVE
+  	GPTLstop("CostFunction3D::updateHCq");
+  }
 }
 
 
@@ -662,9 +717,13 @@ void CostFunction3D::updateBG()
   GPTLstart("CostFunction3D::updateBG");
 
   // S (SA transform) yield A's
-  SCtransform(currState, stateB);
-  SAtransform(stateB, stateA);
-  FFtransform(stateA, stateC);
+	#pragma acc data copyin(currState[0:nState]) create(stateB[0:nState])
+	{
+  	SCtransform(currState, stateB);
+  	SAtransform(stateB, stateA);
+  	#pragma acc update self(stateA[0:nState])
+  	FFtransform(stateA, stateC);
+	}
   outputAnalysis("increment", stateC);
 
   // In BG update we are directly summing C + A
@@ -699,11 +758,15 @@ void CostFunction3D::calcInnovation()
   cout << "Initializing innovation vector..." << endl;
 
   // Use HCq to hold the transform, but C is not applied for the innovation
-  Htransform(bgState, HCq);
+	#pragma acc data copyin(bgState[0:nState]) copyout(HCq[mObs+(iDim*jDim*kDim)]) 
+	{
+  	Htransform(bgState, HCq);
+	}
 
   real innovationRMS = 0.;
 
-#pragma omp parallel for reduction(+:innovationRMS)
+#pragma omp parallel for reduction(+:innovationRMS) //[0]
+#pragma acc parallel loop reduction(+:innovationRMS) //[0]
   for (int m = 0; m < mObs; m++) {
     innovation[m] = obsVector[m*(7+varDim*derivDim)] - HCq[m];
     innovationRMS += (innovation[m]*innovation[m]);
@@ -713,7 +776,7 @@ void CostFunction3D::calcInnovation()
   if (mObs) innovationRMS /= mObs;
   innovationRMS = sqrt(innovationRMS);
   cout << "Innovation RMS : " << innovationRMS << endl;
-
+  #pragma acc enter data copyin(innovation)
   GPTLstop("CostFunction3D::calcInnovation");
 }
 
@@ -721,14 +784,17 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
   integer j,n,m,k,ms,me;
   real tmp,val;
-  GPTLstart("CostFunction3D::calcHTranspose");
-  #pragma omp parallel for private(n,k,ms,me,tmp,m,j,val) 
-  for(n=0;n<nState;n++){
-    ms = mPtr[n];
-    me = mPtr[n+1];
-    tmp = 0;
-    if(me>ms){ 
-       for (k=ms;k<me;k++){
+	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H) 
+	{
+  	GPTLstart("CostFunction3D::calcHTranspose");
+  	#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val) 
+  	#pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
+  	for(n=0;n<nState;n++){
+    	ms = mPtr[n];
+    	me = mPtr[n+1];
+    	tmp = 0;
+    	if(me>ms){ 
+      	for (k=ms;k<me;k++){
           m=mVal[k];
           j=I2H[k];
           //val = yhat[m] * obsVector[m*(7+varDim*derivDim)+1];
@@ -739,6 +805,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
     Astate[n]=tmp;
   }
   GPTLstop("CostFunction3D::calcHTranspose");
+	}
 }
 
 
@@ -753,167 +820,193 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
   int i,j,k,l,m;
   real tmp;
 
-  GPTLstart("CostFunction3D::SAtransform");
-  //cout << "SAtransform:: point #1 \n";
-  for (int var = 0; var < varDim; var++) {
-    kRankVar = kRank[var];
-    //GPTLstart("IJK Loop");
-    //std::cout << "kDim: " << kDim << " kRankVar: " << kRankVar  << " kLDim: " << kLDim << std::endl;
+	// attempting to elminate managed mode 
+	//#pragma acc data present(Bstate[0:nState],Astate[0:nState]) copyin(kL[0:varDim],kGamma[0:varDim],kRank[0:varDim],kLDim)
+	//#pragma acc data present(Bstate[0:nState],Astate[0:nState],kGammaL[0:varDim*kRankMax*kDim])
+	//#pragma acc data present(Bstate[0:nState],Astate[0:nState])
+	#pragma acc data present(Bstate[0:nState],Astate[0:nState])
+	{
+  	GPTLstart("CostFunction3D::SAtransform");
+  	//cout << "SAtransform:: point #1 \n";
+  	for (int var = 0; var < varDim; var++) {
+    	kRankVar = kRank[var];
+    	//GPTLstart("IJK Loop");
+    	//std::cout << "kDim: " << kDim << " kRankVar: " << kRankVar  << " kLDim: " << kLDim << std::endl;
 
-    //cout << "SAtransform:: point #2 \n";
-    #pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
-    for (iIndex = 0; iIndex < iDim; iIndex++) {
-      for (jIndex = 0; jIndex < jDim; jIndex++) {
-	      for (k = 0; k < kDim; k++) {
-                kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	        kB[k] = Bstate[kIndex];
-	      }
+    	//cout << "SAtransform:: point #2 \n";
+    	//#pragma acc update device(kGammaTmp)
+    	#pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
+    	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
+    	for (iIndex = 0; iIndex < iDim; iIndex++) {
+      	for (jIndex = 0; jIndex < jDim; jIndex++) {
+          #pragma acc loop vector
+	      	for (k = 0; k < kDim; k++) {
+          	kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
+	        	kB[k] = Bstate[kIndex];
+	     		}
 
-      	      // Multiply by gamma
-	      for (m = 0; m < kRankVar; m++) {
-	        //bk[m] = 0;
-                tmp = 0;
-	        for (k = 0; k < kDim; k++) {
-	          //tmp += kGamma[var][kDim * m + k] * kB[k];
-	          tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * kB[k];
-	        }
-	        // std::cout << "m: " << m << " bk[" << m << "]: " << bk[m] << std
-	        // Solve for A's using compact storage
-                //cout << "-1:" << -(kLDim-1) << "\n"; 
-	        for (l=-1;l>=-(kLDim-1);l--) {
-	          if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
-	            //tmp -= kL[var][m * kLDim - l] *xk[m + l];
-	            tmp -= kLL[KINDEX(m * kLDim - l,kRankMax*kLDim,var)] *xk[m + l];
-                  }
-	        }
-	        //xk[m] = tmp / kL[var][m * kLDim];
-	        xk[m] = tmp / kLL[KINDEX(m * kLDim,kRankMax*kLDim,var)];
-	      }
-	      for (k = kRankVar - 1; k >= 0; k--) {
-                tmp = xk[k];
-	        for (l = 1; l <= (kLDim - 1); l++) {
-	          if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
-	            //tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
-	            tmp -= kLL[KINDEX((k + l) * kLDim +l,kRankMax*kLDim,var)] * xk[k + l];
-                  }
-	        }
-	        //xk[k] = tmp / kL[var][k * kLDim];
-	        xk[k] = tmp / kLL[KINDEX(k * kLDim,kRankMax*kLDim,var)];
-	      }
+      	  // Multiply by gamma
+          //#pragma acc loop vector
+	      	for (m = 0; m < kRankVar; m++) {
+	        	//bk[m] = 0;
+            tmp = 0;
+            //#pragma acc loop reduction(+:tmp)
+	        	for (k = 0; k < kDim; k++) {
+	          	//tmp += kGamma[var][kDim * m + k] * kB[k];
+	          	tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * kB[k];
+	        	}
+	        	// std::cout << "m: " << m << " bk[" << m << "]: " << bk[m] << std
+	        	// Solve for A's using compact storage
+            //cout << "-1:" << -(kLDim-1) << "\n"; 
+	        	for (l=-1;l>=-(kLDim-1);l--) {
+	          	if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
+	            	//tmp -= kL[var][m * kLDim - l] *xk[m + l];
+	            	tmp -= kLL[KINDEX(m * kLDim - l,kRankMax*kLDim,var)] *xk[m + l];
+              }
+	        	}
+	        	//xk[m] = tmp / kL[var][m * kLDim];
+	        	xk[m] = tmp / kLL[KINDEX(m * kLDim,kRankMax*kLDim,var)];
+	      	}
+          //#pragma acc loop vector
+	      	for (k = kRankVar - 1; k >= 0; k--) {
+          	tmp = xk[k];
+	        	for (l = 1; l <= (kLDim - 1); l++) {
+	          	if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
+	            	//tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
+	            	tmp -= kLL[KINDEX((k + l) * kLDim +l,kRankMax*kLDim,var)] * xk[k + l];
+            	}
+	        	}
+	        	//xk[k] = tmp / kL[var][k * kLDim];
+	        	xk[k] = tmp / kLL[KINDEX(k * kLDim,kRankMax*kLDim,var)];
+	      	}
 
-	      for (k = 0; k < kDim; k++) {
-	        // Multiply by gammaT
-	        tmp = 0;
-	        for (m = 0; m < kRankVar; m++) {
-	          //tmp += kGamma[var][kDim * m + k] * xk[m];
-	          tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * xk[m];
-	        }
-	        // std::cout << "k: " << k << " ak[" << k << "]: " << ak[k] << "\n";
-                kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	        //Astate[INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var)] = tmp; 
-	        Astate[kIndex] = tmp; 
-	      }
-      }
-    }
-    //GPTLstop("IJK Loop");
-    // cout << "SAtransform:: point #3 \n";
+          #pragma acc loop vector
+	      	for (k = 0; k < kDim; k++) {
+	        	// Multiply by gammaT
+	        	tmp = 0;
+            //#pragma acc loop reduction(+:tmp)
+	        	for (m = 0; m < kRankVar; m++) {
+	          	//tmp += kGamma[var][kDim * m + k] * xk[m];
+	          	tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * xk[m];
+	        	}
+	        	// std::cout << "k: " << k << " ak[" << k << "]: " << ak[k] << "\n";
+            kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
+	        	// Astate[INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var)] = tmp; 
+	        	Astate[kIndex] = tmp; 
+	      	}
+      	}
+    	}
+    	//GPTLstop("IJK Loop");
+    	// cout << "SAtransform:: point #3 \n";
 
-    //GPTLstart("IKJ Loop");
-    #pragma omp parallel for private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
-    for (iIndex = 0; iIndex < iDim; iIndex++) {
-      for (kIndex = 0; kIndex < kDim; kIndex++) {
-	      for (j = 0; j < jDim; j++) {
-	        jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
-	      }
-	      for (m = 0; m < jRank[var]; m++) {
-	        // Multiply by gamma
-                tmp = 0;
-	        for (j = 0; j < jDim; j++) {
-	          tmp += jGamma[var][jDim*m + j]*jB[j];
-	        }
-	        // Solve for A's using compact storage
-	        for (l=-1;l>=-(jLDim-1);l--) {
-	          if ((m+l >= 0) and ((m*jLDim-l) >= 0)) {
-	            tmp -= jL[var][m*jLDim-l]*xj[m+l];
-                  }
-	        }
-	        xj[m] = tmp/jL[var][m*jLDim];
-	      }
+    	//GPTLstart("IKJ Loop");
+    	#pragma omp parallel for private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
+    	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
+    	for (iIndex = 0; iIndex < iDim; iIndex++) {
+      	for (kIndex = 0; kIndex < kDim; kIndex++) {
+          #pragma acc loop vector 
+	      	for (j = 0; j < jDim; j++) {
+	        	jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
+	      	}
+          //#pragma acc loop vector 
+	      	for (m = 0; m < jRank[var]; m++) {
+	        	// Multiply by gamma
+            tmp = 0;
+            //#pragma acc loop vector
+	        	for (j = 0; j < jDim; j++) {
+	          	tmp += jGamma[var][jDim*m + j]*jB[j];
+	        	}
+	        	// Solve for A's using compact storage
+	        	for (l=-1;l>=-(jLDim-1);l--) {
+	          	if ((m+l >= 0) and ((m*jLDim-l) >= 0)) {
+	            	tmp -= jL[var][m*jLDim-l]*xj[m+l];
+              }
+	        	}
+	        	xj[m] = tmp/jL[var][m*jLDim];
+	      	}
 
-	      for (j=jRank[var]-1;j>=0;j--) {
-                tmp=xj[j];
-	        for (l=1;l<=(jLDim-1);l++) {
-	          if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim)) {
-	            tmp -= jL[var][(j+l)*jLDim+l]*xj[j+l];
-                  }
-	        }
-	        xj[j] = tmp/jL[var][j*jLDim];
-	      }
+          //#pragma acc loop vector 
+	      	for (j=jRank[var]-1;j>=0;j--) {
+          	tmp=xj[j];
+	        	for (l=1;l<=(jLDim-1);l++) {
+	          	if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim)) {
+	            	tmp -= jL[var][(j+l)*jLDim+l]*xj[j+l];
+              }
+	        	}
+	        	xj[j] = tmp/jL[var][j*jLDim];
+	      	}
 
-	      for (j = 0; j < jDim; j++) {
-	        // Multiply by gammaT
-                tmp = 0;
-	        for (m = 0; m < jRank[var]; m++) {
-	          tmp += jGamma[var][jDim*m + j]*xj[m];
-	        }
-	        // std::cout << "i: " << i << " aj[" << j << "]: " << tmp << "\n";	  
-	        Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
-	      }
-      }
-    }
-    //GPTLstop("IKJ Loop");
-    //cout << "SAtransform:: point #4 \n";
-    //GPTLstart("JKI Loop");
-    #pragma omp parallel for private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
-    for (jIndex = 0; jIndex < jDim; jIndex++) {
-      for (kIndex = 0; kIndex < kDim; kIndex++) {
-	      for (i = 0; i < iDim; i++) {
-	        iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
-	      }
-	      // Multiply by gamma
-	      for (m = 0; m < iRank[var]; m++) {
-	        //bi[m] = 0;
-	        tmp = 0;
-	        for (i = 0; i < iDim; i++) {
-	          tmp += iGamma[var][iDim*m + i]*iB[i];
-	        }
-	        // Solve for A's using compact storage
-	        for (l=-1;l>=-(iLDim-1);l--) {
-	          if ((m+l >= 0) and ((m*iLDim-l) >= 0)) {
-	            tmp -= iL[var][m*iLDim-l]*xi[m+l];
-                  }
-	        }
-	        xi[m] = tmp/iL[var][m*iLDim];
-	      }
-	      for (i=iRank[var]-1;i>=0;i--) {
-                tmp=xi[i];
-	        for (l=1;l<=(iLDim-1);l++) {
-	          if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim)) {
-	            tmp -= iL[var][(i+l)*iLDim+l]*xi[i+l];
-                  }
-	        }
-	        xi[i] = tmp/iL[var][i*iLDim];
-	      }
+          #pragma acc loop vector 
+	      	for (j = 0; j < jDim; j++) {
+	        	// Multiply by gammaT
+          	tmp = 0;
+	        	for (m = 0; m < jRank[var]; m++) {
+	          	tmp += jGamma[var][jDim*m + j]*xj[m];
+	        	}
+	        	//  std::cout << "i: " << i << " aj[" << j << "]: " << tmp << "\n";	  
+	        	Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
+	      	}
+      	}
+    	}
+    	//GPTLstop("IKJ Loop");
+    	//cout << "SAtransform:: point #4 \n";
+    	//GPTLstart("JKI Loop");
+    	#pragma omp parallel for private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
+    	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
+    	for (jIndex = 0; jIndex < jDim; jIndex++) {
+      	for (kIndex = 0; kIndex < kDim; kIndex++) {
+          #pragma acc loop vector
+	      	for (i = 0; i < iDim; i++) {
+	        	iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
+	      	}
+	      	// Multiply by gamma
+          //#pragma acc loop vector
+	      	for (m = 0; m < iRank[var]; m++) {
+	        	//bi[m] = 0;
+	        	tmp = 0;
+	        	for (i = 0; i < iDim; i++) {
+	          	tmp += iGamma[var][iDim*m + i]*iB[i];
+	        	}
+	        	//  Solve for A's using compact storage
+	        	for (l=-1;l>=-(iLDim-1);l--) {
+	          	if ((m+l >= 0) and ((m*iLDim-l) >= 0)) {
+	            	tmp -= iL[var][m*iLDim-l]*xi[m+l];
+              }
+	        	}
+	        	xi[m] = tmp/iL[var][m*iLDim];
+	      	}
+          //#pragma acc loop vector
+	      	for (i=iRank[var]-1;i>=0;i--) {
+          	tmp=xi[i];
+	        	for (l=1;l<=(iLDim-1);l++) {
+	          	if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim)) {
+	            	tmp -= iL[var][(i+l)*iLDim+l]*xi[i+l];
+              }
+	        	}
+	        	xi[i] = tmp/iL[var][i*iLDim];
+	      	}
 
-	      // Multiply by gammaT
-	      for (i = 0; i < iDim; i++) {
-	        //ai[i] = 0;
-                tmp=0;
-	        for (m = 0; m < iRank[var]; m++) {
-	          tmp += iGamma[var][iDim*m + i]*xi[m];
-	        }
-	        // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
-	        Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
-	      }
+	      	// Multiply by gammaT
+          #pragma acc loop vector
+	      	for (i = 0; i < iDim; i++) {
+	        	//ai[i] = 0;
+            tmp=0;
+	        	for (m = 0; m < iRank[var]; m++) {
+	          	tmp += iGamma[var][iDim*m + i]*xi[m];
+	        	}
+	        	// std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
+	        	Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
+	      	}
 
-      }
-    }
-    //GPTLstop("JKI Loop");
-    //cout << "SAtransform:: point #5 \n";
-    //delete[] kGammaTmp;
+      	}
+    	}
+    	//GPTLstop("JKI Loop");
+    	//cout << "SAtransform:: point #5 \n";
+    	//delete[] kGammaTmp;
 
-  }
-  GPTLstop("CostFunction3D::SAtransform");
+  	}
+  	GPTLstop("CostFunction3D::SAtransform");
+} // acc data region
 
   return true;
 }
@@ -922,6 +1015,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 {
   GPTLstart("CostFunction3D::SAtranspose");
 
+  //#pragma omp parallel for 
   for (int var = 0; var < varDim; var++) {
     int l;
     real* iB = new real[iDim];
@@ -1117,6 +1211,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
     je =  max(jDim-1-rankHash[jBCR[var]],jDim-2);
     ks = min(rankHash[kBCL[var]],1);
     ke = max(kDim-1-rankHash[kBCR[var]],kDim-2);
+    //#pragma acc parallel loop private(ii,iIndex,imu,iNode,uI,jj,jIndex,jmu,jNode,uJ,kk,kIndex,kmu,kNode,ui,bi,iis,iie,jjs,jje,kks,kke,i, ibasis,j, jbasis,k, kbasis)
     for (iIndex = is; iIndex < ie; iIndex++) {
       for (imu = -1; imu <= 1; imu += 2) {
 				i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
@@ -1221,67 +1316,82 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
   real iTemp[iDim], iq[iDim],is[iDim];
   real jTemp[jDim], jq[jDim],js[jDim];
   real kTemp[kDim], kq[kDim],ks[kDim];
+	//#pragma acc data create(iTemp,jTemp,kTemp)
   int n,iIndex,jIndex,kIndex,index;
 
-  GPTLstart("CostFunction3D::SCtransform");
-  // Disable recursive filter if less than 1
-  if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-    #pragma omp parallel for private(n) //[5.1]
-  	for (n = 0; n < nState; n++) {
-      Cstate[n]= Astate[n] * bgStdDev[n];
-    }
-  } else {
-    // Isotropic Recursive filter, no anisotropic "triad" working yet
-    for (int var = 0; var < varDim; var++) {
+	#pragma acc data present(Astate[0:nState],Cstate[0:nState])
+	{
+  	GPTLstart("CostFunction3D::SCtransform");
+  	// Disable recursive filter if less than 1
+  	if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
+    	#pragma omp parallel for private(n) //[5.1]
+			#pragma acc parallel loop vector_length(32) private(n) //[5.1]
+  		for (n = 0; n < nState; n++) {
+      	Cstate[n]= Astate[n] * bgStdDev[n];
+    	}
+  	} else {
+    	// Isotropic Recursive filter, no anisotropic "triad" working yet
+    	for (int var = 0; var < varDim; var++) {
 
-      #pragma omp parallel for private(iIndex,jIndex,kIndex,index,kTemp,kq,ks) //[5.2]
-      for (iIndex = 0; iIndex < iDim; iIndex++) {
-				for (jIndex = 0; jIndex < jDim; jIndex++) {
-	  			for (kIndex = 0; kIndex < kDim; kIndex++) {
-            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			kTemp[kIndex] = Astate[index];
-	  			}
-	  			if (kFilterScale > 0) kFilter->filterArray(kTemp, kq,ks,kDim);
-	  			for (kIndex = 0; kIndex < kDim; kIndex++) {
-            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			Cstate[index] = kTemp[kIndex];
-	  			}
-				}
-      }
+				#pragma omp parallel for private(iIndex,jIndex,kIndex,index,kTemp,kq,ks) //[5.2]
+				#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(iIndex,jIndex,kIndex,index,kTemp,kq,ks) //[5.2]
+      	for (iIndex = 0; iIndex < iDim; iIndex++) {
+					for (jIndex = 0; jIndex < jDim; jIndex++) {
+          	#pragma acc loop vector
+	  				for (kIndex = 0; kIndex < kDim; kIndex++) {
+            	index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				kTemp[kIndex] = Astate[index];
+	  				}
+	  				if (kFilterScale > 0) kFilter->filterArray(kTemp, kq,ks,kDim);
+          	#pragma acc loop vector
+	  				for (kIndex = 0; kIndex < kDim; kIndex++) {
+            	index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				Cstate[index] = kTemp[kIndex];
+	  				}
+					}
+      	}
 
-			#pragma omp parallel for private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
-      for (iIndex = 0; iIndex < iDim; iIndex++) {
-        for (kIndex = 0; kIndex < kDim; kIndex++) {
-	  			for (jIndex = 0; jIndex < jDim; jIndex++) {
-            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			jTemp[jIndex] = Cstate[index];
-	  			}
-	  			if (jFilterScale > 0) jFilter->filterArray(jTemp, jq, js, jDim);
-	  			for (jIndex = 0; jIndex < jDim; jIndex++) {
-            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			Cstate[index] = jTemp[jIndex];
-	  			}
-				}
-      }
+				#pragma omp parallel for private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
+				#pragma acc parallel loop gang vector vector_length(32) private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
+      	for (iIndex = 0; iIndex < iDim; iIndex++) {
+        	for (kIndex = 0; kIndex < kDim; kIndex++) {
+          	#pragma acc loop vector
+	  				for (jIndex = 0; jIndex < jDim; jIndex++) {
+            	index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				jTemp[jIndex] = Cstate[index];
+	  				}
+	  				if (jFilterScale > 0) jFilter->filterArray(jTemp, jq, js, jDim);
+          	#pragma acc loop vector
+	  				for (jIndex = 0; jIndex < jDim; jIndex++) {
+            	index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				Cstate[index] = jTemp[jIndex];
+	  				}
+					}
+      	}
 
-			#pragma omp parallel for private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
-      for (jIndex = 0; jIndex < jDim; jIndex++) {
-				for (kIndex = 0; kIndex < kDim; kIndex++) {
-	  			for (iIndex = 0; iIndex < iDim; iIndex++) {
-            index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			iTemp[iIndex] = Cstate[index];
-	  			}
-	  			if (iFilterScale > 0) iFilter->filterArray(iTemp, iq, is, iDim);
-	  			for (iIndex = 0; iIndex < iDim; iIndex++) {
-	    			// D
-	    			index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    			Cstate[index] = iTemp[iIndex] * bgStdDev[index];
-	  			}
-				}
-      }
-    }  // end var for loop
-  } // end else
-  GPTLstop("CostFunction3D::SCtransform");
+				#pragma omp parallel for private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
+				#pragma acc parallel loop gang vector vector_length(32) private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
+      	for (jIndex = 0; jIndex < jDim; jIndex++) {
+					for (kIndex = 0; kIndex < kDim; kIndex++) {
+          	#pragma acc loop vector
+	  				for (iIndex = 0; iIndex < iDim; iIndex++) {
+            	index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				iTemp[iIndex] = Cstate[index];
+	  				}
+	  				if (iFilterScale > 0) iFilter->filterArray(iTemp, iq, is, iDim);
+          	#pragma acc loop vector
+	  				for (iIndex = 0; iIndex < iDim; iIndex++) {
+	    				// D
+	    				index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    				Cstate[index] = iTemp[iIndex] * bgStdDev[index];
+	  				}
+					}
+      	}
+      //GPTLstop("CostFunction3D::SCtransform:FI");
+    	}  // end var for loop
+  	} // end else
+  	GPTLstop("CostFunction3D::SCtransform");
+	}  //end acc data region
 }
 
 void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
@@ -1289,11 +1399,13 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
   GPTLstart("CostFunction3D::SCtranspose");
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
 		//#pragma omp parallel for //[6]
+		//#pragma acc parallel loop //[6]
     for (int n = 0; n < nState; n++) {
       Astate[n]= Cstate[n] * bgStdDev[n];
     }
   } else {
     // Isotropic Recursive filter, no anisotropic "triad" working yet
+		//#pragma acc parallel loop //[7]
     for (int n = 0; n < nState; n++) {
       Astate[n]= Cstate[n];
     }
@@ -1491,6 +1603,8 @@ bool CostFunction3D::setupSplines()
      kLL[index]=kL[var][k];
     }
   }
+  // Copy arrays to the GPU device
+  #pragma acc enter data copyin(kGammaL,kLL)
   GPTLstop("CostFunction3D::setupSplines");
   return true;
 
@@ -1573,6 +1687,7 @@ void CostFunction3D::obAdjustments() {
   for(int m=0;m<mObs;m++) {
      obsData[m]=obsVector[m*(7+varDim*derivDim)+1];
   }
+  #pragma acc enter data copyin(obsData)
   GPTLstop("CostFunction3D::obAdjustments");
 }
 
@@ -2268,6 +2383,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
   GPTLstart("CostFunction3D::FFtransform");
   // Copy to the new state in case no FFT is enforced
+	//#pragma acc parallel loop //[8]
   #pragma omp parallel for //[8]
   for (int n = 0; n < nState; n++) {
     Cstate[n]= Astate[n];
@@ -2371,6 +2487,7 @@ void CostFunction3D::calcHmatrix()
   //GPTLstart("CostFunction3D::calcHmatrix:nonzeros");
   // Determine the number of non-zeros in H
 	//#pragma omp parallel for private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
+	#pragma acc parallel loop vector gang vector_length(32) copyout(Hlength[0:mObs]) private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
     //real* Hrow = new real[nState];
     //for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
@@ -2449,6 +2566,7 @@ void CostFunction3D::calcHmatrix()
   for (n=0;n<nState;n++){mIncr[n]=0;}
   
 	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
+	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
     //real* Hrow = new real[nState];
     //for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
@@ -2526,6 +2644,8 @@ void CostFunction3D::calcHmatrix()
 
   //
   // copy H matrix stuff to the GPU Device 
+  #pragma acc enter data copyin(mPtr,mVal,I2H)
+  #pragma acc enter data copyin(H[:nonzeros])
   cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << "\n";
@@ -2550,19 +2670,24 @@ void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
   integer i,j;
   integer begin,end;
   real tmp;
-  GPTLstart("CostFunction3D::Htransform");
-  // Multiply the state by the observation matrix
-  #pragma omp parallel for private(i,j,tmp,begin,end) //[9]
-  for(i=0; i<mObs; ++i) {
-    tmp = 0.0;
-    begin = IH[i]; end = IH[i + 1];
-    for(j=begin; j<end; ++j) {
-      tmp += H[j] * Cstate[JH[j]];
-    }
-    Hstate[i] = tmp;
-  }
 
-  GPTLstop("CostFunction3D::Htransform");
+	#pragma acc data present(Cstate,Hstate)
+	{
+  	GPTLstart("CostFunction3D::Htransform");
+  	// Multiply the state by the observation matrix
+  	#pragma omp parallel for private(i,j,tmp,begin,end) //[9]
+  	#pragma acc parallel loop vector gang vector_length(32) private(i,j,tmp,begin,end) //[9]
+  	for(i=0; i<mObs; ++i) {
+    	tmp = 0.0;
+    	begin = IH[i]; end = IH[i + 1];
+    	for(j=begin; j<end; ++j) {
+      	tmp += H[j] * Cstate[JH[j]];
+    	}
+    	Hstate[i] = tmp;
+  	}
+
+  	GPTLstop("CostFunction3D::Htransform");
+	}
 }
 
 // Copy the final results into the given arrays

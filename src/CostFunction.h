@@ -63,7 +63,7 @@ protected:
 		    real *stp, real *fp, real *dp, int *bracket, real *stepmin, 
 		    real *stepmax);
 
-	
+	#pragma acc declare copyin(mObs,nState)	
 private:
 	inline real CF_MAX(const real &a, const real &b) 
 	{return b > a ? (b) : (a); }

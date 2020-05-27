@@ -181,6 +181,9 @@ protected:
 	std::string outputPath;
 
 	ErrorData variance;
+	#pragma acc declare copyin(iDim,jDim,kDim,varDim,kLDim)
+	#pragma acc declare copyin(iFilterScale,jFilterScale,kFilterScale)
+	#pragma acc declare copyin(kRankMax)
 };
 
 #endif

@@ -227,6 +227,7 @@ void RecursiveFilter::getIsotropicFilterCoefficients()
 			Sn[i-1][j-1] = (LT[i][j] - tmp2[i][j])/beta;
 		}
 	}
+  #pragma acc enter data copyin(Sn)
 	
 }
 
@@ -293,6 +294,7 @@ bool RecursiveFilter::filterArray(double* array, const int& arrLength)
 	
 }
 
+#pragma acc routine seq
 bool RecursiveFilter::filterArray(double* array, double *q, double *s, const int& arrLength)
 {
 	int maxi = arrLength-1;
@@ -382,6 +384,7 @@ double RecursiveFilter::factorial(const double& max)
 	
 }
 
+#pragma acc routine seq
 void RecursiveFilter::solveBC(double* A, double* B, double S[5][5]) 
 {
 	
@@ -781,6 +784,8 @@ void RecursiveFilter::getAnisotropicFilterCoefficients(const double* tau, const 
 		delete[] D[i];
 		delete[] sqv[i];
 	}
+
+  #pragma acc enter data copyin(Sn)
 	delete[] tau;
 	delete[] K1;
 	delete[] K2;
