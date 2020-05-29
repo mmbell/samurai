@@ -31,7 +31,7 @@ if (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
 endif (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
 
 find_path (NETCDF_INCLUDES netcdf.h
-  HINTS "${NETCDF_ROOT}/include" "$ENV{NETCDF_ROOT}/include")
+  HINTS "${NETCDF}/include" "$ENV{NETCDF}/include")
 
 string(REGEX REPLACE "/include/?$" "/lib"
   NETCDF_LIB_HINT ${NETCDF_INCLUDES})

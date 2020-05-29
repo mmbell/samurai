@@ -534,7 +534,7 @@ real CostFunction3D::funcValue(real* state)
   obIP = 0.;
 
   GPTLstart("CostFunction3D::funcValue");
-	#pragma acc data copyin(state)
+	#pragma acc data copyin(state[0:nState])
 	{
   
   	GPTLstart("CostFunction3D::funcValue:updateHCq");
@@ -569,7 +569,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   int n;
 
   GPTLstart("CostFunction3D::funcGradient");
-	#pragma acc data copyin(state) copyout(gradient)
+	#pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
 	{
 
   	GPTLstart("CostFunction3D::funcGradient:updateHCq");
@@ -701,7 +701,7 @@ void CostFunction3D::updateHCq(real* state,real* HCq)
   	GPTLstart("CostFunction3D::updateHCq");
   	SCtransform(state, stateB);
   	SAtransform(stateB, stateA);
-  	#pragma acc update self(statea[0:nstate])
+  	#pragma acc update self(stateA[0:nState])
   	FFtransform(stateA, stateC);
   	#pragma acc update device(stateC[0:nState])
   	Htransform(stateC, HCq);

@@ -1,63 +1,73 @@
-cmake_minimum_required ( VERSION 3.5 )
+cmake_minimum_required ( VERSION 3.0.2 )
 project(samurai)
 
-set (CMAKE_CXX_STANDARD 11)
-add_definitions (-Wall)
 
-set ( CMAKE_BUILD_TYPE Release )
-set ( CMAKE_CXX_FLAGS_DEBUG "-v -gdwarf-4 -g -O0 -std=c++11" )
 
-set (NETCDF_CXX)
 
-# Where to find *Find*.cmake and *-config.cmake
 
-set ( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/" )
-set ( CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH} )
+set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
+set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
-# Tell CMake to run moc automatically when needed
-set(CMAKS_AUTOMOC ON)
 
-find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
-#find_package ( LibZip REQUIRED )
-
-find_package ( GeographicLib REQUIRED )
-find_package ( FFTW REQUIRED )
-find_package ( OpenMP REQUIRED )
-
-# Configure the solver.inc file (settings for the minimize() solve in src/CostFunction.cpp)
 set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp)
 set ( SOLVER_INNER_MAXITER 1000 )  # max interations for inner loop with TN solver
-set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
-set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
-set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
-set ( SOLVER_SAMURAI 1)          # 1= truncated Newton solver, 2 = Samurai CG (orig), 3 = Petsc solver (TN by default)
-                     # Note: to use PETSC solver, must compile with petsc (note: Petsc solver type and params can be modified with run-tme options)
+set ( SOLVER_SAMURAI 1)            # 1= truncated Newton solver, 2 = Samurai CG (orig)
 set ( SOLVER_CONV_TOL 1.0e-4 )     # solver convergence tolerance
 set ( SOLVER_INNER_CONV_TOL 1.0e-4)  # solver convergence tolerance for the inner loop with TN (usually = conv_tol for best results)
 set ( SOLVER_VERBOSE 1)            # 1 = print out extra solver converegnce info. (0 =  no extra printing)
+set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
+set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
+set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
+
+
+# ----- Users shouldn't need to change anything below this, hopefully ----- 
+
+
+# Code standards:
+set ( CMAKE_CXX_STANDARD 11 )     # C++11
+
+# Configure the solver include file:
 configure_file ( src/solver.inc.in src/solver.inc )
 
 # Set RPATH so that executable finds lrose libraries without needing LD_LIBRARY_PATH
-
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
-
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 set ( CMAKE_INSTALL_RPATH ${LROSE_LIB_DIR} )
 set ( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
 
-# Use RUNPATH, not RPATH
+# Add our own CMake Modules to the search path:
+set ( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/" )
+set ( CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH} )
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  set ( CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-new-dtags" )
+# List of packages:
+if (MODE STREQUAL "GPU")
+  find_package ( OpenACC REQUIRED )                           # For GPU versions
+  set ( OpenACC_ACCEL_TARGET "tesla:cc70,managed,lineinfo" )  # NCAR: Target options for GPU version - unused in CPU version
+  set ( ADDITIONAL_FLAGS "-Minfo=accel" )                     # NCAR: If you want to add custom C++ flags, add them here
+else()
+  find_package ( OpenMP REQUIRED )              # For CPU versions (required; run with 1 thread if we want serial times)
 endif()
+find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
+find_package ( GeographicLib REQUIRED ) 
+find_package ( FFTW REQUIRED )
 
-set ( OPENMP_FLAG ${OpenMP_CXX_FLAGS} )
+# Add our additional flags:
+add_compile_options( ${ADDITIONAL_FLAGS} )
 
-#set(OpenMP_C_FLAGS "-I/usr/local/Cellar/open-mpi/4.0.1_2/include")
-#set(OpenMP_C_LIB_NAMES "libmpi")
-#set(OpenMP_C_LIB_NAMES "-L/usr/local/Cellar/open-mpi/4.0.1_2/lib -L/usr/local/opt/libevent/lib -lmpi")
+# Add the OpenMP / OpenACC flags to certain files:
+set_source_files_properties ( src/VarDriver3D.cpp src/CostFunction3D.cpp src/CostFunction.h src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenMP_CXX_FLAGS} ${OpenACC_CXX_FLAGS}" )
+
+# Set up the GPTL macros:
+set_source_files_properties ( ${gptl_SRCS} PROPERTIES COMPILE_FLAGS "-DTHREADED_OMP -DHAVE_NANOTIME " )
+
+# We release an executable and both static and shared libraries
+
+#add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+#add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+
+
 
 if(NOT TARGET OpenMP::OpenMP_CXX)
     add_library(OpenMP_TARGET INTERFACE)
@@ -75,26 +85,26 @@ set ( samurai_HDRS
 	src/BandedMatrix.h 
 	src/BkgdAdapter.h
 	src/BkgdObsLoaders.h
-        src/BSpline.h 
-        src/CostFunction.h 
-        src/CostFunction3D.h	
+  src/BSpline.h 
+  src/CostFunction.h 
+  src/CostFunction3D.h	
 	src/CostFunctionXYZ.h
 	src/CostFunctionXYP.h
 	src/CostFunctionRTZ.h
 	src/CostFunctionCOAMPS.cpp
-        src/Dorade.h
+  src/Dorade.h
 	src/ErrorData.h
-        src/FrameCenter.h
+  src/FrameCenter.h
 	src/MetObs.h 
-        src/Observation.h 
-        src/precision.h 
+  src/Observation.h 
+  src/precision.h 
 	src/Projection.h
-        src/RecursiveFilter.h 
+  src/RecursiveFilter.h 
 	src/ReferenceState.h	
-        src/read_dorade.h 
-        src/VarDriver.h
+  src/read_dorade.h 
+  src/VarDriver.h
 	src/timers.h
-        src/VarDriver3D.h
+  src/VarDriver3D.h
 	src/Xml.h
 	)
 
@@ -117,7 +127,7 @@ set ( common_SRCS
 	src/CostFunctionCOAMPS.cpp
 	src/Dorade.cpp
 	src/ErrorData.cpp
-        src/FrameCenter.cpp
+  src/FrameCenter.cpp
 	src/MetObs.cpp
 	src/mac_debug.xcconfig
 	src/mac_release.xcconfig
@@ -157,14 +167,38 @@ set (lib_SRCS
 	src/samurai.cpp
 	)
 
-# Some soures contain OpenMP pragmas
-      
-set_source_files_properties ( src/CostFunction3D.cpp src/VarDriver3D.cpp src/BkgdObsLoaders.cpp
-	PROPERTIES COMPILE_FLAGS ${OPENMP_FLAG}
-	)
+add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+target_link_directories( samurai PRIVATE ${LROSE_LIB_DIR} )
 
-include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
-link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
+###include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
+###link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
+
+# NCAR: Unfortunately the PGI compiler doesn't work out of the box - these are to fix various issues (maybe there's a better way to do this?):
+# Note that because of how PGI treats command-line arguments, this is still imperfect - eg, adding '-O1' to a release build doesn't completely
+# override the earlier, default '-O3' - rather, the '-O3' sets various things on (like vectorization), that are NOT turned off by the subsequent
+# '-O1'.  This is annoying, and I don't currently have a workaround.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set ( CMAKE_CXX_FLAGS "" )
+    set ( CMAKE_CXX_FLAGS_RELEASE "" )
+    set_source_files_properties ( ${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O3 -fast" )
+    if (MODE STREQUAL "GPU")
+      set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
+    else()
+       set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}" )
+    endif()
+    set_source_files_properties ( src/BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1" ) # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
+  endif()
+  #add_compile_options( -pedantic )
+else() # Intel, GNU:
+  target_compile_options(samurai PRIVATE -Wall -Wno-unknown-pragmas )
+  set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS} " )
+endif()
+
+# Set up the include and link paths:
+include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} )
+link_directories    ( ${GeographicLib_LIBRARY_DIRS} )
 
 # Generate the argument files
 
@@ -174,11 +208,6 @@ add_custom_command (
   DEPENDS src/paramdef.samurai
   )
 
-# We release an executable and both static and shared libraries
-
-#add_library ( samLibShared SHARED ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
-#add_library ( samLibStatic STATIC ${APP_TYPE} ${lib_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
-add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 
 target_link_libraries(samurai
   Geographic fftw3
@@ -203,7 +232,7 @@ target_link_libraries(samurai
 #set_property ( TARGET samLibStatic PROPERTY OUTPUT_NAME "samurai" )
 
 #target_link_libraries ( samurai samLibStatic )
-target_link_libraries ( samurai )
+target_link_libraries ( samurai ${OpenACC_CXX_FLAGS}  ${OpenMP_CXX_LIBRARIES} )
 
 #target_link_libraries ( samLibShared
 #	${HDF5_LIBRARY} ${NETCDF_LIBRARY} ${FFTW_LIBRARY} ${LROSE_LIBRARIES}
@@ -219,3 +248,6 @@ install ( TARGETS samurai DESTINATION bin )
 install ( FILES src/samurai.h DESTINATION include )
 #install ( TARGETS samLibShared DESTINATION lib )
 #install ( TARGETS samLibStatic DESTINATION lib )
+
+
+message( "<< INFO: ${CMAKE_BUILD_TYPE} build for ${MODE} - CG using ${SOLVER_MAXITER} iterations and epsilon of ${SOLVER_CONV_TOL} >>")
