@@ -4,6 +4,10 @@
 # (note that this assumes we're running from the source root.)  Default is CPU mode.
 MODE=${1^^}
 if [ "$MODE" == "GPU" ]; then
+  if [ "$COMPILER" != "pgi" ]; then
+    echo "NOTE: You currently need the PGI compiler to build in GPU mode.  You have: ${COMPILER}.  Exiting..."
+    exit 1
+  fi
   sed -i 's/MODE CPU/MODE GPU/g' ./CMakeLists.txt
 else
   sed -i 's/MODE GPU/MODE CPU/g' ./CMakeLists.txt     # This will switch it to CPU if it was GPU
@@ -29,4 +33,4 @@ rm CMakeCache.txt
 
 cmake .
 
-make -j 4 VERBOSE=1
+make -j 4 

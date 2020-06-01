@@ -9,6 +9,7 @@
 #include "CostFunction.h"
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <limits>
 #include "timing/gptl.h"
 #include "solver.inc"
@@ -184,7 +185,9 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
 
     neg_curve = 0; //negative curvature check 
 
-    if (verbose) cout << "\t\tCG iteration 0:   r_norm = " << r0_norm << "     rel_resid = 1.0"  << endl;
+    if (verbose) { 
+       std::cout << "\t\tCG iteration " << std::setw(7) << std::right << "0" << ":  r_norm = " << std::fixed << std::setw(20) << std::setprecision(8) << std::right << r0_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << 1.0  << endl;
+    }
 
     //CG LOOP
     for (cg_its = 0; cg_its < cg_itmax; cg_its ++){
@@ -238,7 +241,8 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
       //CG cconvergence check
       r_norm = sqrt(rr);
       rel_resid = r_norm/r0_norm;
-      if (verbose) cout << "\t\tCG iteration " << cg_its + 1 <<  ":  r_norm = " << r_norm << "      rel_resid = " << rel_resid << endl;
+      std::cout << std::right;
+      if (verbose) cout << "\t\tCG iteration " << std::setw(7) << std::right << cg_its + 1 <<  ":  r_norm = " << std::setw(20) << std::fixed << std::setprecision(8) << std::right << r_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << rel_resid << endl;
 
       if (rel_resid < cg_tol) {
 				break;

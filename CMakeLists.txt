@@ -18,6 +18,7 @@ set ( SOLVER_VERBOSE 1)            # 1 = print out extra solver converegnce info
 set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
 set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
 set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
+set ( WRITE_OBSERVATIONS 1 )       # Boolean for whether we write the observations back out into a single file after reading them in (slow, so we disable this at NCAR for testing)
 
 
 # ----- Users shouldn't need to change anything below this, hopefully ----- 
@@ -189,8 +190,12 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
        set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}" )
     endif()
     set_source_files_properties ( src/BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1" ) # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
+  else()
+    if (MODE STREQUAL "GPU")
+      set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
+    endif()
   endif()
-  #add_compile_options( -pedantic )
 else() # Intel, GNU:
   target_compile_options(samurai PRIVATE -Wall -Wno-unknown-pragmas )
   set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS} " )
@@ -213,7 +218,7 @@ target_link_libraries(samurai
   Geographic fftw3
   ${LROSE_LIBRARIES}
   OpenMP::OpenMP_CXX
-  bz2 z
+  bz2 z curl
   )
 #target_link_libraries(samLibStatic
 #  Geographic fftw3

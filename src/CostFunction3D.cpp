@@ -736,13 +736,13 @@ void CostFunction3D::updateBG()
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	  			cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
-	  			//int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-	  			int bgIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	  			cstream << bgState[bgIndex] << "\t";
-	  			bgState[bgIndex] += stateC[bgIndex];
-	  			cstream << bgState[bgIndex] << "\t";
+  	  		//int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
+	    		int bgIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	    		cstream << bgState[bgIndex] << "\t";
+	  	  	bgState[bgIndex] += stateC[bgIndex];
+	  		  cstream << bgState[bgIndex] << "\t";
 	  			cstream << stateC[bgIndex] << endl;
-				}
+  			} 
       }
     }
   }

@@ -81,7 +81,7 @@ int main (int argc, char *argv[]) {
   }
   GPTLstop("Main::Finalize");
     
-  delete driver;
+  //delete driver;
   std::cout << "Analysis successful!\n";
   GPTLstop("Total");
   GPTLpr(0);
