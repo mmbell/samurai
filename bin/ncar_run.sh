@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXE=./build/release/bin/samurai
+EXE=$(readlink -f ./build/release/bin/samurai )
 
 # Determine if we're running on the GPU or not by checking the libraries we've linked:
 GPU=$(grep -c libacc ${EXE})
