@@ -198,7 +198,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
   endif()
 else() # Intel, GNU:
   target_compile_options(samurai PRIVATE -Wall -Wno-unknown-pragmas )
-  set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS} " )
+  set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -Ofast ${OpenMP_CXX_FLAGS} " )
 endif()
 
 # Set up the include and link paths:
