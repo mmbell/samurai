@@ -5,7 +5,7 @@ project(samurai)
 
 
 
-set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
+set ( MODE GPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
 
@@ -47,12 +47,17 @@ if (MODE STREQUAL "GPU")
   find_package ( OpenACC REQUIRED )                           # For GPU versions
   set ( OpenACC_ACCEL_TARGET "tesla:cc70,managed,lineinfo" )  # NCAR: Target options for GPU version - unused in CPU version
   set ( ADDITIONAL_FLAGS "-Minfo=accel" )                     # NCAR: If you want to add custom C++ flags, add them here
+  # Optionally find CUDA - if found, we'll use CuFFTW, if not, we'll need FFTW
+  find_package ( CUDA QUIET )
+	if ( NOT CUDA_CUFFT_LIBRARIES )
+    find_package( FFTW REQUIRED )
+  endif()
 else()
   find_package ( OpenMP REQUIRED )              # For CPU versions (required; run with 1 thread if we want serial times)
+  find_package ( FFTW REQUIRED )
 endif()
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
 find_package ( GeographicLib REQUIRED ) 
-find_package ( FFTW REQUIRED )
 
 # Add our additional flags:
 add_compile_options( ${ADDITIONAL_FLAGS} )
@@ -201,6 +206,15 @@ else() # Intel, GNU:
   set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -Ofast ${OpenMP_CXX_FLAGS} " )
 endif()
 
+# If we're in GPU mode, check if we have cuFFT 
+if ( CUDA_CUFFT_LIBRARIES )
+  add_definitions( -DUSE_CUFFTW )
+  message( "<< Linking with cuFFTW libraries : ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufftw.so >>")
+  target_link_libraries( samurai ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufftw.so )
+endif()
+
+    
+
 # Set up the include and link paths:
 include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} )
 link_directories    ( ${GeographicLib_LIBRARY_DIRS} )
@@ -215,7 +229,7 @@ add_custom_command (
 
 
 target_link_libraries(samurai
-  Geographic fftw3
+  Geographic ${FFTW_LIBRARIES}
   ${LROSE_LIBRARIES}
   OpenMP::OpenMP_CXX
   bz2 z curl

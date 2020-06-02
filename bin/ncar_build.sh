@@ -25,7 +25,11 @@ fi
 
 MODULEPATH=${MODULEPATH}:/glade/u/home/bdobbins/Software/Modules
 module load LROSE
-module load fftw
+
+if [[ -z "$CUDA_HOME" ]]; then
+  module load fftw
+fi
+
 module load cmake
 
 rm -rf CMakeFiles/

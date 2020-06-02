@@ -26,7 +26,14 @@
 #include <string>
 #include <unordered_map>
 //#include <complex.h>
-#include <fftw3.h>
+
+// Whether we use FFTW or cuFFT's FFTW interface depends on whether we have the 'USE_CUFFTW' define set (Cmake):
+#ifdef USE_CUFFTW
+  #include <cufftw.h>
+#else
+  #include <fftw3.h>
+#endif
+
 
 class CostFunction3D : public CostFunction
 {
