@@ -33,4 +33,4 @@ rm CMakeCache.txt
 
 cmake .
 
-#make -j 4 
+make -j 4 
