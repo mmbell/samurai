@@ -65,12 +65,7 @@ echo "      prefix: $prefix"
 echo "      lrose_install_dir: $lrose_install_dir"
 echo "      do_install: $do_install"
 
-export LROSE_PREFIX=$prefix
 export LROSE_ROOT_DIR=$lrose_install_dir
-export LROSE_INCLUDE_DIRS=$prefix/include
-export LROSE_LIB_DIR=$prefix/lib
-export LROSE_BIN_DIR=$prefix/bin
-export CMAKE_INSTALL_PREFIX=$prefix
 
 # clean up
 
@@ -81,9 +76,9 @@ export CMAKE_INSTALL_PREFIX=$prefix
 if [ "$use_cmake3" = "true" ]
 then
     echo "Note - using cmake3"
-    cmake3 -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} .
+    cmake3 -DCMAKE_INSTALL_PREFIX=${LROSE_ROOT_DIR} .
 else
-    cmake -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} .
+    cmake -DCMAKE_INSTALL_PREFIX=${LROSE_ROOT_DIR} .
 fi
 
 # do the build
