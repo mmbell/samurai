@@ -216,8 +216,12 @@ endif()
     
 
 # Set up the include and link paths:
-include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} )
-link_directories    ( ${GeographicLib_LIBRARY_DIRS} )
+include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} ${LROSE_INCLUDE_DIRS} )
+link_directories    ( ${GeographicLib_LIBRARY_DIRS} ${LROSE_LIB_DIR} )
+
+###include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
+###link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
+
 
 # Generate the argument files
 
