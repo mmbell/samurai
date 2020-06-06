@@ -76,9 +76,9 @@ export LROSE_ROOT_DIR=$lrose_install_dir
 if [ "$use_cmake3" = "true" ]
 then
     echo "Note - using cmake3"
-    cmake3 -DCMAKE_INSTALL_PREFIX=${LROSE_ROOT_DIR} .
+    cmake3 -DCMAKE_INSTALL_PREFIX=${prefix} .
 else
-    cmake -DCMAKE_INSTALL_PREFIX=${LROSE_ROOT_DIR} .
+    cmake -DCMAKE_INSTALL_PREFIX=${prefix} .
 fi
 
 # do the build
