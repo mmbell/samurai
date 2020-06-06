@@ -1,9 +1,7 @@
 cmake_minimum_required ( VERSION 3.0.2 )
 project(samurai)
 
-
-
-
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
@@ -19,7 +17,6 @@ set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
 set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
 set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
 set ( WRITE_OBSERVATIONS 1 )       # Boolean for whether we write the observations back out into a single file after reading them in (slow, so we disable this at NCAR for testing)
-
 
 # ----- Users shouldn't need to change anything below this, hopefully ----- 
 
@@ -58,6 +55,11 @@ else()
 endif()
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
 find_package ( GeographicLib REQUIRED ) 
+
+# Set up the include and link paths:
+
+include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} ${LROSE_INCLUDE_DIRS} )
+link_directories    ( ${GeographicLib_LIBRARY_DIRS} ${LROSE_LIB_DIR} )
 
 # Add our additional flags:
 add_compile_options( ${ADDITIONAL_FLAGS} )
@@ -174,10 +176,6 @@ set (lib_SRCS
 	)
 
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
-target_link_directories( samurai PRIVATE ${LROSE_LIB_DIR} )
-
-###include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
-###link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
 
 # NCAR: Unfortunately the PGI compiler doesn't work out of the box - these are to fix various issues (maybe there's a better way to do this?):
 # Note that because of how PGI treats command-line arguments, this is still imperfect - eg, adding '-O1' to a release build doesn't completely
@@ -214,14 +212,6 @@ if ( CUDA_CUFFT_LIBRARIES )
 endif()
 
     
-
-# Set up the include and link paths:
-include_directories ( ${FFTW_INCLUDES} ${NETCDF_INCLUDES} include ${GeographicLib_INCLUDE_DIRS} ${PETSC_INC} ${LROSE_INCLUDE_DIRS} )
-link_directories    ( ${GeographicLib_LIBRARY_DIRS} ${LROSE_LIB_DIR} )
-
-###include_directories ( /usr/local/include ${LROSE_INCLUDE_DIRS} src/timing/include )
-###link_directories( /usr/local/lib ${LROSE_LIB_DIR} )
-
 
 # Generate the argument files
 
