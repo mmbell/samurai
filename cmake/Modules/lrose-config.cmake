@@ -14,3 +14,8 @@ set ( LROSE_DEFINITIONS -L ${LROSE_LIB_DIR} )
 set ( LROSE_LIBRARIES -lkd -ltdrp -lRadx -lNcxx -lnetcdf -lhdf5_cpp -lhdf5)
 
 set ( TDRP_EXECUTABLE ${LROSE_BIN_DIR}/tdrp_gen )
+
+message ( STATUS "lrose-config: CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX} )
+message ( STATUS "lrose-config: LROSE_ROOT_DIR: " ${LROSE_ROOT_DIR} )
+message ( STATUS "lrose-config: LROSE_BIN_DIR: " ${LROSE_BIN_DIR} )
+message ( STATUS "lrose-config: TDRP_EXECUTABLE: " ${TDRP_EXECUTABLE} )
