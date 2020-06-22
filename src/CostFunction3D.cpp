@@ -443,15 +443,18 @@ void CostFunction3D::initState(const int iteration)
       // variance.writeDebugNc("debug.out/StateB.nc", false, stateB);			// mesh sized DEBUG
       // SA transform = bg B's -> bg A's
 
-			#pragma acc data copyin(stateB[0:nState]) copyout(stateA[0:nState])
-			{
+        #pragma acc data copyin(stateB[0:nState]) copyout(stateA[0:nState])
+        {
       	SAtransform(stateB, stateA);
-			}
+	}
       // variance.writeDebugNc("debug.out/StateA.nc", false, stateA);			// mesh sized DEBUG
     }
 
     // FF transform to match background and increment
+    #pragma acc data copyin(stateA[0:nState]) copyout(bgState[0:nState])
+    {
     FFtransform(stateA, bgState); 
+    }
     // variance.writeDebugNc("debug.out/FF.nc", false, bgState);			// mesh sized DEBUG
 
   } // end of iteration == 1
@@ -512,9 +515,9 @@ void CostFunction3D::initState(const int iteration)
 
 	#pragma acc data create(stateB[0:nState])
 	{
-  	#pragma acc update self(stateC)
+  	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	#pragma acc update device(stateA[0:nState])
+  	//JMD#pragma acc update device(stateA[0:nState])
   	SAtransform(stateA, stateB);
   	SCtransform(stateB, CTHTd);
 	}
@@ -582,9 +585,9 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   	GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
   	GPTLstart("CostFunction3D::funcGradient:FFtransform");
-  	#pragma acc update self(stateC)
+  	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	#pragma acc update device(stateA[0:nState])  // Update stateA on GPU
+  	//JMD#pragma acc update device(stateA[0:nState])  // Update stateA on GPU
   	GPTLstop("CostFunction3D::funcGradient:FFtransform");
 
   	GPTLstart("CostFunction3D::funcGradient:SAtransform");
@@ -645,10 +648,10 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   	J = 0.5*(qIP + obIP);
 
   	//Now Gradient (also uses HCq)
-		calcHTranspose(HCq, stateC);
-  	#pragma acc update self(stateC)
+	calcHTranspose(HCq, stateC);
+  	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	#pragma acc update self(stateC)
+  	//JMD#pragma acc update self(stateC)
   	SAtransform(stateA, stateB);
   	SCtransform(stateB, stateC);
   	//calc gradient
@@ -676,9 +679,9 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
   	updateHCq(x,HCq);
                                                                
   	calcHTranspose(HCq, stateC);
- 		#pragma acc update self(stateC)
+ 	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	#pragma acc update device(stateA[0:nState])
+  	//JMD#pragma acc update device(stateA[0:nState])
   	SAtransform(stateA, stateB);
   	SCtransform(stateB, stateC);
   	//#pragma acc update device(stateC[0:nState]) 
@@ -701,9 +704,9 @@ void CostFunction3D::updateHCq(real* state,real* HCq)
   	GPTLstart("CostFunction3D::updateHCq");
   	SCtransform(state, stateB);
   	SAtransform(stateB, stateA);
-  	#pragma acc update self(stateA[0:nState])
+  	//JMD#pragma acc update self(stateA[0:nState])
   	FFtransform(stateA, stateC);
-  	#pragma acc update device(stateC[0:nState])
+  	//JMD#pragma acc update device(stateC[0:nState])
   	Htransform(stateC, HCq);
   	#pragma acc update self(HCq[mObs+(iDim*jDim*kDim)]) //EXCESSIVE
   	GPTLstop("CostFunction3D::updateHCq");
@@ -717,13 +720,12 @@ void CostFunction3D::updateBG()
   GPTLstart("CostFunction3D::updateBG");
 
   // S (SA transform) yield A's
-	#pragma acc data copyin(currState[0:nState]) create(stateB[0:nState])
-	{
-  	SCtransform(currState, stateB);
-  	SAtransform(stateB, stateA);
-  	#pragma acc update self(stateA[0:nState])
-  	FFtransform(stateA, stateC);
-	}
+  #pragma acc data copyin(currState[0:nState]) copyout(stateC[0:nState]) create(stateB[0:nState])
+  {
+  SCtransform(currState, stateB);
+  SAtransform(stateB, stateA);
+  FFtransform(stateA, stateC);
+  }
   outputAnalysis("increment", stateC);
 
   // In BG update we are directly summing C + A
@@ -2381,9 +2383,11 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 
 void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
+  int iIndex,jIndex,kIndex;
   GPTLstart("CostFunction3D::FFtransform");
   // Copy to the new state in case no FFT is enforced
 	//#pragma acc parallel loop //[8]
+  #pragma acc update self(Astate[0:nState])
   #pragma omp parallel for //[8]
   for (int n = 0; n < nState; n++) {
     Cstate[n]= Astate[n];
@@ -2392,24 +2396,26 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
   for (int var = 0; var < varDim; var++) {
     // Enforce max wavenumber
     if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) {
-      for (int iIndex = 0; iIndex < iDim; iIndex++) {
-        for (int jIndex = 0; jIndex < jDim; jIndex++) {
-          for (int kIndex = 0; kIndex < kDim; kIndex++) {
+      // #pragma acc parallel loop gang vector collapse(2) vector_length(32) private(iIndex,jIndex,kIndex,kFFTin[:kDim],kFFTout[:kDim]) //[5.2]
+      for (iIndex = 0; iIndex < iDim; iIndex++) {
+        for (jIndex = 0; jIndex < jDim; jIndex++) {
+          for (kIndex = 0; kIndex < kDim; kIndex++) {
             kFFTin[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
           }
           fftw_execute(kForward);
-          for (int kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
+          for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
             kFFTout[kIndex][0] = 0.0;
             kFFTout[kIndex][1] = 0.0;
           }
           fftw_execute(kBackward);
-          for (int kIndex = 0; kIndex < kDim; kIndex++) {
+          for (kIndex = 0; kIndex < kDim; kIndex++) {
             Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTin[kIndex]/kDim;
           }
         }
       }
     }
 
+    #pragma acc update self(Cstate[0:nState])
     // Enforce max wavenumber
     if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
       for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -2448,6 +2454,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       }
     }
   }
+  #pragma acc update device(Cstate[0:nState])
   GPTLstop("CostFunction3D::FFtransform");
 }
 
@@ -2545,6 +2552,7 @@ void CostFunction3D::calcHmatrix()
   std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
   std::cout << "size of {H,JH}Build matrix (Mbytes) " << float(2*sizeof(real)*193*mObs)*1e-6 << " \n";
   std::cout << "Allocating H " << "\n";
+  std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
   H = new real[nonzeros];
 
   std::cout << "Allocating JH " << "\n";
