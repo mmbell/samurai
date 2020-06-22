@@ -115,9 +115,6 @@ void CostFunction3D::finalize()
     delete[] kL[var];
   }
 
-  #pragma acc exit data delete(kGammaL,kLL)
-  delete[] kGammaL;
-  delete[] kLL;
   fftw_destroy_plan(iForward);
   fftw_destroy_plan(iBackward);
   fftw_destroy_plan(jForward);
@@ -279,8 +276,6 @@ void CostFunction3D::initialize(HashMap* config,
     kRankMax = max(kRank[var],kRankMax);
   }
   
-  kGammaL = new real[kRankMax * varDim * kDim];
-  kLL     = new real[kRankMax * varDim * kLDim];
   cout << "kRankMax: " << kRankMax << "\n"; 
 
   /* Precalculate the basis functions for lookup table option
@@ -698,7 +693,6 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
 
 void CostFunction3D::updateHCq(real* state,real* HCq)
 {
-	//#pragma acc data present(state[0:nState],HCq) create(stateB[0:nState])
 	#pragma acc data present(state[0:nState],HCq)
 	{
   	GPTLstart("CostFunction3D::updateHCq");
@@ -822,21 +816,13 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
   int i,j,k,l,m;
   real tmp;
 
-	// attempting to elminate managed mode 
-	//#pragma acc data present(Bstate[0:nState],Astate[0:nState]) copyin(kL[0:varDim],kGamma[0:varDim],kRank[0:varDim],kLDim)
-	//#pragma acc data present(Bstate[0:nState],Astate[0:nState],kGammaL[0:varDim*kRankMax*kDim])
-	//#pragma acc data present(Bstate[0:nState],Astate[0:nState])
 	#pragma acc data present(Bstate[0:nState],Astate[0:nState])
 	{
   	GPTLstart("CostFunction3D::SAtransform");
-  	//cout << "SAtransform:: point #1 \n";
   	for (int var = 0; var < varDim; var++) {
     	kRankVar = kRank[var];
     	//GPTLstart("IJK Loop");
-    	//std::cout << "kDim: " << kDim << " kRankVar: " << kRankVar  << " kLDim: " << kLDim << std::endl;
 
-    	//cout << "SAtransform:: point #2 \n";
-    	//#pragma acc update device(kGammaTmp)
     	#pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
     	for (iIndex = 0; iIndex < iDim; iIndex++) {
@@ -848,58 +834,43 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	     		}
 
       	  // Multiply by gamma
-          //#pragma acc loop vector
 	      	for (m = 0; m < kRankVar; m++) {
 	        	//bk[m] = 0;
             tmp = 0;
-            //#pragma acc loop reduction(+:tmp)
 	        	for (k = 0; k < kDim; k++) {
-	          	//tmp += kGamma[var][kDim * m + k] * kB[k];
-	          	tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * kB[k];
+	          	tmp += kGamma[var][kDim * m + k] * kB[k];
 	        	}
-	        	// std::cout << "m: " << m << " bk[" << m << "]: " << bk[m] << std
 	        	// Solve for A's using compact storage
-            //cout << "-1:" << -(kLDim-1) << "\n"; 
 	        	for (l=-1;l>=-(kLDim-1);l--) {
 	          	if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
-	            	//tmp -= kL[var][m * kLDim - l] *xk[m + l];
-	            	tmp -= kLL[KINDEX(m * kLDim - l,kRankMax*kLDim,var)] *xk[m + l];
+	            	tmp -= kL[var][m * kLDim - l] *xk[m + l];
               }
 	        	}
-	        	//xk[m] = tmp / kL[var][m * kLDim];
-	        	xk[m] = tmp / kLL[KINDEX(m * kLDim,kRankMax*kLDim,var)];
+	        	xk[m] = tmp / kL[var][m * kLDim];
 	      	}
-          //#pragma acc loop vector
 	      	for (k = kRankVar - 1; k >= 0; k--) {
           	tmp = xk[k];
 	        	for (l = 1; l <= (kLDim - 1); l++) {
 	          	if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
-	            	//tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
-	            	tmp -= kLL[KINDEX((k + l) * kLDim +l,kRankMax*kLDim,var)] * xk[k + l];
+	            	tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
             	}
 	        	}
-	        	//xk[k] = tmp / kL[var][k * kLDim];
-	        	xk[k] = tmp / kLL[KINDEX(k * kLDim,kRankMax*kLDim,var)];
+	        	xk[k] = tmp / kL[var][k * kLDim];
 	      	}
 
           #pragma acc loop vector
 	      	for (k = 0; k < kDim; k++) {
 	        	// Multiply by gammaT
 	        	tmp = 0;
-            //#pragma acc loop reduction(+:tmp)
 	        	for (m = 0; m < kRankVar; m++) {
-	          	//tmp += kGamma[var][kDim * m + k] * xk[m];
-	          	tmp += kGammaL[KINDEX(kDim * m + k,kRankMax*kDim,var)] * xk[m];
+	          	tmp += kGamma[var][kDim * m + k] * xk[m];
 	        	}
-	        	// std::cout << "k: " << k << " ak[" << k << "]: " << ak[k] << "\n";
             kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	        	// Astate[INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var)] = tmp; 
 	        	Astate[kIndex] = tmp; 
 	      	}
       	}
     	}
     	//GPTLstop("IJK Loop");
-    	// cout << "SAtransform:: point #3 \n";
 
     	//GPTLstart("IKJ Loop");
     	#pragma omp parallel for private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
@@ -910,11 +881,9 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	      	for (j = 0; j < jDim; j++) {
 	        	jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
 	      	}
-          //#pragma acc loop vector 
 	      	for (m = 0; m < jRank[var]; m++) {
 	        	// Multiply by gamma
             tmp = 0;
-            //#pragma acc loop vector
 	        	for (j = 0; j < jDim; j++) {
 	          	tmp += jGamma[var][jDim*m + j]*jB[j];
 	        	}
@@ -927,7 +896,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	        	xj[m] = tmp/jL[var][m*jLDim];
 	      	}
 
-          //#pragma acc loop vector 
 	      	for (j=jRank[var]-1;j>=0;j--) {
           	tmp=xj[j];
 	        	for (l=1;l<=(jLDim-1);l++) {
@@ -945,13 +913,11 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	        	for (m = 0; m < jRank[var]; m++) {
 	          	tmp += jGamma[var][jDim*m + j]*xj[m];
 	        	}
-	        	//  std::cout << "i: " << i << " aj[" << j << "]: " << tmp << "\n";	  
 	        	Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
 	      	}
       	}
     	}
     	//GPTLstop("IKJ Loop");
-    	//cout << "SAtransform:: point #4 \n";
     	//GPTLstart("JKI Loop");
     	#pragma omp parallel for private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
@@ -962,7 +928,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	        	iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
 	      	}
 	      	// Multiply by gamma
-          //#pragma acc loop vector
 	      	for (m = 0; m < iRank[var]; m++) {
 	        	//bi[m] = 0;
 	        	tmp = 0;
@@ -977,7 +942,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	        	}
 	        	xi[m] = tmp/iL[var][m*iLDim];
 	      	}
-          //#pragma acc loop vector
 	      	for (i=iRank[var]-1;i>=0;i--) {
           	tmp=xi[i];
 	        	for (l=1;l<=(iLDim-1);l++) {
@@ -1003,8 +967,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
       	}
     	}
     	//GPTLstop("JKI Loop");
-    	//cout << "SAtransform:: point #5 \n";
-    	//delete[] kGammaTmp;
 
   	}
   	GPTLstop("CostFunction3D::SAtransform");
@@ -1213,7 +1175,6 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
     je =  max(jDim-1-rankHash[jBCR[var]],jDim-2);
     ks = min(rankHash[kBCL[var]],1);
     ke = max(kDim-1-rankHash[kBCR[var]],kDim-2);
-    //#pragma acc parallel loop private(ii,iIndex,imu,iNode,uI,jj,jIndex,jmu,jNode,uJ,kk,kIndex,kmu,kNode,ui,bi,iis,iie,jjs,jje,kks,kke,i, ibasis,j, jbasis,k, kbasis)
     for (iIndex = is; iIndex < ie; iIndex++) {
       for (imu = -1; imu <= 1; imu += 2) {
 				i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
@@ -1318,7 +1279,6 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
   real iTemp[iDim], iq[iDim],is[iDim];
   real jTemp[jDim], jq[jDim],js[jDim];
   real kTemp[kDim], kq[kDim],ks[kDim];
-	//#pragma acc data create(iTemp,jTemp,kTemp)
   int n,iIndex,jIndex,kIndex,index;
 
 	#pragma acc data present(Astate[0:nState],Cstate[0:nState])
@@ -1400,14 +1360,11 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
 {
   GPTLstart("CostFunction3D::SCtranspose");
   if ((iFilterScale < 0) and (jFilterScale < 0) and (kFilterScale < 0)) {
-		//#pragma omp parallel for //[6]
-		//#pragma acc parallel loop //[6]
     for (int n = 0; n < nState; n++) {
       Astate[n]= Cstate[n] * bgStdDev[n];
     }
   } else {
     // Isotropic Recursive filter, no anisotropic "triad" working yet
-		//#pragma acc parallel loop //[7]
     for (int n = 0; n < nState; n++) {
       Astate[n]= Cstate[n];
     }
@@ -1592,21 +1549,6 @@ bool CostFunction3D::setupSplines()
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
 
-  cout << "Before linearlization of kGammaL array\n";
-  for (var=0;var<varDim;var++) {
-    // Linearlize the kGamma array 
-    for (k=0;k<kRankMax*kDim;k++) {
-     index = KINDEX(k,kRankMax*kDim,var);
-     kGammaL[index]=kGamma[var][k];
-    }
-    // Linearlize the kL array 
-    for (k=0;k<kRankMax*kLDim;k++) {
-     index = KINDEX(k,kRankMax*kLDim,var);
-     kLL[index]=kL[var][k];
-    }
-  }
-  // Copy arrays to the GPU device
-  #pragma acc enter data copyin(kGammaL,kLL)
   GPTLstop("CostFunction3D::setupSplines");
   return true;
 
