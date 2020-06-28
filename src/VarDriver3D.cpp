@@ -229,6 +229,7 @@ bool VarDriver3D::gridDependentInit()
   if (bgU != NULL)
     delete[] bgU;
   bgU = new real[uStateSize];
+  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0 
 
   // Optionally load a set of background coefficients directly
   
