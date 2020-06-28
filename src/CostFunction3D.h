@@ -138,7 +138,7 @@ protected:
   real* kGammaL;
 	real* kLL;
 	real* finalAnalysis;
-	int varDim;
+	int64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
 	int derivDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];

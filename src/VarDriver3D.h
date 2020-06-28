@@ -141,8 +141,8 @@ private:
 	// These 2 control sizes of data structure. Pulling them here
 	// since they were computed the same way in 2 different places.
 
-	int bStateSize;
-	int uStateSize;
+	int64_t bStateSize;
+	int64_t uStateSize;
 	
 	BkgdAdapter *bkgdAdapter;
 

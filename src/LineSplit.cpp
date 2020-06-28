@@ -9,7 +9,9 @@ std::vector<std::string> LineSplit(const std::string& in, const char delim)
    std::istringstream tokenStream(in);
    while (std::getline(tokenStream, token, delim))
    {
-      tokens.push_back(token);
+      if (token != "") {
+        tokens.push_back(token);
+      }
    }
    return tokens;
 }

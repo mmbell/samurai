@@ -145,32 +145,40 @@ bool BkgdObsLoader::fillHoles(std::vector<int> &emptybg)
 
 bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, int &tci)
 {
-/* NCAR - commented out since we can't test this; it's only used when reading in background obs
- * Asked Ting for a file that will let me test.
-  QString bgTimestring, tcstart, tcend;
-  QDateTime bgTime;
-  
-  bgTime.setTime_t(time);
+  std::string bgTimestring, tcstart, tcend;
+  datetime bgTime;
+ 
+  // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here   
+  // bgTime.setTime_t(time);
   // bgTime.setTimeSpec(Qt::UTC);
+  unsigned int itime = (unsigned int)(time);
+  //std::cout << "iTime: " << itime << std::endl;
+  bgTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>((unsigned int)(time)));
 
-  bgTimestring = bgTime.toString(Qt::ISODate);
-  tcstart = startTime.toString(Qt::ISODate);
-  tcend = endTime.toString(Qt::ISODate);
+  // bgTimestring = bgTime.toString(Qt::ISODate);
+  // tcstart = startTime.toString(Qt::ISODate);
+  // tcend = endTime.toString(Qt::ISODate);
+  bgTimestring = PrintDate(bgTime);
+  tcstart = PrintDate(startTime);
+  tcend = PrintDate(endTime);
 
   if ((bgTime < startTime) or (bgTime > endTime)) {
-    std::cout << std::endl << "time: " << bgTimestring.toLatin1().data()
-	      << ", start: " << tcstart.toLatin1().data()
-	      << ", end: " << tcend.toLatin1().data()
+    std::cout << "TIME: " << time << std::endl;
+    std::cout << std::endl << "time: " << bgTimestring
+	      << ", start: " << tcstart
+	      << ", end: " << tcend
 	      << std::endl;
+    exit(1);
     return false;
   }
   
-  tci = startTime.secsTo(bgTime);
+  //tci = startTime.secsTo(bgTime);
+  tci = std::chrono::duration_cast<std::chrono::seconds>(bgTime - startTime).count();
   if ((tci < 0) or (tci > (int)frameVector.size())) {
     std::cout << "Time problem with observation " << tci << " secs more than center entries" << std::endl;
     return false;
   }
-*/
+
   return true;
 }
 
@@ -468,8 +476,8 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   datetime startTime = frameVector.front().getTime();
   datetime endTime = frameVector.back().getTime();
   
-  std::cout << "Start time: " << PrintTime(startTime)  << std::endl;
-  std::cout << "End  time:  " << PrintTime(endTime)  << std::endl;
+  std::cout << "Start time: " << Date(startTime) << ",  " << PrintDate(startTime)  << std::endl;
+  std::cout << "End  time:  " << Date(endTime) << ", " << PrintDate(endTime)  << std::endl;
 
   int timeProblem = 0;
   int domainProblem = 0;
@@ -482,7 +490,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   std::cout << "imin: " << imin << ", iincr: " << iincr << std::endl;
   std::cout << "jmin: " << jmin << ", jincr: " << jincr << std::endl;
   std::cout << "kmin: " << kmin << ", kincr: " << kincr << std::endl;
-  
+ 
   while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) ) {
     int tci;
     if (! timeCheck(time, startTime, endTime, tci)) {

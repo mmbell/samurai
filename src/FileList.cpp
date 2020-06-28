@@ -28,6 +28,8 @@ std::vector<std::string> FileList(std::string &path_in)
 	// Debug
 	std::cout << "Debug: num files = " << list.size() << std::endl;
 
+  closedir(directory);
+
 	// return the vector
 	return list;
 }
@@ -47,8 +49,11 @@ bool DirectoryExists(std::string in) {
    auto directory = opendir(in.c_str());
 
    if (directory != NULL) {
+			closedir(directory);
       return true;
    }
+
+	closedir(directory);
 
    return false;
 }

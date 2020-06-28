@@ -67,21 +67,23 @@ int main (int argc, char *argv[]) {
   GPTLstop("Main::Init");
   
   // Do the analysis
-	
+
+#if !IO_BENCHMARK  
   GPTLstart("Main::Run");
   if(!driver->run()) {
     delete driver;
     return EXIT_FAILURE;
   }
   GPTLstop("Main::Run");
+#endif
   GPTLstart("Main::Finalize");
   if(!driver->finalize()) {
     delete driver;
     return EXIT_FAILURE;
   }
   GPTLstop("Main::Finalize");
-    
-  //delete driver;
+
+  delete driver;
   std::cout << "Analysis successful!\n";
   GPTLstop("Total");
   GPTLpr(0);
