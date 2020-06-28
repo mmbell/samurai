@@ -99,6 +99,8 @@ bool VarDriver::readFrameCenters()
   std::string datestr = centerFilename.substr(0,8);
   datetime startDate = ParseDate(datestr.c_str(), "%Y%m%d");
 
+  std::cout << "DEBUG: center date = " << PrintDate(startDate) << ", time = " << Time(startDate) << std::endl;
+
   // Read the centers
   std::string line;
 	float lat, lon, Vm, Um;
@@ -110,7 +112,7 @@ bool VarDriver::readFrameCenters()
     int hours = std::stoi(timestr.substr(0,2));
     if (hours > 23) { // (FIXME : NCAR) The original code added a day here, then subtracted 24 from the hours, is this needed?
       //fixme date = date::make_zoned(startDate + date::days{1});
-      hours -= 24;
+      // hours -= 24;
     } else {
       date = startDate;
     }
@@ -1056,30 +1058,27 @@ bool VarDriver::read_cimss(std::string& filename, std::vector<MetObs>* metObVect
   if (!metFile.is_open()) {
     return false;
 	}
-/*fixme
-  QTextStream in(&metFile);
-  MetObs ob;
-  QDateTime datetime;
-  // Skip first line
-  in.readLine();
 
-  QString line;
-  while (!in.atEnd()) {
-    line = in.readLine();
-    QStringList lineparts = line.split(QRegExp("\\s+"));
-    QString station = lineparts[0] + " " + lineparts[1];
-    ob.setStationName(station);
-    QDate date = QDate::fromString(lineparts[2], "yyyyMMdd");
-    QTime time = QTime::fromString(lineparts[3], "HHmm");
-    datetime = QDateTime(date, time, Qt::UTC);
-    ob.setTime(datetime);
-    ob.setLat(lineparts[4].toFloat());
-    ob.setLon(-lineparts[5].toFloat());
-    // Convert pressure to altitude using Newton's method
-    real presslevel = 100*lineparts[6].toFloat();
+  MetObs ob;
+  datetime datetime_;
+  // Skip first line
+  std::string line;
+  std::getline(metFile, line);
+
+  while (std::getline(metFile, line)) {
+    auto parts = LineSplit(line, ' ');
+    ob.setStationName(parts[0] + " " + parts[1]);
+    datetime datetime_ = ParseDate(parts[2] + parts[3], "%Y%m%d%H%M");
+    //std::cout << "Date: " << PrintDate(datetime_) << std::endl;
+    ob.setTime(datetime_);
+    ob.setLat(std::stof(parts[4]));
+    ob.setLon(-std::stof(parts[5]));
+    //std::cout << "DEBUG: Lat/Lon : " << parts[4] << " / " << parts[5] << std::endl;
+    real presslevel = 100*std::stof(parts[6]);
     real height = 9000;
     real pmin = 1e34;
     int iter = 0;
+
     while ((fabs(pmin) > 1.) and (iter < 5000)) {
       real p = refstate->getReferenceVariable(ReferenceVariable::pressref, height)-presslevel;
       real pprime = (refstate->getReferenceVariable(ReferenceVariable::pressref, height+500.)
@@ -1091,12 +1090,11 @@ bool VarDriver::read_cimss(std::string& filename, std::vector<MetObs>* metObVect
       iter++;
     }
     ob.setAltitude(height);
-    ob.setWindSpeed(lineparts[7].toFloat());
-    ob.setWindDirection(lineparts[8].toFloat());
+    ob.setWindSpeed(std::stof(parts[7]));
+    ob.setWindDirection(std::stof(parts[8]));
     ob.setObType(MetObs::AMV);
     metObVector->push_back(ob);
   }
-*/
   metFile.close();
   return true;
 
