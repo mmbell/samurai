@@ -26,6 +26,7 @@
 #include "BkgdObsLoaders.h"
 #include "LineSplit.h"
 #include "FileList.h"
+#include "timing/gptl.h"
 
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
