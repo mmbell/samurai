@@ -541,9 +541,8 @@ bool VarDriver3D::preProcessMetObs()
       // Make sure the ob is within the time limits
       MetObs metOb = metData->at(i);
       datetime obTime_ob = metOb.getTime();
-      auto obTime = Time(obTime_ob);
+      auto obTime = Date(obTime_ob);
 
-     
       if ((obTime < startTime) or (obTime > endTime)) {
 				timeProblem++;
 	
