@@ -114,7 +114,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 			    kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
 			    
 			    real basis3x = ibasis * jbasis  * kbasis;
-			    int aIndex = varDim * iDim * jDim  * kNode
+			    int64_t aIndex = varDim * iDim * jDim  * kNode
 			      + varDim * iDim * jNode  + varDim * iNode;
 			    
 			    if (aIndex > max_aIndex)	// debug
@@ -172,7 +172,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		      int uJ = jIndex * 2 + (jmu + 1) / 2;
 		      int uI = iIndex * 2 + (imu + 1) / 2;
 		      int uK = kIndex * 2 + (kmu + 1) / 2;
-		      int uIndex = varDim * (iDim - 1) * 2 * (jDim-1) * 2 * uK
+		      int64_t uIndex = varDim * (iDim - 1) * 2 * (jDim-1) * 2 * uK
 			+ varDim * (iDim - 1) * 2 * uJ +varDim * uI;
 
 		      mishData[uIndex] = rhou;
@@ -565,8 +565,8 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
     qcstream.precision(10);
 
     ostream_iterator<real> od(qcstream, "\t ");
-    for (int m = 0; m < mObs; m++) {
-      int mi = m*(7+varDim*derivDim);
+    for (int64_t m = 0; m < mObs; m++) {
+      int64_t mi = m*(7+varDim*derivDim);
       real i = obsVector[mi+2];
       real j = obsVector[mi+3];
       real k = obsVector[mi+4];
@@ -579,7 +579,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
       real kbasis = 0;
       for (int var = 0; var < varDim; var++) {
 	for (int d = 0; d < derivDim; d++) {
-	  int wgt_index = mi + (7*(d+1)) + var;
+	  int64_t wgt_index = mi + (7*(d+1)) + var;
 	  if (!obsVector[wgt_index]) continue;
 	  for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
 	    int kNode = kkNode;
@@ -593,7 +593,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 	      for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
 		int jNode = jjNode;
 		if ((jNode < 0) or (jNode >= jDim)) continue;
-		int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+		int64_t aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 		jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
 		tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
 	      }

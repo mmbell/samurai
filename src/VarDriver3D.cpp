@@ -1198,7 +1198,7 @@ bool VarDriver3D::preProcessMetObs()
 			int bgI = (ii+1)*2 + (imu+1)/2;
 			int bgJ = (ji+1)*2 + (jmu+1)/2;
 			int bgK = (ki+1)*2 + (kmu+1)/2;
-			int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
 			if (rSquare < Rsquare) {
 			  real weight = exp(-2.302585092994045*rSquare/Rsquare);
 			  //real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
@@ -1418,12 +1418,11 @@ bool VarDriver3D::preProcessMetObs()
 		  for (int kmu = -khalf; kmu <= khalf; kmu++) {
 		    real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
 		    // On the mish
-		    if (ihalf and jhalf and khalf and
-			(imu != 0) and (jmu != 0) and (kmu != 0)){
+		    if (ihalf and jhalf and khalf and (imu != 0) and (jmu != 0) and (kmu != 0)){
 		      int bgI = (iIndex+1)*2 + (imu+1)/2;
 		      int bgJ = (jIndex+1)*2 + (jmu+1)/2;
 		      int bgK = (kIndex+1)*2 + (kmu+1)/2;
-		      int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+		      			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
 		      if (bgWeights[bIndex] != 0) {
 			bgU[bIndex +6] /= bgWeights[bIndex];
 		      }
@@ -1558,9 +1557,10 @@ bool VarDriver3D::preProcessMetObs()
   }
 
   // Load the observations into a vector
-  obs = new real[obVector.size() * (7 + numVars * numDerivatives)];
-  for (int m=0; m < obVector.size(); m++) {
-    int n = m * (7 + numVars * numDerivatives);
+  int64_t vector_size = (obVector.size() * (7 + numVars * numDerivatives));
+  obs = new real[vector_size];
+  for (int64_t m=0; m < obVector.size(); m++) {
+    int64_t n = m * (7 + numVars * numDerivatives);
     Observation ob = obVector.at(m);
     obs[n] = ob.getOb();
     real invError = ob.getInverseError();
@@ -1581,7 +1581,7 @@ bool VarDriver3D::preProcessMetObs()
     obs[n+6] = ob.getTime();
     for (unsigned int var = 0; var < numVars; var++) {
       for (unsigned int d = 0; d < numDerivatives; ++d) {
-	int wgt_index = n + ( 7 * (d + 1)) + var;
+	      int64_t wgt_index = n + ( 7 * (d + 1)) + var;
 	obs[wgt_index] = ob.getWeight(var, d);
       }
     }

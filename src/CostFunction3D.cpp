@@ -1149,10 +1149,10 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
   int n,var;
   int is,ie,js,je,ks,ke;
 
-  int ii,iIndex,imu,iNode,uI;
+  int ii,iIndex,imu,iNode;
+  int64_t uI, ui, bi; // made 64-bit for large obs cases
   int jj,jIndex,jmu,jNode,uJ;
   int kk,kIndex,kmu,kNode;
-  int ui,bi;
   int iis,iie,jjs,jje,kks,kke;
 
   real i, ibasis;

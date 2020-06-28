@@ -28,7 +28,7 @@ public:
 	
 protected:
 	int ls_cnt; 
-	int mObs;
+	int64_t mObs;
 	int nState;
 	real* currState;
 	real* currGradient;
