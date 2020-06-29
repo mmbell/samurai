@@ -23,14 +23,17 @@ fi
 # ones.  So we need to modify MODULEPATH first.  We should have LROSE modules for Intel 18+, GNU 8+ and PGI 19 (and 20?). 
 # You should be able to use whatever compiler is in your current environment, and it'll pick up the right LROSE.
 
-MODULEPATH=${MODULEPATH}:/glade/u/home/bdobbins/Software/Modules
-module load LROSE
+MODULEPATH=${MODULEPATH}:/glade/p/cisl/asap/modules
+module load lrose
 module load fftw
 module load cmake
+module load cuda/10.1
+
+module list
 
 rm -rf CMakeFiles/
 rm CMakeCache.txt
 
 cmake .
 
-make -j 4 
+make -j 4 VERBOSE=1

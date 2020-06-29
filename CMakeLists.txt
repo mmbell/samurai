@@ -7,8 +7,8 @@ set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
 
-set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp)
-set ( SOLVER_INNER_MAXITER 1000 )  # max interations for inner loop with TN solver
+set ( SOLVER_MAXITER 1 )        # max iterations in the solver (src/CostFunction.cpp)
+set ( SOLVER_INNER_MAXITER 10 )  # max interations for inner loop with TN solver
 set ( SOLVER_SAMURAI 1)            # 1= truncated Newton solver, 2 = Samurai CG (orig)
 set ( SOLVER_CONV_TOL 1.0e-4 )     # solver convergence tolerance
 set ( SOLVER_INNER_CONV_TOL 1.0e-4)  # solver convergence tolerance for the inner loop with TN (usually = conv_tol for best results)
@@ -16,7 +16,7 @@ set ( SOLVER_VERBOSE 1)            # 1 = print out extra solver converegnce info
 set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
 set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
 set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
-set ( WRITE_OBSERVATIONS 1 )       # Boolean for whether we write the observations back out into a single file after reading them in (slow, so we disable this at NCAR for testing)
+set ( WRITE_OBSERVATIONS 0 )       # Boolean for whether we write the observations back out into a single file after reading them in (slow, so we disable this at NCAR for testing)
 
 # ----- Users shouldn't need to change anything below this, hopefully ----- 
 
@@ -43,7 +43,8 @@ set ( CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH} )
 if (MODE STREQUAL "GPU")
   find_package ( OpenACC REQUIRED )                           # For GPU versions
   set ( OpenACC_ACCEL_TARGET "tesla:cc70,managed,lineinfo" )  # NCAR: Target options for GPU version - unused in CPU version
-  set ( ADDITIONAL_FLAGS "-Minfo=accel" )                     # NCAR: If you want to add custom C++ flags, add them here
+  set ( ADDITIONAL_FLAGS "-Mcudalib=cufft" )    # NCAR: If you want to add custom C++ flags, add them here
+  #set ( ADDITIONAL_FLAGS "-Minfo=accel" )    # NCAR: If you want to add custom C++ flags, add them here
   # Optionally find CUDA - if found, we'll use CuFFTW, if not, we'll need FFTW
   find_package ( CUDA QUIET )
 	if ( NOT CUDA_CUFFT_LIBRARIES )
@@ -52,6 +53,7 @@ if (MODE STREQUAL "GPU")
 else()
   find_package ( OpenMP REQUIRED )              # For CPU versions (required; run with 1 thread if we want serial times)
   find_package ( FFTW REQUIRED )
+  set ( ADDITIONAL_FLAGS "-pg" ) 
 endif()
 find_package ( Lrose COMPONENTS Radx kd tdrp netcdf REQUIRED )
 find_package ( GeographicLib REQUIRED ) 
@@ -65,7 +67,7 @@ link_directories    ( ${GeographicLib_LIBRARY_DIRS} ${LROSE_LIB_DIR} )
 add_compile_options( ${ADDITIONAL_FLAGS} )
 
 # Add the OpenMP / OpenACC flags to certain files:
-set_source_files_properties ( src/VarDriver3D.cpp src/CostFunction3D.cpp src/CostFunction.h src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenMP_CXX_FLAGS} ${OpenACC_CXX_FLAGS}" )
+set_source_files_properties ( src/VarDriver3D.cpp src/CostFunction3D.cpp src/CostFunction.cpp src/CostFunction3D.h src/CostFunction.h src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenMP_CXX_FLAGS} ${OpenACC_CXX_FLAGS}" )
 
 # Set up the GPTL macros:
 set_source_files_properties ( ${gptl_SRCS} PROPERTIES COMPILE_FLAGS "-DTHREADED_OMP -DHAVE_NANOTIME " )
@@ -187,7 +189,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
     set ( CMAKE_CXX_FLAGS_RELEASE "" )
     set_source_files_properties ( ${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O3 -fast" )
     if (MODE STREQUAL "GPU")
-      set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
       target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
     else()
        set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}" )
@@ -195,7 +197,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
     set_source_files_properties ( src/BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1" ) # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
   else()
     if (MODE STREQUAL "GPU")
-      set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
       target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
     endif()
   endif()

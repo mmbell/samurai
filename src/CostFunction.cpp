@@ -62,6 +62,7 @@ bool CostFunction::minimize()
 
   //work vector or MT linesearch
   mt_work = new real[nState];
+  //#pragma acc enter data copyin(mt_work[0:nState])
 
   // choose solver (currState is update by solver)
   if (S_SOLVER == 1) {
@@ -80,6 +81,7 @@ bool CostFunction::minimize()
   }
   
   delete[] mt_work;
+  //#pragma acc exit data delete(mt_work)
 
   GPTLstop("CostFunction::minimize");
 	return true;
@@ -134,10 +136,13 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
 
     //get values of the function (into f_val) and the gradient (into g) based on qstate
     //only have to do on the first iteration if using MT line search
+  #pragma acc data copyin(qstate[:nState]) copyout(g[:nState]) 
+  {
     if (its == 0) f_val = funcValueAndGradient(qstate, g);
     
     //calculate the norm of the current gradient
     grad_dot = 0.0;
+    #pragma acc parallel loop reduction(+:grad_dot)
     for (j = 0; j  < nState; j++) {
       grad_dot +=  g[j]*g[j];
     }
@@ -156,6 +161,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
     gg = n_grad/n_init_grad;
 
     //cout << "gg = " << gg << endl;
+  }
 
     if ( gg < ftol) {
       cout << "\tMinimum J: " << f_val << endl;
@@ -176,6 +182,9 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
     // Use non-preconditioned CG to solve linear system for Newton direction: d_k
     // H_k * d_k = -g_k, where H is the Hessian and g is the gradient
     //init
+  #pragma acc data copyin(g[0:nState]) copyout(x[0:nState],r[0:nState],p[0:nState]) 
+  {
+    #pragma acc parallel loop gang vector vector_length(32) private(j)
     for (j = 0; j < nState; j++) {
       x[j] = 0.0;      // zero initial guess (x_0) for CG
       r[j] = -g[j];          //initial residual r0 = b -Ax = -g 
@@ -189,42 +198,48 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
        std::cout << "\t\tCG iteration " << std::setw(7) << std::right << "0" << ":  r_norm = " << std::fixed << std::setw(20) << std::setprecision(8) << std::right << r0_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << 1.0  << endl;
     }
 
+  }
     //CG LOOP
     for (cg_its = 0; cg_its < cg_itmax; cg_its ++){
 
+    #pragma acc data copyin(p[0:nState],r[0:nState]) copyout(p[0:nState],Ap[0:nState]) 
+    {
       //update search direction
       if (cg_its == 0) {
-				//rr = <r0, r0>
-				rr = grad_dot;
-				//already have set p0 to r0	
+	//rr = <r0, r0>
+	rr = grad_dot;
+	//already have set p0 to r0	
       } else {
-				// rr calculated at end of last loop
-				//Beta = <r_k, r_k>/<r_k-1, r_k-1>         
-				beta = rr/rr_m1;
-				// p_k = r_k + beta*p_k-1
-				for (j = 0; j < nState; j++) {
-	  			p[j] = r[j] + beta*p[j];
-				}
-     	}
+	// rr calculated at end of last loop
+	//Beta = <r_k, r_k>/<r_k-1, r_k-1>         
+	beta = rr/rr_m1;
+	// p_k = r_k + beta*p_k-1
+        #pragma acc parallel loop gang vector vector_length(32) private(j)
+	for (j = 0; j < nState; j++) {
+  	   p[j] = r[j] + beta*p[j];
+	}
+      }
 
       //Find A*p
       funcHessian(p, Ap);
 
       // alpha = <r_k, r_k>  / <Ap_k, p_k> 
       pAp = 0.0;
+      #pragma acc parallel loop reduction(+:pAp)
       for (j=0; j < nState; j++) {
-				pAp += p[j]*Ap[j];
+	  pAp += p[j]*Ap[j];
       }
      
       alpha = rr/pAp;
+    }
 
       //check for negative curvature
       if (pAp < 0) {
-				if (verbose) cout << "Negative curvature in CG iteration... pAp = " << pAp << endl;
-				neg_curve = 1;
-				if (cg_its > 0) {//if first iteration, complete this iteration and then stop 
-	  			break;         //else break out now and keep the previous x
-				}
+         if (verbose) cout << "Negative curvature in CG iteration... pAp = " << pAp << endl;
+	 neg_curve = 1;
+  	 if (cg_its > 0) {//if first iteration, complete this iteration and then stop 
+	    break;         //else break out now and keep the previous x
+	 }
       }
       
       //update x and r and compute <r_k+1, r_k+1>
@@ -232,20 +247,24 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
       //r_k+1 = r_k - alpha*A*p_k
       rr_m1 = rr;
       rr = 0.0;
+   #pragma acc data copyin(p[0:nState],Ap[0:nState]) copy(x[0:nState],r[0:nState])
+   {
+      #pragma acc parallel loop gang vector vector_length(32) reduction(+:rr) private(j)
       for (j=0; j< nState; j++){
-				x[j] = x[j] + alpha*p[j];
-				r[j] = r[j] - alpha*Ap[j];  
-				rr += r[j]*r[j];
+	x[j] = x[j] + alpha*p[j];
+	r[j] = r[j] - alpha*Ap[j];  
+	rr += r[j]*r[j];
       }
 	   
       //CG cconvergence check
       r_norm = sqrt(rr);
       rel_resid = r_norm/r0_norm;
+   }
       std::cout << std::right;
       if (verbose) cout << "\t\tCG iteration " << std::setw(7) << std::right << cg_its + 1 <<  ":  r_norm = " << std::setw(20) << std::fixed << std::setprecision(8) << std::right << r_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << rel_resid << endl;
 
       if (rel_resid < cg_tol) {
-				break;
+	break;
       }
 
       if (neg_curve) break; //this is only at its = 0 => otherwise we already left the loop
@@ -583,7 +602,10 @@ real CostFunction::f1dim_and_df1dim(const real x, real *grad)
     xt[j] = tempState[j] + x*tempGradient[j];
     df[j] = 0;
   }
+  #pragma acc data copyin(xt[0:nState]) copyout(df[0:nState]) 
+  {
   f1 = funcValueAndGradient(xt, df);  
+  }
 
   for (j=0; j<nState; j++) {
     df1 += df[j]*tempGradient[j]; 
@@ -806,15 +828,21 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
   int verbose = S_VERBOSE;
   int n_feval = 0;
   
+#pragma acc data create(mt_work[0:nState])
+{
   GPTLstart("CostFunction::MTLineSearch");
 
   n = nState;
 
   //compute dginit <g,s> (inital gradient in the search direction)
   dginit = 0.0;
+#pragma acc data copyin(g[0:nState],s[0:nState])
+{
+  #pragma acc parallel loop reduction(+:dginit)
   for (j=0; j< nState; j++){
     dginit += g[j]*s[j];
   }
+}
   
   if (dginit >= 0.0) {
     cout << "Search direction is not a descent direction! dginit = " << dginit << endl;
@@ -852,10 +880,14 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
   stx = sty = 0.0;
   step = initstep;
 
+#pragma acc data copyin(x[0:nState])
+{
   //copy the orig x into the work vector
+  #pragma acc parallel loop private(j)
   for (j=0; j<nState; j++) {
     mt_work[j] = x[j];
   }
+}
 
   //Begin iteration
   for (i=0; i< max_funcs; i++){
@@ -881,18 +913,25 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
     //  Evaluate the function and gradient at step and compute the directional derivative.
     //the orig x was copied into the work vector
     //x = x-orig + step * s;
+#pragma acc data copyin(s[0:nState]) copyout(x[0:nState]) copy(g[0:nState])
+{
+    #pragma acc parallel loop private(j)
     for (j = 0; j<nState; j++) {
       x[j] = mt_work[j] + step*s[j];
     }
+//}
+//#pragma acc data copyin(x[0:nState],s[0:nState]) copy(g[0:nState])
+//{
     *fval = funcValueAndGradient(x, g); //f is func value at x is g is gradient at x
     ls_cnt ++;
     n_feval++; 
-
     //compute dg = <g,s>
     dg = 0.0;
+    #pragma acc parallel loop reduction(+:dg)
     for (j = 0; j< nState; j++){
       dg += g[j]*s[j];
     }
+}
     ftest1 = finit + step*dgtest;
 
     //to compare with PETSc -tao_ls_monitor
@@ -983,6 +1022,7 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
 
 
   GPTLstop("CostFunction::MTLineSearch");
+}
 
   return reason;
 

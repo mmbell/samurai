@@ -5,6 +5,8 @@ EXE=$(readlink -f ./build/release/bin/samurai )
 # Determine if we're running on the GPU or not by checking the libraries we've linked:
 GPU=$(grep -c libacc ${EXE})
 
+module list
+
 if [ "${GPU}" == "0" ]; then
   echo "CPU run; using 36 threads"
   export OMP_NUM_THREADS=36
@@ -17,9 +19,13 @@ if [ "${GPU}" == "0" ]; then
     OMPLACE=omplace
   fi
 else
+  module load cuda/10.1
   echo "GPU run; using 1 thread"
   export OMP_NUM_THREADS=1
   unset OMPLACE
+  # OMPLACE=cuda-gdb
+  # OMPLACE=nvvp
+  #printenv 
 fi
 
 ${OMPLACE} ${EXE} $*

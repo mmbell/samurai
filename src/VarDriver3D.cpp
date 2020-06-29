@@ -230,6 +230,10 @@ bool VarDriver3D::gridDependentInit()
     delete[] bgU;
   bgU = new real[uStateSize];
 
+  // Initialize this to zero. 
+  std::fill(bgU,bgU+uStateSize,0.0);
+  //for (int i=0;i< uStateSize;i++) {bgU[i]=0.0;}
+
   // Optionally load a set of background coefficients directly
   
   std::string loadBGcoeffs = configHash["load_bg_coefficients"];
