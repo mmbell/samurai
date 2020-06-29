@@ -83,7 +83,7 @@ int main (int argc, char *argv[]) {
   }
   GPTLstop("Main::Finalize");
 
-  delete driver;
+  //delete driver; // NCAR - uncommenting this results in a crash on GPU.. must still be something allocated in GPU space?
   std::cout << "Analysis successful!\n";
   GPTLstop("Total");
   GPTLpr(0);
