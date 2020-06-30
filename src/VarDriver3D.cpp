@@ -2453,7 +2453,7 @@ void VarDriver3D::dumpBgu()
 {
   std::cout << "------------- Dump of bgU after initialization ---------------" << std::endl;
 
-  for(int i = 0; i < uStateSize; i++) {
+  for(int64_t i = 0; i < uStateSize; i++) {
     if( (i % 20) == 0)
       std::cout << std::endl;
     std::cout << bgU[i] << " ";
