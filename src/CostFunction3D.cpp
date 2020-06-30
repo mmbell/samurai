@@ -2499,9 +2499,9 @@ void CostFunction3D::calcHmatrix()
     i = obsVector[mi+2];
     j = obsVector[mi+3];
     k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim);
+    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0;
     jbasis = 0;
     kbasis = 0;
@@ -2577,9 +2577,9 @@ void CostFunction3D::calcHmatrix()
     IH[m]=hi;
     mi = m*(7+varDim*derivDim);
     i = obsVector[mi+2]; j = obsVector[mi+3]; k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim);
+    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0; jbasis = 0; kbasis = 0;
     for (var = 0; var < varDim; var++) {
       for (d = 0; d < derivDim; d++) {
