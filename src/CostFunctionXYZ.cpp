@@ -462,8 +462,6 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 
 bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
-  return true; // DEBUG
-/*fixme
   bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
   bool debug_ref_state = isTrue("debug_ref_state");
   bool debug_bgState = isTrue("debug_bgState");
@@ -659,12 +657,11 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 
 bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
 {
-/*fixme
   Nc3Error err(Nc3Error::verbose_nonfatal);
   int NC_ERR = 0;
 
   // Create the file.
-  Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
+  Nc3File dataFile(netcdfFileName.c_str(), Nc3File::Replace);
 
   // Check to see if the file was created.
   if(!dataFile.is_valid())
@@ -746,8 +743,7 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
 #if 0  // TODO debug
   Nc3Var *dU_std, *dV_std, *dW_std;  // Mish variables (mish values modified by SItransform)
 #endif
-*/ 
-/*fixme 
+
   if (!(u = dataFile.add_var("U", nc3Float, timeDim,
 			     lvlDim, latDim, lonDim)))
     return NC_ERR;
@@ -817,7 +813,7 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
   if (!(h = dataFile.add_var("H", nc3Float, timeDim,
 			     lvlDim, latDim, lonDim)))
     return NC_ERR;
-  if (configHash->value("qr_variable") == "dbz") {
+  if ((*configHash)["qr_variable"] == "dbz") {
     if (!(qr = dataFile.add_var("DBZ", nc3Float, timeDim,
 				lvlDim, latDim, lonDim)))
       return NC_ERR;
@@ -989,7 +985,7 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
     return NC_ERR;
   if (!h->add_att("units", "kJ"))
     return NC_ERR;
-  if (configHash->value("qr_variable") == "dbz") {
+  if ((*configHash)["qr_variable"] == "dbz") {
     if (!qr->add_att("units", "dBZ"))
       return NC_ERR;
   } else {
@@ -1098,7 +1094,7 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
     return NC_ERR;
   if (!h->add_att("long_name", "moist static energy"))
     return NC_ERR;
-  if (configHash->value("qr_variable") == "dbz") {
+  if ((*configHash)["qr_variable"] == "dbz") {
     if (!qr->add_att("long_name", "radar reflectivity"))
       return NC_ERR;
   } else {
@@ -1377,9 +1373,9 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
   int time[2];
 
   // Reference time and position from center file
-  time[0] = configHash->value("ref_time").toInt();
-  real latReference = configHash->value("ref_lat").toFloat();
-  real lonReference = configHash->value("ref_lon").toFloat();
+  time[0] = std::stoi((*configHash)["ref_time"]);
+  real latReference = std::stof((*configHash)["ref_lat"]);
+  real lonReference = std::stof((*configHash)["ref_lon"]);
   real refX, refY;
 
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
@@ -1587,12 +1583,15 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
   delete[] levs;
   delete[] x;
   delete[] y;
-*/
+
   return true;
 }
 
 bool CostFunctionXYZ::writeAsi(const std::string& asiFileName)
 {
+  std::cout << "CostFunctionXYZ::writeASI() is currently disabled!" << std::endl;
+  return false;
+
   // Initialize header
   int id[511];
   for (int n = 1; n <= 510; n++) {
