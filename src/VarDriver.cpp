@@ -540,77 +540,81 @@ bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector
   if (!metFile.is_open()) 
     return false;
 
-/*
-  QTextStream in(&metFile);
-  QString datestr, timestr, aircraft;
-  QDateTime datetime;
+  std::string datestr, timestr, aircraft;
+  datetime datetime_;
   bool start = false;
-  while (!in.atEnd()) {
-    QString line = in.readLine();
-    if (line.startsWith("Launch Site Type")) {
-      QStringList lineparts = line.split(":");
-      aircraft = lineparts[1].trimmed();
-    } else if (line.startsWith("UTC")) {
-      datestr = line.mid(43,12);
-      timestr = line.mid(57,8);
-      QDate date = QDate::fromString(datestr, "yyyy, MM, dd");
-      QTime time = QTime::fromString(timestr, "HH:mm:ss");
-      datetime = QDateTime(date, time, Qt::UTC);
-    } else if (line.startsWith("------")) {
+
+  std::string line;
+
+
+  while (std::getline(metFile, line)) {
+           //std::cout << "DEBUG: line = " << line << std::endl;
+          linecount++;
+    if (line.find("Launch Site Type") == 0) {  // find of 0 means it's there, starting at position 0 (vs. npos)
+      auto lineparts = LineSplit(line, ':');
+      aircraft = lineparts[1];
+    } else if (line.find("UTC") == 0) {
+      datestr = line.substr(43,12);
+      timestr = line.substr(57,8);
+
+      std::string combined = datestr + " " + timestr;
+      datetime_ = ParseDate(combined.c_str(), "%Y, %m, %d %H:%M:%S");
+    } else if (line.find("------") == 0) {
       // Start reading data
       start = true;
     } else if (start) {
       MetObs ob;
       ob.setStationName(aircraft);
-      line = QString(" ") + line;
-      QStringList lineparts = line.split(QRegExp("\\s+"));
-      int sec = (int)lineparts[1].toFloat();
-      ob.setTime(datetime.addSecs(sec));
-      if (lineparts[15].toFloat() != -999.) {
-	ob.setLon(lineparts[15].toFloat());
+      //line = QString(" ") + line;
+      line = "Blank " + line; // The blank is to force the +1 indexing here; original code used a space (see above)
+      auto lineparts = LineSplit(line, ' ');
+      int sec = (int)(std::stof(lineparts[1]));
+      //std::cout << "DLine : " << linecount << " -> sec = " << sec << ", DT => " << PrintDate(datetime_) << std::endl;
+      ob.setTime(datetime_ + std::chrono::seconds(sec));
+      if (std::stof(lineparts[15]) != -999.) {
+	      ob.setLon(std::stof(lineparts[15]));
       } else {
-	ob.setLon(-999.);
+	      ob.setLon(-999.);
       }
-      if (lineparts[16].toFloat() != -999.) {
-	ob.setLat(lineparts[16].toFloat());
+      if (std::stof(lineparts[16]) != -999.) {
+	      ob.setLat(std::stof(lineparts[16]));
       } else {
-	ob.setLat(-999.);
+	      ob.setLat(-999.);
       }
-      if (lineparts[14].toFloat() != -999.0) {
-	ob.setAltitude(lineparts[14].toFloat());
+      if (std::stof(lineparts[14]) != -999.0) {
+	      ob.setAltitude(std::stof(lineparts[14]));
       } else {
-	ob.setAltitude(-999.);
+	      ob.setAltitude(-999.);
       }
-      if (lineparts[5].toFloat() != -999.0) {
-	ob.setPressure(lineparts[5].toFloat());
+      if (std::stof(lineparts[5]) != -999.0) {
+	      ob.setPressure(std::stof(lineparts[5]));
       } else {
-	ob.setPressure(-999.0);
+	      ob.setPressure(-999.0);
       }
-      if (lineparts[6].toFloat() != -999.0) {
-	ob.setTemperature(lineparts[6].toFloat() + 273.15);
+      if (std::stof(lineparts[6]) != -999.0) {
+	      ob.setTemperature(std::stof(lineparts[6]) + 273.15);
       } else {
-	ob.setTemperature(-999.);
+	      ob.setTemperature(-999.);
       }
-      if (lineparts[8].toFloat() != -999.0) {
-	ob.setRH(lineparts[8].toFloat());
+      if (std::stof(lineparts[8]) != -999.0) {
+	      ob.setRH(std::stof(lineparts[8]));
       } else {
-	ob.setRH(-999.);
+	      ob.setRH(-999.);
       }
-      if (lineparts[12].toFloat() != -999.0) {
-	ob.setWindDirection(lineparts[12].toFloat());
+      if (std::stof(lineparts[12]) != -999.0) {
+	      ob.setWindDirection(std::stof(lineparts[12]));
       } else {
-	ob.setWindDirection(-999.);
+	      ob.setWindDirection(-999.);
       }
-      if (lineparts[11].toFloat() != -999.0) {
-	ob.setWindSpeed(lineparts[11].toFloat());
+      if (std::stof(lineparts[11]) != -999.0) {
+	      ob.setWindSpeed(std::stof(lineparts[11]));
       } else {
-	ob.setWindSpeed(-999.);
+	      ob.setWindSpeed(-999.);
       }
       ob.setObType(MetObs::dropsonde);
       metObVector->push_back(ob);
     }
   }
-*/
   metFile.close();
   return true;
 }
