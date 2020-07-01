@@ -549,7 +549,6 @@ bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector
 
   while (std::getline(metFile, line)) {
            //std::cout << "DEBUG: line = " << line << std::endl;
-          linecount++;
     if (line.find("Launch Site Type") == 0) {  // find of 0 means it's there, starting at position 0 (vs. npos)
       auto lineparts = LineSplit(line, ':');
       aircraft = lineparts[1];
@@ -569,7 +568,6 @@ bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector
       line = "Blank " + line; // The blank is to force the +1 indexing here; original code used a space (see above)
       auto lineparts = LineSplit(line, ' ');
       int sec = (int)(std::stof(lineparts[1]));
-      //std::cout << "DLine : " << linecount << " -> sec = " << sec << ", DT => " << PrintDate(datetime_) << std::endl;
       ob.setTime(datetime_ + std::chrono::seconds(sec));
       if (std::stof(lineparts[15]) != -999.) {
 	      ob.setLon(std::stof(lineparts[15]));
