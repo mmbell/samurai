@@ -602,7 +602,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 	*od++ = obsVector[mi+t];
       }
       int unixtime = (int)obsVector[mi+6];
-      std::cout << "Unix Time: " << unixtime << std::endl;
+      //std::cout << "Unix Time: " << unixtime << std::endl;
       
       //QDateTime obtime;
       datetime obtime;
