@@ -127,6 +127,7 @@ void CostFunction3D::finalize()
   fftw_free(iFFTout);
   fftw_free(jFFTout);
   fftw_free(kFFTout);
+  fftw_cleanup();
 }
 
 void CostFunction3D::initialize(HashMap* config,
@@ -233,7 +234,8 @@ void CostFunction3D::initialize(HashMap* config,
   // These are local to this one
   CTHTd      = new real[nState];
   stateU     = new real[nState];
-  obsVector  = new real[mObs*(7+varDim*derivDim)];
+  int64_t vector_size = mObs*(7+varDim*derivDim);
+  obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
   innovation = new real[mObs+nodes];
@@ -1152,15 +1154,17 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
   return true;
 }
 
+/* NCAR - This is the optimized routine, but it has a bug where it's writing past the bounds of Bstate, replacing with
+ * the old one for now.
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
   int n,var;
   int is,ie,js,je,ks,ke;
 
-  int ii,iIndex,imu,iNode,uI;
+  int ii,iIndex,imu,iNode;
+  int64_t uI, ui, bi; // made 64-bit for large obs cases
   int jj,jIndex,jmu,jNode,uJ;
   int kk,kIndex,kmu,kNode;
-  int ui,bi;
   int iis,iie,jjs,jje,kks,kke;
 
   real i, ibasis;
@@ -1222,8 +1226,67 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
     } // iIndex loop
   } // var loop
   GPTLstop("CostFunction3D::SBtransform");
-}
+}*/
 
+void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
+{
+  // Clear the Bstate
+  for (int n = 0; n < nState; n++) {
+    Bstate[n] = 0.;
+  }
+  real gausspoint = 0.5*sqrt(1./3.);
+
+  //#pragma omp parallel for
+  for (int var = 0; var < varDim; var++) {
+    for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
+      for (int imu = -1; imu <= 1; imu += 2) {
+	real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5));
+	int ii = (int)((i - iMin)*DIrecip);
+	for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+	  int iNode = iiNode;
+	  if ((iNode < 0) or (iNode >= iDim)) continue;
+	  real ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+	  int uI = iIndex*2 + (imu+1)/2;
+	  for (int jIndex = min(rankHash[jBCL[var]],1); jIndex < max(jDim-1-rankHash[jBCR[var]],jDim-2); jIndex++) {
+	    for (int jmu = -1; jmu <= 1; jmu += 2) {
+	      real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5));
+	      int jj = (int)((j - jMin)*DJrecip);
+	      for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+		int jNode = jjNode;
+		if ((jNode < 0) or (jNode >= jDim)) continue;
+		real jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+		int uJ = jIndex*2 + (jmu+1)/2;
+		real ijbasis = ibasis * jbasis;
+		for (int kIndex = min(rankHash[kBCL[var]],1); kIndex < max(kDim-1-rankHash[kBCR[var]],kDim-2); kIndex++) {
+		  for (int kmu = -1; kmu <= 1; kmu += 2) {
+		    real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5));
+		    int kk = (int)((k - kMin)*DKrecip);
+		    for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
+		      int kNode = kkNode;
+		      if ((kNode < 0) or (kNode >= kDim)) continue;
+		      real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+		      real ijkbasis = 0.125 * ijbasis * kbasis;
+		      int uK = kIndex*2 + (kmu+1)/2;
+		      int uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
+			+ varDim * (iDim -1 ) * 2 * uJ + varDim * uI;
+		      int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+
+		      int ui = uIndex + var;
+		      if (Ustate[ui] == 0) continue;
+		      int bi = bIndex + var;
+		      //#pragma omp atomic
+		      Bstate[bi] += Ustate[ui] * ijkbasis;
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
 
 void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
 {
@@ -2426,6 +2489,7 @@ void CostFunction3D::calcHmatrix()
   GPTLstart("CostFunction3D::calcHmatrix");
 
   std::cout << "Build H transform matrix...\n";
+  std::cout << "calcHmatrix: Grid dimensions: (" << iDim << ", " << jDim << ", " << kDim << ")" << std::endl;
 
   //GPTLstart("CostFunction3D::calcHmatrix:allocate");
 
@@ -2450,9 +2514,9 @@ void CostFunction3D::calcHmatrix()
     i = obsVector[mi+2];
     j = obsVector[mi+3];
     k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim);
+    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0;
     jbasis = 0;
     kbasis = 0;
@@ -2529,9 +2593,9 @@ void CostFunction3D::calcHmatrix()
     IH[m]=hi;
     mi = m*(7+varDim*derivDim);
     i = obsVector[mi+2]; j = obsVector[mi+3]; k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim);
+    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0; jbasis = 0; kbasis = 0;
     for (var = 0; var < varDim; var++) {
       for (d = 0; d < derivDim; d++) {

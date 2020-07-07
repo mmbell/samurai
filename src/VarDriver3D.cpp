@@ -26,6 +26,7 @@
 #include "BkgdObsLoaders.h"
 #include "LineSplit.h"
 #include "FileList.h"
+#include "timing/gptl.h"
 
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
@@ -229,6 +230,7 @@ bool VarDriver3D::gridDependentInit()
   if (bgU != NULL)
     delete[] bgU;
   bgU = new real[uStateSize];
+  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0 
 
   // Initialize this to zero. 
   std::fill(bgU,bgU+uStateSize,0.0);
@@ -254,6 +256,8 @@ bool VarDriver3D::gridDependentInit()
       cout << "Error loading background Obs\n";
       return false;
     }
+    //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
+    delete bkgdAdapter;
   }
   
   // Optionally adjust the interpolated background to satisfy mass continuity
@@ -287,7 +291,7 @@ bool VarDriver3D::gridDependentInit()
 bool VarDriver3D::findReferenceCenter()
 {
 	// NOTE (NCAR) : I'm not sure whether we're JUST comparing times, or if dates matter?  Seems not, but get clarification from CSU team
-  datetime reftime = ParseDate(configHash["ref_time"].c_str(), "%H:%M:%S");
+  datetime reftime = ParseTime(configHash["ref_time"].c_str(), "%H:%M:%S");
 
   for (unsigned int fi = 0; fi < frameVector.size(); fi++) {
     datetime frametime = frameVector[fi].getTime();
@@ -296,7 +300,6 @@ bool VarDriver3D::findReferenceCenter()
       configHash.insert("ref_lon", std::to_string(frameVector[fi].getLon()));
       configHash.insert("ref_time", PrintTime(frametime));
       cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
-
       return true;
     }
   }
@@ -421,6 +424,7 @@ bool VarDriver3D::finalize()
 
 bool VarDriver3D::preProcessMetObs()
 {
+  GPTLstart("VarDriver3D::preprocessMetObs");
 
   vector<real> rhoP;
 
@@ -531,9 +535,9 @@ bool VarDriver3D::preProcessMetObs()
     }
     
     datetime startTime_ob = frameVector.front().getTime();
-    auto startTime = Time(startTime_ob);
+    auto startTime = Date(startTime_ob);
     datetime endTime_ob = frameVector.back().getTime(); 
-    auto endTime = Time(endTime_ob);
+    auto endTime = Date(endTime_ob);
     int prevobs = obVector.size();
     
     for (std::size_t i = 0; i < metData->size(); ++i) {
@@ -541,9 +545,8 @@ bool VarDriver3D::preProcessMetObs()
       // Make sure the ob is within the time limits
       MetObs metOb = metData->at(i);
       datetime obTime_ob = metOb.getTime();
-      auto obTime = Time(obTime_ob);
+      auto obTime = Date(obTime_ob);
 
-     
       if ((obTime < startTime) or (obTime > endTime)) {
 				timeProblem++;
 	
@@ -1202,7 +1205,7 @@ bool VarDriver3D::preProcessMetObs()
 			int bgI = (ii+1)*2 + (imu+1)/2;
 			int bgJ = (ji+1)*2 + (jmu+1)/2;
 			int bgK = (ki+1)*2 + (kmu+1)/2;
-			int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
 			if (rSquare < Rsquare) {
 			  real weight = exp(-2.302585092994045*rSquare/Rsquare);
 			  //real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
@@ -1381,6 +1384,7 @@ bool VarDriver3D::preProcessMetObs()
     cout << "Observation problem: " << obsProblem << ", Time problem: " << timeProblem
 	 << ", Coordinate problem: " <<  coordProblem << ", Domain problem: " << domainProblem
 	 << ", Radius problem: " << radiusProblem << endl;
+    std::cout << "obVector size: " << obVector.size() << std::endl;
     
     int newobs = obVector.size() - prevobs;
     // if (metData->size() > 0) {
@@ -1422,12 +1426,11 @@ bool VarDriver3D::preProcessMetObs()
 		  for (int kmu = -khalf; kmu <= khalf; kmu++) {
 		    real k = kmin + kincr * (kIndex + (gausspoint * kmu + 0.5*khalf));
 		    // On the mish
-		    if (ihalf and jhalf and khalf and
-			(imu != 0) and (jmu != 0) and (kmu != 0)){
+		    if (ihalf and jhalf and khalf and (imu != 0) and (jmu != 0) and (kmu != 0)){
 		      int bgI = (iIndex+1)*2 + (imu+1)/2;
 		      int bgJ = (jIndex+1)*2 + (jmu+1)/2;
 		      int bgK = (kIndex+1)*2 + (kmu+1)/2;
-		      int bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+		      			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
 		      if (bgWeights[bIndex] != 0) {
 			bgU[bIndex +6] /= bgWeights[bIndex];
 		      }
@@ -1513,6 +1516,8 @@ bool VarDriver3D::preProcessMetObs()
 
   cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
 
+#if IO_WRITEOBS
+  GPTLstart("VarDriver3D::preprocessMetObs->writeobs");
   // Write the Obs to a summary text file
   std::string obFilename = dataPath + "/samurai_Observations.in";
   ofstream obstream(obFilename);
@@ -1560,11 +1565,14 @@ bool VarDriver3D::preProcessMetObs()
     }
     obstream << endl;
   }
+  GPTLstop("VarDriver3D::preprocessMetObs->writeobs");
+#endif 
 
   // Load the observations into a vector
-  obs = new real[obVector.size() * (7 + numVars * numDerivatives)];
-  for (int m=0; m < obVector.size(); m++) {
-    int n = m * (7 + numVars * numDerivatives);
+  int64_t vector_size = (obVector.size() * (7 + numVars * numDerivatives));
+  obs = new real[vector_size];
+  for (int64_t m=0; m < obVector.size(); m++) {
+    int64_t n = m * (7 + numVars * numDerivatives);
     Observation ob = obVector.at(m);
     obs[n] = ob.getOb();
     real invError = ob.getInverseError();
@@ -1585,7 +1593,7 @@ bool VarDriver3D::preProcessMetObs()
     obs[n+6] = ob.getTime();
     for (unsigned int var = 0; var < numVars; var++) {
       for (unsigned int d = 0; d < numDerivatives; ++d) {
-	int wgt_index = n + ( 7 * (d + 1)) + var;
+	      int64_t wgt_index = n + ( 7 * (d + 1)) + var;
 	obs[wgt_index] = ob.getWeight(var, d);
       }
     }
@@ -1599,6 +1607,7 @@ bool VarDriver3D::preProcessMetObs()
     cout << "Finished preprocessing " << processedFiles << " files." << endl;
   }
 
+  GPTLstop("VarDriver3D::preprocessMetObs");
   return true;
 }
 
@@ -1606,6 +1615,7 @@ bool VarDriver3D::preProcessMetObs()
 
 bool VarDriver3D::loadPreProcessMetObs()
 {
+    GPTLstart("VarDriver3D::loadPreprocessMetObs");
     Observation varOb;
     real wgt[numVars][4];
     real iPos, jPos, kPos, ob, error;
@@ -1675,6 +1685,7 @@ bool VarDriver3D::loadPreProcessMetObs()
         }
     }
 
+    GPTLstop("VarDriver3D::loadPreprocessMetObs");
     return true;
 }
 

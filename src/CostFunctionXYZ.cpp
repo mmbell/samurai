@@ -37,7 +37,6 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 				  ofstream *outStream)
 {
   real gausspoint = 0.5 * sqrt(1. / 3.);
-/*fixme  
   int max_aIndex = -1000;
   real max_heightm = -1000.0;
   bool debug_ref_state = isTrue("debug_ref_state");
@@ -114,7 +113,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 			    kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
 			    
 			    real basis3x = ibasis * jbasis  * kbasis;
-			    int aIndex = varDim * iDim * jDim  * kNode
+			    int64_t aIndex = varDim * iDim * jDim  * kNode
 			      + varDim * iDim * jNode  + varDim * iNode;
 			    
 			    if (aIndex > max_aIndex)	// debug
@@ -167,12 +166,12 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		    }
 
 		    // Save mish values for future iterations
-		    QString gridref = configHash->value("qr_variable");
+        std::string gridref = (*configHash)["qr_variable"];
 		    if ((imu != 0) and (jmu != 0) and (kmu != 0)) {	// We are on the Mish
 		      int uJ = jIndex * 2 + (jmu + 1) / 2;
 		      int uI = iIndex * 2 + (imu + 1) / 2;
 		      int uK = kIndex * 2 + (kmu + 1) / 2;
-		      int uIndex = varDim * (iDim - 1) * 2 * (jDim-1) * 2 * uK
+		      int64_t uIndex = varDim * (iDim - 1) * 2 * (jDim-1) * 2 * uK
 			+ varDim * (iDim - 1) * 2 * uJ +varDim * uI;
 
 		      mishData[uIndex] = rhou;
@@ -184,7 +183,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		      mishData[uIndex + 6] = qrprime;
 		    }
 		    
-		    if ((configHash->value("output_mish") == "false")
+		    if (((*configHash)["output_mish"] == "false")
 			and (ihalf or jhalf or khalf)) continue;		// halfway point on the Mesh
 
 		    // Output it
@@ -314,13 +313,13 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 
 		    // Add Coriolis parameter to relative vorticity
 		    
-		    real latReference = configHash->value("ref_lat").toFloat();
+		    real latReference = std::stof((*configHash)["ref_lat"]);
 		    real Coriolisf = 2 * 7.2921 * sin(latReference * acos(-1.0) / 180); // Units 10^-5 s-1
 		    real absVorticity = vorticity + Coriolisf;
 
-		    QString refmask = configHash->value("mask_reflectivity");
+        std::string refmask = (*configHash)["mask_reflectivity"];
 		    if (refmask != "None") {
-		      real refthreshold = refmask.toFloat();
+		      real refthreshold = std::stof(refmask);
 		      if (qr < refthreshold) {	// analusysDim variables
 			u = -999.0;
 			v = -999.0;
@@ -456,13 +455,14 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
       }
     }
   }
-*/
+
   return true;
 }
 
 
 bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
+  return true; // DEBUG
 /*fixme
   bool debug_final_analysis_indices = isTrue("debug_final_analysis_indices");
   bool debug_ref_state = isTrue("debug_ref_state");
@@ -480,16 +480,16 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
   int max_aIndex = -1000;
   real max_heightm = -1000.0;
   
-  cout << "Outputting " << suffix.toStdString() << "...\n";
+  cout << "Outputting " << suffix << "...\n";
   // H --> to Mish for output
-  QString samuraiout = "samurai_XYZ_" + suffix + ".out";
+  std::string samuraiout = "samurai_XYZ_" + suffix + ".out";
   
   ofstream samuraistream;
   ofstream *samStreamPtr = NULL;;
   
-  if (configHash->value("output_txt") == "true") {
+  if ((*configHash)["output_txt"] == "true") {
     samStreamPtr = &samuraistream;
-    samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
+    samuraistream.open(outputPath + "/" + samuraiout);
     samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
     samuraistream << "udx\tudy\tudz\tvdx\tvdy\tvdz\twdx\twdy\twdz\trhowdz\tMC residual\tdBZ\n";
     samuraistream.precision(10);
@@ -497,7 +497,6 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 
   int analysisDim = 51;
   int analysisSize = (iDim - 2) * (jDim - 2) * (kDim - 2); // mesh grid
-
   finalAnalysis = new real[analysisSize * analysisDim];
   
   // real gausspoint = 0.5 * sqrt(1. / 3.);
@@ -536,14 +535,14 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
     std::cout << "--- end of debug_ref_state" << std::endl;
   }
 
-  QString fileName = "samurai_XYZ_" + suffix;
-  QString outFileName = outputPath.absoluteFilePath(fileName);
+  std::string fileName = "samurai_XYZ_" + suffix;
+  std::string outFileName = outputPath + "/" + fileName;
 
   // Write the Obs to a summary text file
-  if (configHash->value("output_qc") == "true") {
-    QString qcout = "samurai_QC_" + suffix + ".out";
-    QString qcFileName = outputPath.absoluteFilePath(qcout);
-    ofstream qcstream(qcFileName.toLatin1().data());
+  if ((*configHash)["output_qc"] == "true") {
+    std::string qcout = "samurai_QC_" + suffix + ".out";
+    std::string qcFileName = outputPath + "/" + qcout;
+    ofstream qcstream(qcFileName);
     ostream_iterator<string> os(qcstream, "\t ");
     *os++ = "Observation";
     *os++ = "Inverse Error";
@@ -565,8 +564,8 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
     qcstream.precision(10);
 
     ostream_iterator<real> od(qcstream, "\t ");
-    for (int m = 0; m < mObs; m++) {
-      int mi = m*(7+varDim*derivDim);
+    for (int64_t m = 0; m < mObs; m++) {
+      int64_t mi = m*(7+varDim*derivDim);
       real i = obsVector[mi+2];
       real j = obsVector[mi+3];
       real k = obsVector[mi+4];
@@ -579,7 +578,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
       real kbasis = 0;
       for (int var = 0; var < varDim; var++) {
 	for (int d = 0; d < derivDim; d++) {
-	  int wgt_index = mi + (7*(d+1)) + var;
+	  int64_t wgt_index = mi + (7*(d+1)) + var;
 	  if (!obsVector[wgt_index]) continue;
 	  for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
 	    int kNode = kkNode;
@@ -593,7 +592,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 	      for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
 		int jNode = jjNode;
 		if ((jNode < 0) or (jNode >= jDim)) continue;
-		int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+		int64_t aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 		jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
 		tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
 	      }
@@ -605,11 +604,16 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 	*od++ = obsVector[mi+t];
       }
       int unixtime = (int)obsVector[mi+6];
-      QDateTime obtime;
-      obtime.setTime_t(unixtime);
-      obtime.setTimeSpec(Qt::UTC);
-      QString timestring = obtime.toString("hh:mm:ss.zzz");
-      qcstream << timestring.toStdString() << "\t";
+      std::cout << "Unix Time: " << unixtime << std::endl;
+      
+      //QDateTime obtime;
+      datetime obtime;
+      //obtime.setTime_t(unixtime);
+      //obtime.setTimeSpec(Qt::UTC);
+      obtime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(unixtime));
+      //QString timestring = obtime.toString("hh:mm:ss.zzz");
+      // qcstream << timestring.toStdString() << "\t";
+      qcstream << PrintTime(obtime) << "\t";
 
       // Multiply the weight by the ob -- Observations.in has individual weights already
       // Only non-derivative for now
@@ -632,23 +636,23 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
   adjustInternalDomain(-1);
 
   // Write out to a netCDF file
-  if (configHash->value("output_netcdf") == "true") {
-    QString cdfFileName = outFileName + ".nc";
-    if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-      cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+  if ((*configHash)["output_netcdf"] == "true") {
+    std::string cdfFileName = outFileName + ".nc";
+    if (!writeNetCDF(outputPath + "/" + cdfFileName))
+      cout << "Error writing netcdf file " << cdfFileName << endl;
   }
   // Write out to an asi file
-  if (configHash->value("output_asi") == "true") {
-    QString asiFileName = outFileName + ".asi";
-    if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-      cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+  if ((*configHash)["output_asi"] == "true") {
+    std::string asiFileName = outFileName + ".asi";
+    if (!writeAsi(outputPath + "/" + asiFileName))
+      cout << "Error writing asi file " << asiFileName << endl;
   }
   // Set the domain back
   adjustInternalDomain(1);
 
   // Free the memory for the analysis variables
   delete[] finalAnalysis;
-*/
+
   return true;
 
 }

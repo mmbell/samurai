@@ -25,11 +25,11 @@ fi
 
 MODULEPATH=${MODULEPATH}:/glade/p/cisl/asap/modules
 module load lrose
+module load netcdf
 module load fftw
 module load cmake
 module load cuda/10.1
 
-module list
 
 rm -rf CMakeFiles/
 rm CMakeCache.txt

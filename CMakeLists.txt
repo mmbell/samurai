@@ -3,12 +3,12 @@ project(samurai)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
+set ( MODE GPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
 
-set ( SOLVER_MAXITER 1 )        # max iterations in the solver (src/CostFunction.cpp)
-set ( SOLVER_INNER_MAXITER 10 )  # max interations for inner loop with TN solver
+set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp)
+set ( SOLVER_INNER_MAXITER 4000 )  # max interations for inner loop with TN solver
 set ( SOLVER_SAMURAI 1)            # 1= truncated Newton solver, 2 = Samurai CG (orig)
 set ( SOLVER_CONV_TOL 1.0e-4 )     # solver convergence tolerance
 set ( SOLVER_INNER_CONV_TOL 1.0e-4)  # solver convergence tolerance for the inner loop with TN (usually = conv_tol for best results)
@@ -16,7 +16,8 @@ set ( SOLVER_VERBOSE 1)            # 1 = print out extra solver converegnce info
 set ( SOLVER_CG_EPSILON 1.0e-18 )  # epsilon for the Samurai NCG solver
 set ( SOLVER_CG_BETA_TYPE 2 )      # specify beta for Samurai NCG solver (1 = PR  (orig), 2 = PRP+ (recommended), 3 = FR, 4 = DY, 5 = HZ)
 set ( SOLVER_CG_CONV_TYPE 1)       # type of convergenve for Samurai CG (1 = ~step size (orig), 2 = ||g(X)||/||g(X0)||)
-set ( WRITE_OBSERVATIONS 0 )       # Boolean for whether we write the observations back out into a single file after reading them in (slow, so we disable this at NCAR for testing)
+set ( IO_BENCHMARK 0 )  # Controls whether to just do the I/O portion of the run; this is just for testing
+set ( IO_WRITEOBS 0 )   # Controls whether we write out the observations after reading them all in (probably safe to be 0)
 
 # ----- Users shouldn't need to change anything below this, hopefully ----- 
 
@@ -178,6 +179,7 @@ set (lib_SRCS
 	)
 
 add_executable ( samurai ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
+target_compile_definitions( samurai PRIVATE IO_BENCHMARK=${IO_BENCHMARK} IO_WRITEOBS=${IO_WRITEOBS} )
 
 # NCAR: Unfortunately the PGI compiler doesn't work out of the box - these are to fix various issues (maybe there's a better way to do this?):
 # Note that because of how PGI treats command-line arguments, this is still imperfect - eg, adding '-O1' to a release build doesn't completely

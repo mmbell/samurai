@@ -364,7 +364,7 @@ datetime Dorade::getRayTime(int& ray)
   using namespace date;
 
   auto ymd = year(vptr->year)/1/1;
-  auto result = sys_days(ymd) + hours(ryptr[ray].hour) + minutes(ryptr[ray].min) + seconds(ryptr[ray].sec);
+  auto result = sys_days(ymd) + days(ryptr[ray].julian_day - 1) + hours(ryptr[ray].hour) + minutes(ryptr[ray].min) + seconds(ryptr[ray].sec);
 
 	return result;
 }

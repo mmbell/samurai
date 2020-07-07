@@ -15,6 +15,7 @@ if [ "${GPU}" == "0" ]; then
   SYSTEM=$(hostname | cut -c1-6)
   if [ "${SYSTEM}" == "casper" ]; then
     unset OMPLACE
+    #OMPLACE=gdb
   else    
     OMPLACE=omplace
   fi
