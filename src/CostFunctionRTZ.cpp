@@ -24,13 +24,12 @@ CostFunctionRTZ::~CostFunctionRTZ()
 }
 bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
-/*fixme
-	cout << "Outputting " << suffix.toStdString() << "...\n";
+	cout << "Outputting " << suffix << "...\n";
 	// H --> to Mish for output
-    QString samuraiout = "samurai_RTZ_" + suffix + ".out";
+    std::string samuraiout = "samurai_RTZ_" + suffix + ".out";
     ofstream samuraistream;
-    if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
+    if ((*configHash)["output_txt"] == "true") {
+        samuraistream.open(outputPath + "/" + samuraiout);
         samuraistream << "R\tT\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
         samuraistream << "udr\tudt\tudz\tvdr\tvdt\tvdz\twdr\twdt\twdz\trhowdz\tMC residual\tdBZ\n";
         samuraistream.precision(10);
@@ -107,7 +106,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 														jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
 														kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
 														real basis3x = ibasis*jbasis*kbasis;
-														int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+														int64_t aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 														switch (var) {
 															case 0:
 																rhou +=  Astate[aIndex] * basis3x;
@@ -170,7 +169,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 											bgFields[uIndex + 6] = qrprime;
 										}
 
-										if ((configHash->value("output_mish") == "false")
+										if (((*configHash)["output_mish"] == "false")
 												and (ihalf or jhalf or khalf)) continue;
 
 										// Output it
@@ -183,7 +182,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 										qvdz = 2.0*(qbardz + qvdz);
 
 										real qr;
-										QString gridref = configHash->value("qr_variable");
+                    std::string gridref = (*configHash)["qr_variable"];
 										if (gridref == "dbz") {
 											qr = qrprime*10. - 35.;
 											if (qr < -35.) {
@@ -275,7 +274,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 										real mcresidual = 1.0e5 * (rhoudr * 1.0e-5 + rhou / r + rhovdt * 1.0e-5 + rhowdz * 1.0e-5);
 
                                         // Add Coriolis parameter to relative vorticity
-                                        real latReference = configHash->value("ref_lat").toFloat();
+                                        real latReference = std::stof((*configHash)["ref_lat"]);
                                         real Coriolisf = 2 * 7.2921 * sin(latReference*Pi/180); // Units 10^-5 s-1
                                         real absVorticity = vorticity + Coriolisf;
 
@@ -284,9 +283,9 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 		                                pdt = (tdt*rhoa + rhoadt*temp)*287./100. + (tdt*rhoq + (rhoadt*qv + qvdt*rhoa)*temp/1000.0)*461./100.;
 		                                pdz = (tdz*rhoa + rhoadz*temp)*287./100. + (tdz*rhoq + (rhoadz*qv + qvdz*rhoa)*temp/1000.0)*461./100.;
 
-										QString refmask = configHash->value("mask_reflectivity");
+                    std::string refmask = (*configHash)["mask_reflectivity"];
 										if (refmask != "None") {
-											real refthreshold = refmask.toFloat();
+											real refthreshold = std::stof(refmask);
 											if (qr < refthreshold) {
 												u = -999.;
 												v = -999.;
@@ -364,7 +363,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 										}
 
 
-                                        if (configHash->value("output_txt") == "true") {
+                                        if ((*configHash)["output_txt"] == "true") {
                                             samuraistream << scientific << i << "\t" << j << "\t"  << k
                                             << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
 											<< "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
@@ -448,14 +447,14 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 		}
 	}
 
-	QString fileName = "samurai_RTZ_" + suffix;
-	QString outFileName = outputPath.absoluteFilePath(fileName);
+  std::string fileName = "samurai_RTZ_" + suffix;
+  std::string outFileName = outputPath + "/" + fileName;
 
 	// Write the Obs to a summary text file
-    if (configHash->value("output_qc") == "true") {
-        QString qcout = "samurai_QC_" + suffix + ".out";
-		QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toLatin1().data());
+    if ((*configHash)["output_qc"] == "true") {
+            std::string qcout = "samurai_QC_" + suffix + ".out";
+            std::string qcFileName = outputPath + "/" + qcout;
+        ofstream qcstream(qcFileName);
         ostream_iterator<string> os(qcstream, "\t ");
         *os++ = "Observation";
         *os++ = "Inverse Error";
@@ -478,7 +477,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 
         ostream_iterator<real> od(qcstream, "\t ");
         for (int m = 0; m < mObs; m++) {
-            int mi = m*(7+varDim*derivDim);
+            int64_t mi = m*(7+varDim*derivDim);
             real i = obsVector[mi+2];
             real j = obsVector[mi+3];
             real k = obsVector[mi+4];
@@ -491,7 +490,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
             real kbasis = 0;
             for (int var = 0; var < varDim; var++) {
                 for (int d = 0; d < derivDim; d++) {
-                    int wgt_index = mi + (7*(d+1)) + var;
+                    int64_t wgt_index = mi + (7*(d+1)) + var;
                     if (!obsVector[wgt_index]) continue;
                     for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
                         int kNode = kkNode;
@@ -516,11 +515,12 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
                 *od++ = obsVector[mi+t];
             }
             int unixtime = (int)obsVector[mi+6];
-            QDateTime obtime;
-            obtime.setTime_t(unixtime);
-            obtime.setTimeSpec(Qt::UTC);
-            QString timestring = obtime.toString("hh:mm:ss.zzz");
-            qcstream << timestring.toStdString() << "\t";
+            datetime obtime;
+            obtime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>((unsigned int)(unixtime))); // NCAR - double check
+
+            // Per discussion with Michael Bell, we're just sticking to second resolution, so forcing microseconds to 0 here:
+            std::string timestring = PrintTime(obtime) + ".000";
+            qcstream << timestring << "\t";
 
             // Multiply the weight by the ob -- Observations.in has individual weights alreadt
             // Only non-derivative for now
@@ -538,23 +538,23 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 	adjustInternalDomain(-1);
 
 	// Write out to a netCDF file
-	if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+	if ((*configHash)["output_netcdf"] == "true") {
+          std::string cdfFileName = outFileName + ".nc";
+        if (!writeNetCDF(outputPath + "/" + cdfFileName))
+            cout << "Error writing netcdf file " << cdfFileName << endl;
     }
 	// Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+    if ((*configHash)["output_asi"] == "true") {
+        std::string asiFileName = outFileName + ".asi";
+        if (!writeAsi(outputPath + "/" + asiFileName))
+            cout << "Error writing asi file " << asiFileName << endl;
     }
 	// Set the domain back
 	adjustInternalDomain(1);
 
     // Free the memory for the analysis variables
     delete[] finalAnalysis;
-*/
+
 	return true;
 
 }
@@ -615,7 +615,6 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!timeVar->add_att("units", "seconds since 1970-01-01 00:00:00 +0000"))
 		return NC_ERR;
-/*fixme
 	// Define the netCDF variables
 	Nc3Var *u, *v, *w, *wspd, *relhum, *hprime, *qvprime, *rhoprime, *tprime, *pprime;
 	Nc3Var *vorticity, *divergence, *okuboweiss, *strain, *tpw, *rhou, *rhov, *rhow;
@@ -694,7 +693,7 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 	if (!(h = dataFile.add_var("H", nc3Float, timeDim,
                                lvlDim, thetaDim, radDim)))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!(qr = dataFile.add_var("DBZ", nc3Float, timeDim,
                                     lvlDim, thetaDim, radDim)))
             return NC_ERR;
@@ -832,7 +831,7 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("units", "kJ"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!qr->add_att("units", "dBZ"))
             return NC_ERR;
     } else {
@@ -941,7 +940,7 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("long_name", "moist static energy"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!qr->add_att("long_name", "radar reflectivity"))
             return NC_ERR;
     } else {
@@ -1210,52 +1209,45 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!mcresidual->add_att("_FillValue", -999.f))
 		return NC_ERR;
-*/
+
 	// Write the coordinate variable data to the file.
 	/* real *lons = new real[iDim];
 	real *lats = new real[jDim]; */
-/*fixme
 	real *levs = new real[kDim];
     real *radius = new real[iDim];
     real *thetadeg = new real[jDim];
 	int time[2];
 
 	// Reference time and position from center file
-	time[0] = configHash->value("ref_time").toInt();
-*/
+	time[0] = std::stoi((*configHash)["ref_time"]);
 	/* real latReference = configHash->value("ref_lat").toFloat();
 	real lonReference = configHash->value("ref_lon").toFloat();
 	real refX, refY;
 	GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM;
 	projection.Forward(lonReference, latReference, lonReference, refX, refY); */
-/*fixme
 	for (int iIndex = 0; iIndex < iDim; iIndex++) {
 		real i = (iMin + DI * iIndex);
         radius[iIndex] = i;
-*/
 		/* real j = (jMin + DJ * (jDim/2))*1000;
 		real latnull = 0;
 		projection.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
         x[iIndex] = i/1000; */
-//fixme	}
+}
 
-/*fixme
 	for (int jIndex = 0; jIndex < jDim; jIndex++) {
 		real j = (jMin + DJ * jIndex);
         thetadeg[jIndex] = j;
-*/
         /* real i = (iMin + DI * (iDim/2))*1000;
 		real lonnull = 0;
 		projection.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
         y[jIndex] = j/1000; */
-//fixme	}
+}
 
 	/* if (!lonVar->put(lons, iDim))
 		return NC_ERR;
 
 	if (!latVar->put(lats, jDim))
 		return NC_ERR; */
-/*fixme
     if (!radVar->put(radius, iDim))
 		return NC_ERR;
 
@@ -1378,23 +1370,23 @@ bool CostFunctionRTZ::writeNetCDF(const std::string& netcdfFileName)
 		if (!mcresidual->put_rec(&finalAnalysis[iDim*jDim*kDim*50], rec))
 			return NC_ERR;
 	}
-*/
 	// The file is automatically closed by the destructor. This frees
 	// up any internal netCDF resources associated with the file, and
 	// flushes any buffers.
 	/* delete[] lats;
 	delete[] lons; */
-/*fixme
 	delete[] levs;
 	delete[] radius;
     delete[] thetadeg;
-*/
 	return true;
 
 }
 
 bool CostFunctionRTZ::writeAsi(const std::string& asiFileName)
 {
+  std::cout << "CostFunctionRTZ::writeASI() is currently disabled!" << std::endl;
+  return false;
+  
 	// Initialize header
 	int id[511];
 	for (int n = 1; n <= 510; n++) {
@@ -1402,23 +1394,50 @@ bool CostFunctionRTZ::writeAsi(const std::string& asiFileName)
 	}
 
 	// Calculate headers
-	/*fixme
-	QStringList fieldNames;
-	fieldNames  << "U" << "V" << "W" << "WS" << "RH"<< "HP" << "QP" << "RP" << "TP" << "PP" << "VO" << "DV" << "OW" << "S" << "PW"
-	<< "MU" << "MV" << "MW" << "RO" << "PS" << "TK" << "QV" << "HH" << "DZ" << "AV" << "DP" << "TH" << "TE" << "TS";
+  std::vector<std::string> fieldNames;
+	fieldNames.push_back("U");
+	fieldNames.push_back("V");
+	fieldNames.push_back("W");
+	fieldNames.push_back("WS");
+	fieldNames.push_back("RH");
+	fieldNames.push_back("HP");
+	fieldNames.push_back("QP");
+	fieldNames.push_back("RP");
+	fieldNames.push_back("TP");
+	fieldNames.push_back("PP");
+	fieldNames.push_back("VO");
+	fieldNames.push_back("DV");
+	fieldNames.push_back("OW");
+	fieldNames.push_back("S");
+	fieldNames.push_back("PW");
+	fieldNames.push_back("MU");
+	fieldNames.push_back("MV");
+	fieldNames.push_back("MW");
+	fieldNames.push_back("RO");
+	fieldNames.push_back("PS");
+	fieldNames.push_back("TK");
+	fieldNames.push_back("QV");
+	fieldNames.push_back("HH");
+	fieldNames.push_back("DZ");
+	fieldNames.push_back("AV");
+	fieldNames.push_back("DP");
+	fieldNames.push_back("TH");
+	fieldNames.push_back("TE");
+	fieldNames.push_back("TS");
+ 
 	id[175] = fieldNames.size();
 	for(int n = 0; n < id[175]; n++) {
-		QString name_1 = fieldNames.at(n).left(1);
-		QString name_2 = fieldNames.at(n).mid(1,1);
-		int int_1 = *name_1.toLatin1().data();
-		int int_2 = *name_2.toLatin1().data();
+    std::string name_1 = fieldNames.at(n).substr(0,1);
+    std::string name_2 = fieldNames.at(n).substr(1,1);
+		int int_1 = *name_1.data();  
+		int int_2 = *name_2.data();
 		id[176 + (5 * n)] = (int_1 * 256) + int_2;
 		id[177 + (5 * n)] = 8224;
 		id[178 + (5 * n)] = 8224;
 		id[179 + (5 * n)] = 8224;
 		id[180 + (5 * n)] = 1;
 	}
- */
+ 
 
 	// Polar file
 	id[16] = 20559;
@@ -1478,13 +1497,14 @@ bool CostFunctionRTZ::writeAsi(const std::string& asiFileName)
 
 	// Write ascii file for grid2ps
 	//Message::toScreen("Trying to write cappi to "+outFileName);
-/*fixme
-	std::ofstream asiFile(asiFileName);
-	if(!asiFile.open(QIODevice::WriteOnly)) {
+	std::ofstream asiFile;
+	asiFile.open(asiFileName, std::ofstream::out);
+
+	if(!asiFile.is_open()) {
 		cout << "Can't open CAPPI file for writing" << endl;
 		return false;
 	}
-
+/*fixme
 	QTextStream out(&asiFile);
 
 	// Write header

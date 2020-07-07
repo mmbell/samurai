@@ -36,7 +36,7 @@ class BkgdObsLoader {
 			  BkgdAdapter *adapter,
 			  Projection proj,
 			  ReferenceState *refSt,
-			  int uStSize,
+			  int64_t uStSize,
 			  real *bgu,			// TODO s this right? vector<real> maybe
 			  unsigned int varsNum,
 			  int id, int jd, int kd,
@@ -90,7 +90,7 @@ class BkgdObsLoader {
 
   ReferenceState *refstate;
   unsigned int numVars;
-  int uStateSize;
+  int64_t uStateSize;
 
   real *bgWeights;
   real *bgU;
@@ -141,7 +141,7 @@ class BkgdObsSplineLoader : public BkgdObsLoader {
 		  BkgdAdapter *adapter,
 		  Projection proj,
 		  ReferenceState *refSt,
-		  int uStSize,
+		  int64_t uStSize,
 		  real *bgu,
 		  unsigned int varsNum,
 		  int id, int jd, int kd,

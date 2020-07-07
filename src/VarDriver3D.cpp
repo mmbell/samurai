@@ -547,7 +547,10 @@ bool VarDriver3D::preProcessMetObs()
       datetime obTime_ob = metOb.getTime();
       auto obTime = Date(obTime_ob);
 
-      if ((obTime < startTime) or (obTime > endTime)) {
+      // NOTE: Changing below line to account for msec vs. sec differences (discussion with M Bell, ongoing)
+      // This makes the DesRosier case similar for now, but may need to change later
+      //if ((obTime < startTime) or (obTime > endTime)) { 
+      if ((obTime < startTime) or (obTime >= endTime)) {
 				timeProblem++;
 	
 				if (timeProblem < 10) 
@@ -1112,7 +1115,7 @@ bool VarDriver3D::preProcessMetObs()
 	    varOb.setOb(Vdopp);
 
       real maxel;
-      if (configHash.exists("bg_obs_error") == false) {
+      if (configHash.exists("max_radar_elevation") == false) {
          maxel = 90.0;
       } else {
          maxel = std::stof(configHash["max_radar_elevation"]);
@@ -1390,7 +1393,7 @@ bool VarDriver3D::preProcessMetObs()
     // if (metData->size() > 0) {
     if (newobs > 0) {
       cout << "Processed " << newobs << " observations from " << metData->size() << " entries ("
-	   << 100.0*(float)newobs/(6*(float)metData->size()) << "%)\n";
+	   << 100.0*(float)newobs/(6*(float)metData->size()) << "%) file: " << file << std::endl;
     } else {
       cout << "No valid observations in file\n";
     }
@@ -2457,7 +2460,7 @@ void VarDriver3D::dumpBgu()
 {
   std::cout << "------------- Dump of bgU after initialization ---------------" << std::endl;
 
-  for(int i = 0; i < uStateSize; i++) {
+  for(int64_t i = 0; i < uStateSize; i++) {
     if( (i % 20) == 0)
       std::cout << std::endl;
     std::cout << bgU[i] << " ";

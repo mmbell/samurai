@@ -12,6 +12,7 @@
 #include <typeinfo>
 #include <iomanip>
 #include <regex>
+#include <algorithm>
 #include "LineSplit.h"
 
 Dorade::Dorade()
@@ -1229,14 +1230,15 @@ void Dorade::read_rdat(FILE *fp,int fld_num,
 	/* Modified to read all fields, but record ref, vel, and sw indices - MB */
 	std::string fld_name(tempname);
 	if (fld_name.size() > 8) fld_name.resize(8);
-	/*fixme fld_name.remove(QRegExp("[\\s+]"));
-	if (fld_name.trimmed() == ref_fld) {
+	// replaced with line below: fld_name.remove(QRegExp("[\\s+]")); 
+  fld_name.erase(std::remove_if(fld_name.begin(), fld_name.end(), isspace), fld_name.end());
+	if (fld_name == ref_fld) {
 		refIndex = fld_num;
 	} else if (fld_name == vel_fld) {
 		velIndex = fld_num;
 	} else if (fld_name == sw_fld) {
 		swIndex = fld_num;
-	}*/
+	}
 
 	*match=true;
 	/* CALCULATE SIZE OF DATA */

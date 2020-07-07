@@ -430,7 +430,8 @@ void CostFunction3D::initState(const int iteration)
     }    	// end of background error transformations
  
     if ((*configHash)["load_bg_coefficients"] == "true") {
-      for (int n = 0; n < nState; n++) {
+
+      for (int64_t n = 0; n < nState; n++) {
 	stateA[n] = bgFields[n];
       }
     } else {
@@ -462,7 +463,7 @@ void CostFunction3D::initState(const int iteration)
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	  			//int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
 				}
       }
@@ -480,7 +481,7 @@ void CostFunction3D::initState(const int iteration)
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	  			//int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			varScale += bgState[bIndex] * bgState[bIndex];
 				}
       }
@@ -1231,7 +1232,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
   // Clear the Bstate
-  for (int n = 0; n < nState; n++) {
+  for (int64_t n = 0; n < nState; n++) {
     Bstate[n] = 0.;
   }
   real gausspoint = 0.5*sqrt(1./3.);
@@ -1267,13 +1268,13 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 		      real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 		      real ijkbasis = 0.125 * ijbasis * kbasis;
 		      int uK = kIndex*2 + (kmu+1)/2;
-		      int uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
+		      int64_t uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
 			+ varDim * (iDim -1 ) * 2 * uJ + varDim * uI;
-		      int bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+		      int64_t bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 
-		      int ui = uIndex + var;
+		      int64_t ui = uIndex + var;
 		      if (Ustate[ui] == 0) continue;
-		      int bi = bIndex + var;
+		      int64_t bi = bIndex + var;
 		      //#pragma omp atomic
 		      Bstate[bi] += Ustate[ui] * ijkbasis;
 		    }
