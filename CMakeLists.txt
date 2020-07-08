@@ -213,6 +213,9 @@ if ( CUDA_CUFFT_LIBRARIES )
   add_definitions( -DUSE_CUFFTW )
   message( "<< Linking with cuFFTW libraries : ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufftw.so >>")
   target_link_libraries( samurai ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufftw.so )
+  # add_definitions( -DUSE_CUFFT )
+  # message( "<< Linking with cuFFT libraries : ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so >>")
+  # target_link_libraries( samurai ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so )
 endif()
 
     

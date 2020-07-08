@@ -33,6 +33,10 @@
 #else
   #include <fftw3.h>
 #endif
+#ifdef USE_CUFFT
+  #include <cufft.h>
+  #include <openacc.h>
+#endif
 
 
 class CostFunction3D : public CostFunction
@@ -149,6 +153,13 @@ protected:
 	double *iFFTin, *jFFTin, *kFFTin;
 	fftw_complex *iFFTout, *jFFTout, *kFFTout;
 	fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
+#ifdef USE_CUFFT
+        cufftDoubleReal *iFFTinNew, *jFFTinNew, *kFFTinNew;
+        cufftDoubleComplex *iFFToutNew, *jFFToutNew, *kFFToutNew;
+        cufftHandle iForwardPlan, iBackwardPlan, jForwardPlan, jBackwardPlan,kForwardPlan, kBackwardPlan;
+        int batch=1;
+#endif
+        bool UseFFT;
 	real *H;
 	integer *IH, *I2H,*JH;
   integer *mPtr, *mVal;

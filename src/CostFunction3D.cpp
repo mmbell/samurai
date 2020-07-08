@@ -263,11 +263,11 @@ void CostFunction3D::initialize(HashMap* config,
   kRankMax=0;
   for (int var = 0; var < varDim; ++var) {
     iRank[var] = iDim - rankHash[iBCL[var]] - rankHash[iBCR[var]];
-    if (iBCL[var] == PERIODIC) iRank[var]--;
+    if (iBCL[var] == PERIODIC) {cout << "Periodic in I dimension\n"; iRank[var]--;}
     jRank[var] = jDim - rankHash[jBCL[var]] - rankHash[jBCR[var]];
-    if (jBCL[var] == PERIODIC) jRank[var]--;
+    if (jBCL[var] == PERIODIC) {cout << "Periodic in J dimension\n"; jRank[var]--;}
     kRank[var] = kDim - rankHash[kBCL[var]] - rankHash[kBCR[var]];
-    if (kBCL[var] == PERIODIC) kRank[var]--;
+    if (kBCL[var] == PERIODIC) {cout << "Periodic in K dimension\n"; kRank[var]--;}
     // Need to verify that Rank is sufficient (>2?)
     iL[var] = new real[iRank[var]*iLDim];
     jL[var] = new real[jRank[var]*jLDim];
@@ -293,14 +293,40 @@ void CostFunction3D::initialize(HashMap* config,
   iFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * iDim);
   iForward = fftw_plan_dft_r2c_1d(iDim, iFFTin, iFFTout, FFTW_MEASURE);
   iBackward = fftw_plan_dft_c2r_1d(iDim, iFFTout, iFFTin, FFTW_MEASURE);
+
+  int ierr;
+#ifdef USE_CUFFT
+  ierr  = cufftPlan1d(&iForwardPlan,iDim,CUFFT_D2Z,batch);
+  ierr += cufftPlan1d(&iBackwardPlan,iDim,CUFFT_Z2D,batch);  
+  ierr += cufftSetStream(iForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+  ierr += cufftSetStream(iBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#endif
+
   jFFTin = (double*) fftw_malloc(sizeof(double) * jDim);
   jFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * jDim);
   jForward = fftw_plan_dft_r2c_1d(jDim, jFFTin, jFFTout, FFTW_MEASURE);
   jBackward = fftw_plan_dft_c2r_1d(jDim, jFFTout, jFFTin, FFTW_MEASURE);
+
+#ifdef USE_CUFFT
+  ierr += cufftPlan1d(&jForwardPlan,jDim,CUFFT_D2Z,batch);
+  ierr += cufftPlan1d(&jBackwardPlan,jDim,CUFFT_Z2D,batch);  
+  ierr += cufftSetStream(jForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+  ierr += cufftSetStream(jBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#endif
+
   kFFTin = (double*) fftw_malloc(sizeof(double) * kDim);
   kFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * kDim);
   kForward = fftw_plan_dft_r2c_1d(kDim, kFFTin, kFFTout, FFTW_MEASURE);
   kBackward = fftw_plan_dft_c2r_1d(kDim, kFFTout, kFFTin, FFTW_MEASURE);
+
+#ifdef USE_CUFFT
+  kFFTinNew  = new cufftDoubleReal[kDim];
+  kFFToutNew = new cufftDoubleComplex[kDim];
+  ierr += cufftPlan1d(&kForwardPlan,kDim,CUFFT_D2Z,batch);
+  ierr += cufftPlan1d(&kBackwardPlan,kDim,CUFFT_Z2D,batch);  
+  ierr += cufftSetStream(kForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+  ierr += cufftSetStream(kBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#endif
 
 }
 
@@ -379,6 +405,17 @@ void CostFunction3D::initState(const int iteration)
     kMaxWavenumber[5] = std::stof((*configHash)["k_max_wavenumber_rhoa"]);
     kMaxWavenumber[6] = std::stof((*configHash)["k_max_wavenumber_qr"]);
   }
+
+  // Check to see if PERIODIC boundaries and MaxWavenumber >= 0
+  UseFFT=false;
+  for (int var = 0; var < varDim; var++) {
+     if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) UseFFT=true;
+     if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) UseFFT=true;
+     if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) UseFFT=true;
+  }
+  if(UseFFT)
+    cout << "PERIODIC boundaries and maximum wavenumber enforcement will enable FFtransform() \n";
+  
 
   // Set up the spline matrices
   setupSplines();
@@ -587,9 +624,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   	GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
   	GPTLstart("CostFunction3D::funcGradient:FFtransform");
-  	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	//JMD#pragma acc update device(stateA[0:nState])  // Update stateA on GPU
   	GPTLstop("CostFunction3D::funcGradient:FFtransform");
 
   	GPTLstart("CostFunction3D::funcGradient:SAtransform");
@@ -653,9 +688,7 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
 
   	//Now Gradient (also uses HCq)
 	calcHTranspose(HCq, stateC);
-  	//JMD#pragma acc update self(stateC)
   	FFtransform(stateC, stateA);
-  	//JMD#pragma acc update self(stateC)
   	SAtransform(stateA, stateB);
   	SCtransform(stateB, stateC);
   	//calc gradient
@@ -683,9 +716,7 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
     updateHCq(x,HCq);
                                                                
     calcHTranspose(HCq, stateC);
-    //JMD#pragma acc update self(stateC)
     FFtransform(stateC, stateA);
-    //JMD#pragma acc update device(stateA[0:nState])
     SAtransform(stateA, stateB);
     SCtransform(stateB, stateC);
     //#pragma acc update device(stateC[0:nState]) 
@@ -707,9 +738,7 @@ void CostFunction3D::updateHCq(real* state,real* HCq)
   	GPTLstart("CostFunction3D::updateHCq");
   	SCtransform(state, stateB);
   	SAtransform(stateB, stateA);
-  	//JMD#pragma acc update self(stateA[0:nState])
   	FFtransform(stateA, stateC);
-  	//JMD#pragma acc update device(stateC[0:nState])
   	Htransform(stateC, HCq);
   	#pragma acc update self(HCq[mObs+(iDim*jDim*kDim)]) //EXCESSIVE
   	GPTLstop("CostFunction3D::updateHCq");
@@ -763,17 +792,18 @@ void CostFunction3D::calcInnovation()
   cout << "Initializing innovation vector..." << endl;
 
   // Use HCq to hold the transform, but C is not applied for the innovation
-	#pragma acc data copyin(bgState[0:nState]) copyout(HCq[mObs+(iDim*jDim*kDim)]) 
-	{
-  	Htransform(bgState, HCq);
-	}
+#pragma acc data copyin(bgState[0:nState]) create(HCq[mObs+(iDim*jDim*kDim)]) 
+{
+  Htransform(bgState, HCq);
+}
+
 
   real innovationRMS = 0.;
-
-#pragma omp parallel for reduction(+:innovationRMS) //[0]
-#pragma acc parallel loop reduction(+:innovationRMS) //[0]
+  #pragma omp parallel for reduction(+:innovationRMS) //[0]
+  #pragma acc parallel loop reduction(+:innovationRMS) //[0]
   for (int m = 0; m < mObs; m++) {
     innovation[m] = obsVector[m*(7+varDim*derivDim)] - HCq[m];
+    //innovation[m] = obsData[m] - HCq[m];
     innovationRMS += (innovation[m]*innovation[m]);
     HCq[m] = 0.0;
   }
@@ -1384,7 +1414,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
       	   }
 
 	   #pragma omp parallel for private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
-	   #pragma acc parallel loop gang vector vector_length(32) private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
+	   #pragma acc parallel loop gang vector collapse(2) vector_length(32) private(iIndex,jIndex,kIndex,index,jTemp,jq,js) //[5.3]
       	   for (iIndex = 0; iIndex < iDim; iIndex++) {
              for (kIndex = 0; kIndex < kDim; kIndex++) {
           	#pragma acc loop vector
@@ -1402,7 +1432,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
       	   }
 
 	   #pragma omp parallel for private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
-	   #pragma acc parallel loop gang vector vector_length(32) private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
+	   #pragma acc parallel loop gang vector collapse(2) vector_length(32) private(iIndex,jIndex,kIndex,index,iTemp,iq,is) //[5.4]
       	   for (jIndex = 0; jIndex < jDim; jIndex++) {
 	     for (kIndex = 0; kIndex < kDim; kIndex++) {
           	#pragma acc loop vector
@@ -2396,77 +2426,106 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 {
   int iIndex,jIndex,kIndex;
+  int n,ierr;
   GPTLstart("CostFunction3D::FFtransform");
+#pragma acc data present(Astate[0:nState],Cstate[0:nState])
+{
   // Copy to the new state in case no FFT is enforced
 	//#pragma acc parallel loop //[8]
-  #pragma acc update self(Astate[0:nState])
   #pragma omp parallel for //[8]
-  for (int n = 0; n < nState; n++) {
+  #pragma acc parallel loop vector gang vector_length(32) private(n)
+  for (n = 0; n < nState; n++) {
     Cstate[n]= Astate[n];
   }
 
-  for (int var = 0; var < varDim; var++) {
-    // Enforce max wavenumber
-    if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) {
-      // #pragma acc parallel loop gang vector collapse(2) vector_length(32) private(iIndex,jIndex,kIndex,kFFTin[:kDim],kFFTout[:kDim]) //[5.2]
-      for (iIndex = 0; iIndex < iDim; iIndex++) {
-        for (jIndex = 0; jIndex < jDim; jIndex++) {
-          for (kIndex = 0; kIndex < kDim; kIndex++) {
-            kFFTin[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
-          }
-          fftw_execute(kForward);
-          for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
-            kFFTout[kIndex][0] = 0.0;
-            kFFTout[kIndex][1] = 0.0;
-          }
-          fftw_execute(kBackward);
-          for (kIndex = 0; kIndex < kDim; kIndex++) {
-            Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTin[kIndex]/kDim;
+  // Check to see if PERIODIC boundaries and MaxWavenumber >= 0
+  //UseFFT=0
+  //for (int var = 0; var < varDim; var++) {
+  //   if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) UseFFT=1
+  //   if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) UseFFT=1
+  //   if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) UseFFT=1
+  //}
+
+  if(UseFFT) {
+    // This should only be done if FFTW needs to be performed
+    #pragma acc update self(Cstate[0:nState])
+    for (int var = 0; var < varDim; var++) {
+      // Enforce max wavenumber
+      if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) {
+        for (iIndex = 0; iIndex < iDim; iIndex++) {
+          for (jIndex = 0; jIndex < jDim; jIndex++) {
+// Preliminary port to cuFFT
+//            for (kIndex = 0; kIndex < kDim; kIndex++) {
+//              kFFTinNew[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+//            }
+//            ierr = cufftExecD2Z(kForwardPlan,(cufftDoubleReal *) kFFTinNew, (cufftDoubleComplex *) kFFToutNew);
+//            for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
+//              kFFToutNew[kIndex].x = 0.0;
+//              kFFToutNew[kIndex].y = 0.0;
+//            }
+//            ierr = cufftExecZ2D(kBackwardPlan,(cufftDoubleComplex *) kFFToutNew, (cufftDoubleReal *) kFFTinNew);
+//            for (kIndex = 0; kIndex < kDim; kIndex++) {
+//              Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTinNew[kIndex]/kDim;
+//            }
+            for (kIndex = 0; kIndex < kDim; kIndex++) {
+              kFFTin[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+            }
+            fftw_execute(kForward);
+            for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
+              kFFTout[kIndex][0] = 0.0;
+              kFFTout[kIndex][1] = 0.0;
+            }
+            fftw_execute(kBackward);
+            for (kIndex = 0; kIndex < kDim; kIndex++) {
+              Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTin[kIndex]/kDim;
+            }
           }
         }
       }
-    }
 
-    #pragma acc update self(Cstate[0:nState])
-    // Enforce max wavenumber
-    if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
-      for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	for (int iIndex = 0; iIndex < iDim; iIndex++) {
+      // Enforce max wavenumber
+      if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
+        for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
+	    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+	      jFFTin[jIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+	    }
+	    fftw_execute(jForward);
+	    for (int jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
+	      jFFTout[jIndex][0] = 0.0;
+	      jFFTout[jIndex][1] = 0.0;
+	    }
+	    fftw_execute(jBackward);
+	    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+	      Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = jFFTin[jIndex]/jDim;
+	    }
+	  }
+        }
+      }
+
+      // Enforce max wavenumber
+      if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) {
+        for (int kIndex = 0; kIndex < kDim; kIndex++) {
 	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    jFFTin[jIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+	    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+	      iFFTin[iIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+	    }
+	    fftw_execute(iForward);
+	    for (int iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
+	      iFFTout[iIndex][0] = 0.0;
+	      iFFTout[iIndex][1] = 0.0;
+	    }
+	    fftw_execute(iBackward);
+	    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+	      Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = iFFTin[iIndex]/iDim;
+	    }
 	  }
-	  fftw_execute(jForward);
-	  for (int jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
-	    jFFTout[jIndex][0] = 0.0;
-	    jFFTout[jIndex][1] = 0.0;
-	  }
-	  fftw_execute(jBackward);
-	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	    Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = jFFTin[jIndex]/jDim;
-	  }
-	}
+        }
       }
     }
-    if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) {
-      for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    iFFTin[iIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
-	  }
-	  fftw_execute(iForward);
-	  for (int iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
-	    iFFTout[iIndex][0] = 0.0;
-	    iFFTout[iIndex][1] = 0.0;
-	  }
-	  fftw_execute(iBackward);
-	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = iFFTin[iIndex]/iDim;
-	  }
-	}
-      }
-    }
-  }
   #pragma acc update device(Cstate[0:nState])
+  }
+}
   GPTLstop("CostFunction3D::FFtransform");
 }
 
@@ -2496,21 +2555,13 @@ void CostFunction3D::calcHmatrix()
 
   Hlength = new int[mObs];
   mPtr = new integer[nState+1];
-
-  // Allocate memory for the sparse matrix
-  // 193 elements for columns assumes a maximum of 3 variables
-  // will be used in an observation.
-  //}
-  IH = new integer [mObs+1];
-  //GPTLstop("CostFunction3D::calcHmatrix:allocate");
+  IH   = new integer [mObs+1];
 
   //GPTLstart("CostFunction3D::calcHmatrix:nonzeros");
   // Determine the number of non-zeros in H
 	//#pragma omp parallel for private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
-	#pragma acc parallel loop vector gang vector_length(32) copyout(Hlength[0:mObs]) private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
+  #pragma acc parallel loop vector gang vector_length(32) copyout(Hlength[0:mObs]) private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
-    //real* Hrow = new real[nState];
-    //for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
     mi = m*(7+varDim*derivDim);
     i = obsVector[mi+2];
     j = obsVector[mi+3];
@@ -2538,10 +2589,7 @@ void CostFunction3D::calcHmatrix()
               kNode = kkNode;
               kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
               if (!kbasis) continue;
-	  					//cIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, var);
-              //weight = ibasis * jbasis * kbasis * obsVector[wgt_index];
-              //Hbuild[m][hi] = weight;
-              //JHbuild[m][hi] = cIndex;
+              // Count the number of non-zero entries in the observation matrix...
               hi++;   
             }
           }
@@ -2549,9 +2597,6 @@ void CostFunction3D::calcHmatrix()
       }
     }
     Hlength[m]=hi;
-    //if (hi > 193) {
-    //  cout << "Overflow in H matrix calculation!" << hi << "\n";
-    //}
   }
 
   integer nonzeros = 0;
@@ -2559,38 +2604,23 @@ void CostFunction3D::calcHmatrix()
     nonzeros += Hlength[m];
   }
   //GPTLstop("CostFunction3D::calcHmatrix:nonzeros");
-  std::cout << "Finished with nested H loop ...\n";
 
   IH[mObs] = nonzeros;
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
-  std::cout << "size of {H,JH}Build matrix (Mbytes) " << float(2*sizeof(real)*193*mObs)*1e-6 << " \n";
-  std::cout << "Allocating H " << "\n";
   std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
-  H = new real[nonzeros];
-
-  std::cout << "Allocating JH " << "\n";
-  JH = new integer [nonzeros];
-
-  std::cout << "Allocating mVal " << "\n";
+  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
+  H    = new real[nonzeros];
+  JH   = new integer [nonzeros];
   mVal = new integer [nonzeros];
-
-  std::cout << "Allocating mTmp " << "\n";
   mTmp = new integer [nonzeros];
-
-  std::cout << "Allocating mIncr " << "\n";
   mIncr = new integer [nState];
 
-  //tempHval = new real[nonzeros];
-
-  //GPTLstart("CostFunction3D::calcHmatrix:form H,JH");
   hi=0;
   for (n=0;n<nState;n++){mIncr[n]=0;}
   
 	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
 	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
-    //real* Hrow = new real[nState];
-    //for (int i = 0; i < nState; i++) { Hrow[i] = 0.0; }
     IH[m]=hi;
     mi = m*(7+varDim*derivDim);
     i = obsVector[mi+2]; j = obsVector[mi+3]; k = obsVector[mi+4];
@@ -2620,7 +2650,6 @@ void CostFunction3D::calcHmatrix()
               JH[hi] = cIndex;
               mIncr[cIndex]+=1;
               // if(cIndex==0) {cout << "cindex==0 m: " << m << "\n";}
-              if(cIndex==8) {cout << "cindex==8 m: " << m << " hi: " << hi << " \n";}
               mTmp[hi]=m;
               hi++;
             }
@@ -2628,11 +2657,7 @@ void CostFunction3D::calcHmatrix()
         }
       }
     }
-    //if (hi > 193) {
-    //  cout << "Overflow in H matrix calculation!" << hi << "\n";
-    //}
   }
-  std::cout << "Allocating I2H " << "\n";
   I2H = new integer [nonzeros];
   
   //for (n=0;n<=8;n++) {cout << " mIncr: " << mIncr[n] << " \n"; }
@@ -2646,28 +2671,14 @@ void CostFunction3D::calcHmatrix()
   for (hi=0;hi<nonzeros;hi++){
     cIndex = JH[hi];
     dst = mPtr[cIndex]+mIncr[cIndex];
-    //if(cIndex  == 8) {
-    //  cout << "mPtr[cIndex]: " << mPtr[cIndex] << " mIncr[cIndex]: " << mIncr[cIndex] << " dst: " << dst << " hi: "  << hi << " \n";}
     I2H[dst] = hi;
     mVal[dst] = mTmp[hi];
     mIncr[cIndex]+=1;
   }
-  //for(m=0;m<mObs;m++) {obsData[m]=obsVector[m*(7+varDim*derivDim)+1]} 
-  //GPTLstop("CostFunction3D::calcHmatrix:form H,JH");
-  //cout << "\n";
-  //for(n=7;n<9;n++) {cout << "mIncr[n]: " << mIncr[n] << "\n";}
-  //cout << "\n";
-  //for(n=7;n<9;n++) {cout << "mPtr[n]: " << mPtr[n] << "\n";}
-  //cout << "\n";
-  //for(n=7;n<9;n++) {cout << "mVal[n]: " << mVal[n] << "\n";}
-
-  //GPTLstart("CostFunction3D::calcHmatrix:deallocate");
-
   //
   // copy H matrix stuff to the GPU Device 
   #pragma acc enter data copyin(mPtr,mVal,I2H)
   #pragma acc enter data copyin(H[:nonzeros])
-  cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << "\n";
@@ -2675,11 +2686,8 @@ void CostFunction3D::calcHmatrix()
   cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
   cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << "\n";
  
-  cout << "Before delete(Hlength) \n";
   delete[] Hlength;
-  cout << "Before delete(mIncr) \n";
   delete[] mIncr;
-  cout << "Before delete(mTmp) \n";
   delete[] mTmp;
   //GPTLstop("CostFunction3D::calcHmatrix:deallocate");
 
