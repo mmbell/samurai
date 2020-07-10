@@ -68,7 +68,7 @@ link_directories    ( ${GeographicLib_LIBRARY_DIRS} ${LROSE_LIB_DIR} )
 add_compile_options( ${ADDITIONAL_FLAGS} )
 
 # Add the OpenMP / OpenACC flags to certain files:
-set_source_files_properties ( src/VarDriver3D.cpp src/CostFunction3D.cpp src/CostFunction.cpp src/CostFunction3D.h src/CostFunction.h src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenMP_CXX_FLAGS} ${OpenACC_CXX_FLAGS}" )
+set_source_files_properties ( src/VarDriver3D.cpp src/CostFunction3D.cpp src/CostFunction.cpp src/CostFunction3D.h src/CostFunction.h src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenMP_CXX_FLAGS} ${OpenACC_CXX_FLAGS}" )
 
 # Set up the GPTL macros:
 set_source_files_properties ( ${gptl_SRCS} PROPERTIES COMPILE_FLAGS "-DTHREADED_OMP -DHAVE_NANOTIME " )
@@ -191,15 +191,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
     set ( CMAKE_CXX_FLAGS_RELEASE "" )
     set_source_files_properties ( ${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O3 -fast" )
     if (MODE STREQUAL "GPU")
-      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
       target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
     else()
-       set_source_files_properties ( src/CostFunction3D.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}" )
+       set_source_files_properties ( src/CostFunction3D.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}" )
     endif()
     set_source_files_properties ( src/BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1" ) # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
   else()
     if (MODE STREQUAL "GPU")
-      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/BkgdObsLoaders.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
+      set_source_files_properties ( src/CostFunction3D.cpp src/CostFunction.cpp src/RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}" )
       target_link_libraries ( samurai -ta=${OpenACC_ACCEL_TARGET} )
     endif()
   endif()

@@ -747,7 +747,7 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
   int splineProblem = 0;
   
 #pragma omp parallel for
-      
+
   for (int ki = -1; ki < kdim; ki++) {
 
     SplineD* bgSpline = new SplineD(&logheights.front(), logheights.size(),
