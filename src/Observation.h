@@ -45,8 +45,8 @@ public:
 	double inline getOb() const { return obNet; }
 	void setOb(const double &ob);
 
-	int inline getTime() const { return time; }
-	void setTime(const int& t);
+	int64_t inline getTime() const { return time; }
+	void setTime(const int64_t& t);
 	
 private:
 	double radius;
@@ -59,7 +59,7 @@ private:
 	double obNet;
 	unsigned int numVars;
 	int type;
-	int time;
+	int64_t time;
 };
 
 #endif
