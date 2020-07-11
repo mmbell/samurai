@@ -368,7 +368,7 @@ void CostFunction3D::initState(const int iteration)
 
 	if (configHash->exists("k_max_wavenumber")) {
     for (int i = 0; i < 7; i++) {
-      jMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
+      kMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }
   } else {
     kMaxWavenumber[0] = std::stof((*configHash)["k_max_wavenumber_rhou"]);
