@@ -541,13 +541,13 @@ bool CostFunctionCOAMPS::outputAnalysis(const std::string& suffix, real* Astate)
   // Write out to a netCDF file
   if ((*configHash)["output_netcdf"] == "true") {
     std::string cdfFileName = outFileName + ".nc";
-    if ( ! writeNetCDF(outputPath + "/" + cdfFileName))
+    if ( ! writeNetCDF(cdfFileName))
       std::cout << "Error writing netcdf file " << cdfFileName << std::endl;
   }
   // Write out to an asi file
   if ((*configHash)["output_asi"] == "true") {
     std::string asiFileName = outFileName + ".asi";
-    if (!writeAsi(outputPath + "/" + asiFileName))
+    if (!writeAsi(asiFileName))
       std::cout << "Error writing asi file " << asiFileName << std::endl;
   }
 
