@@ -25,22 +25,20 @@ CostFunctionXYP::~CostFunctionXYP()
 
 bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 {
-	cout << "Outputting " << suffix << "...\n";
-/*fixme
 	// H --> to Mish for output
-    QString samuraiout = "samurai_XYP_" + suffix + ".out";
-    ofstream samuraistream;
-    if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toLatin1().data());
-        samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
-        samuraistream << "udx\tudy\tudp\tvdx\tvdy\tvdp\twdx\twdy\twdp\trhowdz\tMC residual\tdBZ\n";
-        samuraistream.precision(10);
-    }
+  std::string samuraiout = "samurai_XYP_" + suffix + ".out";
+  ofstream samuraistream;
+  if ((*configHash)["output_txt"] == "true") {
+    samuraistream.open(outputPath + "/" + samuraiout);
+    samuraistream << "X\tY\tZ\tu\tv\tw\tVorticity\tDivergence\tqv\trho\tT\tP\tTheta\tTheta_e\tTheta_es\t";
+    samuraistream << "udx\tudy\tudp\tvdx\tvdy\tvdp\twdx\twdy\twdp\trhowdz\tMC residual\tdBZ\n";
+    samuraistream.precision(10);
+  }
 
 	// Find the relevant pressure levels
 	pMax = int(refstate->getReferenceVariable(ReferenceVariable::pressref, 1000.*(kMin + DK))/100.);
 	pMin = int(refstate->getReferenceVariable(ReferenceVariable::pressref, 1000.*(kMin + DK*(kDim-2)))/100.);
-	DP = configHash->value("output_pressure_increment").toFloat();
+	DP = std::stof((*configHash)["output_pressure_increment"]);
 	pMax = pMax - int(pMax)%int(DP) + DP;
 	pMin = pMin - int(pMin)%int(DP);
 	pDim = (pMax - pMin)/DP + 2;
@@ -48,12 +46,12 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
     int analysisDim = 51;
     int analysisSize = (iDim-2)*(jDim-2)*(pDim-2);
 	finalAnalysis = new real[analysisSize*analysisDim];
-	real latReference = configHash->value("ref_lat").toFloat();
-	real lonReference = configHash->value("ref_lon").toFloat();
+	real latReference = std::stof((*configHash)["ref_lat"]);
+	real lonReference = std::stof((*configHash)["ref_lon"]);
 	real refX, refY;
 	//GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 	projection.Forward(lonReference, latReference, lonReference, refX, refY);
-	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
+	real latlonIncr = std::stof((*configHash)["output_latlon_increment"]);
 	real minLat = 0.0;
 	real minLon = 0.0;
 	if (latlonIncr > 0) {
@@ -275,7 +273,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									}
 								}
 
-								if ((configHash->value("output_mish") == "false")
+								if (((*configHash)["output_mish"] == "false")
 										and (ihalf or jhalf)) continue;
 
 								// Output it
@@ -285,7 +283,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 								qvdz = 2.0*(qbardz + qvdz);
 
 								real qr;
-								QString gridref = configHash->value("qr_variable");
+                std::string gridref = (*configHash)["qr_variable"];
 								if (gridref == "dbz") {
 									qr = qrprime*10. - 35.;
 									if (qr < -35.) {
@@ -412,15 +410,15 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 								real okuboweiss = vorticity*vorticity - s1*s1 -s2*s2;
 								real mcresidual = rhoudx + rhovdy + rhowdz;
 
-                                // Add Coriolis parameter to relative vorticity
-                                real latReference = configHash->value("ref_lat").toFloat();
-                                real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
-                                real absVorticity = vorticity + Coriolisf;
+                // Add Coriolis parameter to relative vorticity
+                real latReference = std::stof((*configHash)["ref_lat"]);
+                real Coriolisf = 2 * 7.2921 * sin(latReference*acos(-1.)/180); // Units 10^-5 s-1
+                real absVorticity = vorticity + Coriolisf;
 
 
-								QString refmask = configHash->value("mask_reflectivity");
+                std::string refmask = (*configHash)["mask_reflectivity"];
 								if ((refmask != "None") or (goodpressure == false)) {
-									real refthreshold = refmask.toFloat();
+									real refthreshold = std::stof(refmask);
 									if ((qr < refthreshold) or (goodpressure == false)) {
 										u = -999.;
 										v = -999.;
@@ -458,15 +456,15 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									}
 								}
 
-                                if (configHash->value("output_txt") == "true") {
-                                    samuraistream << scientific << i << "\t" << j << "\t"  << k
-                                    << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
-                                    << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
+                if ((*configHash)["output_txt"] == "true") {
+                  samuraistream << scientific << i << "\t" << j << "\t"  << k
+                  << "\t" << u << "\t" << v << "\t" << w << "\t" << vorticity << "\t" << divergence
+                  << "\t" << qv << "\t" << rho << "\t" << temp << "\t" << press
 									<< "\t" << theta << "\t" << thetae << "\t" << thetaes << "\t"
-                                    << udx << "\t" << udy << "\t" << udz << "\t"
-                                    << vdx << "\t" << vdy << "\t" << vdz << "\t"
-                                    << wdx << "\t" << wdy << "\t" << wdz << "\t"
-                                    << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
+                  << udx << "\t" << udy << "\t" << udz << "\t"
+                  << vdx << "\t" << vdy << "\t" << vdz << "\t"
+                  << wdx << "\t" << wdy << "\t" << wdz << "\t"
+                  << rhowdz * 100. << "\t" << mcresidual << "\t" << qr << "\n";
 								}
 
 								// Sum up the TPW in the vertical, top level is tpw
@@ -474,7 +472,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 
 								// On the nodes
 								if (!ihalf and !jhalf){
-                                    int fIndex = (iDim-2)*(jDim-2)*(pDim-2);
+                  int fIndex = (iDim-2)*(jDim-2)*(pDim-2);
 									int posIndex = (iDim-2)*(jDim-2)*(pIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
 									finalAnalysis[fIndex * 0 + posIndex] = u;
 									finalAnalysis[fIndex * 1 + posIndex] = v;
@@ -482,11 +480,11 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									finalAnalysis[fIndex * 3 + posIndex] = wspd;
 									finalAnalysis[fIndex * 4 + posIndex] = relhum;
 									finalAnalysis[fIndex * 5 + posIndex] = press;
-                                    if (qvprime != -999) {
-                                        finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
-                                    } else {
-                                        finalAnalysis[fIndex * 6 + posIndex] = -999;
-                                    }
+                  if (qvprime != -999) {
+                    finalAnalysis[fIndex * 6 + posIndex] = 2*qvprime;
+                  } else {
+                    finalAnalysis[fIndex * 6 + posIndex] = -999;
+                  }
 									finalAnalysis[fIndex * 7 + posIndex] = rhoprime;
 									finalAnalysis[fIndex * 8 + posIndex] = tprime;
 									finalAnalysis[fIndex * 9 + posIndex] = pprime;
@@ -504,7 +502,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									finalAnalysis[fIndex * 21 + posIndex] = qv;
 									finalAnalysis[fIndex * 22 + posIndex] = h;
 									finalAnalysis[fIndex * 23 + posIndex] = qr;
-                                    finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
+                  finalAnalysis[fIndex * 24 + posIndex] = absVorticity;
 									finalAnalysis[fIndex * 25 + posIndex] = dewp;
 									finalAnalysis[fIndex * 26 + posIndex] = theta;
 									finalAnalysis[fIndex * 27 + posIndex] = thetae;
@@ -518,7 +516,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									finalAnalysis[fIndex * 35 + posIndex] = udz;
 									finalAnalysis[fIndex * 36 + posIndex] = vdz;
 									finalAnalysis[fIndex * 37 + posIndex] = wdz;
-                                    finalAnalysis[fIndex * 38 + posIndex] = tdx;
+                  finalAnalysis[fIndex * 38 + posIndex] = tdx;
 									finalAnalysis[fIndex * 39 + posIndex] = tdy;
 									finalAnalysis[fIndex * 40 + posIndex] = tdz;
 									finalAnalysis[fIndex * 41 + posIndex] = qvdx;
@@ -527,7 +525,7 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 									finalAnalysis[fIndex * 44 + posIndex] = pdx;
 									finalAnalysis[fIndex * 45 + posIndex] = pdy;
 									finalAnalysis[fIndex * 46 + posIndex] = pdz;
-                                    finalAnalysis[fIndex * 47 + posIndex] = rhodx;
+                  finalAnalysis[fIndex * 47 + posIndex] = rhodx;
 									finalAnalysis[fIndex * 48 + posIndex] = rhody;
 									finalAnalysis[fIndex * 49 + posIndex] = rhodz;
 									finalAnalysis[fIndex * 50 + posIndex] = mcresidual;
@@ -541,33 +539,33 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 		}
 	}
 
-	QString fileName = "samurai_XYP_" + suffix;
-	QString outFileName = outputPath.absoluteFilePath(fileName);
+  std::string fileName = "samurai_XYP_" + suffix;
+  std::string outFileName = outputPath + "/" + fileName;
 
 	// Write the Obs to a summary text file
-    if (configHash->value("output_qc") == "true") {
-        QString qcout = "samurai_QC_" + suffix + ".out";
-		QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toLatin1().data());
-        ostream_iterator<string> os(qcstream, "\t ");
-        *os++ = "Observation";
-        *os++ = "Inverse Error";
-        *os++ = "X";
-        *os++ = "Y";
-        *os++ = "Z";
-        *os++ = "Type";
-        *os++ = "Time";
-        *os++ = "rhou";
-        *os++ = "rhov";
-        *os++ = "rhow";
-        *os++ = "T'";
-        *os++ = "qv'";
-        *os++ = "rhoa'";
-        *os++ = "qr";
-        *os++ = "Analysis";
-        *os++ = "Background";
-        qcstream << endl;
-        qcstream.precision(10);
+    if ((*configHash)["output_qc"] == "true") {
+      std::string qcout = "samurai_QC_" + suffix + ".out";
+      std::string qcFileName = outputPath + "/" + qcout;
+      ofstream qcstream(qcFileName);
+      ostream_iterator<string> os(qcstream, "\t ");
+      *os++ = "Observation";
+      *os++ = "Inverse Error";
+      *os++ = "X";
+      *os++ = "Y";
+      *os++ = "Z";
+      *os++ = "Type";
+      *os++ = "Time";
+      *os++ = "rhou";
+      *os++ = "rhov";
+      *os++ = "rhow";
+      *os++ = "T'";
+      *os++ = "qv'";
+      *os++ = "rhoa'";
+      *os++ = "qr";
+      *os++ = "Analysis";
+      *os++ = "Background";
+      qcstream << endl;
+      qcstream.precision(10);
 
         ostream_iterator<real> od(qcstream, "\t ");
         for (int m = 0; m < mObs; m++) {
@@ -610,11 +608,12 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
                 *od++ = obsVector[mi+t];
             }
             int unixtime = (int)obsVector[mi+6];
-            QDateTime obtime;
-            obtime.setTime_t(unixtime);
-            obtime.setTimeSpec(Qt::UTC);
-            QString timestring = obtime.toString("hh:mm:ss.zzz");
-            qcstream << timestring.toStdString() << "\t";
+
+            datetime obtime;
+            obtime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(unixtime));
+            // We aren't doing millisecond output yet (NCAR)
+            //QString timestring = obtime.toString("hh:mm:ss.zzz");
+            qcstream << PrintTime(obtime) << "\t";
 
             // Multiply the weight by the ob -- Observations.in has individual weights already
             // Only non-derivative for now
@@ -635,16 +634,16 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
     pDim -= 2;
 
 	// Write out to a netCDF file
-	if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+	if ((*configHash)["output_netcdf"] == "true") {
+        std::string cdfFileName = outFileName + ".nc";
+        if (!writeNetCDF(cdfFileName)) 
+            cout << "Error writing netcdf file " << cdfFileName << endl;
     }
 	// Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
+    if ((*configHash)["output_asi"] == "true") {
+        std::string  asiFileName = outFileName + ".asi";
+        if (!writeAsi(asiFileName))
+            cout << "Error writing asi file " << asiFileName << endl;
     }
 	// Set the domain back
 	adjustInternalDomain(1);
@@ -654,19 +653,18 @@ bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 
     // Free the memory for the analysis variables
     delete[] finalAnalysis;
-*/
+
 	return true;
 
 }
 
 bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 {
-/*fixme
 	Nc3Error err(Nc3Error::verbose_nonfatal);
 	int NC_ERR = 0;
 
 	// Create the file.
-	Nc3File dataFile(netcdfFileName.toLatin1(), Nc3File::Replace);
+	Nc3File dataFile(netcdfFileName.c_str(), Nc3File::Replace);
 
 	// Check to see if the file was created.
 	if(!dataFile.is_valid())
@@ -794,7 +792,7 @@ bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 	if (!(h = dataFile.add_var("H", nc3Float, timeDim,
                                lvlDim, latDim, lonDim)))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!(qr = dataFile.add_var("DBZ", nc3Float, timeDim,
                                     lvlDim, latDim, lonDim)))
             return NC_ERR;
@@ -932,7 +930,7 @@ bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("units", "kJ"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!qr->add_att("units", "dBZ"))
             return NC_ERR;
     } else {
@@ -1041,7 +1039,7 @@ bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 		return NC_ERR;
 	if (!h->add_att("long_name", "moist static energy"))
 		return NC_ERR;
-    if (configHash->value("qr_variable") == "dbz") {
+    if ((*configHash)["qr_variable"] == "dbz") {
         if (!qr->add_att("long_name", "radar reflectivity"))
             return NC_ERR;
     } else {
@@ -1320,10 +1318,10 @@ bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 	int time[2];
 
 	// Reference time and position from center file
-	time[0] = configHash->value("ref_time").toInt();
-	real latReference = configHash->value("ref_lat").toFloat();
-	real lonReference = configHash->value("ref_lon").toFloat();
-	real latlonIncr = configHash->value("output_latlon_increment").toFloat();
+	time[0] = std::stoi((*configHash)["ref_time"]);
+	real latReference = std::stof((*configHash)["ref_lat"]);
+	real lonReference = std::stof((*configHash)["ref_lon"]);
+	real latlonIncr = std::stof((*configHash)["output_latlon_increment"]);
 	real refX, refY;
 
 	// GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
@@ -1508,13 +1506,15 @@ bool CostFunctionXYP::writeNetCDF(const std::string& netcdfFileName)
 	delete[] levs;
 	delete[] x;
     delete[] y;
-*/
+
 	return true;
 
 }
 
 bool CostFunctionXYP::writeAsi(const std::string& asiFileName)
 {
+  std::cout << "NOTE: writeAsi is disabled right now; need to fix before re-enabling." << std::endl;
+  return false;
 	// Initialize header
 	int id[511];
 	for (int n = 1; n <= 510; n++) {

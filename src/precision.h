@@ -10,6 +10,8 @@
 #ifndef PRECISION_H
 #define PRECISION_H
 
+#include <cstdint>
+
 typedef double real;
 typedef unsigned long int integer;
 

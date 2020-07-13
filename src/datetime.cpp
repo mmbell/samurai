@@ -42,8 +42,8 @@ datetime  ParseDate(const char *string, const char *fmt) {
 
 
 datetime  ParseTime(const char *string, const char *fmt) {
-   std::string epochstring = "19700101" + std::string(string);
-   std::string epochfmt = "%Y%m%d" + std::string(fmt);
+   std::string epochstring = "19700101 " + std::string(string);
+   std::string epochfmt = "%Y%m%d " + std::string(fmt);
   char buffer[512];
   std::tm tm = {};
   std::stringstream ss(epochstring);

@@ -298,7 +298,9 @@ bool VarDriver3D::findReferenceCenter()
     if (Time(reftime) == Time(frametime)) {
       configHash.insert("ref_lat", std::to_string(frameVector[fi].getLat()));
       configHash.insert("ref_lon", std::to_string(frameVector[fi].getLon()));
-      configHash.insert("ref_time", PrintTime(frametime));
+      // Note - we can't insert, since it already exists.. so we're doing the awkward 'GetMap', then assigning
+      // a new value directly.  This can definitely be cleaner, but let's get it correct first, clean later.
+      configHash.GetMap()->find("ref_time")->second = std::to_string(Date(frametime));
       cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
       return true;
     }
@@ -1623,7 +1625,7 @@ bool VarDriver3D::loadPreProcessMetObs()
     real wgt[numVars][4];
     real iPos, jPos, kPos, ob, error;
     int type;
-    int time;
+    int64_t time;
     cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
 
     // Open and read the file

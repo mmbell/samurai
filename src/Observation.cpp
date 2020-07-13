@@ -88,7 +88,7 @@ void Observation::setOb(const double &ob)
 	obNet = ob;
 }
 
-void Observation::setTime(const int &t)
+void Observation::setTime(const int64_t &t)
 {
 	time = t;
 }
