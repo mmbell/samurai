@@ -394,7 +394,7 @@ void CostFunction3D::initState(const int iteration)
 
 	if (configHash->exists("k_max_wavenumber")) {
     for (int i = 0; i < 7; i++) {
-      jMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
+      kMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }
   } else {
     kMaxWavenumber[0] = std::stof((*configHash)["k_max_wavenumber_rhou"]);
@@ -410,6 +410,7 @@ void CostFunction3D::initState(const int iteration)
   UseFFT=false;
   for (int var = 0; var < varDim; var++) {
      if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) UseFFT=true;
+     // cout << "jBCL[var]: " << jBCL[var] << " jMaxWavenumber[var]: " << jMaxWavenumber[var] << "\n";
      if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) UseFFT=true;
      if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) UseFFT=true;
   }
@@ -552,14 +553,15 @@ void CostFunction3D::initState(const int iteration)
   // HTd
   calcHTranspose(innovation, stateC);
 
-	#pragma acc data create(stateB[0:nState])
-	{
-  	//JMD#pragma acc update self(stateC)
-  	FFtransform(stateC, stateA);
-  	//JMD#pragma acc update device(stateA[0:nState])
-  	SAtransform(stateA, stateB);
-  	SCtransform(stateB, CTHTd);
-	}
+#pragma acc data create(stateB[0:nState])
+{
+  // cout << "Before FFtransform ...\n";
+  FFtransform(stateC, stateA);
+  // cout << "Before SAtransform ...\n";
+  SAtransform(stateA, stateB);
+  // cout << "Before SCtransform ...\n";
+  SCtransform(stateB, CTHTd);
+}
   #pragma acc enter data copyin(CTHTd)
 
   //Htransform(stateB);
