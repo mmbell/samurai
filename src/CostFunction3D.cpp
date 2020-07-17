@@ -486,10 +486,6 @@ void CostFunction3D::initState(const int iteration)
       }
     }
   }
-  cout << "bgFields: " << bgFields[0] << "\n";
-  cout << "stateA: " << stateA[0] << "\n";
-  cout << "bgState[0]: " << bgState[0] << "\n";
-  //exit(0);
 
   // Compute and display the variable BG errors and RMS of values
   for (int var = 0; var < varDim; var++) {
@@ -545,7 +541,6 @@ void CostFunction3D::initState(const int iteration)
 
   //Htransform(stateB);
   GPTLstop("CostFunction3D::initState");
-  cout << "Stoping at end of initState function \n";
 }
 
 real CostFunction3D::funcValue(real* state)
@@ -634,14 +629,12 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
    one function */
 real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
 {
-  //#pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
   GPTLstart("CostFunction3D::funcValueAndGradient");
   real qIP, obIP;
   real J;
   int n, m;
 
   #pragma acc data present(state[0:nState],gradient[0:nState])
-  //#pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
   {
   qIP = 0.;
   obIP = 0.;
@@ -701,7 +694,6 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
     FFtransform(stateC, stateA);
     SAtransform(stateA, stateB);
     SCtransform(stateB, stateC);
-    //#pragma acc update device(stateC[0:nState]) 
 
     // [I + C^T*H^T*R^-1*H*Q]x
     #pragma acc parallel loop gang vector vector_length(32) private(n)
@@ -847,49 +839,49 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
     	#pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
     	for (iIndex = 0; iIndex < iDim; iIndex++) {
-      	for (jIndex = 0; jIndex < jDim; jIndex++) {
-          #pragma acc loop vector
-	      	for (k = 0; k < kDim; k++) {
+      	  for (jIndex = 0; jIndex < jDim; jIndex++) {
+            #pragma acc loop vector
+	    for (k = 0; k < kDim; k++) {
           	kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	        	kB[k] = Bstate[kIndex];
-	     		}
+	       	kB[k] = Bstate[kIndex];
+	    }
 
-      	  // Multiply by gamma
-	      	for (m = 0; m < kRankVar; m++) {
-	        	//bk[m] = 0;
-            tmp = 0;
-	        	for (k = 0; k < kDim; k++) {
-	          	tmp += kGamma[var][kDim * m + k] * kB[k];
-	        	}
-	        	// Solve for A's using compact storage
-	        	for (l=-1;l>=-(kLDim-1);l--) {
-	          	if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
-	            	tmp -= kL[var][m * kLDim - l] *xk[m + l];
-              }
-	        	}
-	        	xk[m] = tmp / kL[var][m * kLDim];
-	      	}
-	      	for (k = kRankVar - 1; k >= 0; k--) {
+      	    // Multiply by gamma
+	    for (m = 0; m < kRankVar; m++) {
+	       	//bk[m] = 0;
+              tmp = 0;
+	      for (k = 0; k < kDim; k++) {
+	       	tmp += kGamma[var][kDim * m + k] * kB[k];
+	      }
+	      // Solve for A's using compact storage
+	      for (l=-1;l>=-(kLDim-1);l--) {
+	       	if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
+	      	  tmp -= kL[var][m * kLDim - l] *xk[m + l];
+                }
+	      }
+	      xk[m] = tmp / kL[var][m * kLDim];
+	    }
+	    for (k = kRankVar - 1; k >= 0; k--) {
           	tmp = xk[k];
-	        	for (l = 1; l <= (kLDim - 1); l++) {
-	          	if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
-	            	tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
-            	}
-	        	}
-	        	xk[k] = tmp / kL[var][k * kLDim];
-	      	}
+	       	for (l = 1; l <= (kLDim - 1); l++) {
+	       	   if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
+	             tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
+            	   }
+	        }
+	        xk[k] = tmp / kL[var][k * kLDim];
+	    }
 
-          #pragma acc loop vector
-	      	for (k = 0; k < kDim; k++) {
-	        	// Multiply by gammaT
-	        	tmp = 0;
-	        	for (m = 0; m < kRankVar; m++) {
-	          	tmp += kGamma[var][kDim * m + k] * xk[m];
-	        	}
-            kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	        	Astate[kIndex] = tmp; 
-	      	}
-      	}
+            #pragma acc loop vector
+	    for (k = 0; k < kDim; k++) {
+	      // Multiply by gammaT
+	      tmp = 0;
+	      for (m = 0; m < kRankVar; m++) {
+	       	tmp += kGamma[var][kDim * m + k] * xk[m];
+	      }
+              kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
+	      Astate[kIndex] = tmp; 
+	    }
+      	  }
     	}
     	//GPTLstop("IJK Loop");
 
@@ -897,99 +889,95 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
     	#pragma omp parallel for private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
     	for (iIndex = 0; iIndex < iDim; iIndex++) {
-      	for (kIndex = 0; kIndex < kDim; kIndex++) {
-          #pragma acc loop vector 
-	      	for (j = 0; j < jDim; j++) {
-	        	jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
-	      	}
-	      	for (m = 0; m < jRank[var]; m++) {
-	        	// Multiply by gamma
-            tmp = 0;
-	        	for (j = 0; j < jDim; j++) {
-	          	tmp += jGamma[var][jDim*m + j]*jB[j];
-	        	}
-	        	// Solve for A's using compact storage
-	        	for (l=-1;l>=-(jLDim-1);l--) {
-	          	if ((m+l >= 0) and ((m*jLDim-l) >= 0)) {
-	            	tmp -= jL[var][m*jLDim-l]*xj[m+l];
-              }
-	        	}
-	        	xj[m] = tmp/jL[var][m*jLDim];
-	      	}
+      	  for (kIndex = 0; kIndex < kDim; kIndex++) {
+            #pragma acc loop vector 
+	    for (j = 0; j < jDim; j++) {
+	       	jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
+	    }
+	    for (m = 0; m < jRank[var]; m++) {
+	       // Multiply by gamma
+               tmp = 0;
+	       for (j = 0; j < jDim; j++) {
+	       	 tmp += jGamma[var][jDim*m + j]*jB[j];
+	       }
+	       // Solve for A's using compact storage
+	       for (l=-1;l>=-(jLDim-1);l--) {
+	       	 if ((m+l >= 0) and ((m*jLDim-l) >= 0)) {
+	            tmp -= jL[var][m*jLDim-l]*xj[m+l];
+                 }
+	       }
+	       xj[m] = tmp/jL[var][m*jLDim];
+	    }
 
-	      	for (j=jRank[var]-1;j>=0;j--) {
-          	tmp=xj[j];
-	        	for (l=1;l<=(jLDim-1);l++) {
-	          	if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim)) {
-	            	tmp -= jL[var][(j+l)*jLDim+l]*xj[j+l];
-              }
-	        	}
-	        	xj[j] = tmp/jL[var][j*jLDim];
-	      	}
-
-          #pragma acc loop vector 
-	      	for (j = 0; j < jDim; j++) {
-	        	// Multiply by gammaT
-          	tmp = 0;
-	        	for (m = 0; m < jRank[var]; m++) {
-	          	tmp += jGamma[var][jDim*m + j]*xj[m];
-	        	}
-	        	Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
-	      	}
-      	}
+	    for (j=jRank[var]-1;j>=0;j--) {
+              tmp=xj[j];
+	      for (l=1;l<=(jLDim-1);l++) {
+	       	if ((j+l < jRank[var]) and (((j+l)*jLDim+l) < jRank[var]*jLDim)) {
+	       	  tmp -= jL[var][(j+l)*jLDim+l]*xj[j+l];
+                }
+	      }
+	      xj[j] = tmp/jL[var][j*jLDim];
+	    }
+            #pragma acc loop vector 
+	    for (j = 0; j < jDim; j++) {
+	      // Multiply by gammaT
+              tmp = 0;
+	      for (m = 0; m < jRank[var]; m++) {
+	       	tmp += jGamma[var][jDim*m + j]*xj[m];
+	      }
+	      Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)] = tmp;
+	    }
+      	  }
     	}
     	//GPTLstop("IKJ Loop");
     	//GPTLstart("JKI Loop");
     	#pragma omp parallel for private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,iB,xi,i,l,m,jIndex,kIndex) //[5.0.3]
     	for (jIndex = 0; jIndex < jDim; jIndex++) {
-      	for (kIndex = 0; kIndex < kDim; kIndex++) {
+      	  for (kIndex = 0; kIndex < kDim; kIndex++) {
           #pragma acc loop vector
-	      	for (i = 0; i < iDim; i++) {
-	        	iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
-	      	}
-	      	// Multiply by gamma
-	      	for (m = 0; m < iRank[var]; m++) {
-	        	//bi[m] = 0;
-	        	tmp = 0;
-	        	for (i = 0; i < iDim; i++) {
-	          	tmp += iGamma[var][iDim*m + i]*iB[i];
-	        	}
-	        	//  Solve for A's using compact storage
-	        	for (l=-1;l>=-(iLDim-1);l--) {
-	          	if ((m+l >= 0) and ((m*iLDim-l) >= 0)) {
-	            	tmp -= iL[var][m*iLDim-l]*xi[m+l];
-              }
-	        	}
-	        	xi[m] = tmp/iL[var][m*iLDim];
-	      	}
-	      	for (i=iRank[var]-1;i>=0;i--) {
-          	tmp=xi[i];
-	        	for (l=1;l<=(iLDim-1);l++) {
-	          	if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim)) {
-	            	tmp -= iL[var][(i+l)*iLDim+l]*xi[i+l];
-              }
-	        	}
-	        	xi[i] = tmp/iL[var][i*iLDim];
-	      	}
-
-	      	// Multiply by gammaT
-          #pragma acc loop vector
-	      	for (i = 0; i < iDim; i++) {
-	        	//ai[i] = 0;
-            tmp=0;
-	        	for (m = 0; m < iRank[var]; m++) {
-	          	tmp += iGamma[var][iDim*m + i]*xi[m];
-	        	}
-	        	// std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
-	        	Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
-	      	}
-
-      	}
-    	}
+	    for (i = 0; i < iDim; i++) {
+	      iB[i] = Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)];
+	    }
+	    // Multiply by gamma
+	    for (m = 0; m < iRank[var]; m++) {
+	      //bi[m] = 0;
+	      tmp = 0;
+	      for (i = 0; i < iDim; i++) {
+	       	tmp += iGamma[var][iDim*m + i]*iB[i];
+	      }
+	      //  Solve for A's using compact storage
+	      for (l=-1;l>=-(iLDim-1);l--) {
+	       	if ((m+l >= 0) and ((m*iLDim-l) >= 0)) {
+	       	  tmp -= iL[var][m*iLDim-l]*xi[m+l];
+                }
+	      }
+	      xi[m] = tmp/iL[var][m*iLDim];
+	    }
+	    for (i=iRank[var]-1;i>=0;i--) {
+              tmp=xi[i];
+	      for (l=1;l<=(iLDim-1);l++) {
+	       	if ((i+l < iRank[var]) and (((i+l)*iLDim+l) < iRank[var]*iLDim)) {
+	       	  tmp -= iL[var][(i+l)*iLDim+l]*xi[i+l];
+                }
+	      }
+	      xi[i] = tmp/iL[var][i*iLDim];
+	    }
+	    // Multiply by gammaT
+           #pragma acc loop vector
+	   for (i = 0; i < iDim; i++) {
+	     //ai[i] = 0;
+             tmp=0;
+	     for (m = 0; m < iRank[var]; m++) {
+	       tmp += iGamma[var][iDim*m + i]*xi[m];
+	     }
+	     // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
+	     Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
+	   }
+      	  }
+        }
     	//GPTLstop("JKI Loop");
-
-  	}
+     }
   	GPTLstop("CostFunction3D::SAtransform");
 } // acc data region
 

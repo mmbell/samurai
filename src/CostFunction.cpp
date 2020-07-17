@@ -62,7 +62,6 @@ bool CostFunction::minimize()
 
   //work vector or MT linesearch
   mt_work = new real[nState];
-  //#pragma acc enter data copyin(mt_work[0:nState])
 
   // choose solver (currState is update by solver)
   if (S_SOLVER == 1) {
@@ -81,7 +80,6 @@ bool CostFunction::minimize()
   }
   
   delete[] mt_work;
-  //#pragma acc exit data delete(mt_work)
 
   GPTLstop("CostFunction::minimize");
 	return true;
