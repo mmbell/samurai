@@ -7,8 +7,8 @@ set ( MODE GPU )                                   # NCAR: Options are 'CPU' or 
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
 
-set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp)
-set ( SOLVER_INNER_MAXITER 4000 )  # max interations for inner loop with TN solver
+set ( SOLVER_MAXITER 2000 )        # max iterations in the solver (src/CostFunction.cpp) default=2000
+set ( SOLVER_INNER_MAXITER 4000 )  # max interations for inner loop with TN solver default=4000
 set ( SOLVER_SAMURAI 1)            # 1= truncated Newton solver, 2 = Samurai CG (orig)
 set ( SOLVER_CONV_TOL 1.0e-4 )     # solver convergence tolerance
 set ( SOLVER_INNER_CONV_TOL 1.0e-4)  # solver convergence tolerance for the inner loop with TN (usually = conv_tol for best results)

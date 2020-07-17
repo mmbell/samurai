@@ -150,14 +150,15 @@ protected:
 	real constHeight;
 	real mcWeight;
 	int iMaxWavenumber[7], jMaxWavenumber[7], kMaxWavenumber[7];
-	double *iFFTin, *jFFTin, *kFFTin;
-	fftw_complex *iFFTout, *jFFTout, *kFFTout;
 	fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
-#ifdef USE_CUFFT
-        cufftDoubleReal *iFFTinNew, *jFFTinNew, *kFFTinNew;
-        cufftDoubleComplex *iFFToutNew, *jFFToutNew, *kFFToutNew;
+#ifdef DONOTUSE_CUFFT
+        cufftDoubleReal *iFFTin, *jFFTin, *kFFTin;
+        cufftDoubleComplex *iFFTout, *jFFTout, *kFFTout;
         cufftHandle iForwardPlan, iBackwardPlan, jForwardPlan, jBackwardPlan,kForwardPlan, kBackwardPlan;
         int batch=1;
+#else
+	double *iFFTin, *jFFTin, *kFFTin;
+	fftw_complex *iFFTout, *jFFTout, *kFFTout;
 #endif
         bool UseFFT;
 	real *H;

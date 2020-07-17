@@ -121,12 +121,22 @@ void CostFunction3D::finalize()
   fftw_destroy_plan(jBackward);
   fftw_destroy_plan(kForward);
   fftw_destroy_plan(kBackward);
+#ifdef DONOTUSE_CUFFT
+  delete[] iFFTin; 
+  delete[] jFFTin; 
+  delete[] kFFTin; 
+  delete[] iFFTout; 
+  delete[] jFFTout; 
+  delete[] kFFTout; 
+#else
   fftw_free(iFFTin);
   fftw_free(jFFTin);
   fftw_free(kFFTin);
   fftw_free(iFFTout);
   fftw_free(jFFTout);
   fftw_free(kFFTout);
+#endif
+
   fftw_cleanup();
 }
 
@@ -289,43 +299,50 @@ void CostFunction3D::initialize(HashMap* config,
      } */
 
   // Initialize the Fourier transforms
-  iFFTin = (double*) fftw_malloc(sizeof(double) * iDim);
-  iFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * iDim);
-  iForward = fftw_plan_dft_r2c_1d(iDim, iFFTin, iFFTout, FFTW_MEASURE);
-  iBackward = fftw_plan_dft_c2r_1d(iDim, iFFTout, iFFTin, FFTW_MEASURE);
 
   int ierr;
-#ifdef USE_CUFFT
+#ifdef DONOTUSE_CUFFT
+  iFFTin  = new cufftDoubleReal[iDim];
+  iFFTout = new cufftDoubleComplex[iDim];
   ierr  = cufftPlan1d(&iForwardPlan,iDim,CUFFT_D2Z,batch);
   ierr += cufftPlan1d(&iBackwardPlan,iDim,CUFFT_Z2D,batch);  
   ierr += cufftSetStream(iForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
   ierr += cufftSetStream(iBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#else
+  iFFTin = (double*) fftw_malloc(sizeof(double) * iDim);
+  iFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * iDim);
+  iForward = fftw_plan_dft_r2c_1d(iDim, iFFTin, iFFTout, FFTW_MEASURE);
+  iBackward = fftw_plan_dft_c2r_1d(iDim, iFFTout, iFFTin, FFTW_MEASURE);
 #endif
 
-  jFFTin = (double*) fftw_malloc(sizeof(double) * jDim);
-  jFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * jDim);
-  jForward = fftw_plan_dft_r2c_1d(jDim, jFFTin, jFFTout, FFTW_MEASURE);
-  jBackward = fftw_plan_dft_c2r_1d(jDim, jFFTout, jFFTin, FFTW_MEASURE);
 
-#ifdef USE_CUFFT
+#ifdef DONOTUSE_CUFFT
+  jFFTin  = new cufftDoubleReal[jDim];
+  jFFTout = new cufftDoubleComplex[jDim];
   ierr += cufftPlan1d(&jForwardPlan,jDim,CUFFT_D2Z,batch);
   ierr += cufftPlan1d(&jBackwardPlan,jDim,CUFFT_Z2D,batch);  
   ierr += cufftSetStream(jForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
   ierr += cufftSetStream(jBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#else
+  jFFTin = (double*) fftw_malloc(sizeof(double) * jDim);
+  jFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * jDim);
+  jForward = fftw_plan_dft_r2c_1d(jDim, jFFTin, jFFTout, FFTW_MEASURE);
+  jBackward = fftw_plan_dft_c2r_1d(jDim, jFFTout, jFFTin, FFTW_MEASURE);
 #endif
 
-  kFFTin = (double*) fftw_malloc(sizeof(double) * kDim);
-  kFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * kDim);
-  kForward = fftw_plan_dft_r2c_1d(kDim, kFFTin, kFFTout, FFTW_MEASURE);
-  kBackward = fftw_plan_dft_c2r_1d(kDim, kFFTout, kFFTin, FFTW_MEASURE);
 
-#ifdef USE_CUFFT
-  kFFTinNew  = new cufftDoubleReal[kDim];
-  kFFToutNew = new cufftDoubleComplex[kDim];
+#ifdef DONOTUSE_CUFFT
+  kFFTin  = new cufftDoubleReal[kDim];
+  kFFTout = new cufftDoubleComplex[kDim];
   ierr += cufftPlan1d(&kForwardPlan,kDim,CUFFT_D2Z,batch);
   ierr += cufftPlan1d(&kBackwardPlan,kDim,CUFFT_Z2D,batch);  
   ierr += cufftSetStream(kForwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
   ierr += cufftSetStream(kBackwardPlan,(cudaStream_t) acc_get_cuda_stream(acc_async_sync));
+#else
+  kFFTin = (double*) fftw_malloc(sizeof(double) * kDim);
+  kFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * kDim);
+  kForward = fftw_plan_dft_r2c_1d(kDim, kFFTin, kFFTout, FFTW_MEASURE);
+  kBackward = fftw_plan_dft_c2r_1d(kDim, kFFTout, kFFTin, FFTW_MEASURE);
 #endif
 
 }
@@ -566,6 +583,7 @@ void CostFunction3D::initState(const int iteration)
 
   //Htransform(stateB);
   GPTLstop("CostFunction3D::initState");
+  cout << "Stoping at end of initState function \n";
 }
 
 real CostFunction3D::funcValue(real* state)
@@ -2440,14 +2458,6 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
     Cstate[n]= Astate[n];
   }
 
-  // Check to see if PERIODIC boundaries and MaxWavenumber >= 0
-  //UseFFT=0
-  //for (int var = 0; var < varDim; var++) {
-  //   if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) UseFFT=1
-  //   if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) UseFFT=1
-  //   if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) UseFFT=1
-  //}
-
   if(UseFFT) {
     // This should only be done if FFTW needs to be performed
     #pragma acc update self(Cstate[0:nState])
@@ -2456,28 +2466,27 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
       if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) {
         for (iIndex = 0; iIndex < iDim; iIndex++) {
           for (jIndex = 0; jIndex < jDim; jIndex++) {
-// Preliminary port to cuFFT
-//            for (kIndex = 0; kIndex < kDim; kIndex++) {
-//              kFFTinNew[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
-//            }
-//            ierr = cufftExecD2Z(kForwardPlan,(cufftDoubleReal *) kFFTinNew, (cufftDoubleComplex *) kFFToutNew);
-//            for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
-//              kFFToutNew[kIndex].x = 0.0;
-//              kFFToutNew[kIndex].y = 0.0;
-//            }
-//            ierr = cufftExecZ2D(kBackwardPlan,(cufftDoubleComplex *) kFFToutNew, (cufftDoubleReal *) kFFTinNew);
-//            for (kIndex = 0; kIndex < kDim; kIndex++) {
-//              Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTinNew[kIndex]/kDim;
-//            }
             for (kIndex = 0; kIndex < kDim; kIndex++) {
               kFFTin[kIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
             }
+#ifdef DONOTUSE_CUFFT
+            // Preliminary port to cuFFT
+            #pragma acc data copyin(kFFTin[0:kDim]) copyout(kFFTout[0:kDim])
+            { ierr = cufftExecD2Z(kForwardPlan,(cufftDoubleReal *) kFFTin, (cufftDoubleComplex *) kFFTout); }
+            for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
+              kFFTout[kIndex].x = 0.0;
+              kFFTout[kIndex].y = 0.0;
+            }
+            #pragma acc data copyin(kFFTout[0:kDim]) copyout(kFFTin[0:kDim])
+            { ierr = cufftExecZ2D(kBackwardPlan,(cufftDoubleComplex *) kFFTout, (cufftDoubleReal *) kFFTin); }
+#else
             fftw_execute(kForward);
             for (kIndex = kMaxWavenumber[var]+1; kIndex < (kDim/2)+1; kIndex++) {
               kFFTout[kIndex][0] = 0.0;
               kFFTout[kIndex][1] = 0.0;
             }
             fftw_execute(kBackward);
+#endif
             for (kIndex = 0; kIndex < kDim; kIndex++) {
               Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = kFFTin[kIndex]/kDim;
             }
@@ -2487,20 +2496,49 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 
       // Enforce max wavenumber
       if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
-        for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  for (int iIndex = 0; iIndex < iDim; iIndex++) {
-	    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	      jFFTin[jIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
-	    }
-	    fftw_execute(jForward);
-	    for (int jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
-	      jFFTout[jIndex][0] = 0.0;
-	      jFFTout[jIndex][1] = 0.0;
-	    }
-	    fftw_execute(jBackward);
-	    for (int jIndex = 0; jIndex < jDim; jIndex++) {
-	      Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = jFFTin[jIndex]/jDim;
-	    }
+        //cout << "FFT perform on J-pencil\n";
+        for (kIndex = 0; kIndex < kDim; kIndex++) {
+	  for (iIndex = 0; iIndex < iDim; iIndex++) {
+            for (jIndex = 0; jIndex < jDim; jIndex++) {
+              jFFTin[jIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
+            }
+#ifdef DONOTUSE_CUFFT
+            if(iIndex == 0 && kIndex == 0) {
+              for( jIndex = 0;jIndex<jDim;jIndex++) {
+                cout << "before: jFFTin[jIndex]: " << jFFTin[jIndex] << "\n";
+              }
+            }
+            // Preliminary port to cuFFT
+            #pragma acc data copyin(jFFTin[0:jDim]) copyout(jFFTout[0:jDim])
+            { ierr = cufftExecD2Z(jForwardPlan,(cufftDoubleReal *) jFFTin, (cufftDoubleComplex *) jFFTout); }
+            for (jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
+              jFFTout[jIndex].x = 0.0;
+              jFFTout[jIndex].y = 0.0;
+            }
+            if(iIndex == 0 && kIndex == 0) {
+              for( jIndex = 0;jIndex<jDim;jIndex++) {
+                cout << " jFFTout[jIndex]: " << jFFTout[jIndex].x << " " << jFFTout[jIndex].y << "\n";
+              }
+            }
+            #pragma acc data copyin(jFFTout[0:jDim]) copyout(jFFTin[0:jDim])
+            { ierr = cufftExecZ2D(jBackwardPlan,(cufftDoubleComplex *) jFFTout, (cufftDoubleReal *) jFFTin); }
+            if(iIndex == 0 && kIndex == 0) {
+              for( jIndex = 0;jIndex<jDim;jIndex++) {
+                cout << "before: jFFTin[jIndex]: " << jFFTin[jIndex] << "\n";
+              }
+            }
+
+#else
+            fftw_execute(jForward);
+            for (jIndex = jMaxWavenumber[var]+1; jIndex < (jDim/2)+1; jIndex++) {
+              jFFTout[jIndex][0] = 0.0;
+              jFFTout[jIndex][1] = 0.0;
+            }
+            fftw_execute(jBackward);
+#endif
+            for (jIndex = 0; jIndex < jDim; jIndex++) {
+              Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = jFFTin[jIndex]/jDim;
+            }
 	  }
         }
       }
@@ -2512,12 +2550,24 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 	    for (int iIndex = 0; iIndex < iDim; iIndex++) {
 	      iFFTin[iIndex] = Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)];
 	    }
+#ifdef DONOTUSE_CUFFT
+            // Preliminary port to cuFFT
+            #pragma acc data copyin(iFFTin[0:iDim]) copyout(iFFTout[0:iDim])
+            { ierr = cufftExecD2Z(iForwardPlan,(cufftDoubleReal *) iFFTin, (cufftDoubleComplex *) iFFTout); }
+            for (iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
+              iFFTout[iIndex].x = 0.0;
+              iFFTout[iIndex].y = 0.0;
+            }
+            #pragma acc data copyin(iFFTout[0:iDim]) copyout(iFFTin[0:iDim])
+            { ierr = cufftExecZ2D(iBackwardPlan,(cufftDoubleComplex *) iFFTout, (cufftDoubleReal *) iFFTin); }
+#else
 	    fftw_execute(iForward);
 	    for (int iIndex = iMaxWavenumber[var]+1; iIndex < (iDim/2)+1; iIndex++) {
 	      iFFTout[iIndex][0] = 0.0;
 	      iFFTout[iIndex][1] = 0.0;
 	    }
 	    fftw_execute(iBackward);
+#endif
 	    for (int iIndex = 0; iIndex < iDim; iIndex++) {
 	      Cstate[INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var)] = iFFTin[iIndex]/iDim;
 	    }

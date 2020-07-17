@@ -28,7 +28,7 @@ module load lrose
 module load netcdf
 module load fftw
 module load cmake
-module load cuda/10.1
+#module load cuda/10.1
 
 
 rm -rf CMakeFiles/
