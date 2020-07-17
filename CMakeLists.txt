@@ -3,7 +3,7 @@ project(samurai)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set ( MODE GPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
+set ( MODE CPU )                                   # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC (default: CPU)
 set ( CMAKE_BUILD_TYPE Release )                     # Standard: Options are 'Debug' or 'Release'
 
 
