@@ -32,3 +32,15 @@ bool HashMap::exists(const std::string& key)
   return false;
 }
 
+bool HashMap::update(const std::string& key, const std::string& value)
+{
+  auto val = map_.find(key);
+
+  if (val == map_.end()) {
+     map_.insert({key, value});
+     return true;
+  }
+
+  val->second = value;
+  return true;
+}

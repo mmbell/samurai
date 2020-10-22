@@ -10,6 +10,7 @@ class HashMap {
     std::string operator [](const std::string& key);
     bool insert(const std::string&, const std::string&);
     bool exists(const std::string&);
+    bool update(const std::string&, const std::string&);
 
     std::unordered_map<std::string, std::string>* GetMap(void) { return &map_;}
 
