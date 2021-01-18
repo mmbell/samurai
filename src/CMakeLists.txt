@@ -7,10 +7,10 @@ project(samurai)
 set(CMAKE_CXX_STANDARD 11) # C++11
 add_compile_options(${ADDITIONAL_FLAGS})
 
-# find LROSE - needed here because of tdrp_gen
+# If needed, generate TDRP Params.cc and Params.hh files
+# from their associated paramdef.<app> file
 
-find_package(LROSE COMPONENTS REQUIRED)
-find_package(GeographicLib REQUIRED) 
+makeTdrpParams()
 
 # Set up the include and link paths:
 
