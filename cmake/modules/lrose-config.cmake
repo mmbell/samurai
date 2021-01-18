@@ -13,6 +13,7 @@ set(LROSE_LIBRARIES
   Radx
   Ncxx
   toolsa
+  dataport
   netcdf
   hdf5_cpp
   hdf5
