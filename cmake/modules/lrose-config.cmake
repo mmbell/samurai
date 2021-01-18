@@ -18,12 +18,10 @@ set(LROSE_LIBRARIES
   hdf5
   )
 
-find_program(TDRP_EXECUTABLE tdrp_gen PATHS ${LROSE_BIN_DIR} /usr/local/bin )
-
 # Add a custom generator for TDRP Params.cc and Params.hh files
 # from their associated paramdef.<app> file
 
-find_program(TDRP_EXECUTABLE tdrp_gen PATHS ${LROSE_BIN_DIR} /usr/local/bin )
+find_program(TDRP_EXECUTABLE tdrp_gen PATHS ${LROSE_PREFIX}/bin /usr/local/bin )
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Params.hh ${CMAKE_CURRENT_SOURCE_DIR}/Params.cc
