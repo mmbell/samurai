@@ -50,8 +50,8 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
   target_link_libraries(OpenMP_TARGET INTERFACE ${OpenMP_CXX_FLAGS})
 endif()
 
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/release/bin)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/release/lib)
 
 # source lists
 
