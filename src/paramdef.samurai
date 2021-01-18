@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////
 
 commentdef {
-  p_header = "Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation";
+  p_header = "Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation ";
 }
 
 //////////////////////////////////////////////////////////

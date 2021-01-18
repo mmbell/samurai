@@ -27,6 +27,7 @@ src/a.out.dSYM
 src/hide
 src/proposal
 src/vars.txt
+src/solver.inc
 t.cc
 test
 tryit*
