@@ -17,8 +17,9 @@ makeTdrpParams()
 include_directories(${LROSE_PREFIX}/include)
 include_directories(${FFTW_INCLUDES})
 include_directories(${NETCDF_INCLUDES})
-include_directories(${GeographicLib_INCLUDE_DIRS})
+#include_directories(${GeographicLib_INCLUDE_DIRS})
 include_directories(${PETSC_INC})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geolib/include)
 
 # Configure the solver include file:
 
@@ -129,9 +130,51 @@ set(gptl_SRCS
   timing/GPTLutil.c
  )
 
+set(geolib_SRCS 
+  geolib/Accumulator.cpp
+  geolib/AlbersEqualArea.cpp
+  geolib/AzimuthalEquidistant.cpp
+  geolib/CassiniSoldner.cpp
+  geolib/CircularEngine.cpp
+  geolib/DMS.cpp
+  geolib/Ellipsoid.cpp
+  geolib/EllipticFunction.cpp
+  geolib/GARS.cpp
+  geolib/GeoCoords.cpp
+  geolib/Geocentric.cpp
+  geolib/Geodesic.cpp
+  geolib/GeodesicExact.cpp
+  geolib/GeodesicExactC4.cpp
+  geolib/GeodesicLine.cpp
+  geolib/GeodesicLineExact.cpp
+  geolib/Geohash.cpp
+  geolib/Geoid.cpp
+  geolib/Georef.cpp
+  geolib/Gnomonic.cpp
+  geolib/GravityCircle.cpp
+  geolib/GravityModel.cpp
+  geolib/LambertConformalConic.cpp
+  geolib/LocalCartesian.cpp
+  geolib/MGRS.cpp
+  geolib/MagneticCircle.cpp
+  geolib/MagneticModel.cpp
+  geolib/Math.cpp
+  geolib/NormalGravity.cpp
+  geolib/OSGB.cpp
+  geolib/PolarStereographic.cpp
+  geolib/PolygonArea.cpp
+  geolib/Rhumb.cpp
+  geolib/SphericalEngine.cpp
+  geolib/TransverseMercator.cpp
+  geolib/TransverseMercatorExact.cpp
+  geolib/UTMUPS.cpp
+  geolib/Utility.cpp
+ )
+
 set(samurai_SRCS
   ${common_SRCS}
   ${gptl_SRCS}
+  ${geolib_SRCS}
   main.cpp
  )
 
@@ -143,7 +186,7 @@ set(lib_SRCS
 
 # link
 
-link_directories (${GeographicLib_LIBRARY_DIRS})
+#link_directories (${GeographicLib_LIBRARY_DIRS})
 link_directories (${LROSE_PREFIX}/lib)
 
 # Where to install files
@@ -209,7 +252,7 @@ if(CUDA_CUFFT_LIBRARIES)
   # target_link_libraries(${PROJECT_NAME} ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so)
 endif()
 
-target_link_libraries(${PROJECT_NAME} Geographic)
+#target_link_libraries(${PROJECT_NAME} Geographic)
 target_link_libraries(${PROJECT_NAME} ${FFTW_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${LROSE_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
