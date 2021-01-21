@@ -17,7 +17,7 @@ makeTdrpParams()
 include_directories(${LROSE_PREFIX}/include)
 include_directories(${FFTW_INCLUDES})
 include_directories(${NETCDF_INCLUDES})
-include_directories(${GeographicLib_INCLUDE_DIRS})
+#include_directories(${GeographicLib_INCLUDE_DIRS})
 include_directories(${PETSC_INC})
 
 # Configure the solver include file:
@@ -143,7 +143,7 @@ set(lib_SRCS
 
 # link
 
-link_directories (${GeographicLib_LIBRARY_DIRS})
+#link_directories (${GeographicLib_LIBRARY_DIRS})
 link_directories (${LROSE_PREFIX}/lib)
 
 # Where to install files
@@ -209,7 +209,7 @@ if(CUDA_CUFFT_LIBRARIES)
   # target_link_libraries(${PROJECT_NAME} ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so)
 endif()
 
-target_link_libraries(${PROJECT_NAME} Geographic)
+#target_link_libraries(${PROJECT_NAME} Geographic)
 target_link_libraries(${PROJECT_NAME} ${FFTW_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${LROSE_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)

@@ -75,8 +75,8 @@ endif()
 
 # find packages
 
-find_package(LROSE COMPONENTS REQUIRED)
-find_package(GeographicLib REQUIRED) 
+find_package(LROSE REQUIRED)
+#find_package(GeographicLib REQUIRED) 
 
 # recurse into src directory for the build
 
