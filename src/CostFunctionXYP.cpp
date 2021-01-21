@@ -12,7 +12,7 @@
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 
-#include <GeographicLib/TransverseMercatorExact.hpp>
+#include <euclid/GeographicLib/TransverseMercatorExact.hpp>
 
 CostFunctionXYP::CostFunctionXYP(const Projection& proj, const int& numObs, const int& stateSize)
   : CostFunction3D(proj, numObs, stateSize)

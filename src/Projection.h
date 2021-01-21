@@ -18,8 +18,8 @@
 #ifndef PROJECTION_H
 #define PROJECTION_H
 
-#include <GeographicLib/TransverseMercatorExact.hpp>
-#include <GeographicLib/LambertConformalConic.hpp>
+#include <euclid/GeographicLib/TransverseMercatorExact.hpp>
+#include <euclid/GeographicLib/LambertConformalConic.hpp>
 #include "precision.h"
 
 class Projection

@@ -12,7 +12,7 @@
 //#include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 
-// #include <GeographicLib/LambertConformalConic.hpp>
+// #include <euclid/GeographicLib/LambertConformalConic.hpp>
 
 CostFunctionCOAMPS::CostFunctionCOAMPS(const Projection& proj, const int& numObs, const int& stateSize)
   : CostFunction3D(proj, numObs, stateSize)

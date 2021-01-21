@@ -13,8 +13,8 @@
 #include "LineSplit.h"
 #include <fstream>
 #include <cmath>
-#include <GeographicLib/TransverseMercatorExact.hpp>
-#include <GeographicLib/LambertConformalConic.hpp>
+#include <euclid/GeographicLib/TransverseMercatorExact.hpp>
+#include <euclid/GeographicLib/LambertConformalConic.hpp>
 
 #include <Radx/Radx.hh>
 #include <Radx/RadxField.hh>
