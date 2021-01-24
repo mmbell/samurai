@@ -98,10 +98,10 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
   int outer_itmax, cg_itmax;
   int j;
   int verbose, neg_curve;
-  int ls_ret;
 
   real cg_tol;
-  real f_init, f_val;
+  // real f_init;
+  real f_val;
   real n_init_grad, n_grad, grad_dot;
   real gg;
   real rr, pAp, rr_m1, r_norm, r0_norm, rel_resid;
@@ -148,7 +148,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
 
     //collect initial values on first iteration
     if (its == 0) {
-      f_init = f_val;
+      // f_init = f_val;
       n_init_grad = n_grad;
       //cout << "Newton: Initial Norm of the Gradient = " << n_init_grad << endl;
     }
@@ -277,7 +277,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
 
     //Use MT linesearch instead (input state, gradient, search dir, fval, initstep)
     //also returns the gradient
-    ls_ret = MTLineSearch(qstate, g, x, &f_val, initstep); 
+    MTLineSearch(qstate, g, x, &f_val, initstep); 
 
 
   } //end of Netwon loop
@@ -810,7 +810,7 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
   // initstep = initial step length (should be 1.0 for Newton)
 
   int j, i;
-  int n, bracket, stage1, max_funcs, infoc;
+  int bracket, stage1, max_funcs, infoc;
   int reason; // 0 = continue, 1= success, -3 = not search dir, 3 = halted, 4 = halted at max funcs
               // 5 = step at upper bound, 6 = step at lower bound, 7 = halted rtol
 
@@ -830,7 +830,7 @@ int CostFunction::MTLineSearch(real* &x, real* &g, real *s, real *fval, real ini
 {
   GPTLstart("CostFunction::MTLineSearch");
 
-  n = nState;
+  // int n = nState;
 
   //compute dginit <g,s> (inital gradient in the search direction)
   dginit = 0.0;

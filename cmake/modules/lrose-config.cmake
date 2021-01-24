@@ -14,6 +14,7 @@ set(LROSE_LIBRARIES
   Ncxx
   toolsa
   euclid
+  rapmath
   dataport
   netcdf
   hdf5_cpp
