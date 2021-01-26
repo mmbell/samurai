@@ -12,8 +12,9 @@ set(LROSE_LIBRARIES
   tdrp
   Radx
   Ncxx
-  toolsa
   euclid
+  rapmath
+  toolsa
   dataport
   netcdf
   hdf5_cpp
