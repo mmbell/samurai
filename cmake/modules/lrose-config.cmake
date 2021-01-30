@@ -23,13 +23,13 @@ set(LROSE_LIBRARIES
 
 # Function for creating TDRP Params.cc and Params.hh files
 
+find_program(TDRP_EXECUTABLE tdrp_gen PATHS ${LROSE_PREFIX}/bin /usr/local/lrose/bin)
+  
 function(makeTdrpParams)
 
   # Add a custom generator for TDRP Params.cc and Params.hh files
   # from their associated paramdef.<app> file
 
-  find_program(TDRP_EXECUTABLE tdrp_gen PATHS ${LROSE_PREFIX}/bin /usr/local/lrose/bin)
-  
   add_custom_command (
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Params.hh ${CMAKE_CURRENT_SOURCE_DIR}/Params.cc
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/paramdef.${PROJECT_NAME}
@@ -44,7 +44,7 @@ function(makeTdrpParams)
 endFunction()
 
 message(STATUS "lrose-config: CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX} )
-message(STATUS "lrose-config: LROSE_INSTALL_DIR: " ${LROSE_INSTALL_DIR} )
+message(STATUS "lrose-config: LROSE_PREFIX: " ${LROSE_PREFIX} )
 message(STATUS "lrose-config: LROSE_LIBRARIES: " ${LROSE_LIBRARIES} )
 message(STATUS "lrose-config: TDRP_EXECUTABLE: " ${TDRP_EXECUTABLE} )
 

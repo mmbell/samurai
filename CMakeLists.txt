@@ -50,7 +50,11 @@ set(IO_WRITEOBS 0)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_PREFIX_PATH ${CMAKE_MODULE_PATH})
 
-# Packages
+# Finding pkg-config
+
+find_package(PkgConfig REQUIRED)
+
+# Find packages
 
 if(MODE STREQUAL "GPU")
   # For GPU versions
@@ -73,10 +77,21 @@ else()
   # set(ADDITIONAL_FLAGS "-pg") 
 endif()
 
-# find packages
+# LROSE
 
 find_package(LROSE REQUIRED)
-#find_package(GeographicLib REQUIRED) 
+
+#  hdf5 and netcdf
+
+find_package (HDF5 COMPONENTS C CXX)
+find_package (NETCDF)
+if (DEFINED HDF5_hdf5_LIBRARY_RELEASE)
+  get_filename_component(HDF5_INSTALL_PREFIX ${HDF5_hdf5_LIBRARY_RELEASE} DIRECTORY)
+endif()
+message("netCDF_INSTALL_PREFIX: ${netCDF_INSTALL_PREFIX}")
+message("HDF5_INSTALL_PREFIX: ${HDF5_INSTALL_PREFIX}")
+message("HDF5_CXX_INCLUDE_DIR: ${HDF5_CXX_INCLUDE_DIR}")
+message("HDF5_C_INCLUDE_DIR: ${HDF5_C_INCLUDE_DIR}")
 
 # recurse into src directory for the build
 

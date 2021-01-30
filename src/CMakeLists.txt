@@ -16,9 +16,21 @@ makeTdrpParams()
 
 include_directories(${LROSE_PREFIX}/include)
 include_directories(${FFTW_INCLUDES})
-include_directories(${NETCDF_INCLUDES})
-#include_directories(${GeographicLib_INCLUDE_DIRS})
 include_directories(${PETSC_INC})
+
+if (DEFINED netCDF_INSTALL_PREFIX)
+  include_directories (${netCDF_INSTALL_PREFIX}/include)
+endif()
+if (DEFINED HDF5_CXX_INCLUDE_DIR)
+  include_directories (${HDF5_CXX_INCLUDE_DIR})
+endif()
+if (DEFINED HDF5_C_INCLUDE_DIR)
+  include_directories (${HDF5_C_INCLUDE_DIR})
+endif()
+if(IS_DIRECTORY /usr/local/include)
+  include_directories (/usr/local/include)
+endif()
+
 
 # Configure the solver include file:
 
@@ -141,10 +153,22 @@ set(lib_SRCS
   samurai.cpp
  )
 
-# link
+# link directories
 
-#link_directories (${GeographicLib_LIBRARY_DIRS})
 link_directories (${LROSE_PREFIX}/lib)
+
+if (DEFINED netCDF_INSTALL_PREFIX)
+  link_directories (${netCDF_INSTALL_PREFIX}/lib)
+endif()
+if (DEFINED HDF5_INSTALL_PREFIX)
+  link_directories (${HDF5_INSTALL_PREFIX}/lib)
+endif()
+if (DEFINED HDF5_LIBRARY_DIRS)
+  link_directories(${HDF5_LIBRARY_DIRS})
+endif()
+if(IS_DIRECTORY /usr/local/lib)
+  link_directories (/usr/local/lib)
+endif()
 
 # Where to install files
       
@@ -209,7 +233,6 @@ if(CUDA_CUFFT_LIBRARIES)
   # target_link_libraries(${PROJECT_NAME} ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so)
 endif()
 
-#target_link_libraries(${PROJECT_NAME} Geographic)
 target_link_libraries(${PROJECT_NAME} ${FFTW_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${LROSE_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
