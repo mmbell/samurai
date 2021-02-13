@@ -83,14 +83,13 @@ find_package(LROSE REQUIRED)
 
 #  hdf5 and netcdf
 
-find_package (HDF5 COMPONENTS C CXX)
+find_package (HDF5)
 find_package (NETCDF)
 if (DEFINED HDF5_hdf5_LIBRARY_RELEASE)
   get_filename_component(HDF5_INSTALL_PREFIX ${HDF5_hdf5_LIBRARY_RELEASE} DIRECTORY)
 endif()
 message("netCDF_INSTALL_PREFIX: ${netCDF_INSTALL_PREFIX}")
 message("HDF5_INSTALL_PREFIX: ${HDF5_INSTALL_PREFIX}")
-message("HDF5_CXX_INCLUDE_DIR: ${HDF5_CXX_INCLUDE_DIR}")
 message("HDF5_C_INCLUDE_DIR: ${HDF5_C_INCLUDE_DIR}")
 
 # recurse into src directory for the build
