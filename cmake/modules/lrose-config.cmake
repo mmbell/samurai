@@ -17,7 +17,6 @@ set(LROSE_LIBRARIES
   toolsa
   dataport
   netcdf
-  hdf5_cpp
   hdf5
   )
 
