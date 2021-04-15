@@ -151,7 +151,7 @@ bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, 
   // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here   
   // bgTime.setTime_t(time);
   // bgTime.setTimeSpec(Qt::UTC);
-  // unsigned int itime = (unsigned int)(time);
+  unsigned int itime = (unsigned int)(time);
   //std::cout << "iTime: " << itime << std::endl;
   bgTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>((unsigned int)(time)));
 
@@ -1178,7 +1178,7 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
       std::cerr << "nbrIxs < 0" << std::endl;
       continue;
     }
-    if (nbrIxs[inbr] > (ssize_t) bgIn.size() / 11) {
+    if (nbrIxs[inbr] > bgIn.size() / 11) {
       std::cerr << "nbrIxs > size of bgIn" << std::endl;
       continue;
     }

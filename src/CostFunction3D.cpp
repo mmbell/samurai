@@ -291,7 +291,7 @@ void CostFunction3D::initialize(HashMap* config,
 
   // Initialize the Fourier transforms
 
-  // int ierr;
+  int ierr;
   iFFTin = (double*) fftw_malloc(sizeof(double) * iDim);
   iFFTout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * iDim);
   iForward = fftw_plan_dft_r2c_1d(iDim, iFFTin, iFFTout, FFTW_MEASURE);
@@ -547,8 +547,7 @@ real CostFunction3D::funcValue(real* state)
 {
   real J,qIP, obIP;
 
-  int obIndex = 0;
-  int m = obIndex;
+  int m, obIndex;
   
   qIP = 0.;
   obIP = 0.;
@@ -792,30 +791,30 @@ void CostFunction3D::calcInnovation()
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
-  integer j,m,n,k,ms,me;
+  integer j,n,m,k,ms,me;
   real tmp,val;
-#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H) 
-  {
-    GPTLstart("CostFunction3D::calcHTranspose");
-#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val) 
-#pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
-    for(int nn=0;nn<nState;nn++){
-      ms = mPtr[nn];
-      me = mPtr[nn+1];
-      tmp = 0;
-      if(me>ms){ 
-        for (k=ms;k<me;k++){
+	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H) 
+	{
+  	GPTLstart("CostFunction3D::calcHTranspose");
+  	#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val) 
+  	#pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
+  	for(n=0;n<nState;n++){
+    	ms = mPtr[n];
+    	me = mPtr[n+1];
+    	tmp = 0;
+    	if(me>ms){ 
+      	for (k=ms;k<me;k++){
           m=mVal[k];
           j=I2H[k];
           //val = yhat[m] * obsVector[m*(7+varDim*derivDim)+1];
           val = yhat[m] * obsData[m];
           tmp += H[j] * val;
-        }
-      }
-      Astate[n]=tmp;
+       }
     }
-    GPTLstop("CostFunction3D::calcHTranspose");
+    Astate[n]=tmp;
   }
+  GPTLstop("CostFunction3D::calcHTranspose");
+	}
 }
 
 
