@@ -1,4 +1,4 @@
-/*********************************************************
+/**********************************************************
  * parameter definitions for Samurai
  *
  * Bruno Melli, CSU
@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////
 
 commentdef {
-  p_header = "Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation ";
+  p_header = "Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation.";
 }
 
 //////////////////////////////////////////////////////////
@@ -1102,3 +1102,5 @@ paramdef float {
   p_descr = "";
   p_help = "";
 } k_max_wavenumber[];
+
+

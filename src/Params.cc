@@ -559,7 +559,7 @@
     memset(tt, 0, sizeof(TDRPtable));
     tt->ptype = COMMENT_TYPE;
     tt->param_name = tdrpStrDup("Comment 0");
-    tt->comment_hdr = tdrpStrDup("Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation ");
+    tt->comment_hdr = tdrpStrDup("Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation.");
     tt->comment_text = tdrpStrDup("");
     tt++;
     
