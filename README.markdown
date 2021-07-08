@@ -42,15 +42,15 @@ The program is known to work with GCC and Intel compilers, but has not been test
 
 A few external libraries are required:
 
-[Geographiclib](http://geographiclib.sourceforge.net) is used for geolocation of data and map projection.
-
-[Qt](http://qt.nokia.com/products) is used for helper classes including XML parsing. This dependency will be removed in future releases.
-
 [NetCDF](http://www.unidata.ucar.edu/software/netcdf) is used for output of the gridded analysis results.
 
 [cURL](http://curl.haxx.se/libcurl) and [HDF5](http://www.hdfgroup.org/HDF5) are prerequisites for NetCDF4.
 
 [FFTW](http://www.fftw.org/) is used for Fourier filtering in periodic domains
+
+[Geographiclib](http://geographiclib.sourceforge.net) is used for geolocation of data and map projection. This is no longer needed because it is built as part of the lrose euclid library.
+
+[Qt](http://qt.nokia.com/products) is used for helper classes including XML parsing. This dependency is no longer active.
 
 ### Notes for Mac OSX
 
