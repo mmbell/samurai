@@ -177,9 +177,8 @@ endif()
 # Where to install files
       
 set(INSTALL_PREFIX $ENV{SAMURAI_INSTALL_DIR})
-
 if(NOT INSTALL_PREFIX)
-  set(INSTALL_PREFIX ${LROSE_PREFIX})
+  set(INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 endif(NOT INSTALL_PREFIX)
 
 # Set RPATH so that executable finds lrose libraries without needing LD_LIBRARY_PATH
