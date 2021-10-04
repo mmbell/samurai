@@ -66,7 +66,8 @@ echo "      lrose_install_dir: $lrose_install_dir"
 echo "      do_install: $do_install"
 
 export LROSE_ROOT_DIR=$lrose_install_dir
-
+export OCFLAGS=`pkg-config --cflags ompi-c`
+export OCXXFLAGS=`pkg-config --cflags ompi-cxx`
 # clean up
 
 /bin/rm -f CMakeCache.txt
@@ -78,7 +79,7 @@ then
     echo "Note - using cmake3"
     cmake3 -DCMAKE_INSTALL_PREFIX=${prefix} .
 else
-    cmake -DCMAKE_INSTALL_PREFIX=${prefix} .
+    cmake -DCMAKE_INSTALL_PREFIX=${prefix} -D OpenMP_C_FLAGS=$OCFLAGS -D OpenMP_CXX_FLAGS=$OCXXFLAGS .
 fi
 
 # do the build

@@ -62,7 +62,7 @@ bool VarDriver3D::initialize(const XMLNode& configuration)
 
   // Parse the XML configuration file
   if (!parseXMLconfig(configuration)) return false;
-  
+
   return validateDriver();
 }
 
@@ -75,7 +75,7 @@ bool VarDriver3D::initialize(const samurai_config &configSam)
 
   // Parse the Samurai configuration structure passed from COAMPS
   if (! parseSamuraiConfig(configSam)) return false;
-  
+
   return validateDriver();
 }
 
@@ -84,13 +84,13 @@ bool VarDriver3D::initialize(const samurai_config &configSam)
 bool VarDriver3D::validateDriver()
 {
   // Make sure the config has all the keys we need
-  
+
   if ( ! validateConfig())
     return false;
-  
+
   // std::cout << "==== Content of configHash" << std::endl;
   // dump_hash(configHash);
-  
+
   // Validate the run geometry
   if (configHash["mode"] == "XYZ") {
     runMode = XYZ;
@@ -103,7 +103,7 @@ bool VarDriver3D::validateDriver()
 
   bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
   bool loadBG = ( configHash["load_background"] == "true" );
-  
+
   // Warn is there are non-sensical combos of options.
   // Just 1 right now, so put it inlie
 
@@ -118,7 +118,7 @@ bool VarDriver3D::validateDriver()
 	      << std::endl;
     loadBG = true;
   }
-  
+
   // Set the projection (to be used by the cost functions)
   projection.setProjection(projectionFromConfig());
 
@@ -169,7 +169,7 @@ bool VarDriver3D::validateDriver()
     }
     return gridDependentInit();
   }
-  
+
   // If we got here, then everything probably went OK!
   return true;
 }
@@ -198,12 +198,12 @@ bool VarDriver3D::gridDependentInit()
     // cout << "\n";
   }
   cout << setprecision(9);
-  
+
   // Set the maximum number of iterations to the multipass reduction factor
   //  Multiple outer loops will reduce the cutoff wavelengths and background error variance
-  
+
   maxIter = std::stoi(configHash["num_iterations"]);
-    
+
   // Read in the Frame centers (if runGrid, user is responsible for managing center
   // structure instead)
   //
@@ -219,10 +219,10 @@ bool VarDriver3D::gridDependentInit()
   }
 
   // These are used to process the obs (bkg and met)
-  
+
   uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars); // bgU size
   bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;       // 2 mish points between nodes
-  
+
   std::cout << "Physical (mish) State size = " << uStateSize << std::endl;
   std::cout << "Nodal State size = " << bStateSize << std::endl;
   std::cout << "Grid dimensions: (" << idim << ", " << jdim << ", " << kdim << ")" << std::endl;
@@ -230,14 +230,14 @@ bool VarDriver3D::gridDependentInit()
   if (bgU != NULL)
     delete[] bgU;
   bgU = new real[uStateSize];
-  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0 
+  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0
 
-  // Initialize this to zero. 
+  // Initialize this to zero.
   std::fill(bgU,bgU+uStateSize,0.0);
   //for (int i=0;i< uStateSize;i++) {bgU[i]=0.0;}
 
   // Optionally load a set of background coefficients directly
-  
+
   std::string loadBGcoeffs = configHash["load_bg_coefficients"];
 
   if (loadBGcoeffs == "true")
@@ -245,13 +245,13 @@ bool VarDriver3D::gridDependentInit()
       return false;
 
   // Optionally load a set of background estimates and interpolate to the Gaussian mish
-  
+
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
     START_TIMER(timeb);
     numbgObs = loadBackgroundObs();
     PRINT_TIMER("loadBackgroundObs", timeb);
-    
+
     if (numbgObs < 0) {
       cout << "Error loading background Obs\n";
       return false;
@@ -259,7 +259,7 @@ bool VarDriver3D::gridDependentInit()
     //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
     delete bkgdAdapter;
   }
-  
+
   // Optionally adjust the interpolated background to satisfy mass continuity
   // and match the supplied points exactly. In essence, do a SAMURAI analysis using
   // the background estimates as "observations"
@@ -276,7 +276,7 @@ bool VarDriver3D::gridDependentInit()
   if ( ! loadMetObs() )
     return false;
   PRINT_TIMER("loadMetObs", timem);
-  
+
   START_TIMER(timec);
   initObCost3D();
   PRINT_TIMER("initObCost3D", timec);
@@ -323,11 +323,12 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 		      float imin, float imax, float iincr, // used to come from config
 		      float jmin, float jmax, float jincr,
 		      // ----- new -----
-		      
+
 		      float *sigmas,
 		      float *latitude, // 2D arrays
 		      float *longitude,
-		      float *u1,	// 3D array (nx, ny, nsigma)  
+					float *terrain_Height,
+		      float *u1,	// 3D array (nx, ny, nsigma)
 		      float *v1,
 		      float *w1,
 		      float *th1,
@@ -340,33 +341,33 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 		      float *psam)
 {
   fillRunCenters(cdtg, delta, iter, *latitude, *longitude);
-  
+
   if (! validateRunGrid(nx, ny, nsigma,
 			imin, imax, iincr,
 			jmin, jmax, jincr, sigmas) )
     return false;
 
   // Clean up from previous run if needed
-  
+
   if(bkgdAdapter != NULL)
     delete bkgdAdapter;
-  
+
   // Set the background obs adapter to get data from the passed arrays
   if (configHash["array_order"] == "row-major")
     bkgdAdapter = new BkgdCArray(nx, ny, nsigma,
 				 cdtg, delta, iter,
 				 sigmas,
-				 latitude, longitude,
+				 latitude, longitude, terrain_Height,
 				 u1, v1, w1, th1, p1);
   else
     bkgdAdapter = new BkgdFArray(nx, ny, nsigma,
 				 cdtg, delta, iter,
 				 sigmas,
-				 latitude, longitude,
+				 latitude, longitude, terrain_Height,
 				 u1, v1, w1, th1, p1);
   if (! gridDependentInit() )
     return false;
-  
+
   if( run() )
     return obCost3D->copyResults(nx, ny, nsigma, usam, vsam, wsam, thsam, psam);
   return false;
@@ -398,7 +399,7 @@ bool VarDriver3D::run()
 		START_TIMER(timeu);
 		obCost3D->updateBG();
 		PRINT_TIMER("Cost3d update", timeu);
-		
+
 		iter++;
 
 		// Optionally update the analysis parameters for an additional iteration
@@ -484,7 +485,7 @@ bool VarDriver3D::preProcessMetObs()
 
   // Load Met. Observations
   auto filenames = FileList(dataPath);
-  
+
   int processedFiles = 0;
   int attemptedFiles = 0;
   std::vector<MetObs>* metData = new std::vector<MetObs>;
@@ -503,17 +504,17 @@ bool VarDriver3D::preProcessMetObs()
     std::vector<std::string> parts = LineSplit(file, '.');
     std::string suffix = parts[parts.size()-1];
     std::string prefix = parts[0];
-		 
+
     if (prefix == "swp") {
       // Switch it to suffix
       suffix = "swp";
     }
-    
+
     if (suffix == "nc") {	// cfrad file?
-			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc"))) 
+			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc")))
 				suffix = "cfrad";
     }
-    
+
     cout << "Processing " << file << " of type " << suffix << endl;
     attemptedFiles++;
     // Read different types of files
@@ -528,20 +529,20 @@ bool VarDriver3D::preProcessMetObs()
     int timeProblem = 0;
     int domainProblem = 0;
     int radiusProblem = 0;
-    
+
     // Process the metObs into Observations
 
     if (frameVector.size() == 0) {
       std::cout << "No centerfile, cannot process Met. Obs." << std::endl;
       return false;
     }
-    
+
     datetime startTime_ob = frameVector.front().getTime();
     auto startTime = Date(startTime_ob);
-    datetime endTime_ob = frameVector.back().getTime(); 
+    datetime endTime_ob = frameVector.back().getTime();
     auto endTime = Date(endTime_ob);
     int prevobs = obVector.size();
-    
+
     for (std::size_t i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
@@ -551,11 +552,11 @@ bool VarDriver3D::preProcessMetObs()
 
       // NOTE: Changing below line to account for msec vs. sec differences (discussion with M Bell, ongoing)
       // This makes the DesRosier case similar for now, but may need to change later
-      //if ((obTime < startTime) or (obTime > endTime)) { 
+      //if ((obTime < startTime) or (obTime > endTime)) {
       if ((obTime < startTime) or (obTime >= endTime)) {
 				timeProblem++;
-	
-				if (timeProblem < 10) 
+
+				if (timeProblem < 10)
 				  std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
 				continue;
       }
@@ -578,9 +579,9 @@ bool VarDriver3D::preProcessMetObs()
       projection.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
       real obX = (metX - tcX) / 1000.;
       real obY = (metY - tcY) / 1000.;
-      
+
       real heightm = metOb.getAltitude();
-      
+
       real obZ = heightm/1000.;
       real obRadius = sqrt(obX*obX + obY*obY);
       real obTheta = 180.0 * atan2(obY, obX) / Pi;
@@ -603,7 +604,7 @@ bool VarDriver3D::preProcessMetObs()
 	  domainProblem++;
 	  continue;
 	}
-	
+
 	if (obRadius == 0.0) {
 	  radiusProblem++;
 	  continue;
@@ -632,7 +633,7 @@ bool VarDriver3D::preProcessMetObs()
 
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
       switch (metOb.getObType()) {
-	
+
       case (MetObs::dropsonde):
 	varOb.setType(MetObs::dropsonde);
 	u = metOb.getCartesianUwind();
@@ -657,7 +658,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["dropsonde_rhou_error"]));
 	  obVector.push_back(varOb);
-	  
+
 	  varOb.setWeight(0., 0);
 
 	  varOb.setWeight(1., 1);
@@ -1049,7 +1050,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  real wWgt = sin(el);
 	  // Restrict to horizontal component only
-	  if (configHash["horizontal_radar_appx"] == "true") 
+	  if (configHash["horizontal_radar_appx"] == "true")
 	    wWgt = 0;
 
 	  // Fall speed
@@ -1316,7 +1317,7 @@ bool VarDriver3D::preProcessMetObs()
 	  tempk = metOb.getTemperature();
 
 	  // Separate obs for each measurement
-	  
+
 	  // rho v 1 m/s error
 	  if ((u != -999) and (rho != -999)) {
 	    // rho u 1 m/s error
@@ -1385,12 +1386,12 @@ bool VarDriver3D::preProcessMetObs()
     } // for everything in metData
 
     // Show a summary of what got tossed out
-    
+
     cout << "Observation problem: " << obsProblem << ", Time problem: " << timeProblem
 	 << ", Coordinate problem: " <<  coordProblem << ", Domain problem: " << domainProblem
 	 << ", Radius problem: " << radiusProblem << endl;
     std::cout << "obVector size: " << obVector.size() << std::endl;
-    
+
     int newobs = obVector.size() - prevobs;
     // if (metData->size() > 0) {
     if (newobs > 0) {
@@ -1405,7 +1406,7 @@ bool VarDriver3D::preProcessMetObs()
   delete metData;
 
   // Finish reflectivity interpolation
-  
+
   Observation varOb;
   varOb.setTime(std::stoi(configHash["ref_time"]));
   real pseudow_weight = std::stof(configHash["dbz_pseudow_weight"]);
@@ -1507,6 +1508,9 @@ bool VarDriver3D::preProcessMetObs()
 		// Ideally use a terrain map here, but just use Z=0 for now
 		if (pseudow_weight > 0.0) {
 		  varOb.setAltitude(0.0);
+// #if TERRAIN_IS_TRUE
+// 			varOb.setAltitude(0.0);
+// #endif
 		  varOb.setError(pseudow_weight);
 		  obVector.push_back(varOb);
 		}
@@ -1571,7 +1575,7 @@ bool VarDriver3D::preProcessMetObs()
     obstream << endl;
   }
   GPTLstop("VarDriver3D::preprocessMetObs->writeobs");
-#endif 
+#endif
 
   // Load the observations into a vector
   int64_t vector_size = (obVector.size() * (7 + numVars * numDerivatives));
@@ -1698,6 +1702,7 @@ bool VarDriver3D::loadPreProcessMetObs()
 // Background Observations can come from
 // - a samurai_Background.in file,
 // - a FRACTL generated netcdf file
+// - a WRF netcdf flie
 // - from passed arguments to the run() function.
 
 int VarDriver3D::loadBackgroundObs()
@@ -1710,12 +1715,12 @@ int VarDriver3D::loadBackgroundObs()
 
   // Get a background obs loader to load the background observations
   // Default is Spline.
-  
+
   BkgdObsLoader::bg_loader_t loaderType =  BkgdObsLoader::BG_LOADER_SPLINE;
   if (configHash["bkgd_obs_interpolation"] == "kd_tree")
     loaderType = BkgdObsLoader::BG_LOADER_KD;
   else if (configHash["bkgd_obs_interpolation"] == "fractl")
-    loaderType = BkgdObsLoader::BG_LOADER_FRACTL;  
+    loaderType = BkgdObsLoader::BG_LOADER_FRACTL;
   BkgdObsLoader *bkgdObsLoader = BkgdObsLoaderFactory::createBkgdObsLoader(loaderType);
   if (bkgdObsLoader == NULL)
     return -1;
@@ -1725,10 +1730,10 @@ int VarDriver3D::loadBackgroundObs()
 			    numVars,
 			    idim, jdim, kdim,
 			    imin, jmin, kmin,
-			    imax, jmax, kmax,			    
+			    imax, jmax, kmax,
 			    iincr, jincr, kincr);
 
-  
+
   if (! bkgdObsLoader->loadBkgdObs(bgIn)) {
     std::cerr << "Failed to load background observations" << std::endl;
     return -1;
@@ -1743,7 +1748,7 @@ bool VarDriver3D::adjustBackground()
   // to avoid artifacts when running interpolating to small mesoscale grids
 
   START_TIMER(timeab);
-  
+
   // Load the observations into a vector
   int numbgObs = bgIn.size() * 7 / 11;
   if (std::stof(configHash["mc_weight"]) > 0) {
@@ -1875,9 +1880,9 @@ bool VarDriver3D::adjustBackground()
   configHash.update("bg_rhoa_error", bg_interpolation_error);
   configHash.update("bg_qr_error", bg_interpolation_error);
   configHash.update("save_mish", "true");
-  
+
   // Adjust the background field to the spline mish
-  
+
   if (runMode == XYZ) {
     if (std::stof(configHash["output_pressure_increment"]) > 0) {
       bgCost3D = new CostFunctionXYP(projection, numbgObs, bStateSize);
@@ -1888,11 +1893,11 @@ bool VarDriver3D::adjustBackground()
     bgCost3D = new CostFunctionRTZ(projection, numbgObs, bStateSize);
   }
   bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
-  
-  // Set the iteration to zero -- 
+
+  // Set the iteration to zero --
   // this will prevent writing the background file until after the adjustment
   // which is presumably what you want most of the time. Otherwise, you would not be here
-  
+
   int bgIter = 1;
   bgCost3D->initState(bgIter);
   bgCost3D->minimize();
@@ -1905,7 +1910,7 @@ bool VarDriver3D::adjustBackground()
   delete[] bgObs;
 
   // Reset the background errors
-  
+
   configHash.update("bg_rhou_error", bgError[0]);
   configHash.update("bg_rhov_error", bgError[1]);
   configHash.update("bg_rhow_error", bgError[2]);
@@ -1916,7 +1921,7 @@ bool VarDriver3D::adjustBackground()
   configHash.update("save_mish", "false");
 
   // Convert the dBZ back to Z for further processing
-  
+
   if (configHash["qr_variable"] == "dbz") {
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
@@ -1940,7 +1945,7 @@ bool VarDriver3D::adjustBackground()
     }
   }
   PRINT_TIMER("adjustBackground", timeab);
-  
+
   return true;
 }
 
@@ -2089,17 +2094,17 @@ bool VarDriver3D::validateConfig()
 
     if ( configHash.exists("bkgd_obs_interpolation") == false)
       configHash.insert("bkgd_obs_interpolation", "spline");
-    
+
     if ( configHash.exists("bkgd_kd_num_neighbors") == false)
       configHash.insert("bkgd_kd_num_neighbors", "6");
-    
+
     if ( configHash.exists("bkgd_kd_max_distance") == false) {
       // TODO What should the default max distance for a nearest neighbor be?
       configHash.insert("bkgd_kd_max_distance", "100");
     }
 
     // All done
-    
+
     return true;
 }
 
@@ -2109,7 +2114,7 @@ bool VarDriver3D::loadBackgroundCoeffs()
 	cout << "Loading previous coefficients from samurai_Coefficients.in" << endl;
 
 	std::ifstream bgFile(dataPath + "/samurai_Coefficients.in");
-	if (!bgFile.is_open()) 
+	if (!bgFile.is_open())
 		return false;
 
 	int numbgCoeffs = 0;
@@ -2151,11 +2156,11 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
 				  float *sigmas)
 {
   // Grid specs
-  
+
   imin = i_min;
   imax = i_max;
   iincr = i_incr;
-  
+
   jmin = j_min;
   jmax = j_max;
   jincr = j_incr;
@@ -2165,15 +2170,15 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
   // kmax = sigmas[0] / 1000;	// do we ned to round this up?
   kmax = *std::max_element(sigmas, sigmas + (int) n_z) / 1000;
   kincr = 0.5;
-  
+
   // Array dimensions
-  
+
   idim = n_x;
   jdim = n_y;
   kdim = n_z;
 
   sigmaTable = sigmas;
-  
+
   return validateGrid();
 }
 
@@ -2182,10 +2187,10 @@ bool VarDriver3D::validateFractlGrid()
   // Need to read grid from fractl file.
   Nc3Error err(Nc3Error::verbose_nonfatal);
   std::string fname = configHash["fractl_nc_file"];
-  
+
    // Open the file.
   Nc3File dataFile(fname.c_str(), Nc3File::ReadOnly);
-   
+
    // Check to see if the file was opened.
    if(!dataFile.is_valid()) {
      std::cout << "Failed to read FRACTL generated nc file " << fname << std::endl;
@@ -2218,7 +2223,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_kdim = dataFile.get_att("sam_kdim");
    if (! sam_kdim)
      return false;
-   
+
    Nc3Att *sam_imin = dataFile.get_att("sam_imin");
    if (! sam_imin)
      return false;
@@ -2228,7 +2233,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_iincr = dataFile.get_att("sam_iincr");
    if (! sam_iincr)
      return false;
-   
+
    Nc3Att *sam_jmin = dataFile.get_att("sam_jmin");
    if (! sam_jmin)
      return false;
@@ -2238,7 +2243,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_jincr = dataFile.get_att("sam_jincr");
    if (! sam_jincr)
      return false;
-   
+
    Nc3Att *sam_kmin = dataFile.get_att("sam_kmin");
    if (! sam_kmin)
      return false;
@@ -2248,16 +2253,16 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_kincr = dataFile.get_att("sam_kincr");
    if (! sam_kincr)
      return false;
-   
+
    // long ntime = timeDim->size();
    long nz0 = z0Dim->size();
    long ny0 = y0Dim->size();
-   long nx0 = x0Dim->size();   
+   long nx0 = x0Dim->size();
 
    Nc3Var *z0 = dataFile.get_var("z0");
    if (! z0)
      return false;
-   
+
    Nc3Var *y0 = dataFile.get_var("y0");
    if (! y0)
      return false;
@@ -2266,7 +2271,7 @@ bool VarDriver3D::validateFractlGrid()
      return false;
 
    double *xs = new double[nx0];
-   double *ys = new double[ny0];   
+   double *ys = new double[ny0];
    double *zs = new double[nz0];
 
    bool success = true;
@@ -2291,20 +2296,20 @@ bool VarDriver3D::validateFractlGrid()
    if (success) {
      idim = sam_idim->as_long(0);
      jdim = sam_jdim->as_long(0);
-     kdim = sam_kdim->as_long(0);     
-     
+     kdim = sam_kdim->as_long(0);
+
      imin  = sam_imin->as_double(0);
      imax  = sam_imax->as_double(0);
      iincr = sam_iincr->as_double(0);
-     
+
      jmin  = sam_jmin->as_double(0);
      jmax  = sam_jmax->as_double(0);
      jincr = sam_jincr->as_double(0);
-     
+
      kmin  = sam_kmin->as_double(0);
      kmax  = sam_kmax->as_double(0);
      kincr = sam_kincr->as_double(0);
-     
+
      // TODO Do we need to read in the sigmas?
 
      // CostFunction3D reads grid dims from the configHash
@@ -2321,7 +2326,7 @@ bool VarDriver3D::validateFractlGrid()
 
      success = validateGrid();
    }
-   
+
    delete[] xs;
    delete[] ys;
    delete[] zs;
@@ -2340,11 +2345,11 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   // Compute ref_time
   // NCAR - question for CSU - do we deal with time zones other than UTC?  That was specified in the original file (Qt::UTC)
   std::string tString;
-  datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter); 
+  datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter);
 
   configHash.insert("ref_time", PrintTime(cDateTime));
   configHash.insert("ref_lat",  std::to_string(lat));
-  configHash.insert("ref_lat",  std::to_string(lon));  
+  configHash.insert("ref_lat",  std::to_string(lon));
 
   // create 6 "centers" centered around the ref time, at 1 second intervals
 
@@ -2352,9 +2357,9 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   for(int delta2 = -2; delta2 <= 2; delta2 += 1) {
     datetime tTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter) + std::chrono::seconds(delta2);
     frameVector.push_back(FrameCenter(tTime, lat, lon, zero, zero));
-  }    
+  }
 }
-		      
+
 // fill up variables from the config hash  and call the common validateGrid()
 
 bool VarDriver3D::validateFixedGrid()
@@ -2374,7 +2379,7 @@ bool VarDriver3D::validateFixedGrid()
   kmax = std::stof(configHash["k_max"]);
   kincr = std::stof(configHash["k_incr"]);
   kdim = (int)((kmax - kmin)/kincr) + 1;
-  
+
   return validateGrid();
 }
 
@@ -2382,7 +2387,7 @@ bool VarDriver3D::validateGrid()
 {
   // The recursive filter uses a fourth order stencil to spread the observations,
   // so less than 4 gridpoints will cause a memory fault
-  
+
   if (idim < 4) {
     cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
     return false;
@@ -2416,7 +2421,7 @@ bool VarDriver3D::loadMetObs()
     bgWeights = new real[uStateSize];
     bool success = preProcessMetObs();
     delete[] bgWeights;
-    
+
     if (! success) {
       cout << "Error pre-processing observations\n";
       return false;
@@ -2453,7 +2458,7 @@ bool VarDriver3D::initObCost3D()
   } else if (runMode == RTZ) {
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }
- 
+
   obCost3D->initialize(&configHash, bgU, obs, refstate);
   return true;
 }
@@ -2467,7 +2472,7 @@ void VarDriver3D::dumpBgu()
       std::cout << std::endl;
     std::cout << bgU[i] << " ";
   }
-  std::cout << std::endl << "------ Done with bgU dump -----";  
+  std::cout << std::endl << "------ Done with bgU dump -----";
 }
 
 void VarDriver3D::dumpBgIn()
@@ -2478,5 +2483,5 @@ void VarDriver3D::dumpBgIn()
      std::cout << std::endl;
    std::cout << bgIn[i] << " ";
  }
- std::cout << std::endl << "------ Done with bgIn dump -----";   
+ std::cout << std::endl << "------ Done with bgIn dump -----";
 }

@@ -9,7 +9,7 @@
 
 
 void usage() {
-  std::cout << "Usage: samurai <samurai_configuration.xml>" << std::endl;
+  std::cout << "Usage: samurai <samurai_configuration.xml/samurai_configuration.params>" << std::endl;
 }
 
 int main (int argc, char *argv[]) {
@@ -27,13 +27,13 @@ int main (int argc, char *argv[]) {
     return EXIT_FAILURE;
 
   switch (argc) {
-    
+
   case 1:  // no argument given
-    
+
     usage();
     return EXIT_FAILURE;
     break;
-    
+
   default: // assume old way of specifying an .xml file
 
     std::string fname = argv[1];
@@ -43,9 +43,9 @@ int main (int argc, char *argv[]) {
 				std::cout << "Error opening XML file: " << fname << std::endl;
 				return EXIT_FAILURE;
 			}
-    
+
       XMLElement* root = xml.FirstChildElement("samurai");
-    
+
       if(!driver->initialize(*root)) {
 				delete driver;
 				return EXIT_FAILURE;
@@ -65,10 +65,10 @@ int main (int argc, char *argv[]) {
     // Parse was fine. Fall through
   }
   GPTLstop("Main::Init");
-  
+
   // Do the analysis
 
-#if !IO_BENCHMARK  
+#if !IO_BENCHMARK
   GPTLstart("Main::Run");
   if(!driver->run()) {
     delete driver;

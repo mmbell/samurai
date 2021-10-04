@@ -5,6 +5,7 @@
 #include "BkgdObsLoaders.h"
 #include "BSpline.h"
 #include "timers.h"
+#include "datetime.h"
 
 // ---------------- The Background Obs Loader factory --------------------
 
@@ -14,11 +15,13 @@ BkgdObsLoader *BkgdObsLoaderFactory::createBkgdObsLoader(BkgdObsLoader::bg_loade
   case BkgdObsLoader::BG_LOADER_PRE:
     return new BkgdObsPreLoader();
   case BkgdObsLoader::BG_LOADER_SPLINE:
-    return new BkgdObsSplineLoader();
+    return new BkgdObsSplineLoader();  //Default should be: BkgdObsSplineLoader, If I want to load WRF obs, I need to change it to BkgdObsWRFLoader
   case BkgdObsLoader::BG_LOADER_KD:
     return new BkgdObsKDLoader();
   case BkgdObsLoader::BG_LOADER_FRACTL:
     return new BkgdObsFractlLoader();
+	// case BkgdObsLoader::BG_LOADER_WRF:
+	//   return new BkgdObsWRFLoader();
   default:
     std::cerr << "Unsupported BkgdObsLoader type in BkgdObsLoaderFactory::createBkgdObsLoader." << std::endl;
     return NULL;
@@ -59,7 +62,7 @@ bool BkgdObsLoader::initialize(HashMap *config,
   bgWeights =  NULL;
   bgU = bgu;
   numVars = varsNum;
-  
+
   idim = id;
   jdim = jd;
   kdim = kd;
@@ -75,10 +78,10 @@ bool BkgdObsLoader::initialize(HashMap *config,
   imax = imx;
   jmax = jmx;
   kmax = kmx;
-  
+
   // Validate the run geometry. Vardriver should have already checked if the value is valid
   // TODO: DRY in VarDriver3D
-  
+
   if ((*configHash)["mode"] == "XYZ") {
     runMode = RUN_MODE_XYZ;
   } else if ((*configHash)["mode"] == "RTZ") {
@@ -96,7 +99,7 @@ bool BkgdObsLoader::fillHoles(std::vector<int> &emptybg)
   if (emptybg.size() > 0) {
     // Attempt to fill holes everywhere
     std::cout << "** trying to fill in " << emptybg.size() << " holes in bgU" << std::endl;
-  
+
     int neighbors[6];
     real avg[numVars];
 
@@ -111,9 +114,9 @@ bool BkgdObsLoader::fillHoles(std::vector<int> &emptybg)
       neighbors[3] = bIndex - numVars * (idim + 1) * 2;
       neighbors[4] = bIndex + 1;
       neighbors[5] = bIndex - 1;
-      
+
       real count = 0.0;
-      
+
       for (int j = 0; j < 6; j++) {
 	if ((neighbors[j] >= 0) and (neighbors[j] < uStateSize) and (bgWeights[neighbors[j]])) {
 	  // A good neighbor
@@ -147,8 +150,8 @@ bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, 
 {
   std::string bgTimestring, tcstart, tcend;
   datetime bgTime;
- 
-  // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here   
+
+  // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here
   // bgTime.setTime_t(time);
   // bgTime.setTimeSpec(Qt::UTC);
   unsigned int itime = (unsigned int)(time);
@@ -159,7 +162,7 @@ bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, 
   // tcstart = startTime.toString(Qt::ISODate);
   // tcend = endTime.toString(Qt::ISODate);
   bgTimestring = PrintDate(bgTime);
-  tcstart = PrintDate(startTime);
+	tcstart = PrintDate(startTime);
   tcend = PrintDate(endTime);
 
   if ((bgTime < startTime) or (bgTime > endTime)) {
@@ -171,7 +174,7 @@ bool BkgdObsLoader::timeCheck(real time, datetime&startTime, datetime &endTime, 
     exit(1);
     return false;
   }
-  
+
   //tci = startTime.secsTo(bgTime);
   tci = std::chrono::duration_cast<std::chrono::seconds>(bgTime - startTime).count();
   if ((tci < 0) or (tci > (int)frameVector.size())) {
@@ -195,24 +198,24 @@ KD_tree *BkgdObsLoader::buildKDTree(std::vector<double> &bgIn)
 
   if (debug)
     std::cout << "--- start of kdtree matrix (bgX, bgY, bgZ from bgIn. using exp(logZ). " << std::endl;
-  
+
   numPoints = bgIn.size() / 11;			// 11 entries per observations
   KD_real **matrix = new KD_real*[numPoints];	// numPoints * ndim
 
   long bgIndex = 0;
   for (long i = 0; i < numPoints; i++) {
     matrix[i] = new KD_real[numDims];
-    
+
     matrix[i][0] = bgIn[bgIndex + 0];		// bgX
     matrix[i][1] = bgIn[bgIndex + 1];		// bgY
     matrix[i][2] = exp(bgIn[bgIndex + 2]);	// exp(logZ)
-    
+
     if (debug)
 	std::cout <<   "bgX: " <<  matrix[i][0]
 		  << ", bgY: " <<  matrix[i][1]
 		  << ", bgZ: " <<  matrix[i][2]
 		  << std::endl;
-    
+
     bgIndex += 11;
   }
   if (debug)
@@ -227,7 +230,7 @@ void BkgdObsLoader::dumpBgIn(int from, int to, std::vector<real> &bgIn)
 {
   std::cout << std::endl
 	    << "---------------------- bgIn[" << from << ":" << to << "] ----------------"
-	    << std::endl << std::endl;  
+	    << std::endl << std::endl;
   for(int i = from; i < to; i++) {
     int index = i * 11;
     std::cout << i << ": x: " << bgIn[index] << ", y: " << bgIn[index + 1] << ", z: " << bgIn[index + 2]
@@ -258,7 +261,7 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
 {
 
   std::cout << "--- Dumping bgU in " << fname << std::endl;
-  
+
   Nc3Error err(Nc3Error::verbose_nonfatal);
   // int NC_ERR = 0;
 
@@ -280,9 +283,9 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
   std::cout << "idim: " << idim << ", jdim: " << jdim << ", kdim: " << kdim << std::endl;
   std::cout << "iDim: " << iDim << ", jDim: " << jDim << ", kDim: " << kDim << std::endl;
 
-  
+
   double *data = (double *) malloc(iDim * jDim * kDim * sizeof(double));
-  
+
   if (data == NULL) {
     std::cout << "BkgdObsLoader::dumpBguAsNCDF: Failed to allocate data array"
 	      << std::endl;
@@ -300,17 +303,17 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
   }
 
   string var_names[] = { "rhou", "rhov", "rhow", "tprime", "qvprime", "rhoprime", "logZ" };
-  
+
   // For each variable we want to dump
 
   for (unsigned int var = 0; var < numVars; var++) {
 
     for (int ii = -1; ii < (idim); ii++) {
       for (int imu = -1; imu <= 1; imu += 2) {
-	    
+
 	for (int ji = -1; ji < (jdim); ji++) {
 	  for (int jmu = -1; jmu <= 1; jmu += 2) {
-		
+
 	    for (int ki = -1; ki < (kdim); ki++) {
 	      for (int kmu = -1; kmu <= 1; kmu += 2) {
 
@@ -324,7 +327,7 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
 
 		// Index into data array (also a flat array)
 		// int dIndex = bgK + kDim * (bgJ + jDim * bgI);
-	      
+
 		int dIndex = bgI + iDim * (bgJ + jDim * bgK);   // lets reverse it for Ncdf
 
 		data[dIndex] = bgU[bIndex + var];
@@ -333,7 +336,7 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
 		// 	  << ", val: " << bgU[bIndex]
 		// 	  << ", bgI: " << bgI << ", bgJ: " << bgJ << ", bgK: " << bgK
 		// 	  << std::endl;
-		
+
 	      }
 	    }
 	  }
@@ -347,7 +350,7 @@ void BkgdObsLoader::bgu2nc(const char *fname, real *bgu)
       delete data;
       return;
     }
-    
+
     for(long rec = 0; rec < kDim; rec++)
       if ( ! the_var->put_rec(&data[iDim * jDim * rec], rec) )
 	std::cout << "Failed to write data at " << rec << " elevation" << std::endl;
@@ -374,7 +377,7 @@ bool BkgdObsPreLoader::loadBkgdObs(std::vector<real> &bgIn) {
 
 BkgdObsSplineLoader::BkgdObsSplineLoader()
 {
-  
+
 }
 
 BkgdObsSplineLoader::~BkgdObsSplineLoader()
@@ -396,7 +399,7 @@ bool BkgdObsSplineLoader::initialize(HashMap *config,
 				     real iinc, real jinc, real kinc)
 {
   // Call initialize from the base class to set all the variables
-  
+
   BkgdObsLoader::initialize(config,
 			    frames,
 			    adapter,
@@ -409,9 +412,9 @@ bool BkgdObsSplineLoader::initialize(HashMap *config,
 			    imn, jmn, kmn,
 			    imx, jmx, kmx,
 			    iinc, jinc,kinc);
-  
+
   // Now we can set Spline specific stuff
-  
+
   if(uStateSize <= 0) {
     std::cerr << "BkgdObsSplineLoader::initialize: uStateSize is 0" << std::endl;
     return false;
@@ -421,12 +424,12 @@ bool BkgdObsSplineLoader::initialize(HashMap *config,
     std::cerr << "BkgdObsSplineLoader::initialize: failed to allocate bgWeights" << std::endl;
     return false;
   }
-  
+
   for (int i = 0; i < uStateSize; i++) {
     bgU[i] = 0.0;
     bgWeights[i] = 0.0;
   }
-  
+
   return true;
 }
 
@@ -445,21 +448,21 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
   real referenceLon = std::stof((*configHash)["ref_lon"]);
 
-  int time;
-  real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
-  
+  std::string time;
+  real lat, lon, alt, u, v, w, t, qv, rhoa, qr, terrain_hgt;
+
   real Pi = acos(-1);
 
   bool debugDomain = isTrue("debug_domain");
-  
+
   // bgZ = -32768.;  TODO. What was that about?
-  
+
   // background is in km, ROI is gridpoints
-  
+
   iROI = std::stof((*configHash)["i_background_roi"]) / iincr;
   jROI = std::stof((*configHash)["j_background_roi"]) / jincr;
   maxGridDist = 3.0;
-  
+
   std::string interp_mode = (*configHash)["bg_interpolation"];
   if (interp_mode == "Cressman")
     maxGridDist = 1.0;
@@ -468,14 +471,14 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     std::cout << "Frame Vector is not initialized."  << std::endl;
     return false;
   }
-    
+
   std::cout << "Loading background onto Gaussian mish with " << iROI
 	    << " grid length radius of influence in i direction" << std::endl;
   std::cout << "and " << jROI << " grid length radius of influence in j direction" << std::endl;
 
   datetime startTime = frameVector.front().getTime();
   datetime endTime = frameVector.back().getTime();
-  
+
   std::cout << "Start time: " << Date(startTime) << ",  " << PrintDate(startTime)  << std::endl;
   std::cout << "End  time:  " << Date(endTime) << ", " << PrintDate(endTime)  << std::endl;
 
@@ -490,14 +493,16 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   std::cout << "imin: " << imin << ", iincr: " << iincr << std::endl;
   std::cout << "jmin: " << jmin << ", jincr: " << jincr << std::endl;
   std::cout << "kmin: " << kmin << ", kincr: " << kincr << std::endl;
- 
-  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) ) {
+
+  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr, terrain_hgt) ) {
     int tci;
-    if (! timeCheck(time, startTime, endTime, tci)) {
+		datetime dtime = ParseDate(time, "%Y-%m-%d_%H:%M:%S");
+		int it = Date(dtime);
+    if (! timeCheck(it, startTime, endTime, tci)) {
       timeProblem++;
       continue;
     }
-      
+
     real Um = frameVector[tci].getUmean();
     real Vm = frameVector[tci].getVmean();
 
@@ -507,19 +512,21 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 		       tcX, tcY);
     projection.Forward(referenceLon, lat, lon , metX, metY);
     bgX = (metX - tcX) / 1000.;
+		// std::cout << "bgX = " << bgX << std::endl;
     bgY = (metY - tcY) / 1000.;
 
     real heightm = (alt > 10.0) ? alt : 10;	// don't want to take log of zero below...
-    
+		// std::cout << "heightm = " << heightm << std::endl;
     bgZ = heightm / 1000.;
     bgRadius = sqrt(bgX * bgX + bgY * bgY);
     bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
     if ((*configHash)["allow_negative_angles"] != "true")
       if (bgTheta < 0)
-	bgTheta += 360.0;
+				bgTheta += 360.0;
+
 
     // Make sure the ob is in the Interpolation domain
-    
+
     if (runMode == RUN_MODE_XYZ) {
       if ((bgX < (imin - iincr - (iROI * iincr * maxGridDist))) or
 	  (bgX > (imax + iincr + (iROI * iincr * maxGridDist))) or
@@ -527,6 +534,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 	  (bgY > (jmax + jincr + (jROI * jincr * maxGridDist))) or
 	  (bgZ < kmin)) { //Allow for higher values for interpolation purposes
 	domainProblem++;
+
 	if (debugDomain)
 	  std::cout << "bgX: " << bgX << " bgY: " << bgY << " bgZ: " << bgZ << std::endl;
 	continue;
@@ -550,6 +558,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
     real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
     real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
+		std::cout << "tBar = " << tBar << std::endl;
 
     real rho = rhoa + rhoa * qv / 1000.;
     real rhou = rho * (u - Um);
@@ -560,10 +569,10 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     real qvprime = qv - qBar;
     real rhoprime = (rhoa - rhoBar) * 100;
     real logZ = log(bgZ);
-    
+
     if ((*configHash)["qr_variable"] == "qr")
       qr = refstate->bhypTransform(qr);
-    
+
     // We assume here that the background precipitation field is always zero
     // real qr = 0.;
 
@@ -571,7 +580,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 			bgIn.push_back(bgX);
 			bgIn.push_back(bgY);
 			bgIn.push_back(logZ);
-			bgIn.push_back(time);
+			bgIn.push_back(it);
 			bgIn.push_back(rhou);
 			bgIn.push_back(rhov);
 			bgIn.push_back(rhow);
@@ -583,7 +592,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 			bgIn.push_back(bgRadius);
 			bgIn.push_back(bgTheta);
 			bgIn.push_back(logZ);
-			bgIn.push_back(time);
+			bgIn.push_back(it);
 			bgIn.push_back(rhou);
 			bgIn.push_back(rhov);
 			bgIn.push_back(rhow);
@@ -594,7 +603,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 		}
 
     // Push values for an entire column, then solve for the spline
-    
+		std::cout << "logheights size = " << logheights.size() << std::endl;
     if ( (logheights.size() != 0) && (logZ <= logheights.back()) ) {
       // Not first level, not same column, Solve for the spline
       if (logheights.size() == 1) {
@@ -607,7 +616,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
       }
       splineSolver(0);	// This will also clear logheights, uBG, vBG, ...
     }
-    
+
     logheights.push_back(logZ);
     uBG.push_back(rhou);
     vBG.push_back(rhov);
@@ -616,9 +625,9 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     qBG.push_back(qvprime);
     rBG.push_back(rhoprime);
     zBG.push_back(qr);
-    
-  } // each obs
 
+  } // each obs
+	// std::cout << "height size = " << logheights.size() << std::endl;
   std::cout << "timeProblem: " << timeProblem << ", domainProblem: " << domainProblem
        << ", radiusProblem: " << radiusProblem << ", levelProblem: " << levelProblem
        << ", splineProblem: " << splineProblem
@@ -636,7 +645,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   }
 
   // std::cout << "------------------------2\n";
-  
+
   // Solve for the last spline
   if (logheights.size() == 1) {
     std::cerr << "Only one level found in background spline setup. "
@@ -651,35 +660,35 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
   int numbgObs = bgIn.size() / 11; // 11 entries per ob
   if (isTrue("debug_bgIn"))
     dumpBgIn(0, numbgObs, bgIn);
-      
+
   std::vector<int> emptybg;
 
   // TODO Do we need to check interpolation and fill hole for KD too?
   // bgWeight is a byproduct of calling the spline solver, so that's not available.
   // what about fill holes? It depends on emptyBg which is also a byproduct of the spline solver.
-  
+
   // Check interpolation
-  
+
   if (numbgObs > 0) {
-    
+
     START_TIMER(timeci);
 
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
 	real kPos = kmin + kincr * (ki + (0.5 * sqrt(1. / 3.) * kmu + 0.5));
-	
+
 	for (int ii = -1; ii < (idim); ii++) {
 	  for (int imu = -1; imu <= 1; imu += 2) {
 	    real iPos = imin + iincr * (ii + (0.5 * sqrt(1. / 3.) * imu + 0.5));
-	    
+
 	    for (int ji = -1; ji < (jdim); ji++) {
 	      for (int jmu = -1; jmu <= 1; jmu += 2) {
 		real jPos = jmin + jincr * (ji + (0.5 * sqrt(1. / 3.) * jmu + 0.5));
-		
+
 		int bgI = (ii + 1) * 2 + (imu + 1) / 2;
 		int bgJ = (ji + 1) * 2 + (jmu + 1) / 2;
 		int bgK = (ki + 1) * 2 + (kmu + 1) / 2;
-		
+
 		int bIndex = numVars * (idim + 1) * 2 * (jdim + 1) * 2 * bgK
 		  + numVars * (idim + 1) * 2 * bgJ + numVars * bgI;
 
@@ -712,7 +721,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     }
 
     fillHoles(emptybg);
-    
+
     PRINT_TIMER("Interpolation check", timeci);
   } else {
     std::cout << "No background observations loaded" << std::endl;
@@ -745,7 +754,7 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
 
   int radiusProblem = 0;
   int splineProblem = 0;
-  
+
 #pragma omp parallel for
 
   for (int ki = -1; ki < kdim; ki++) {
@@ -757,7 +766,7 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
       splineProblem++;
       continue; //return -1;
     }
-    
+
     for (int kmu = -1; kmu <= 1; kmu += 2) {
       real kPos = kmin + kincr * (ki + (0.5 * sqrt(1. / 3.) * kmu + 0.5));
       if (kPos < 0) kPos = 0.001;
@@ -766,7 +775,7 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
       //if (fabs(kPos-obZ) > kincr*ROI*2.) continue;
 
       for (int ii = -1; ii < idim; ii++) {
-	
+
 	for (int imu = -1; imu <= 1; imu += 2) {
 	  real iPos = imin + iincr * (ii + (0.5 * sqrt(1. / 3.) * imu + 0.5));
 	  if (runMode == RUN_MODE_XYZ) {
@@ -780,9 +789,9 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
 	      continue;
 	    }
 	  }
-	  
+
 	  for (int ji = -1; ji < jdim; ji++) {
-	    
+
 	    for (int jmu = -1; jmu <= 1; jmu += 2) {
 	      real jPos = jmin + jincr * (ji + (0.5 * sqrt(1. / 3.) * jmu + 0.5));
 	      real rSquare = 0.0;
@@ -801,15 +810,15 @@ bool BkgdObsSplineLoader::splineSolver(int waveLen)
 		}
 		rSquare = (bgRadius - iPos) * (bgRadius - iPos) + (dTheta) * (dTheta);
 	      }
-	      
+
 	      // Add one extra index to account for buffer zone in analysis
 	      int bgI = (ii + 1) * 2 + (imu + 1) / 2;
 	      int bgJ = (ji + 1) * 2 + (jmu +1 ) / 2;
 	      int bgK = (ki + 1) * 2 + (kmu + 1) / 2;
-	      
+
 	      int bIndex = numVars * (idim + 1) * 2 * (jdim + 1) * 2 * bgK
 		+ numVars * (idim + 1) * 2 * bgJ + numVars * bgI;
-	      
+
 	      if (rSquare < Rsquare * maxGridDist) {
 		real weight = exp(-2.302585092994045 * rSquare / Rsquare);
 		if (interp_mode == "Cressman") {
@@ -885,7 +894,7 @@ bool BkgdObsKDLoader::overwriteBgu(const char *fname)
   std::string dummy;
 
   int count = 0;
-  
+
   while (ifs >> idx
 	>> dummy >> dummy >> u
 	>> dummy >> dummy >> v
@@ -895,7 +904,7 @@ bool BkgdObsKDLoader::overwriteBgu(const char *fname)
 	>> dummy >> dummy >> rp
 	>> dummy >> dummy >> qr	) {
     ifs.ignore(100, '\n');
-  
+
     bgU[idx + 0] = u;
     bgU[idx + 1] = v;
     bgU[idx + 2] = w;
@@ -911,8 +920,8 @@ bool BkgdObsKDLoader::overwriteBgu(const char *fname)
 
 bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 {
-  int time;
-  real lat, lon, alt, u, v, w, t, qv, rhoa, qr;
+  std::string time;
+  real lat, lon, alt, u, v, w, t, qv, rhoa, qr, terrain_hgt;
   real Pi = acos(-1);
 
   KD_tree *kdTree;
@@ -922,22 +931,22 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 
   std::cout << "Start time: " << PrintTime(startTime) << std::endl;
   std::cout << "End  time:  " << PrintTime(endTime)  << std::endl;
-  
+
   // background is in km, ROI is gridpoints
   // TODO that comment doesn't seem correct. These are set to 45.0 in the config file...
-  
+
   iROI = std::stof((*configHash)["i_background_roi"]) / iincr;
   jROI = std::stof((*configHash)["j_background_roi"]) / jincr;
 
   maxGridDist = 3.0;
-  
+
   int timeProblem = 0;
   int domainProblem = 0;
 
   int debugKd = 0;
   if (configHash->exists("debug_kd")) {
     debugKd = std::stoi((*configHash)["debug_kd"]);
-    std::cout << "*** dbugKD: " << debugKd << std::endl;    
+    std::cout << "*** dbugKD: " << debugKd << std::endl;
   }
 
   int debugKdStep = 0;
@@ -945,22 +954,24 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
     debugKdStep = std::stoi((*configHash)["debug_kd_step"]);
     std::cout << "*** Debug KD Step: " << debugKdStep << std::endl;
   }
-  
-  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr) ) {
+
+  while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr, terrain_hgt) ) {
     // Process the bkgdObs into Observations
     int tci;
-    if (! timeCheck(time, startTime, endTime, tci)) {
+		datetime dtime = ParseDate(time, "%Y-%m-%d_%H:%M:%S");
+		int it = Date(dtime);
+    if (! timeCheck(it, startTime, endTime, tci)) {
       timeProblem++;
       continue;
     }
-      
+
     real Um = frameVector[tci].getUmean();
     real Vm = frameVector[tci].getVmean();
 
     // Get the X, Y & Z
     real tcX, tcY, metX, metY;
     real referenceLon = std::stof((*configHash)["ref_lon"]);
-    
+
     projection.Forward(referenceLon, frameVector[tci].getLat() , frameVector[tci].getLon(),
 		       tcX, tcY);
     projection.Forward(referenceLon, lat, lon , metX, metY);
@@ -968,7 +979,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
     bgY = (metY - tcY) / 1000.;
 
     real heightm = (alt > 10.0) ? alt : 10;	// don't want to take log of zero below...
-    
+
     bgZ = heightm / 1000.;
     bgRadius = sqrt(bgX * bgX + bgY * bgY);
     bgTheta = 180.0 * atan2(bgY, bgX) / Pi;
@@ -977,7 +988,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 	bgTheta += 360.0;
 
     // Make sure the ob is in the Interpolation domain
-    
+
     if (runMode == RUN_MODE_XYZ) {
       if ((bgX < (imin - iincr - (iROI * iincr * maxGridDist))) or
 	  (bgX > (imax + iincr + (iROI * iincr * maxGridDist))) or
@@ -1007,6 +1018,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
     real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
     real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
 
+
     real rho = rhoa + rhoa * qv / 1000.;
     real rhou = rho * (u - Um);
     real rhov = rho * (v - Vm);
@@ -1019,7 +1031,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 
     if ((*configHash)["qr_variable"] == "qr")
       qr = refstate->bhypTransform(qr);
-    
+
     // We assume here that the background precipitation field is always zero
     // real qr = 0.;
 
@@ -1027,7 +1039,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 			bgIn.push_back(bgX);
 			bgIn.push_back(bgY);
 			bgIn.push_back(logZ);
-			bgIn.push_back(time);
+			bgIn.push_back(it);
 			bgIn.push_back(rhou);
 			bgIn.push_back(rhov);
 			bgIn.push_back(rhow);
@@ -1039,7 +1051,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 			bgIn.push_back(bgRadius);
 			bgIn.push_back(bgTheta);
 			bgIn.push_back(logZ);
-			bgIn.push_back(time);
+			bgIn.push_back(it);
 			bgIn.push_back(rhou);
 			bgIn.push_back(rhov);
 			bgIn.push_back(rhow);
@@ -1052,24 +1064,24 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 
   std::cout << "timeProblem: " << timeProblem << ", domainProblem: " << domainProblem
             << std::endl;
-  
+
   int numbgObs = bgIn.size() / 11; // 11 entries per ob
-  
+
   if (numbgObs <= 0) {
     std::cout << "No background observations loaded" << std::endl;
     return false;
   }
-  
+
   std::cout << numbgObs << " background observations loaded" << std::endl;
-  
+
   if (isTrue("debug_bgIn"))
     dumpBgIn(0, numbgObs, bgIn);
 
   // All the obs are now loaded in bgIn. Build a KD tree
-  
+
   kdTree = buildKDTree(bgIn);
   std::vector<int> emptybg;
-  
+
   KD_real *centerLoc = new KD_real[3];	// 3 dim
   int nbrMax  = std::stoi((*configHash)["bkgd_kd_num_neighbors"]);
   if (nbrMax <= 0) {
@@ -1083,22 +1095,22 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
   // For each point on the mish
 
   std::cout << "*** idim: " << idim << ", jdim: " << jdim << ", kdim: " << kdim << std::endl;
-  
+
   if (debugKd)
     std::cout << "--- start of debug kd" << std::endl;
-  
+
   for (int ii = -1; ii < (idim); ii++) {
     for (int imu = -1; imu <= 1; imu += 2) {
       real iPos = imin + iincr * (ii + (0.5 * sqrt(1. / 3.) * imu + 0.5));
-	    
+
       for (int ji = -1; ji < (jdim); ji++) {
 	for (int jmu = -1; jmu <= 1; jmu += 2) {
 	  real jPos = jmin + jincr * (ji + (0.5 * sqrt(1. / 3.) * jmu + 0.5));
-		
+
 	  for (int ki = -1; ki < (kdim); ki++) {
 	    for (int kmu = -1; kmu <= 1; kmu += 2) {
 	      real kPos = kmin + kincr * (ki + (0.5 * sqrt(1. / 3.) * kmu + 0.5));
-	
+
 	      int bgI = (ii + 1) * 2 + (imu + 1) / 2;
 	      int bgJ = (ji + 1) * 2 + (jmu + 1) / 2;
 	      int bgK = (ki + 1) * 2 + (kmu + 1) / 2;
@@ -1106,7 +1118,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 	      // std::cout << "iPos: " << iPos << ", jPos: " << jPos << ", kPos: " << kPos << std::endl;
 	      // std::cout << "bgI: " << bgI << ", bgJ: " << bgJ << ", bgK " << bgK << std::endl;
 	      // continue;
-	      
+
 	      // index into bgU (flat array)
 	      int bIndex = numVars * (idim + 1) * 2 * (jdim + 1) * 2 * bgK
 		+ numVars * (idim + 1) * 2 * bgJ + numVars * bgI;
@@ -1130,17 +1142,17 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 
   if (emptybg.size() > 0)
     std::cout << "** KD left " << emptybg.size() << " holes in bgU" << std::endl;
-  
+
   if (debugKd)
     std::cout << "--- end of debug kd" << std::endl;
 
   if (configHash->exists("debug_bgu_overwrite"))
     overwriteBgu((*configHash)["debug_bgu_overwrite"].c_str());
-  
+
   if (isTrue("debug_bgu")) {
     dumpBgU(0, uStateSize, bgU);
   }
-  
+
   if (configHash->exists("debug_bgu_nc"))
     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
   return true;
@@ -1148,7 +1160,7 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
 
 bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
 			     std::vector<real> &bgIn, KD_tree *kdTree, real *bgU, int bIndex,
-			     std::vector<int> &emptybg,			     
+			     std::vector<int> &emptybg,
 			     int debug)
 {
   int nbrIxs[nbrMax];
@@ -1167,13 +1179,13 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
   float sumV = 0;
   float sumW = 0;
   float sumTprime = 0;
-  float sumQVprime = 0; 
+  float sumQVprime = 0;
   float sumRhoPrime = 0;
   float sumQr = 0;
 
   for(int inbr = 0; inbr < nbrMax; inbr++) {
     // do we have to worry about aircraft distance? (Do we even have that info?
-    
+
     if (nbrIxs[inbr] < 0) {
       std::cerr << "nbrIxs < 0" << std::endl;
       continue;
@@ -1182,12 +1194,12 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
       std::cerr << "nbrIxs > size of bgIn" << std::endl;
       continue;
     }
-    
+
     // nbrIxs[inbr] is the index of the observation. We need to convert that to
     // an index into the bgIn array
 
     long bgInIdx = nbrIxs[inbr] * 11;
-    
+
     float bgX      = bgIn[bgInIdx + 0];
     float bgY      = bgIn[bgInIdx + 1];
     float logZ     = bgIn[bgInIdx + 2];
@@ -1208,7 +1220,7 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
 		<< ", U: " << rhou << ", V: " << rhov << ", W: " << rhow
 		<< std::endl;
     }
-    
+
     if(localDist < maxDistance) {
       // TODO: add values of fields to corresponding Stat objects?
       numNbrActual++;
@@ -1234,9 +1246,9 @@ bool BkgdObsKDLoader::fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDist
     bgU[bIndex + 5]	= sumRhoPrime / numNbrActual;
     bgU[bIndex + 6]	= sumQr / numNbrActual;
   } else {
-    emptybg.push_back(bIndex);    
+    emptybg.push_back(bIndex);
   }
-  
+
   return true;
 }
 
@@ -1254,7 +1266,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
   std::string fname = (*configHash)["fractl_nc_file"];
   // Open the file.
   Nc3File dataFile(fname.c_str(), Nc3File::ReadOnly);
-   
+
   // Check to see if the file was opened.
   if(!dataFile.is_valid()) {
     std::cout << "Failed to read FRACTL generated nc file " << fname
@@ -1264,7 +1276,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
 
   // TODO The same size variables are also read in VarDriver3D::validateFractlGrid()
   //      Combine into common code?
-   
+
   Nc3Dim *timeDim = dataFile.get_dim("time");
   if (! timeDim)
     return false;
@@ -1289,11 +1301,11 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
   Nc3Var *time0 = dataFile.get_var("time");
   if (! time0)
     return false;
-   
+
   Nc3Var *z0 = dataFile.get_var("z0");
   if (! z0)
     return false;
-   
+
   Nc3Var *y0 = dataFile.get_var("y0");
   if (! y0)
     return false;
@@ -1333,21 +1345,21 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
   Nc3Var *U_std = dataFile.get_var("U_std");
   if (! U_std)
     return false;
-   
+
   long numBgObs = ntime * nz0 * ny0 * nx0;
-   
+
   if (numBgObs <= 0) {
     std::cout << "No background observations loaded" << std::endl;
     return false;
   }
   std::cout << "Loading " << numBgObs << " background observations" << std::endl;
-   
+
   // Allocate data arrays
 
   double *times = new double[ntime];
-   
-  double *lats = new double[nx0 * ny0];
-  double *lons = new double[nx0 * ny0];
+
+  double *lats = new double[nx0 * ny0]; // should be ny0*nx0?
+  double *lons = new double[nx0 * ny0]; // should be ny0*nx0?
   double *alts = new double[nz0];
 
   double *upWind = new double[numBgObs];
@@ -1358,36 +1370,36 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
   double *wStd = new double[numBgObs];
   double *vStd = new double[numBgObs];
   double *uStd = new double[numBgObs];
-   
+
   bool success = true;
 
   // Make sure table allocations worked.
   // alts was allocated last so if any are going to fail that would be the one.
-   
+
   if (alts == NULL) {
     std::cout << "Failed to allocate altitude table." << std::endl;
     success = false;
   }
-   
+
   // Get the time array
 
   if ( success && ! time0->get(times, 1, ntime) ) {
     std::cout << "Failed to read in the times." << std::endl;
     success = false;
   }
-   
+
   // Get the heights in meter
-   
+
   if ( success && ! z0->get(alts, nz0) ) {
     std::cout << "Failed to read in altitudes." << std::endl;
     success = false;
   }
-   
+
   for (int rec = 0; rec < ntime; rec++) {
     if ( ! upward_air_velocity->set_cur(rec, 0, 0, 0)) {
       std::cout << "Failed to read in upward air velocity" << std::endl;
       success = false;
-    }	 
+    }
     if ( success && ! upward_air_velocity->get(upWind, 1, nz0, ny0, nx0)) {
       std::cout << "Failed to read in upward air velocity" << std::endl;
       success = false;
@@ -1401,7 +1413,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
       std::cout << "Failed to read in northward air velocity" << std::endl;
       success = false;
     }
-     
+
     if ( success && ! eastward_wind->set_cur(rec, 0, 0, 0)) {
       std::cout << "Failed to read in eastward air velocity" << std::endl;
       success = false;
@@ -1410,7 +1422,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
       std::cout << "Failed to read in eastward air velocity" << std::endl;
       success = false;
     }
-     
+
     if ( success && ! meanNbrDbz->set_cur(rec, 0, 0, 0)) {
       std::cout << "Failed to read in mean dbZ" << std::endl;
       success = false;
@@ -1424,7 +1436,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
       std::cout << "Failed to read in W_std" << std::endl;
       success = false;
     }
-     
+
     if ( success && ! W_std->get(wStd, 1, nz0, ny0, nx0)) {
       std::cout << "Failed to read in W_std" << std::endl;
       success = false;
@@ -1434,7 +1446,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
       std::cout << "Failed to read in V_std" << std::endl;
       success = false;
     }
-     
+
     if ( success && ! V_std->get(vStd, 1, nz0, ny0, nx0)) {
       std::cout << "Failed to read in V_std" << std::endl;
       success = false;
@@ -1444,25 +1456,25 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
       std::cout << "Failed to read in U_std" << std::endl;
       success = false;
     }
-     
+
     if ( success && ! W_std->get(uStd, 1, nz0, ny0, nx0)) {
       std::cout << "Failed to read in U_std" << std::endl;
       success = false;
     }
-     
+
   }
 
   double fillVal = 0.0;
-  // double fillVal = std::nan(""); // testing. Quick 2 iteration 
-  
+  // double fillVal = std::nan(""); // testing. Quick 2 iteration
+
   for (int t = 0; t < ntime; t++) {
     // double currentTime = times[t];
-     
+
     for (int z = 0; z < nz0; z++) {
-     
+
       float heightm = alts[z];	// TODO check unit
       float rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm);
-      
+
       for (int y = 0; y < ny0; y++) {
 	for (int x = 0; x < nx0; x++) {
 	  int vIndex = x + nx0 * (y + ny0 * z);		// variables index
@@ -1480,7 +1492,7 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
 	  double dbz  = meanDbz[vIndex];
 	  if (std::isnan(dbz))
 	    dbz = -35.0;		// clear air.
-	  
+
 	  bgU[bIndex + 0] = rhou;
 	  bgU[bIndex + 1] = rhov;
 	  bgU[bIndex + 2] = rhow;
@@ -1488,19 +1500,19 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
 	  bgU[bIndex + 4] = 0.0;			// qv'
 	  bgU[bIndex + 5] = 0.0;			// rho'
 	  bgU[bIndex + 6] = (dbz + 35.) * 0.1;		// transform to scaled value [0..7]
-	  
+
 	  // W_std, V_std, U_std are handled separatively in CostFunction3D
 	}
       }
     }
   } // ntime
-  
+
   if (isTrue("debug_bgu"))
     dumpBgU(0, uStateSize, bgU);
-  
+
   if (configHash->exists("debug_bgu_nc"))
     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
-   
+
    delete[] lats;
    delete[] lons;
    delete[] alts;
@@ -1515,3 +1527,562 @@ bool BkgdObsFractlLoader::loadBkgdObs(std::vector<real> &bgIn)
 
    return success;
 }
+
+// ---------------- The WRF output Background Obs Loader ------------------
+
+BkgdObsWRFLoader::BkgdObsWRFLoader() {}
+BkgdObsWRFLoader::~BkgdObsWRFLoader() {}
+
+bool BkgdObsWRFLoader::loadBkgdObs(std::vector<real> &bgIn)
+{
+		Nc3Error err(Nc3Error::verbose_nonfatal);
+		double Rd = 287.058; //J/kg/K
+		double Rv = 461.495; // J/kg/K
+		std::string dataPath = "/Users/tingyu/devel/samurai_terrain/testDEM";
+    std::string wrffile = "/Users/tingyu/devel/samurai_terrain/testDEM/wrfout_d01_0001-01-01_00_00_00";
+		Nc3File dataFile(wrffile.c_str(), Nc3File::ReadOnly);
+		if(!dataFile.is_valid()) {
+			std::cout << "Failed to read WRF output netCDF file " << wrffile
+					<< std::endl;
+			return false;}
+
+		Nc3Var *timeVar = dataFile.get_var("Times");
+	  if (! timeVar)
+	    return false;
+
+	  Nc3Var *phVar = dataFile.get_var("PH");
+	  if (! phVar)
+	    return false;
+
+		Nc3Var *phbVar = dataFile.get_var("PHB");
+		if (! phbVar)
+		  return false;
+
+		Nc3Var *pVar = dataFile.get_var("P");
+		if (! pVar)
+			return false;
+
+		Nc3Var *pbVar = dataFile.get_var("PB");
+		if (! phbVar)
+			return false;
+
+	  Nc3Var *latVar = dataFile.get_var("XLAT");
+	  if (! latVar)
+	    return false;
+
+	  Nc3Var *lonVar = dataFile.get_var("XLONG");
+	  if (! lonVar)
+	    return false;
+
+	  Nc3Var *wwindVar = dataFile.get_var("W");
+	  if (! wwindVar)
+	    return false;
+
+	  Nc3Var *vwindVar = dataFile.get_var("V");
+	  if (! vwindVar)
+	    return false;
+
+	  Nc3Var *uwindVar = dataFile.get_var("U");
+	  if (! uwindVar)
+	    return false;
+
+		Nc3Var *tempVar = dataFile.get_var("T");
+		if (! tempVar)
+		  return false;
+		// Nc3Bool test2 = dataFile.get_var("QRAIN")->is_valid();
+		Nc3Var *qrVar = dataFile.get_var("P_HYD");
+		if (!(dataFile.get_var("QRAIN"))){
+			Nc3Var *qrVar = dataFile.get_var("P_HYD");
+			std::cout << "QRAIN Variable is not found, so QRAIN will be set to 0." << std::endl;}
+		else{
+			Nc3Var *qrVar = dataFile.get_var("QRAIN");}
+
+		Nc3Var *terrainHgtVar = dataFile.get_var("HGT");
+		if (! terrainHgtVar)
+			return false;
+
+	  Nc3Var *qvVar = dataFile.get_var("QVAPOR");
+		if (! qvVar)
+		  return false;
+
+			//Set up dimensions
+		int NREC = 5;//timeVar->get_dim(0)->size();
+		long NLAT = latVar->get_dim(1)->size();
+		long NLON = lonVar->get_dim(2)->size();
+	  long NLVL = phVar->get_dim(1)->size()-1;
+
+		 // Allocate data arrays
+		 char *times = new char[1];
+		 double *lats =  new double[NLAT*NLON];
+		 double *lons = new double[NLAT*NLON];
+		 double *u = new double[NLON*NLAT*NLVL];
+		 double *v = new double[NLON*NLAT*NLVL];
+		 double *w = new double[NLON*NLAT*NLVL];
+		 double *z = new double[NLON*NLAT*NLVL];
+		 double *p = new double[NLON*NLAT*NLVL];
+		 double *t = new double[NLON*NLAT*NLVL];
+		 double *qv = new double[NLON*NLAT*NLVL];
+		 double *rhoa = new double[NLON*NLAT*NLVL];
+		 double *qr = new double[NLON*NLAT*NLVL];
+		 double *terrain_hgt = new double[NLON*NLAT];
+
+
+		 double *uwind_in = new double[NLVL*NLAT*(NLON+1)];
+		 double *vwind_in = new double[NLVL*(NLAT+1)*NLON];
+		 double *wwind_in = new double[(NLVL+1)*NLAT*NLON];
+		 double *ph_in = new double[(NLVL+1)*NLAT*NLON];
+		 double *phb_in = new double[(NLVL+1)*NLAT*NLON];
+		 double *p_in = new double[NLVL*NLAT*NLON];
+		 double *pb_in = new double[NLVL*NLAT*NLON];
+		 double *t_in = new double[NLVL*NLAT*NLON];
+
+		 std::cout << "*** SUCCESS allocate data arrays" << std::endl;
+
+		// Read the data. Since we know the contents of the file we know
+	  // that the data arrays in this program are the correct size to
+	  // hold one timestep.
+		// I used the 5th timestep record
+					if (!timeVar->set_cur(NREC)){
+					std::cout << "Failed to read in timeVar" << std::endl;
+				return false;}
+					if (!timeVar->get(times, 1, 19, NREC)){
+				return false;}
+					if (!latVar->get(lats, 1, NLAT, NLON)){
+				return false;}
+					if (!lonVar->get(lons, 1, NLAT, NLON)){
+				return false;}
+					if (!terrainHgtVar->get(terrain_hgt, 1, NLAT, NLON)){
+				return false;}
+	  for (int rec = NREC; rec <= NREC;  rec++)
+	  {
+			 if (!terrainHgtVar->set_cur(rec, 0, 0)){
+			 std::cout << "Failed to read in terrainHgtVar" << std::endl;
+	  return false;}
+	     if (!uwindVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in uwindVar" << std::endl;
+	 	return false;}
+	     if (!vwindVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in vwindVar" << std::endl;
+	  return false;}
+	     if (!wwindVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in wwindVar" << std::endl;
+	  return false;}
+	     if (!phVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in phVar" << std::endl;
+	 	return false;}
+	     if (!phbVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in phbVar" << std::endl;
+		return false;}
+			 if (!pVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in pVar" << std::endl;
+		return false;}
+			 if (!pbVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in pbVar" << std::endl;
+	 	return false;}
+			 if (!tempVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in tempVar" << std::endl;
+	  return false;}
+			 if (!qvVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in qvVar" << std::endl;
+	  return false;}
+			 if (!qrVar->set_cur(rec, 0, 0, 0)){
+			 std::cout << "Failed to read in qrVar" << std::endl;
+ 		return 0;}
+
+
+		// Get 1 record of NLVL by NLAT by NLON values for each variable.
+		   if (!uwindVar->get(uwind_in, 1, NLVL, NLAT, NLON+1)){
+			 std::cout << "Failed to get uwind_in" << std::endl;
+ 		return false;}
+			 if (!vwindVar->get(vwind_in, 1, NLVL, NLAT+1, NLON)){
+			 std::cout << "Failed to get vwind_in" << std::endl;
+ 		return false;}
+			 if (!wwindVar->get(wwind_in, 1, NLVL+1, NLAT, NLON)){
+			 std::cout << "Failed to get wwind_in" << std::endl;
+ 		return false;}
+			 if (!phVar->get(ph_in, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get ph_in" << std::endl;
+ 		return false;}
+			 if (!phbVar->get(phb_in, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get phb_in" << std::endl;
+ 		return false;}
+			 if (!pVar->get(p_in, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get p_in" << std::endl;
+	  return false;}
+			 if (!pbVar->get(pb_in, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get pb_in" << std::endl;
+	  return false;}
+			 if (!tempVar->get(t_in, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get temperature" << std::endl;
+	  return false;}
+			 if (!qvVar->get(qv, 1, NLVL, NLAT, NLON)){
+			 std::cout << "Failed to get qvapor" << std::endl;
+	  return false;}
+			 if (!qrVar->get(qr, 1, NLVL, NLAT, NLON)){
+			 std::cout << "No qrain" << std::endl;
+ 		return false;}
+	} // next record
+
+
+		std::cout << "*** SUCCESS record Data" << std::endl;
+
+
+		for (int i = 0; i < NLON; i++) {
+ 	   for (int j = 0; j < NLAT; j++) {
+ 	      for (int k = 0; k < NLVL - 1; k++) {
+ 			  u[k*NLON*NLAT + j*NLON + i] = (uwind_in[k*(NLON*1)*NLAT + j*(NLON+1)+ i] + uwind_in[k*(NLON+1)*NLAT + j*(NLON+1) + i+1])/2.0;
+ 			  v[k*NLON*NLAT + j*NLON + i] = (vwind_in[k*NLON*(NLAT+1) + j*NLON + i] + vwind_in[k*NLON*(NLAT+1) + (j+1)*NLON + i])/2.0;
+ 			  w[k*NLON*NLAT + j*NLON + i] = (wwind_in[k*NLON*NLAT + j*NLON + i] + wwind_in[(k+1)*NLON*NLAT + j*NLON + i])/2.0;
+ 			  z[k*NLON*NLAT + j*NLON + i] = (ph_in[k*NLON*NLAT + j*NLON + i] + ph_in[(k+1)*NLON*NLAT + j*NLON + i]
+ 				  + phb_in[k*NLON*NLAT + j*NLON + i] + phb_in[(k+1)*NLON*NLAT + j*NLON + i])/(2.0*9.81);
+				p[k*NLON*NLAT + j*NLON + i] = p_in[k*NLON*NLAT + j*NLON + i] + pb_in[k*NLON*NLAT + j*NLON + i];
+				t[k*NLON*NLAT + j*NLON + i] = t_in[k*NLON*NLAT + j*NLON + i] + 300.0;
+				double PRESV = (p[k*NLON*NLAT + j*NLON + i] * qv[k*NLON*NLAT + j*NLON + i])/(0.622+qv[k*NLON*NLAT + j*NLON + i]);
+				double PRESD = p[k*NLON*NLAT + j*NLON + i] - PRESV;
+				rhoa[k*NLON*NLAT + j*NLON + i] = PRESD/(Rd*t[k*NLON*NLAT + j*NLON + i]) + PRESV/(Rv*t[k*NLON*NLAT + j*NLON + i]);
+				qr[k*NLON*NLAT + j*NLON + i] = 0.001;
+ 		  }
+ 	  }
+   }
+
+ 	  std::cout << "*** SUCCESS get Data" << std::endl;
+		real spec = 2000;
+		real x, y;
+		real gateLat, gateLon;
+		// std::vector<real> wrf_lat, wrf_lon;
+		// for (int i = 0; i < NLON; i++){
+		// 	for(int j = 0; j < 5; j++){
+		// 		x = i*spec;
+		// 		y = j*spec;
+		// 		projection.Reverse(148, x, y, gateLat, gateLon);
+		// 		wrf_lat.push_back(gateLat);
+		// 		wrf_lon.push_back(gateLon);
+		// 	}
+		//
+		// }
+
+		// std::string timet = "978325200";
+		std::string timet = "2001-01-01_05:00:00";
+		datetime reftime = ParseTime("2001-01-01_05:00:00", "%Y-%m-%d_%H:%M:%S");
+		std::cout << "Found matching reference time " << PrintDate(reftime) << ", " << PrintTime(reftime) << std::endl;
+
+		std::string obFilename = dataPath + "/samurai_Background.in";
+		std::cout << "ObFile = " << obFilename << std::endl;
+		std::cout << "Dimensions = (" << NLON << ", " << NLAT << ", " << NLVL << ") " << std::endl;
+	 	ofstream obstream(obFilename);
+		ostream_iterator<double> od(obstream, "\t ");
+ 		ostream_iterator<string> oi(obstream, "\t ");
+		ostream_iterator<double> on(obstream, "\n");
+		real refX, refY;
+		projection.Forward(0, 0, 0, refX, refY);
+		if (NLAT < 5){
+		for (int i = 0; i < NLON; i++) {
+			for (int j = 0; j < 5; j++) {
+				x = i*spec;
+				y = j*spec;
+				projection.Reverse(0.0, refX + x, refY + y, gateLat, gateLon);
+				for (int k = 0; k < NLVL; k++) {
+					*oi++ = timet;
+					*od++ = gateLat;
+					*od++ = gateLon;
+					*od++ = z[k*NLON*NLAT + 0*NLON + i]; // in m
+					*od++ = u[k*NLON*NLAT + 0*NLON + i];
+					*od++ = v[k*NLON*NLAT + 0*NLON + i];
+					*od++ = w[k*NLON*NLAT + 0*NLON + i];
+					*od++ = t[k*NLON*NLAT + 0*NLON + i];
+					*od++ = qv[k*NLON*NLAT + 0*NLON + i];
+					*od++ = rhoa[k*NLON*NLAT + 0*NLON + i];
+					*on++ = qr[k*NLON*NLAT + 0*NLON + i];
+					*on++ = terrain_hgt[j*NLON + i]; // in m
+				}
+			}
+			}
+		}
+		else{
+ 		for (int i = 0; i < NLON; i++) {
+ 		 for (int j = 0; j < NLAT; j++) {
+			  x = i*spec;
+			  y = j*spec;
+				// real x0, y0;
+				//
+				projection.Reverse(0.0, refX + x, refY + y, gateLat, gateLon);
+ 				for (int k = 0; k < NLVL; k++) {
+ 					*oi++ = timet;
+					*od++ = gateLat;
+					*od++ = gateLon;
+					*od++ = z[k*NLON*NLAT + j*NLON + i];
+ 					*od++ = u[k*NLON*NLAT + j*NLON + i];
+					*od++ = v[k*NLON*NLAT + j*NLON + i];
+					*od++ = w[k*NLON*NLAT + j*NLON + i];
+					*od++ = t[k*NLON*NLAT + j*NLON + i];
+					*od++ = qv[k*NLON*NLAT + j*NLON + i];
+					*od++ = rhoa[k*NLON*NLAT + j*NLON + i];
+					*on++ = qr[k*NLON*NLAT + j*NLON + i];
+					*on++ = terrain_hgt[j*NLON + i];
+ 			}
+ 		}
+	}}
+	 obstream << endl;
+ 	 std::cout << "*** SUCCESS print Data to samurai_Background.in" << std::endl;
+
+
+	 return true;
+  }
+	// std::cout
+
+  // TODO The same size variables are also read in VarDriver3D::validateFractlGrid()
+  //      Combine into common code?
+
+
+	// TODO Specify the timestep of the WRF file that you want to look at
+	// Add it to the Args file
+  // Nc3Dim *timeDim = dataFile.get_dim("TIME");
+  // if (! timeDim)
+  //   return false;
+
+//   Nc3Dim *z0Dim = dataFile.get_dim("z0");
+//   if (! z0Dim)
+//     return false;
+//
+//   Nc3Dim *y0Dim = dataFile.get_dim("XLAT");
+//   if (! y0Dim)
+//     return false;
+//
+//   Nc3Dim *x0Dim = dataFile.get_dim("XLONG");
+//   if (! x0Dim)
+//     return false;
+//
+//   long ntime = timeDim->size();
+//   long nz0 = z0Dim->size();
+//   long ny0 = y0Dim->size();
+//   long nx0 = x0Dim->size();
+//
+//   Nc3Var *time0 = dataFile.get_var("time");
+//   if (! time0)
+//     return false;
+//
+//   Nc3Var *z0 = dataFile.get_var("z0");
+//   if (! z0)
+//     return false;
+//
+//   Nc3Var *y0 = dataFile.get_var("y0");
+//   if (! y0)
+//     return false;
+//   Nc3Var *x0 = dataFile.get_var("x0");
+//   if (! x0)
+//     return false;
+//   Nc3Var *lat0 = dataFile.get_var("lat0");
+//   if (! lat0)
+//     return false;
+//   Nc3Var *lon0 = dataFile.get_var("lon0");
+//   if (! lon0)
+//     return false;
+//
+//   Nc3Var *upward_air_velocity = dataFile.get_var("W");
+//   if (! upward_air_velocity)
+//     return false;
+//   Nc3Var *northward_wind = dataFile.get_var("V");
+//   if (! northward_wind)
+//     return false;
+//   Nc3Var *eastward_wind = dataFile.get_var("U");
+//   if (! eastward_wind)
+//     return false;
+//   Nc3Var *meanNbrDbz = dataFile.get_var("DBZ");
+//   if (! meanNbrDbz)
+//     return false;
+//
+//   Nc3Var *meanNeighborNcp = dataFile.get_var("NCP");
+//   if (! meanNeighborNcp)
+//     return false;
+//
+//   Nc3Var *W_std = dataFile.get_var("W_std");
+//   if (! W_std)
+//     return false;
+//   Nc3Var *V_std = dataFile.get_var("V_std");
+//   if (! V_std)
+//     return false;
+//   Nc3Var *U_std = dataFile.get_var("U_std");
+//   if (! U_std)
+//     return false;
+//
+//   long numBgObs = ntime * nz0 * ny0 * nx0;
+//
+//   if (numBgObs <= 0) {
+//     std::cout << "No background observations loaded" << std::endl;
+//     return false;
+//   }
+//   std::cout << "Loading " << numBgObs << " background observations" << std::endl;
+//
+//   // Allocate data arrays
+//
+//   double *times = new double[ntime];
+//
+//   double *lats = new double[nx0 * ny0];
+//   double *lons = new double[nx0 * ny0];
+//   double *alts = new double[nz0];
+//
+//   double *upWind = new double[numBgObs];
+//   double *northWind = new double[numBgObs];
+//   double *eastWind = new double[numBgObs];
+//   double *meanDbz =  new double[numBgObs];
+//
+//   double *wStd = new double[numBgObs];
+//   double *vStd = new double[numBgObs];
+//   double *uStd = new double[numBgObs];
+//
+//   bool success = true;
+//
+//   // Make sure table allocations worked.
+//   // alts was allocated last so if any are going to fail that would be the one.
+//
+//   if (alts == NULL) {
+//     std::cout << "Failed to allocate altitude table." << std::endl;
+//     success = false;
+//   }
+//
+//   // Get the time array
+//
+//   if ( success && ! time0->get(times, 1, ntime) ) {
+//     std::cout << "Failed to read in the times." << std::endl;
+//     success = false;
+//   }
+//
+//   // Get the heights in meter
+//
+//   if ( success && ! z0->get(alts, nz0) ) {
+//     std::cout << "Failed to read in altitudes." << std::endl;
+//     success = false;
+//   }
+//
+//   for (int rec = 0; rec < ntime; rec++) {
+//     if ( ! upward_air_velocity->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in upward air velocity" << std::endl;
+//       success = false;
+//     }
+//     if ( success && ! upward_air_velocity->get(upWind, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in upward air velocity" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! northward_wind->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in northward air velocity" << std::endl;
+//       success = false;
+//     }
+//     if ( success && ! northward_wind->get(northWind, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in northward air velocity" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! eastward_wind->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in eastward air velocity" << std::endl;
+//       success = false;
+//     }
+//     if ( success && ! eastward_wind->get(eastWind, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in eastward air velocity" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! meanNbrDbz->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in mean dbZ" << std::endl;
+//       success = false;
+//     }
+//     if ( success && ! meanNbrDbz->get(meanDbz, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in mean dbZ" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! W_std->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in W_std" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! W_std->get(wStd, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in W_std" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! V_std->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in V_std" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! V_std->get(vStd, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in V_std" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! U_std->set_cur(rec, 0, 0, 0)) {
+//       std::cout << "Failed to read in U_std" << std::endl;
+//       success = false;
+//     }
+//
+//     if ( success && ! W_std->get(uStd, 1, nz0, ny0, nx0)) {
+//       std::cout << "Failed to read in U_std" << std::endl;
+//       success = false;
+//     }
+//
+//   }
+//
+//   double fillVal = 0.0;
+//   // double fillVal = std::nan(""); // testing. Quick 2 iteration
+//
+//   for (int t = 0; t < ntime; t++) {
+//     // double currentTime = times[t];
+//
+//     for (int z = 0; z < nz0; z++) {
+//
+//       float heightm = alts[z];	// TODO check unit
+//       float rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, heightm);
+//
+//       for (int y = 0; y < ny0; y++) {
+// 	for (int x = 0; x < nx0; x++) {
+// 	  int vIndex = x + nx0 * (y + ny0 * z);		// variables index
+// 	  int bIndex = vIndex * numVars;		// index into bgU
+//
+// 	  double rhou = eastWind[vIndex] * rho;
+// 	  if (std::isnan(rhou))
+// 	    rhou = fillVal;
+// 	  double rhov = northWind[vIndex] * rho;
+// 	  if (std::isnan(rhov))
+// 	    rhov = fillVal;
+// 	  double rhow = upWind[vIndex] * rho;
+// 	  if (std::isnan(rhow))
+// 	    rhow = fillVal;
+// 	  double dbz  = meanDbz[vIndex];
+// 	  if (std::isnan(dbz))
+// 	    dbz = -35.0;		// clear air.
+//
+// 	  bgU[bIndex + 0] = rhou;
+// 	  bgU[bIndex + 1] = rhov;
+// 	  bgU[bIndex + 2] = rhow;
+// 	  bgU[bIndex + 3] = 0.0;			// t'
+// 	  bgU[bIndex + 4] = 0.0;			// qv'
+// 	  bgU[bIndex + 5] = 0.0;			// rho'
+// 	  bgU[bIndex + 6] = (dbz + 35.) * 0.1;		// transform to scaled value [0..7]
+//
+// 	  // W_std, V_std, U_std are handled separatively in CostFunction3D
+// 	}
+//       }
+//     }
+//   } // ntime
+//
+//   if (isTrue("debug_bgu"))
+//     dumpBgU(0, uStateSize, bgU);
+//
+//   if (configHash->exists("debug_bgu_nc"))
+//     bgu2nc((*configHash)["debug_bgu_nc"].c_str(), bgU);
+//
+//    delete[] lats;
+//    delete[] lons;
+//    delete[] alts;
+//    delete[] upWind;
+//    delete[] northWind;
+//    delete[] eastWind;
+//    delete[] meanDbz;
+//
+//    delete[] wStd;
+//    delete[] vStd;
+//    delete[] uStd;
+//
+//    return success;
+// }
