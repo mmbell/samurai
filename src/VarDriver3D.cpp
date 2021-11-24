@@ -424,7 +424,7 @@ bool VarDriver3D::finalize()
 
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
-
+// Set lower boundary info in the preProcessMetObs function
 bool VarDriver3D::preProcessMetObs()
 {
   GPTLstart("VarDriver3D::preprocessMetObs");
