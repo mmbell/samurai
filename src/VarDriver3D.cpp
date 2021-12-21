@@ -424,7 +424,7 @@ bool VarDriver3D::finalize()
 
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
-
+// Set lower boundary info in the preProcessMetObs function
 bool VarDriver3D::preProcessMetObs()
 {
   GPTLstart("VarDriver3D::preprocessMetObs");
@@ -993,6 +993,42 @@ bool VarDriver3D::preProcessMetObs()
 	}
 	break;
 
+			case (MetObs::terrain):
+	{
+		varOb.setType(MetObs::terrain);
+		real dhdx = metOb.getTerrainDX();
+		real dhdy = metOb.getTerrainDY();
+		real drhoudx_coeff = -dhdx/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhoudy_coeff = -dhdy/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhoudz_coeff = 1/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+
+		real drhovdx_coeff = -dhdx/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhovdy_coeff = -dhdy/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhovdz_coeff = 1/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		if (dhdy != -999) {
+		// rho u 10 m/s error
+		// Multiply by rho later from grid values
+// dudn = 0
+		varOb.setWeight(drhoudx_coeff, 0, 1);
+		varOb.setWeight(drhoudy_coeff, 0, 2);
+		varOb.setWeight(drhoudz_coeff, 0, 3);
+		varOb.setOb(0.0);
+		varOb.setError(0);//std::stof(configHash["terrain_dhdx_error"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0., 0);
+// dvdn = 0
+		varOb.setWeight(drhovdx_coeff, 1, 1);
+		varOb.setWeight(drhovdy_coeff, 1, 2);
+		varOb.setWeight(drhovdz_coeff, 1, 3);
+		varOb.setOb(0);
+		varOb.setError(0);//std::stof(configHash["terrain_dhdy_error"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0., 1);
+//
+		}
+	break;
+}
+
       case (MetObs::lidar):
 	{
 	  varOb.setType(MetObs::lidar);
@@ -1508,9 +1544,9 @@ bool VarDriver3D::preProcessMetObs()
 		// Ideally use a terrain map here, but just use Z=0 for now
 		if (pseudow_weight > 0.0) {
 		  varOb.setAltitude(0.0);
-// #if TERRAIN_IS_TRUE
-// 			varOb.setAltitude(0.0);
-// #endif
+#if TERRAIN_IS_TRUE
+			varOb.setAltitude(0.0);
+#endif
 		  varOb.setError(pseudow_weight);
 		  obVector.push_back(varOb);
 		}

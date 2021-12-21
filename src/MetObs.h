@@ -24,53 +24,53 @@
 
 class MetObs
 {
-		
+
  public:
   MetObs();
   MetObs(const MetObs& other);
   virtual ~MetObs();
   virtual bool readObs();
-		
+
   void printString();
-		
+
   std::string getStationName() const;
   void setStationName(const std::string& name);
-		
+
   float getLat() const;
   void setLat(const float& lat);
-		
+
   float getLon() const;
   void setLon(const float& lon);
-		
+
   float getAltitude() const;
   void setAltitude(const float& alt);
-		
+
   datetime getTime() const;
   void setTime(const datetime& obTime);
-		
+
   float getPressure() const;
   void setPressure(const float& press);
-		
+
   float getWindSpeed() const;
   void setWindSpeed(const float& speed);
   float getWindDirection() const;
   void setWindDirection(const float& dir);
-		
+
   float getVerticalVelocity() const;
   void setVerticalVelocity(const float& w);
-		
+
   float getTemperature() const;
   void setTemperature(const float& T);
   float getTemperatureError() const;
   void setTemperatureError(const float& T);
-        
+
   float getDewpoint() const;
   void setDewpoint(const float& D);
   void setRH(const float& RH);
-		
+
   float getRadialVelocity() const;
   void setRadialVelocity(const float& vr);
-		
+
   float getReflectivity() const;
   void setReflectivity(const float& dz);
 
@@ -79,20 +79,26 @@ class MetObs
 
   float getAzimuth() const;
   void setAzimuth(const float& az);
-		
+
   float getElevation() const;
   void setElevation(const float& el);
-		
+
+  float getTerrainDX() const;
+  void setTerrainDX(const float& dhdx);
+
+  float getTerrainDY() const;
+  void setTerrainDY(const float& dhdy);
+
   int getObType() const;
   void setObType(const int& type);
-		
+
   // Derived variables
   float getQv() const;
   float getQvSaturation() const;
   float getCartesianUwind() const;
   float getCartesianVwind() const;
   float getPolarUwind(const float& centerLat, const float& centerLon) const;
-  float getPolarVwind(const float& centerLat, const float& centerLon) const;	
+  float getPolarVwind(const float& centerLat, const float& centerLon) const;
   float getDryDensity() const;
   float getAirDensity() const;
   float getVaporDensity() const;
@@ -103,11 +109,12 @@ class MetObs
   float getMoistStaticEnergy() const;
   float getMoistSaturationStaticEnergy() const;
   float getTotalEnergy() const;
-		
+  // add get terrain slope
+
   bool operator ==(const MetObs &other);
   bool operator < (const MetObs &other);
   bool operator > (const MetObs &other);
-		
+
   enum MetObTypes {
     dropsonde,
     flightlevel,
@@ -120,11 +127,13 @@ class MetObs
     insitu,
     mtp,
     mesonet,
-    aeri
+    aeri,
+    terrain
+    // add terrain type
   };
-		
+
  protected:
-		
+
   float latitude;
   float longitude;
   float altitude;
@@ -143,8 +152,11 @@ class MetObs
   float azimuth;
   float elevation;
   int obType;
+  float terrain_dx;
+  float terrain_dy;
+  // add terrain slope here
 
-		
+
 };
 
 #endif

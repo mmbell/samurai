@@ -76,7 +76,7 @@ bool VarDriver::readFrameCenters()
   std::string centerFilename;
   for (std::size_t i = 0; i < filenames.size(); ++i) {
     std::string filename = filenames[i];
-		if (filename.empty()) { 
+		if (filename.empty()) {
 			continue;
 		}
     std::string suffix = Extension(filename);
@@ -289,12 +289,12 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
       return false;
     }
     break;
-    
+
   default:
     cout << "Unknown data type, skipping..." << endl;
     return false;
   }
-  
+
   return true;
 }
 
@@ -303,7 +303,7 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
 bool VarDriver::read_frd(std::string& filename, std::vector<MetObs>* metObVector)
 {
 	std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 /*
   QTextStream in(&metFile);
@@ -359,7 +359,7 @@ bool VarDriver::read_frd(std::string& filename, std::vector<MetObs>* metObVector
 bool VarDriver::read_cls(std::string& filename, std::vector<MetObs>* metObVector)
 {
 	std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
 /*
@@ -448,7 +448,7 @@ bool VarDriver::read_cls(std::string& filename, std::vector<MetObs>* metObVector
 bool VarDriver::read_wwind(std::string& filename, std::vector<MetObs>* metObVector)
 {
 	std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
 /*
@@ -537,7 +537,7 @@ bool VarDriver::read_wwind(std::string& filename, std::vector<MetObs>* metObVect
 bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector)
 {
 	std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
   std::string datestr, timestr, aircraft;
@@ -625,7 +625,7 @@ bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector
 bool VarDriver::read_sec(std::string& filename, std::vector<MetObs>* metObVector)
 {
   std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
 /*
@@ -702,7 +702,7 @@ bool VarDriver::read_sec(std::string& filename, std::vector<MetObs>* metObVector
 bool VarDriver::read_ten(std::string& filename, std::vector<MetObs>* metObVector)
 {
 	std::ifstream metFile(filename);
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
 /*
@@ -1190,7 +1190,7 @@ bool VarDriver::read_dwl(std::string& filename, std::vector<MetObs>* metObVector
 	  metObVector->push_back(ob);
 	  //cout << datetime.toString(Qt::ISODate).toStdString() << "\t"
 	  // << gateLat << "\t" << gateLon << "\t" << gateAlt << "\t"
-	  //  << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl; 
+	  //  << az << "\t" << el << "\t" << dz << "\t" << vr << "\t" << sw << endl;
 	}
       }
     }
@@ -1371,6 +1371,41 @@ bool VarDriver::read_mtp(std::string& filename, std::vector<MetObs>* metObVector
   return true;
 }
 
+/* This routine reads the Terrain text file.
+   Pressure levels are converted to Heights via Newton's method and the background
+   reference state */
+
+bool VarDriver::read_terrain(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  std::ifstream metFile(filename);
+
+  if (!metFile.is_open()) {
+    return false;
+	}
+
+  MetObs ob;
+  datetime datetime_;
+  // Skip first line
+  std::string line;
+  std::getline(metFile, line);
+
+  while (std::getline(metFile, line)) {
+    auto parts = LineSplit(line, ' ');
+
+    ob.setLat(std::stof(parts[1]));
+    ob.setLon(-std::stof(parts[2]));
+		ob.setAltitude(std::stof(parts[3]));
+		ob.setTerrainDX(std::stof(parts[4]));
+		ob.setTerrainDY(std::stof(parts[5]));
+    ob.setAltitude(std::stof(parts[6]));
+    ob.setObType(MetObs::terrain);
+    metObVector->push_back(ob);
+  }
+  metFile.close();
+  return true;
+
+}
+
 /* This routine parses the supplied XML configuration
    and validates parameters that are common to all drivers
    Mode specific configs are validated in those drivers */
@@ -1394,7 +1429,7 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 		for (auto &attribute : attributeList) {
 			if (std::string(attribute->Name()) == "iter" ) {
 				iter = attribute->Value();
-			} 
+			}
 		}
 
 		// 6) Build the list of children (config options):
@@ -1518,11 +1553,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("dynamic_stride",tmpstr.setNum(config.dynamic_stride));
   configHash.insert("spline_approximation",tmpstr.setNum(config.spline_approximation));
 */
-#if 0 /* old style call */  
+#if 0 /* old style call */
   configHash.insert("nx",tmpstr.setNum(config.nx));
   configHash.insert("ny",tmpstr.setNum(config.ny));
   configHash.insert("nz",tmpstr.setNum(config.nz));
-  
+
   configHash.insert("i_min",tmpstr.setNum(config.i_min));
   configHash.insert("i_max",tmpstr.setNum(config.i_max));
   configHash.insert("i_incr",tmpstr.setNum(config.i_incr));
@@ -1596,7 +1631,7 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("delx",tmpstr.setNum(config.delx));
   configHash.insert("dely",tmpstr.setNum(config.dely));
 #endif
-  
+
 /*fixme
   if (config.load_background) configHash.insert("load_background","true");
   else configHash.insert("load_background","false");
@@ -1666,11 +1701,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
   configHash.insert("radar_vel",config.radar_vel);
   configHash.insert("radar_sw",config.radar_sw);
   configHash.insert("mask_reflectivity",config.mask_reflectivity);
- */ 
+ */
 #if 0 /* old style */
   configHash.insert("ref_time",config.ref_time);
 #endif
- 
+
 /*fixme
   configHash.insert("ref_state",config.ref_state);
   configHash.insert("data_directory",config.data_directory);
@@ -1702,11 +1737,11 @@ bool VarDriver::parseSamuraiConfig(const samurai_config &config)
     "radar_sw_error" << "radar_fallspeed_error" << "radar_min_error" <<
     "bg_rhou_error" << "bg_rhov_error" << "bg_rhow_error" << "bg_tempk_error" <<
     "bg_qv_error" << "bg_rhoa_error" << "bg_qr_error" << "projection";
-  
+
   if (fixedGrid)
     configKeys << "ref_time";
 */
-  
+
   for (int i = 0; i < configKeys.size(); i++) {
 /*fixme    if (!configHash.contains(configKeys.at(i))) {
       std::cout << "No configuration found for <" << configKeys.at(i).toStdString() << "> aborting..." << std::endl;
@@ -1977,7 +2012,7 @@ bool VarDriver::read_qcf(std::string& filename, std::vector<MetObs>* metObVector
 {
   std::ifstream metFile(filename);
 
-  if (!metFile.is_open()) 
+  if (!metFile.is_open())
     return false;
 
 /*fixme
@@ -2158,7 +2193,7 @@ bool VarDriver::read_rad(std::string& filename, std::vector<MetObs>* metObVector
 
   // Use a Transverse Mercator projection to map the radar gates to the grid
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-/*fixme		
+/*fixme
   QTextStream in(&metFile);
   MetObs ob;
   QDate startDate;
@@ -2241,11 +2276,11 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
   // Name of the fields to use
   // TODO Should we use cfradial defaults if not specified?
   // DBZ, VEL, and WIDTH?
- 
+
   std::string radarDbzStr = configHash["radar_dbz"];
   std::string radarVelStr = configHash["radar_vel"];
   std::string radarSwStr  = configHash["radar_sw"];
-  
+
   // Use a Transverse Mercator projection to map the radar gates to the grid
   // GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
 
@@ -2253,7 +2288,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
   double tmStart = rxVol.getStartTimeSecs() + 1.e-9 * rxVol.getStartNanoSecs();
   double tmEnd = rxVol.getEndTimeSecs() + 1.e-9 * rxVol.getEndNanoSecs();
 #endif
-  
+
   vector<RadxRay *> rays = rxVol.getRays();
 
   for (size_t index = 0; index < rays.size(); index++) {
@@ -2269,7 +2304,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
     double radarAlt = numeric_limits<double>::quiet_NaN();     // km
 
     double beamWidth = sin(ray->getFixedAngleDeg() * Pi / 180.0);
-    
+
     const RadxGeoref *gref = ray->getGeoreference();
     if (gref == NULL ) { // gref is NULL for some ground-based stations
       radarLat = rxVol.getLatitudeDeg();
@@ -2287,20 +2322,20 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
       std::cout << "Error: incomplete file spec or radx Georeference" << std::endl;
       return false;
     }
-    
+
     // Qt 5.8 //  QDateTime rayTime = QDateTime::fromSecsSinceEpoch(ray->getTimeSecs());
     datetime rayTime = date::sys_seconds(std::chrono::seconds(ray->getTimeSecs()));
     double az = ray->getAzimuthDeg();
     double el = ray->getElevationDeg();
 
     // Get the ref, vel, and swdata
-    
+
     RadxField *radarDbz = ray->getField(radarDbzStr);
     if (radarDbz == NULL) {
       std::cout << "Failed to get variable " << radarDbzStr << " from " << fileName << std::endl;
       return false;
     }
-	
+
     RadxField *radarVel = ray->getField(radarVelStr);
     if (radarVel == NULL) {
       std::cout << "Failed to get variable " << radarVelStr << " from " << fileName << std::endl;
@@ -2315,18 +2350,18 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
     double dbzMissingVal = radarDbz->getMissingFl64();
     double velMissingVal = radarVel->getMissingFl64();
     double swMissingVal =  radarSw->getMissingFl64();
-    
+
     size_t nGates = ray->getNGates();
     float gatelength = ray->getGateSpacingKm() * 1000;
-    
+
     //    int rayskip = configHash.value("radar_skip").toInt();
     int minstride = std::stoi(configHash["radar_stride"]);
-    bool dynamicStride = std::stoi(configHash["dynamic_stride"]); 
+    bool dynamicStride = std::stoi(configHash["dynamic_stride"]);
     int stride = minstride;
 
     // std::cout << "-I- Gates: " << nGates << ", stride: " << stride
     // << ", length: " << gatelength << std::endl;
-    
+
     for (size_t gateIndex = 0; gateIndex < nGates - stride; gateIndex += stride) {
       MetObs ob;
       float range = gatelength * (gateIndex + stride / 2);
@@ -2342,11 +2377,11 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
       int swCount = 0;
 
       for (size_t idx = gateIndex; idx < (gateIndex + stride); idx++) {
-	
+
 	double valDbz = radarDbz->getDoubleValue(idx);
 	double valVel = radarVel->getDoubleValue(idx);
 	double valSw  = radarSw->getDoubleValue(idx);
-	
+
 	if (valVel != velMissingVal) {
 	  vr += valVel;
 	  vrCount++;
@@ -2360,7 +2395,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
 	  swCount++;
 	}
       }
-      
+
       if (dzCount > 0) {
 	dz = dz / float(dzCount);
 	dz = 10 * log10(dz);
@@ -2376,7 +2411,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
       } else {
 	sw = -999.0;
       }
-      
+
       if ((vr != -999.0) || (dz != -999.0)) {
 	real relX = range * sin(az * Pi / 180.0) * cos(el * Pi / 180.0);
 	real relY = range * cos(az * Pi / 180.0) * cos(el * Pi / 180.0);
@@ -2385,7 +2420,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
 	// Take into account curvature of the earth for the height of the radar beam
 	real relZ = sqrt(range * range + rEarth * rEarth + 2.0 * range
 			 * rEarth * sin(el * Pi / 180.0)) - rEarth;
-	
+
 	real radarX, radarY, gateLat, gateLon;
 	projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
 	projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
@@ -2402,7 +2437,7 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
 	ob.setSpectrumWidth(sw);
 	ob.setTime(rayTime);
 	metObVector->push_back(ob);
-      }	
+      }
     } // gates
   } // rays
   return true;
