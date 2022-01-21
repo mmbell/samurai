@@ -495,15 +495,11 @@ bool VarDriver3D::preProcessMetObs()
   for (std::size_t i = 0; i < filenames.size(); ++i) {
     metData->clear();
 
-		if (filenames[i].empty()) {
-      cout << "Unknown file! " << filenames[i] << endl;
-      continue;
-    }
-
 		std::string file = filenames[i];
     std::vector<std::string> parts = LineSplit(file, '.');
     std::string suffix = parts[parts.size()-1];
     std::string prefix = parts[0];
+
 
     if (prefix == "swp") {
       // Switch it to suffix
@@ -542,7 +538,7 @@ bool VarDriver3D::preProcessMetObs()
     datetime endTime_ob = frameVector.back().getTime();
     auto endTime = Date(endTime_ob);
     int prevobs = obVector.size();
-
+		std::cout << "i  = " << i << endl;
     for (std::size_t i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
@@ -550,22 +546,25 @@ bool VarDriver3D::preProcessMetObs()
       datetime obTime_ob = metOb.getTime();
       auto obTime = Date(obTime_ob);
 
+
       // NOTE: Changing below line to account for msec vs. sec differences (discussion with M Bell, ongoing)
       // This makes the DesRosier case similar for now, but may need to change later
       //if ((obTime < startTime) or (obTime > endTime)) {
       if ((obTime < startTime) or (obTime >= endTime)) {
 				timeProblem++;
 
-				if (timeProblem < 10)
-				  std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
-				continue;
+				// if (timeProblem < 10) testing
+				//   std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
+				// continue;
       }
+			// std::cout << "timeProblem  = " << timeProblem << endl;
       int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
-      if ((fi < 0) or (fi > (int)frameVector.size())) {
-				cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
-				timeProblem++;
-				continue;
-      }
+			// std::cout << "fi = " << fi << endl;
+      // if ((fi < 0) or (fi > (int)frameVector.size())) {
+			// 	cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
+			// 	timeProblem++;
+			// 	continue;
+      // } testing
       real Um = frameVector[fi].getUmean();
       real Vm = frameVector[fi].getVmean();
 
@@ -632,6 +631,7 @@ bool VarDriver3D::preProcessMetObs()
       }
 
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
+
       switch (metOb.getObType()) {
 
       case (MetObs::dropsonde):
@@ -1007,24 +1007,37 @@ bool VarDriver3D::preProcessMetObs()
 		real drhovdz_coeff = 1/sqrt(1+dhdx*dhdx+dhdy*dhdy);
 		if (dhdy != -999) {
 		// rho u 10 m/s error
-		// Multiply by rho later from grid values
+
 // dudn = 0
 		varOb.setWeight(drhoudx_coeff, 0, 1);
 		varOb.setWeight(drhoudy_coeff, 0, 2);
 		varOb.setWeight(drhoudz_coeff, 0, 3);
 		varOb.setOb(0.0);
-		varOb.setError(0);//std::stof(configHash["terrain_dhdx_error"]));
+		varOb.setError(1);//std::stof(configHash["terrain_dhdx_error"]));
 		obVector.push_back(varOb);
-		varOb.setWeight(0., 0);
+		varOb.setWeight(0.0, 0, 1);
+		varOb.setWeight(0.0, 0, 2);
+		varOb.setWeight(0.0, 0, 3);
 // dvdn = 0
 		varOb.setWeight(drhovdx_coeff, 1, 1);
 		varOb.setWeight(drhovdy_coeff, 1, 2);
 		varOb.setWeight(drhovdz_coeff, 1, 3);
 		varOb.setOb(0);
-		varOb.setError(0);//std::stof(configHash["terrain_dhdy_error"]));
+		varOb.setError(1);//std::stof(configHash["terrain_dhdy_error"]));
 		obVector.push_back(varOb);
-		varOb.setWeight(0., 1);
-//
+		varOb.setWeight(0.0, 1, 1);
+		varOb.setWeight(0.0, 1, 2);
+		varOb.setWeight(0.0, 1, 3);
+		// Dirichlet Boundary
+		varOb.setWeight(dhdx, 0, 0);
+		varOb.setWeight(dhdy, 1, 0);
+		varOb.setWeight(-1  , 2, 0);
+		varOb.setOb(0);
+		varOb.setError(1);//std::stof(configHash["terrain_dhdy_error"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0.0, 0, 0); // does it need to set weight?
+		varOb.setWeight(0.0, 1, 0);
+		varOb.setWeight(0.0, 2, 0);
 		}
 	break;
 }
@@ -1417,6 +1430,54 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  break;
 	}
+
+	case(MetObs::model):
+			varOb.setType(MetObs::model);
+			u = metOb.getZonalVelocity();
+			v = metOb.getMeridionalVelocity();
+			w = metOb.getVerticalVelocity();
+			rho = metOb.getModelMoistDensity();
+
+			// Separate obs for each measurement
+
+		  // rho v 1 m/s error
+		  if ((u != -999) and (rho != -999)) {
+		    // rho u 1 m/s error
+		    varOb.setWeight(1., 0);
+		    if (runMode == XYZ) {
+		      rhou = rho*(u - Um);
+		    } else if (runMode == RTZ) {
+		      rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+		    }
+		    varOb.setOb(rhou);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 0);
+
+		    varOb.setWeight(1., 1);
+		    if (runMode == XYZ) {
+		      rhov = rho*(v - Vm);
+		    } else if (runMode == RTZ) {
+		      rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+		    }
+		    varOb.setOb(rhov);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 1);
+
+		  }
+		  if ((w != -999) and (rho != -999)) {
+		    // rho w 1.5 m/s error
+		    varOb.setWeight(1., 2);
+		    rhow = rho*w;
+		    varOb.setOb(rhow);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 2);
+		  }
+
+		break;
+
       }
 
     } // for everything in metData
@@ -1447,6 +1508,34 @@ bool VarDriver3D::preProcessMetObs()
   varOb.setTime(std::stoi(configHash["ref_time"]));
   real pseudow_weight = std::stof(configHash["dbz_pseudow_weight"]);
   real mc_weight = std::stof(configHash["mc_weight"]);
+
+	// Read the terrain file and project it to the desired grid structure
+	real latReference = std::stof((configHash)["ref_lat"]);
+  real lonReference = std::stof((configHash)["ref_lon"]);
+	real tol = 2*iincr;// + iincr/2;
+	real xT, yT, xR, yR;
+	std::vector<real> x_Ter, y_Ter, terrain_height;
+	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
+	std::string fullpath = dataPath + "/" + "terrain.hgt";
+	read_met_obs_file(dataSuffix["hgt"], fullpath, terrainData);
+	projection.Forward(lonReference, latReference, lonReference, xR, yR);
+	for (unsigned int ilength = 0; ilength < terrainData->size(); ++ilength) {
+		MetObs metOb = terrainData->at(ilength);
+		real latTerrain = metOb.getLat();
+		real lonTerrain = metOb.getLon();
+		// dhdx = metOb.getTerrainDX();
+		// dhdy = metOb.getTerrainDY();
+		terrain_height.push_back(metOb.getAltitude());
+		projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
+		x_Ter.push_back((xT-xR)/1000);
+		y_Ter.push_back((yT-yR)/1000);
+		// dist = sqrt((x_Ter/1000 - i)*(x_Ter/1000 - i)+(y_Ter/1000 - j)*(y_Ter/1000 - j));
+		// distance.push_back[dist];
+		// std::cout << "distance = " << dist << std::endl;
+	}
+
+
+
   // Initialize the weights
   for (unsigned int var = 0; var < numVars; ++var) {
     for (unsigned int d = 0; d < numDerivatives; ++d) {
@@ -1543,12 +1632,22 @@ bool VarDriver3D::preProcessMetObs()
 		// Set a lower boundary condition for W
 		// Ideally use a terrain map here, but just use Z=0 for now
 		if (pseudow_weight > 0.0) {
-		  varOb.setAltitude(0.0);
-#if TERRAIN_IS_TRUE
-			varOb.setAltitude(0.0);
-#endif
-		  varOb.setError(pseudow_weight);
-		  obVector.push_back(varOb);
+			int ilength = 0;
+			real distance = 3*iincr;
+			// real terrain_height, dhdx, dhdy;
+			while (distance > tol)
+			{
+				distance = sqrt((x_Ter.at(ilength) - i)*(x_Ter.at(ilength) - i)+(y_Ter.at(ilength) - j)*(y_Ter.at(ilength) - j));
+				// std::cout << "distance = " << distance << std::endl;
+				// std::cout << "ilength = " << ilength << std::endl;
+				ilength++;
+			}
+			// varOb.setAltitude(terrain_height/1000);
+			varOb.setAltitude(terrain_height.at(ilength-1));
+			// std::cout << "Terrain Height = " << terrain_height << std::endl;
+			varOb.setError(pseudow_weight);
+			obVector.push_back(varOb);
+
 		}
 	      }
 	      varOb.setWeight(0., 2);
@@ -2453,7 +2552,7 @@ bool VarDriver3D::loadMetObs()
   // Either preprocess from raw observations or load an already processed Observations.in file
 
   std::string preprocess = configHash["preprocess_obs"];
-  if (preprocess == "true") {
+  if (preprocess == "true") { // it should be true, testing
     bgWeights = new real[uStateSize];
     bool success = preProcessMetObs();
     delete[] bgWeights;
@@ -2462,6 +2561,7 @@ bool VarDriver3D::loadMetObs()
       cout << "Error pre-processing observations\n";
       return false;
     }
+
   } else {
     if (!loadPreProcessMetObs()) {
       cout << "Error loading observations\n";

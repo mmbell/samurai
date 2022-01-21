@@ -59,6 +59,12 @@ class MetObs
   float getVerticalVelocity() const;
   void setVerticalVelocity(const float& w);
 
+  float getMeridionalVelocity() const;
+  void setMeridionalVelocity(const float& v);
+
+  float getZonalVelocity() const;
+  void setZonalVelocity(const float& u);
+
   float getTemperature() const;
   void setTemperature(const float& T);
   float getTemperatureError() const;
@@ -88,6 +94,9 @@ class MetObs
 
   float getTerrainDY() const;
   void setTerrainDY(const float& dhdy);
+
+  float getModelMoistDensity() const;
+  void setModelMoistDensity(const float& rho);
 
   int getObType() const;
   void setObType(const int& type);
@@ -128,7 +137,8 @@ class MetObs
     mtp,
     mesonet,
     aeri,
-    terrain
+    terrain,
+    model
     // add terrain type
   };
 
@@ -143,6 +153,8 @@ class MetObs
   float windSpeed;
   float windDirection;
   float verticalVelocity;
+  float meridionalVelocity;
+  float zonalVelocity;
   float dewpoint;
   float temperature;
   float temperatureError;
@@ -154,6 +166,7 @@ class MetObs
   int obType;
   float terrain_dx;
   float terrain_dy;
+  float moistDensity;
   // add terrain slope here
 
 

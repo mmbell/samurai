@@ -7,8 +7,15 @@
  */
 
 #include "CostFunctionXYZ.h"
+#include "FileList.h"
+#include "MetObs.h"
+#include "VarDriver.h"
+#include "HashMap.h"
+#include "Args.h"
+#include "LineSplit.h"
 #include <cmath>
 #include "datetime.h"
+#include "ReadTerrain.h"
 // #include <netcdfcpp.h>
 #include <Ncxx/Nc3File.hh>
 #include <euclid/GeographicLib/TransverseMercatorExact.hpp>
@@ -40,6 +47,30 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
   int max_aIndex = -1000;
   real max_heightm = -1000.0;
   bool debug_ref_state = isTrue("debug_ref_state");
+
+	// // Read the terrain file and project it to the desired grid structure
+
+	real tol = 2*DI;// + iincr/2;
+	real xT, yT, xR, yR;
+	std::vector<real> x_Ter, y_Ter, terrain_height;
+	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
+	std::string fullpath = dataPath + "/" + "terrain.hgt";
+	projection.Forward(lonReference, latReference, lonReference, xR, yR);
+	ReadTerrain terrain;
+	// terrain.readTerrainTXT(fullpath, terrainData);
+	if (!terrain.readTerrainTXT(fullpath, terrainData)) {
+		cout << "Error reading terrain file" << endl;
+		return false;
+	}
+	for (unsigned int ilength = 0; ilength < terrainData->size(); ++ilength) {
+		MetObs metOb = terrainData->at(ilength);
+		real latTerrain = metOb.getLat();
+		real lonTerrain = metOb.getLon();
+		terrain_height.push_back(metOb.getAltitude());
+		projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
+		x_Ter.push_back(xT-xR);
+		y_Ter.push_back(yT-yR);
+	}
 
   for (int iIndex = 1; iIndex < iDim - 1; iIndex++) {   // SItransform loops on both mish and mesh datapoints
     for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
@@ -320,7 +351,17 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
         std::string refmask = (*configHash)["mask_reflectivity"];
 		    if (refmask != "None") {
 		      real refthreshold = std::stof(refmask);
-		      if (qr < refthreshold) {	// analusysDim variables // put terrain restriction here
+					int ilength = 0;
+					real distance = 3*DI;
+					while (distance > tol)
+					{
+						distance = sqrt((x_Ter.at(ilength)/1000 - i)*(x_Ter.at(ilength)/1000 - i)+(y_Ter.at(ilength)/1000 - j)*(y_Ter.at(ilength)/1000 - j));
+						// std::cout << "distance = " << distance << std::endl;
+						ilength++;
+					}
+					std::cout << "terrain height = " << terrain_height.at(ilength-1)/1000 << std::endl;
+		      if ((qr < refthreshold) or (k < terrain_height.at(ilength-1)/1000)) {	// analusysDim variables // put terrain restriction here
+						// std::cout << "k = " << k << std::endl
 			u = -999.0;
 			v = -999.0;
 			w = -999.0;

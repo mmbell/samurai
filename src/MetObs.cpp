@@ -19,9 +19,11 @@ MetObs::MetObs()
 	windSpeed = -999;
 	windDirection = -999;
 	verticalVelocity = -999;
+	meridionalVelocity = -999;
+	zonalVelocity = -999;
 	dewpoint = -999;
 	temperature = -999;
-    temperatureError = -999;
+  temperatureError = -999;
 	radialVelocity = -999;
 	reflectivity = -999;
 	spectrumWidth = -999;
@@ -30,6 +32,7 @@ MetObs::MetObs()
 	stationName = "";
 	terrain_dx = -999;
 	terrain_dy = -999;
+	moistDensity = -999;
 	time = {};
 	obType = -1;
 
@@ -44,6 +47,8 @@ MetObs::MetObs(const MetObs& other)
 	windSpeed = other.windSpeed;
 	windDirection = other.windDirection;
 	verticalVelocity = other.verticalVelocity;
+	meridionalVelocity = other.meridionalVelocity;
+	zonalVelocity = other.zonalVelocity;
 	dewpoint = other.dewpoint;
 	temperature = other.temperature;
   temperatureError = other.temperatureError;
@@ -56,6 +61,7 @@ MetObs::MetObs(const MetObs& other)
 	time = other.time;
 	terrain_dx = other.terrain_dx;
 	terrain_dy = other.terrain_dy;
+	moistDensity = other.moistDensity;
 	obType = other.obType;
 
 }
@@ -160,6 +166,26 @@ float MetObs::getVerticalVelocity() const
 void MetObs::setVerticalVelocity(const float& w)
 {
 	verticalVelocity = w;
+}
+
+float MetObs::getMeridionalVelocity() const
+{
+	return meridionalVelocity;
+}
+
+void MetObs::setMeridionalVelocity(const float& v)
+{
+	meridionalVelocity = v;
+}
+
+float MetObs::getZonalVelocity() const
+{
+	return zonalVelocity;
+}
+
+void MetObs::setZonalVelocity(const float& u)
+{
+	zonalVelocity = u;
 }
 
 float MetObs::getTemperature() const
@@ -274,6 +300,16 @@ float MetObs::getTerrainDY() const
 void MetObs::setTerrainDY(const float& dhdy)
 {
 	terrain_dy = dhdy;
+}
+
+float MetObs::getModelMoistDensity() const
+{
+	return moistDensity;
+}
+
+void MetObs::setModelMoistDensity(const float& rho)
+{
+	moistDensity = rho;
 }
 
 int MetObs::getObType() const

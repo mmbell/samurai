@@ -53,6 +53,8 @@ VarDriver::VarDriver()
   dataSuffix["aeri"] = aeri;
   dataSuffix["rad"] = rad;
   dataSuffix["cfrad"] = cfrad;
+	dataSuffix["hgt"] = terrain;
+	dataSuffix["txt"] = model;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -155,6 +157,14 @@ void VarDriver::popCenter()
   frameVector.erase(frameVector.begin());
 }
 
+// Pop the first center (Might add a date later if needed to remove a specific center)
+
+// bool VarDriver::readTerrain(std::string &filename, std::vector<MetObs>* metData)
+// {
+// 	std::string metFile = filename;
+//   return read_terrain(metFile, metData);
+// }
+
 // interface function to read radar data
 
 bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector<MetObs>* metData)
@@ -246,6 +256,18 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
       return false;
     }
     break;
+	case (terrain):
+		if (!read_terrain(metFile, metData)) {
+			cout << "Error reading terrain file" << endl;
+			return false;
+		}
+		break;
+	case (model):
+		if (!read_model(metFile, metData)) {
+			cout << "Error reading model file" << endl;
+			return false;
+		}
+		break;
   case (mtp):
     if (!read_mtp(metFile, metData)) {
       cout << "Error reading mtp file" << endl;
@@ -1377,30 +1399,96 @@ bool VarDriver::read_mtp(std::string& filename, std::vector<MetObs>* metObVector
 
 bool VarDriver::read_terrain(std::string& filename, std::vector<MetObs>* metObVector)
 {
-  std::ifstream metFile(filename);
 
+  std::ifstream metFile(filename);
   if (!metFile.is_open()) {
     return false;
 	}
 
+	std::vector<std::string> filenames = FileList(dataPath);
+	std::string centerFilename;
+	for (std::size_t i = 0; i < filenames.size(); ++i) {
+		std::string filename = filenames[i];
+		if (filename.empty()) {
+			continue;
+		}
+		std::string suffix = Extension(filename);
+		suffix = suffix.substr(1);
+		if (suffix == "cen") {
+			// Match to centerfile
+			centerFilename = filenames[i];
+			break;
+	}}
+	// Open the file
+	std::ifstream centerFile(dataPath + "/" + centerFilename, std::ifstream::in);
+	// Get the date from the filename
+	std::string datestr = centerFilename.substr(0,8);
+	datetime startDate = ParseDate(datestr.c_str(), "%Y%m%d");
+
+	std::string line;
+	std::getline(centerFile, line);
+	std::istringstream iss(line);
+	datetime date;
+	std::string timestr;
+	iss >> timestr;
+	int hours = std::stoi(timestr.substr(0,2));
+	if (hours > 23) { // (FIXME : NCAR) The original code added a day here, then subtracted 24 from the hours, is this needed?
+		//fixme date = date::make_zoned(startDate + date::days{1});
+		// hours -= 24;
+	} else {
+		date = startDate;
+	}
+	int minutes = std::stoi(timestr.substr(2,2));
+	int seconds = std::stoi(timestr.substr(4,2));
+	datetime datetime_ = startDate + std::chrono::hours{hours} + std::chrono::minutes{minutes} + std::chrono::seconds{seconds};
+
   MetObs ob;
-  datetime datetime_;
-  // Skip first line
-  std::string line;
-  std::getline(metFile, line);
+  std::string line2;
 
-  while (std::getline(metFile, line)) {
-    auto parts = LineSplit(line, ' ');
-
-    ob.setLat(std::stof(parts[1]));
-    ob.setLon(-std::stof(parts[2]));
-		ob.setAltitude(std::stof(parts[3]));
-		ob.setTerrainDX(std::stof(parts[4]));
-		ob.setTerrainDY(std::stof(parts[5]));
-    ob.setAltitude(std::stof(parts[6]));
+  while (std::getline(metFile, line2)) {
+		ob.setTime(datetime_);
+    auto parts = LineSplit(line2, ' ');
+    ob.setLat(std::stof(parts[0]));
+    ob.setLon(std::stof(parts[1]));
+    ob.setAltitude(std::stof(parts[2]));
+    ob.setTerrainDX(std::stof(parts[3]));
+    ob.setTerrainDY(std::stof(parts[4]));
     ob.setObType(MetObs::terrain);
     metObVector->push_back(ob);
   }
+	// std::cout << "Successfully read the terrain file" << std::endl;
+  metFile.close();
+  return true;
+
+}
+
+/* This routine reads a text file from a WRF output*/
+
+bool VarDriver::read_model(std::string& filename, std::vector<MetObs>* metObVector)
+{
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
+    return false;
+	}
+	MetObs ob;
+	datetime datetime_;
+	std::string line;
+
+  while (std::getline(metFile, line)) {
+		auto parts = LineSplit(line, ' ');
+		datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%d_%H:%M:%S");
+		ob.setTime(datetime_);
+    ob.setLat(std::stof(parts[1]));
+    ob.setLon(std::stof(parts[2]));
+    ob.setAltitude(std::stof(parts[3]));
+    ob.setZonalVelocity(std::stof(parts[4]));
+    ob.setMeridionalVelocity(std::stof(parts[5]));
+		ob.setVerticalVelocity(std::stof(parts[6]));
+		ob.setModelMoistDensity(std::stof(parts[7]));
+    ob.setObType(MetObs::model);
+    metObVector->push_back(ob);
+  }
+	std::cout << "Successfully read the text file" << std::endl;
   metFile.close();
   return true;
 

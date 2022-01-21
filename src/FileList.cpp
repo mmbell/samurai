@@ -26,7 +26,7 @@ std::vector<std::string> FileList(std::string &path_in)
 	std::sort(list.begin(), list.end());
 
 	// Debug
-	std::cout << "Debug: num files = " << list.size() << std::endl;
+	// std::cout << "Debug: num files = " << list.size() << std::endl;
 
   closedir(directory);
 
@@ -40,7 +40,7 @@ std::string Extension(std::string in) {
   //std::cout << "Doing extension of: " << in << " ( index = " << index << " ) " << std::endl;
   if (index != std::string::npos) {
     return in.substr(index);
-  } 
+  }
   return "";
 }
 
@@ -57,4 +57,3 @@ bool DirectoryExists(std::string in) {
 
    return false;
 }
-

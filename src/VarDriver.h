@@ -76,6 +76,8 @@ class VarDriver
   void appendCenter(std::string date, std::string time, float lat, float lon, float Vm, float Um);
   void popCenter();
 
+	// bool readTerrain(std::string &filename, std::vector<MetObs>* metData);
+
   HashMap *getConfigHash() { return &configHash; }
 
  protected:
@@ -120,7 +122,8 @@ class VarDriver
     aeri,
     rad,
     cfrad,
-		terrain
+		terrain,
+		model
   };
   Projection projection;
 
@@ -147,6 +150,7 @@ class VarDriver
   bool read_rad(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_cfrad(std::string &fileName, std::vector<MetObs>* metObVector);
 	bool read_terrain(std::string& filename, std::vector<MetObs>* metObVector);
+	bool read_model(std::string& filename, std::vector<MetObs>* metObVector);
   bool readFrameCenters();
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);

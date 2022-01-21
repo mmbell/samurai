@@ -1539,7 +1539,7 @@ bool BkgdObsWRFLoader::loadBkgdObs(std::vector<real> &bgIn)
 		double Rd = 287.058; //J/kg/K
 		double Rv = 461.495; // J/kg/K
 		std::string dataPath = "/Users/tingyu/devel/samurai_terrain/testDEM";
-    std::string wrffile = "/Users/tingyu/devel/samurai_terrain/testDEM/wrfout_d01_0001-01-01_00_00_00";
+    std::string wrffile = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/hill2d/wrfout_d01_0001-01-01_00_00_00";
 		Nc3File dataFile(wrffile.c_str(), Nc3File::ReadOnly);
 		if(!dataFile.is_valid()) {
 			std::cout << "Failed to read WRF output netCDF file " << wrffile
@@ -1766,7 +1766,7 @@ bool BkgdObsWRFLoader::loadBkgdObs(std::vector<real> &bgIn)
 		datetime reftime = ParseTime("2001-01-01_05:00:00", "%Y-%m-%d_%H:%M:%S");
 		std::cout << "Found matching reference time " << PrintDate(reftime) << ", " << PrintTime(reftime) << std::endl;
 
-		std::string obFilename = dataPath + "/samurai_Background.in";
+		std::string obFilename = dataPath + "/samurai_terrain.in";
 		std::cout << "ObFile = " << obFilename << std::endl;
 		std::cout << "Dimensions = (" << NLON << ", " << NLAT << ", " << NLVL << ") " << std::endl;
 	 	ofstream obstream(obFilename);
@@ -1777,24 +1777,26 @@ bool BkgdObsWRFLoader::loadBkgdObs(std::vector<real> &bgIn)
 		projection.Forward(0, 0, 0, refX, refY);
 		if (NLAT < 5){
 		for (int i = 0; i < NLON; i++) {
-			for (int j = 0; j < 5; j++) {
+			for (int j = 0; j < 6; j++) {
 				x = i*spec;
 				y = j*spec;
 				projection.Reverse(0.0, refX + x, refY + y, gateLat, gateLon);
-				for (int k = 0; k < NLVL; k++) {
-					*oi++ = timet;
+				// for (int k = 0; k < NLVL; k++) {
+				//	*oi++ = timet;
 					*od++ = gateLat;
 					*od++ = gateLon;
-					*od++ = z[k*NLON*NLAT + 0*NLON + i]; // in m
-					*od++ = u[k*NLON*NLAT + 0*NLON + i];
-					*od++ = v[k*NLON*NLAT + 0*NLON + i];
-					*od++ = w[k*NLON*NLAT + 0*NLON + i];
-					*od++ = t[k*NLON*NLAT + 0*NLON + i];
-					*od++ = qv[k*NLON*NLAT + 0*NLON + i];
-					*od++ = rhoa[k*NLON*NLAT + 0*NLON + i];
-					*on++ = qr[k*NLON*NLAT + 0*NLON + i];
-					*on++ = terrain_hgt[j*NLON + i]; // in m
-				}
+					*od++ = x;
+					*od++ = y;
+					// *od++ = z[k*NLON*NLAT + 0*NLON + i]; // in m
+					// *od++ = u[k*NLON*NLAT + 0*NLON + i];
+					// *od++ = v[k*NLON*NLAT + 0*NLON + i];
+					// *od++ = w[k*NLON*NLAT + 0*NLON + i];
+					// *od++ = t[k*NLON*NLAT + 0*NLON + i];
+					// *od++ = qv[k*NLON*NLAT + 0*NLON + i];
+					// *od++ = rhoa[k*NLON*NLAT + 0*NLON + i];
+					// *on++ = qr[k*NLON*NLAT + 0*NLON + i];
+					*on++ = terrain_hgt[0*NLON + i]; // in m
+				// }
 			}
 			}
 		}
