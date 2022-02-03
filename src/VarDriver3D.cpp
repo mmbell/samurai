@@ -1629,26 +1629,26 @@ bool VarDriver3D::preProcessMetObs()
 		  obVector.push_back(varOb);
 		}
 
-		// Set a lower boundary condition for W
-		// Ideally use a terrain map here, but just use Z=0 for now
-		if (pseudow_weight > 0.0) {
-			int ilength = 0;
-			real distance = 3*iincr;
-			// real terrain_height, dhdx, dhdy;
-			while (distance > tol)
-			{
-				distance = sqrt((x_Ter.at(ilength) - i)*(x_Ter.at(ilength) - i)+(y_Ter.at(ilength) - j)*(y_Ter.at(ilength) - j));
-				// std::cout << "distance = " << distance << std::endl;
-				// std::cout << "ilength = " << ilength << std::endl;
-				ilength++;
-			}
-			// varOb.setAltitude(terrain_height/1000);
-			varOb.setAltitude(terrain_height.at(ilength-1));
-			// std::cout << "Terrain Height = " << terrain_height << std::endl;
-			varOb.setError(pseudow_weight);
-			obVector.push_back(varOb);
-
-		}
+		// // Set a lower boundary condition for W
+		// // Ideally use a terrain map here, but just use Z=0 for now
+		// if (pseudow_weight > 0.0) {
+		// 	int ilength = 0;
+		// 	real distance = 3*iincr;
+		// 	// real terrain_height, dhdx, dhdy;
+		// 	while (distance > tol)
+		// 	{
+		// 		distance = sqrt((x_Ter.at(ilength) - i)*(x_Ter.at(ilength) - i)+(y_Ter.at(ilength) - j)*(y_Ter.at(ilength) - j));
+		// 		// std::cout << "distance = " << distance << std::endl;
+		// 		// std::cout << "ilength = " << ilength << std::endl;
+		// 		ilength++;
+		// 	}
+		// 	// varOb.setAltitude(terrain_height/1000);
+		// 	varOb.setAltitude(terrain_height.at(ilength-1));
+		// 	// std::cout << "Terrain Height = " << terrain_height << std::endl;
+		// 	varOb.setError(pseudow_weight);
+		// 	obVector.push_back(varOb);
+		//
+		// }
 	      }
 	      varOb.setWeight(0., 2);
 	    }

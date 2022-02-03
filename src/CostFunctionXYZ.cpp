@@ -359,7 +359,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 						// std::cout << "distance = " << distance << std::endl;
 						ilength++;
 					}
-					std::cout << "terrain height = " << terrain_height.at(ilength-1)/1000 << std::endl;
+					// std::cout << "terrain height = " << terrain_height.at(ilength-1)/1000 << std::endl;
 		      if ((qr < refthreshold) or (k < terrain_height.at(ilength-1)/1000)) {	// analusysDim variables // put terrain restriction here
 						// std::cout << "k = " << k << std::endl
 			u = -999.0;
