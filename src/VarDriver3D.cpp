@@ -1509,31 +1509,9 @@ bool VarDriver3D::preProcessMetObs()
   real pseudow_weight = std::stof(configHash["dbz_pseudow_weight"]);
   real mc_weight = std::stof(configHash["mc_weight"]);
 
-	// Read the terrain file and project it to the desired grid structure
-	real latReference = std::stof((configHash)["ref_lat"]);
-  real lonReference = std::stof((configHash)["ref_lon"]);
-	real tol = 2*iincr;// + iincr/2;
-	real xT, yT, xR, yR;
-	std::vector<real> x_Ter, y_Ter, terrain_height;
+	// Initialize a MetObs for terrain
 	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
 	std::string fullpath = dataPath + "/" + "terrain.hgt";
-	read_met_obs_file(dataSuffix["hgt"], fullpath, terrainData);
-	projection.Forward(lonReference, latReference, lonReference, xR, yR);
-	for (unsigned int ilength = 0; ilength < terrainData->size(); ++ilength) {
-		MetObs metOb = terrainData->at(ilength);
-		real latTerrain = metOb.getLat();
-		real lonTerrain = metOb.getLon();
-		// dhdx = metOb.getTerrainDX();
-		// dhdy = metOb.getTerrainDY();
-		terrain_height.push_back(metOb.getAltitude());
-		projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
-		x_Ter.push_back((xT-xR)/1000);
-		y_Ter.push_back((yT-yR)/1000);
-		// dist = sqrt((x_Ter/1000 - i)*(x_Ter/1000 - i)+(y_Ter/1000 - j)*(y_Ter/1000 - j));
-		// distance.push_back[dist];
-		// std::cout << "distance = " << dist << std::endl;
-	}
-
 
 
   // Initialize the weights
@@ -1631,24 +1609,13 @@ bool VarDriver3D::preProcessMetObs()
 
 		// // Set a lower boundary condition for W
 		// // Ideally use a terrain map here, but just use Z=0 for now
-		// if (pseudow_weight > 0.0) {
-		// 	int ilength = 0;
-		// 	real distance = 3*iincr;
-		// 	// real terrain_height, dhdx, dhdy;
-		// 	while (distance > tol)
-		// 	{
-		// 		distance = sqrt((x_Ter.at(ilength) - i)*(x_Ter.at(ilength) - i)+(y_Ter.at(ilength) - j)*(y_Ter.at(ilength) - j));
-		// 		// std::cout << "distance = " << distance << std::endl;
-		// 		// std::cout << "ilength = " << ilength << std::endl;
-		// 		ilength++;
-		// 	}
-		// 	// varOb.setAltitude(terrain_height/1000);
-		// 	varOb.setAltitude(terrain_height.at(ilength-1));
-		// 	// std::cout << "Terrain Height = " << terrain_height << std::endl;
-		// 	varOb.setError(pseudow_weight);
-		// 	obVector.push_back(varOb);
-		//
-		// }
+		if ((pseudow_weight > 0.0) and (!read_met_obs_file(dataSuffix["hgt"], fullpath, terrainData))) {
+			std::cout << "No input terrain file ... setting the lower boundary z = 0" <<std::endl;
+			varOb.setAltitude(0);
+			varOb.setError(pseudow_weight);
+			obVector.push_back(varOb);
+
+		}
 	      }
 	      varOb.setWeight(0., 2);
 	    }

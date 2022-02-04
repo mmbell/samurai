@@ -59,9 +59,10 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 	ReadTerrain terrain;
 	// terrain.readTerrainTXT(fullpath, terrainData);
 	if (!terrain.readTerrainTXT(fullpath, terrainData)) {
-		cout << "Error reading terrain file" << endl;
-		return false;
-	}
+		cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
+		terrain_height.push_back(0);
+		// return false;
+	} else {
 	for (unsigned int ilength = 0; ilength < terrainData->size(); ++ilength) {
 		MetObs metOb = terrainData->at(ilength);
 		real latTerrain = metOb.getLat();
@@ -70,7 +71,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
 		x_Ter.push_back(xT-xR);
 		y_Ter.push_back(yT-yR);
-	}
+	}}
 
   for (int iIndex = 1; iIndex < iDim - 1; iIndex++) {   // SItransform loops on both mish and mesh datapoints
     for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
@@ -353,15 +354,12 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		      real refthreshold = std::stof(refmask);
 					int ilength = 0;
 					real distance = 3*DI;
-					while (distance > tol)
+					while ((distance > tol) and (terrain.readTerrainTXT(fullpath, terrainData)))
 					{
 						distance = sqrt((x_Ter.at(ilength)/1000 - i)*(x_Ter.at(ilength)/1000 - i)+(y_Ter.at(ilength)/1000 - j)*(y_Ter.at(ilength)/1000 - j));
-						// std::cout << "distance = " << distance << std::endl;
 						ilength++;
 					}
-					// std::cout << "terrain height = " << terrain_height.at(ilength-1)/1000 << std::endl;
-		      if ((qr < refthreshold) or (k < terrain_height.at(ilength-1)/1000)) {	// analusysDim variables // put terrain restriction here
-						// std::cout << "k = " << k << std::endl
+		      if ((qr < refthreshold) or (k < terrain_height.at(ilength-1)/1000)) {	
 			u = -999.0;
 			v = -999.0;
 			w = -999.0;
