@@ -1013,7 +1013,7 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(drhoudy_coeff, 0, 2);
 		varOb.setWeight(drhoudz_coeff, 0, 3);
 		varOb.setOb(0.0);
-		varOb.setError(1);//std::stof(configHash["terrain_dhdx_error"]));
+		varOb.setError(0.001);//std::stof(configHash["terrain_dhdx_error"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 0, 1);
 		varOb.setWeight(0.0, 0, 2);
@@ -1023,7 +1023,7 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(drhovdy_coeff, 1, 2);
 		varOb.setWeight(drhovdz_coeff, 1, 3);
 		varOb.setOb(0);
-		varOb.setError(1);//std::stof(configHash["terrain_dhdy_error"]));
+		varOb.setError(0.001);//std::stof(configHash["terrain_dhdy_error"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 1, 1);
 		varOb.setWeight(0.0, 1, 2);
@@ -1033,7 +1033,7 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(dhdy, 1, 0);
 		varOb.setWeight(-1  , 2, 0);
 		varOb.setOb(0);
-		varOb.setError(1);//std::stof(configHash["terrain_dhdy_error"]));
+		varOb.setError(0.001);//std::stof(configHash["terrain_dhdy_error"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 0, 0); // does it need to set weight?
 		varOb.setWeight(0.0, 1, 0);
@@ -1437,6 +1437,11 @@ bool VarDriver3D::preProcessMetObs()
 			v = metOb.getMeridionalVelocity();
 			w = metOb.getVerticalVelocity();
 			rho = metOb.getModelMoistDensity();
+			rhoa = metOb.getModelAirDensity();
+			qv = metOb.getModelQv();
+			tempk = metOb.getTemperature();
+			real Z = metOb.getReflectivity();
+			real ZZ=pow(10.0,(Z*0.1));
 
 			// Separate obs for each measurement
 
@@ -1474,6 +1479,128 @@ bool VarDriver3D::preProcessMetObs()
 		    varOb.setError(1);
 		    obVector.push_back(varOb);
 		    varOb.setWeight(0., 2);
+		  }
+
+			if (tempk != -999) {
+				// temperature 1 K error
+				varOb.setWeight(1., 3);
+				varOb.setOb(tempk - tBar);
+				varOb.setError(std::stof(configHash["aeri_tempk_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 3);
+			}
+			if (qv != -999) {
+				// Qv 0.5 g/kg error
+				varOb.setWeight(1., 4);
+				qv = refstate->bhypTransform(qv);
+				varOb.setOb(qv-qBar);
+				varOb.setError(std::stof(configHash["aeri_qv_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 4);
+			}
+			if (rhoa != -999) {
+				// Rho prime .1 kg/m^3 error
+				varOb.setWeight(1., 5);
+				varOb.setOb((rhoa-rhoBar)*100);
+				varOb.setError(std::stof(configHash["aeri_rhoa_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 5);
+			}
+
+			// Reflectivity observations
+		  std::string gridref = configHash["qr_variable"];
+		  real qr = 0.;
+		  if (ZZ > 0) {
+		    if (gridref == "qr") {
+		      // Do the gridding as part of the variational synthesis using Z-M relationships
+		      // Z-M relationships from Gamache et al (1993) JAS
+		      real H = metOb.getAltitude();
+		      real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+		      real hlow= zeroClevel;
+		      real hhi= hlow + melting_zone;
+		      real rainmass = pow(ZZ/14630.,(real)0.6905);
+		      real icemass = pow(ZZ/670.,(real)0.5587);
+		      real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+		      real rain_dbz = std::stof(configHash["rain_dbz"]);
+		      if ((Z > mixed_dbz) and
+			  (Z <= rain_dbz)) {
+			real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+			real WEIGHTS=1.-WEIGHTR;
+			icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
+		      } else if (Z > 30) {
+			icemass=rainmass;
+		      }
+
+		      real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
+		      if (H < hlow) precipmass = rainmass;
+		      if (H > hhi) precipmass = icemass;
+		      qr = refstate->bhypTransform(precipmass/rhoBar);
+
+		      //Include an observation of this quantity in the variational synthesis
+		      varOb.setOb(qr);
+		      varOb.setWeight(1., 6);
+		      varOb.setError(1.0);
+		      obVector.push_back(varOb);
+
+		    } else if (gridref == "dbz") {
+		      qr = ZZ;
+		      /* Include an observation of this quantity in the variational synthesis
+			 varOb.setOb(qr);
+			 varOb.setWeight(1., 6);
+			 varOb.setError(1.0);
+			 obVector.push_back(varOb); */
+
+		    }
+
+		    // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+		    real iROI = std::stof(configHash["i_reflectivity_roi"]) / iincr;
+		    real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
+		    real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
+		    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+	#pragma omp parallel for
+		    for (int ki = 0; ki < (kdim-1); ki++) {
+		      for (int kmu = -1; kmu <= 1; kmu += 2) {
+			real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+			if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+			for (int ii = 0; ii < (idim-1); ii++) {
+			  for (int imu = -1; imu <= 1; imu += 2) {
+			    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+			    if (runMode == XYZ) {
+			      if (fabs(iPos-obX) > iincr*iROI*2.) continue;
+			    } else if (runMode == RTZ) {
+			      if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
+			    }
+			    for (int ji = 0; ji < (jdim-1); ji++) {
+			      for (int jmu = -1; jmu <= 1; jmu += 2) {
+				real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+				real rSquare = 0.0;
+				if (runMode == XYZ) {
+				  if (fabs(jPos-obY) > jincr*jROI*2.) continue;
+				  rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+				} else if (runMode == RTZ) {
+				  real dTheta = fabs(jPos-obTheta);
+				  if (dTheta > 360.) dTheta -= 360.;
+				  if (dTheta > jincr*jROI*2.) continue;
+				  rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
+				}
+				// Add one extra index to account for buffer zone in analysis
+				int bgI = (ii+1)*2 + (imu+1)/2;
+				int bgJ = (ji+1)*2 + (jmu+1)/2;
+				int bgK = (ki+1)*2 + (kmu+1)/2;
+				int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+				if (rSquare < Rsquare) {
+				  real weight = exp(-2.302585092994045*rSquare/Rsquare);
+				  //real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+				  //if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
+				  bgU[bIndex +6] += weight*qr;
+				  bgWeights[bIndex] += weight;
+				}
+			      }
+			    }
+			  }
+			}
+		      }
+		    }
 		  }
 
 		break;

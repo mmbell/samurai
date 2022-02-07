@@ -33,6 +33,8 @@ MetObs::MetObs()
 	terrain_dx = -999;
 	terrain_dy = -999;
 	moistDensity = -999;
+	airDensity = -999;
+  mixingRatio = -999;
 	time = {};
 	obType = -1;
 
@@ -62,6 +64,8 @@ MetObs::MetObs(const MetObs& other)
 	terrain_dx = other.terrain_dx;
 	terrain_dy = other.terrain_dy;
 	moistDensity = other.moistDensity;
+	airDensity = other.airDensity;
+	mixingRatio = other.mixingRatio;
 	obType = other.obType;
 
 }
@@ -310,6 +314,26 @@ float MetObs::getModelMoistDensity() const
 void MetObs::setModelMoistDensity(const float& rho)
 {
 	moistDensity = rho;
+}
+
+float MetObs::getModelAirDensity() const
+{
+	return airDensity;
+}
+
+void MetObs::setModelAirDensity(const float& rhoa)
+{
+	airDensity = rhoa;
+}
+
+float MetObs::getModelQv() const
+{
+	return mixingRatio;
+}
+
+void MetObs::setModelQv(const float& qv)
+{
+	mixingRatio = qv;
 }
 
 int MetObs::getObType() const

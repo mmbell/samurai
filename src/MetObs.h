@@ -95,8 +95,14 @@ class MetObs
   float getTerrainDY() const;
   void setTerrainDY(const float& dhdy);
 
+  float getModelQv() const;
+  void setModelQv(const float& qv);
+
   float getModelMoistDensity() const;
   void setModelMoistDensity(const float& rho);
+
+  float getModelAirDensity() const;
+  void setModelAirDensity(const float& rhoa);
 
   int getObType() const;
   void setObType(const int& type);
@@ -118,7 +124,6 @@ class MetObs
   float getMoistStaticEnergy() const;
   float getMoistSaturationStaticEnergy() const;
   float getTotalEnergy() const;
-  // add get terrain slope
 
   bool operator ==(const MetObs &other);
   bool operator < (const MetObs &other);
@@ -167,6 +172,10 @@ class MetObs
   float terrain_dx;
   float terrain_dy;
   float moistDensity;
+  float airDensity;
+  float mixingRatio;
+  // float differentialReflectivity; add Zdr
+  // float
   // add terrain slope here
 
 

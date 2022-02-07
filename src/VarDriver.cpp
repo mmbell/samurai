@@ -1484,7 +1484,11 @@ bool VarDriver::read_model(std::string& filename, std::vector<MetObs>* metObVect
     ob.setZonalVelocity(std::stof(parts[4]));
     ob.setMeridionalVelocity(std::stof(parts[5]));
 		ob.setVerticalVelocity(std::stof(parts[6]));
-		ob.setModelMoistDensity(std::stof(parts[7]));
+		ob.setTemperature(std::stof(parts[7]));
+		ob.setModelQv(std::stof(parts[8]));
+		ob.setModelAirDensity(std::stof(parts[9]));
+		ob.setModelMoistDensity(std::stof(parts[10]));
+		ob.setReflectivity(std::stof(parts[11]));
     ob.setObType(MetObs::model);
     metObVector->push_back(ob);
   }
