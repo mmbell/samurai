@@ -1431,6 +1431,199 @@ bool VarDriver3D::preProcessMetObs()
 	  break;
 	}
 
+	case (MetObs::crsim):
+		{
+		varOb.setType(MetObs::crsim);
+
+		// Geometry terms
+		real az = metOb.getAzimuth()*Pi/180.;
+		real el = metOb.getElevation()*Pi/180.;
+		real uWgt, vWgt;
+		if (runMode == XYZ) {
+			uWgt = sin(az)*cos(el);
+			vWgt = cos(az)*cos(el);
+		} else if (runMode == RTZ) {
+			uWgt = (obX*sin(az)*cos(el) + obY*cos(az)*cos(el))/obRadius;
+			vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
+		}
+		real wWgt = sin(el);
+		// Restrict to horizontal component only
+		if (configHash["horizontal_radar_appx"] == "true")
+			wWgt = 0;
+
+		// Fall speed
+		real Z = metOb.getReflectivity();
+		real w_term = 0.0;
+		real ZZ = -999.0;
+		if (Z > -999.0) {
+			real H = metOb.getAltitude();
+			ZZ=pow(10.0,(Z*0.1));
+			real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+			real hlow= zeroClevel;
+			real hhi= hlow + melting_zone;
+
+			/* density correction term (rhoo/rho)*0.45
+				 0.45 density correction from Beard (1985, JOAT pp 468-471) */
+			real rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, H);
+			real rhosfc = refstate->getReferenceVariable(ReferenceVariable::rhoref, 0.);
+			real DCOR = pow((rhosfc/rho),(real)0.45);
+
+			// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s)
+			real VTS=-DCOR * (0.817*pow(ZZ,(real)0.063));
+
+			// The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
+			real VTR=-DCOR * (2.6*pow(ZZ,(real).107));
+
+			/* Test if height is in the transition region between SNOW and RAIN
+				 defined as hlow in km < H < hhi in km
+				 if in the transition region do a linear weight of VTR and VTS */
+			real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+			real rain_dbz = std::stof(configHash["rain_dbz"]);
+			if ((Z > mixed_dbz) and
+		(Z <= rain_dbz)) {
+				real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+				real WEIGHTS=1.-WEIGHTR;
+				VTS=(VTR*WEIGHTR+VTS*WEIGHTS)/(WEIGHTR+WEIGHTS);
+			} else if (Z > rain_dbz) {
+				VTS=VTR;
+			}
+			w_term=VTR*(hhi-H)/melting_zone + VTS*(H-hlow)/melting_zone;
+			if (H < hlow) w_term=VTR;
+			if (H > hhi) w_term=VTS;
+		}
+		real VR = metOb.getRadialVelocity();
+		if (VR != -999.0) {
+			real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+
+			varOb.setWeight(uWgt, 0);
+			varOb.setWeight(vWgt, 1);
+			varOb.setWeight(wWgt, 2);
+
+			/* Theoretically, rhoPrime could be included as a prognostic variable here...
+				 However, adding another unknown without an extra equation makes the problem even more underdetermined
+				 so assume it is small and ignore it
+				 real rhopWgt = -Vdopp;
+				 varOb.setWeight(rhopWgt, 5); */
+
+			// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
+			real DopplerError = fabs(wWgt)*std::stof(configHash["radar_fallspeed_error"]);
+			if (DopplerError < std::stof(configHash["radar_min_error"]))
+				DopplerError = std::stof(configHash["radar_min_error"]);
+			varOb.setError(DopplerError);
+			varOb.setOb(Vdopp);
+
+			real maxel;
+			if (configHash.exists("max_radar_elevation") == false) {
+				 maxel = 90.0;
+			} else {
+				 maxel = std::stof(configHash["max_radar_elevation"]);
+			 }
+			if (fabs(metOb.getElevation() <= maxel))
+				obVector.push_back(varOb);
+
+			varOb.setWeight(0., 0);
+			varOb.setWeight(0., 1);
+			varOb.setWeight(0., 2);
+		}
+
+		// Reflectivity observations
+		std::string gridref = configHash["qr_variable"];
+		real qr = 0.;
+		if (ZZ > 0) {
+			if (gridref == "qr") {
+				// Do the gridding as part of the variational synthesis using Z-M relationships
+				// Z-M relationships from Gamache et al (1993) JAS
+				real H = metOb.getAltitude();
+				real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+				real hlow= zeroClevel;
+				real hhi= hlow + melting_zone;
+				real rainmass = pow(ZZ/14630.,(real)0.6905);
+				real icemass = pow(ZZ/670.,(real)0.5587);
+				real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+				real rain_dbz = std::stof(configHash["rain_dbz"]);
+				if ((Z > mixed_dbz) and
+			(Z <= rain_dbz)) {
+		real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+		real WEIGHTS=1.-WEIGHTR;
+		icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
+				} else if (Z > 30) {
+		icemass=rainmass;
+				}
+
+				real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
+				if (H < hlow) precipmass = rainmass;
+				if (H > hhi) precipmass = icemass;
+				qr = refstate->bhypTransform(precipmass/rhoBar);
+
+				//Include an observation of this quantity in the variational synthesis
+				varOb.setOb(qr);
+				varOb.setWeight(1., 6);
+				varOb.setError(1.0);
+				obVector.push_back(varOb);
+
+			} else if (gridref == "dbz") {
+				qr = ZZ;
+				/* Include an observation of this quantity in the variational synthesis
+		 varOb.setOb(qr);
+		 varOb.setWeight(1., 6);
+		 varOb.setError(1.0);
+		 obVector.push_back(varOb); */
+
+			}
+
+			// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+			real iROI = std::stof(configHash["i_reflectivity_roi"]) / iincr;
+			real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
+			real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
+			real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+		#pragma omp parallel for
+			for (int ki = 0; ki < (kdim-1); ki++) {
+				for (int kmu = -1; kmu <= 1; kmu += 2) {
+		real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+		if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+		for (int ii = 0; ii < (idim-1); ii++) {
+			for (int imu = -1; imu <= 1; imu += 2) {
+				real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+				if (runMode == XYZ) {
+					if (fabs(iPos-obX) > iincr*iROI*2.) continue;
+				} else if (runMode == RTZ) {
+					if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
+				}
+				for (int ji = 0; ji < (jdim-1); ji++) {
+					for (int jmu = -1; jmu <= 1; jmu += 2) {
+			real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+			real rSquare = 0.0;
+			if (runMode == XYZ) {
+				if (fabs(jPos-obY) > jincr*jROI*2.) continue;
+				rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+			} else if (runMode == RTZ) {
+				real dTheta = fabs(jPos-obTheta);
+				if (dTheta > 360.) dTheta -= 360.;
+				if (dTheta > jincr*jROI*2.) continue;
+				rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
+			}
+			// Add one extra index to account for buffer zone in analysis
+			int bgI = (ii+1)*2 + (imu+1)/2;
+			int bgJ = (ji+1)*2 + (jmu+1)/2;
+			int bgK = (ki+1)*2 + (kmu+1)/2;
+			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+			if (rSquare < Rsquare) {
+				real weight = exp(-2.302585092994045*rSquare/Rsquare);
+				//real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+				//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
+				bgU[bIndex +6] += weight*qr;
+				bgWeights[bIndex] += weight;
+			}
+					}
+				}
+			}
+		}
+				}
+			}
+		}
+		break;
+		}
+
 	case(MetObs::model):
 			varOb.setType(MetObs::model);
 			u = metOb.getZonalVelocity();

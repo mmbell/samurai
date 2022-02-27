@@ -143,7 +143,8 @@ class MetObs
     mesonet,
     aeri,
     terrain,
-    model
+    model,
+    crsim
     // add terrain type
   };
 

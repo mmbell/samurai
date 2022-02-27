@@ -55,6 +55,7 @@ VarDriver::VarDriver()
   dataSuffix["cfrad"] = cfrad;
 	dataSuffix["hgt"] = terrain;
 	dataSuffix["txt"] = model;
+	dataSuffix["rf"] = crsim;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -311,6 +312,12 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
       return false;
     }
     break;
+	case(crsim):
+	  if (!read_crsim(metFile, metData)) {
+	    cout << "Error reading rf file" << endl;
+	    return false;
+	  }
+	    break;
 
   default:
     cout << "Unknown data type, skipping..." << endl;
@@ -2532,5 +2539,59 @@ bool VarDriver::read_cfrad(std::string &fileName, std::vector<MetObs>* metObVect
       }
     } // gates
   } // rays
+  return true;
+}
+
+/* This routine reads a text file from a crsim radar-filter output*/
+
+bool VarDriver::read_crsim(std::string& filename, std::vector<MetObs>* metObVector)
+{
+	std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
+    return false;
+	}
+	MetObs ob;
+	std::string line;
+	std::getline(metFile, line);
+	auto parts = LineSplit(line, ' ');
+	datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%d_%H:%M:%S");
+	real radarLon = std::stof(parts[1]);
+	real radarLat = std::stof(parts[2]);
+	real radarAlt = std::stof(parts[3]);
+
+  while (std::getline(metFile, line)) {
+		auto parts = LineSplit(line, ' ');
+		real az = std::stof(parts[0]);
+		real el = std::stof(parts[1]);
+		real range = std::stof(parts[2]);
+		real dz = std::stof(parts[3]);
+		real vr = std::stof(parts[4]);
+		if ((vr != -999.0) || (dz != -999.0)) {
+		real relX = range * sin(az * Pi / 180.0) * cos(el * Pi / 180.0);
+		real relY = range * cos(az * Pi / 180.0) * cos(el * Pi / 180.0);
+		real rEarth = 6371000.0;
+
+		// Take into account curvature of the earth for the height of the radar beam
+		real relZ = sqrt(range * range + rEarth * rEarth + 2.0 * range
+				 * rEarth * sin(el * Pi / 180.0)) - rEarth;
+
+		real radarX, radarY, gateLat, gateLon;
+		projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+		projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+		real gateAlt = relZ + radarAlt * 1000;
+
+		ob.setTime(datetime_);
+		ob.setLat(gateLat);
+		ob.setLon(gateLon);
+		ob.setAltitude(gateAlt);
+		ob.setAzimuth(az);
+		ob.setElevation(el);
+		ob.setRadialVelocity(vr);
+		ob.setReflectivity(dz);
+    ob.setObType(MetObs::crsim);
+    metObVector->push_back(ob);
+  }}
+	std::cout << "Successfully read the crsim file" << std::endl;
+  metFile.close();
   return true;
 }

@@ -352,9 +352,9 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
         std::string refmask = (*configHash)["mask_reflectivity"];
 		    if (refmask != "None") {
 		      real refthreshold = std::stof(refmask);
-					int ilength = 0;
+					int ilength = 1;
 					real distance = 3*DI;
-					while ((distance > tol) and (terrain.readTerrainTXT(fullpath, terrainData)))
+					while ((distance > tol))
 					{
 						distance = sqrt((x_Ter.at(ilength)/1000 - i)*(x_Ter.at(ilength)/1000 - i)+(y_Ter.at(ilength)/1000 - j)*(y_Ter.at(ilength)/1000 - j));
 						ilength++;
