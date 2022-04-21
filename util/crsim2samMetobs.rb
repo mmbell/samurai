@@ -32,13 +32,13 @@ init_year = 2021; init_mon  = 7; init_day  = 30; init_hr   = 12
 year = 2021; mon  = 7; day  = 30; hr   = 12
 
 filein = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/wrf_20210730/crsim/RF_chill.nc"
-path = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/wrf_20210730/crsim/"
+path = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/wrf_20210730/crsim/chivo/"
 vars1 = ["DV"]
 vars2 = ["Zhh"]
-radar = "chill"
-radar_lat = 40.44625
-radar_lon = -104.63708
-radar_Alt = 1.5; # in km
+radar = "chivo"
+radar_lat = 40.6117
+radar_lon = -104.996
+radar_Alt = 1.547; # in km
 fileout = path+radar+"_crsim.rf"
 # ------------------  MODIFY END ------------------
 

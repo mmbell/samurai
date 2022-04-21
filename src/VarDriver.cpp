@@ -2555,8 +2555,8 @@ bool VarDriver::read_crsim(std::string& filename, std::vector<MetObs>* metObVect
 	std::getline(metFile, line);
 	auto parts = LineSplit(line, ' ');
 	datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%d_%H:%M:%S");
-	real radarLon = std::stof(parts[1]);
-	real radarLat = std::stof(parts[2]);
+	real radarLat = std::stof(parts[1]);
+	real radarLon = std::stof(parts[2]);
 	real radarAlt = std::stof(parts[3]);
 
   while (std::getline(metFile, line)) {

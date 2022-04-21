@@ -22,18 +22,18 @@ def calc_dist(lat1,lon1,lat2,lon2)
 end
 
 # ------------------  TO MODIFY ------------------
-center_lat = 40.44625
-center_lon = -104.63708
-maxradius = 50  # in km
-dx = 3*1000 # in m
-dy = 3*1000 # in m
+center_lat = 25.071182
+center_lon = 121.781205
+maxradius = 100  # in km
+dx = 1*1000 # in m
+dy = 1*1000 # in m
 
-init_year = 2021; init_mon  = 7; init_day  = 30; init_hr   = 12
-year = 2021; mon  = 7; day  = 30; hr   = 12
+init_year = 2021; init_mon  = 9; init_day  = 12; init_hr   = 05
+year = 2021; mon  = 9; day  = 12; hr   = 05
 
-filein = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/wrf_enkf_output_d02_001.nc"
-fileout = "../../wrf_20210730/data/Observation.txt"
-fileterrain = "../../wrf_20210730/data/terrain.hgt"
+filein = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/wrfout_d03_2021-09-12_03_00_00"
+fileout = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/Observation.txt"
+fileterrain = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/terrain.hgt"
 
 # ------------------  MODIFY END ------------------
 
@@ -42,6 +42,7 @@ init_time = DateTime.new(init_year,init_mon,init_day,init_hr)
 time = DateTime.new(year,mon,day,hr)
 unixtime = time.to_time.to_i.to_s
 timestep = ((time-init_time)*24).to_i
+timestep = 10
 time_input = init_time.strftime('%Y-%m-%d_%H:%M:%S')
 
 # Read nc-file
