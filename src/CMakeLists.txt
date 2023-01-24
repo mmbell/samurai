@@ -15,6 +15,7 @@ makeTdrpParams()
 # Set up the include and link paths:
 
 include_directories(${LROSE_PREFIX}/include)
+include_directories(${LROSE_INSTALL_DIR}/include)
 include_directories(${FFTW_INCLUDES})
 include_directories(${PETSC_INC})
 
@@ -156,6 +157,7 @@ set(lib_SRCS
 # link directories
 
 link_directories (${LROSE_PREFIX}/lib)
+link_directories (${LROSE_INSTALL_DIR}/lib)
 
 if (DEFINED netCDF_INSTALL_PREFIX)
   link_directories (${netCDF_INSTALL_PREFIX}/lib)
