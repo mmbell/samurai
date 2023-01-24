@@ -691,6 +691,15 @@ public:
   float *_mc_weight;
   int mc_weight_n;
 
+  float *_neumann_u_weight;
+  int neumann_u_weight_n;
+
+  float *_neumann_v_weight;
+  int neumann_v_weight_n;
+
+  float *_dirichlet_w_weight;
+  int dirichlet_w_weight_n;
+
   float *_bg_qr_error;
   int bg_qr_error_n;
 
@@ -746,7 +755,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[188];
+  mutable TDRPtable _table[191];
 
   const char *_className;
 

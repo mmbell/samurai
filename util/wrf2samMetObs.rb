@@ -31,8 +31,8 @@ dy = 1*1000 # in m
 init_year = 2021; init_mon  = 9; init_day  = 12; init_hr   = 05
 year = 2021; mon  = 9; day  = 12; hr   = 05
 
-filein = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/wrfout_d03_2021-09-12_03_00_00"
-fileout = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/Observation.txt"
+filein = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/wrfout_d03_2021-09-12_05_30_02"
+fileout = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/Observations.txt"
 fileterrain = "/Users/tingyu/Dropbox/CSU/Research/PhD/samurai/Chanthu2021/wrf/terrain.hgt"
 
 # ------------------  MODIFY END ------------------
@@ -42,9 +42,9 @@ init_time = DateTime.new(init_year,init_mon,init_day,init_hr)
 time = DateTime.new(year,mon,day,hr)
 unixtime = time.to_time.to_i.to_s
 timestep = ((time-init_time)*24).to_i
-timestep = 10
-time_input = init_time.strftime('%Y-%m-%d_%H:%M:%S')
-
+timestep = 0
+# time_input = init_time.strftime('%Y-%m-%d_%H:%M:%S')
+time_input = "2021-09-12_05:30:02"
 # Read nc-file
 puts "Reading NetCDF for " + init_time.strftime('%Y-%m-%d_%H:%M:%S') + " at timestep " + timestep.to_s + " ..."
 puts "Reading NetCDF for " + time.to_s + " at timestep " + timestep.to_s + " ..."
@@ -60,6 +60,7 @@ sfcvars = ["U10","V10","T2","PSFC","Q2","HGT"]
 dims.each do |dim|
   raw_data[dim] = file.var(dim).get
 end
+# puts raw_data["XTIME"][timestep]
 
 vars.each do |var|
   raw_data[var] = file.var(var).get[true,true,true,timestep]

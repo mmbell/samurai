@@ -32,6 +32,8 @@ MetObs::MetObs()
 	stationName = "";
 	terrain_dx = -999;
 	terrain_dy = -999;
+	terrain_x = -999;
+	terrain_y = -999;
 	moistDensity = -999;
 	airDensity = -999;
   mixingRatio = -999;
@@ -63,6 +65,8 @@ MetObs::MetObs(const MetObs& other)
 	time = other.time;
 	terrain_dx = other.terrain_dx;
 	terrain_dy = other.terrain_dy;
+	terrain_x = other.terrain_x;
+	terrain_y = other.terrain_y;
 	moistDensity = other.moistDensity;
 	airDensity = other.airDensity;
 	mixingRatio = other.mixingRatio;
@@ -304,6 +308,26 @@ float MetObs::getTerrainDY() const
 void MetObs::setTerrainDY(const float& dhdy)
 {
 	terrain_dy = dhdy;
+}
+
+float MetObs::getTerrainX() const
+{
+	return terrain_x;
+}
+
+void MetObs::setTerrainX(const float& x)
+{
+	terrain_x = x;
+}
+
+float MetObs::getTerrainY() const
+{
+	return terrain_y;
+}
+
+void MetObs::setTerrainY(const float& y)
+{
+	terrain_y = y;
 }
 
 float MetObs::getModelMoistDensity() const

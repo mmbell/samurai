@@ -1460,6 +1460,8 @@ bool VarDriver::read_terrain(std::string& filename, std::vector<MetObs>* metObVe
     ob.setAltitude(std::stof(parts[2]));
     ob.setTerrainDX(std::stof(parts[3]));
     ob.setTerrainDY(std::stof(parts[4]));
+    ob.setTerrainX(std::stof(parts[5]));
+    ob.setTerrainY(std::stof(parts[6]));
     ob.setObType(MetObs::terrain);
     metObVector->push_back(ob);
   }

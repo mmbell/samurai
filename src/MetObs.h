@@ -95,6 +95,12 @@ class MetObs
   float getTerrainDY() const;
   void setTerrainDY(const float& dhdy);
 
+  float getTerrainX() const;
+  void setTerrainX(const float& x);
+
+  float getTerrainY() const;
+  void setTerrainY(const float& y);
+
   float getModelQv() const;
   void setModelQv(const float& qv);
 
@@ -172,6 +178,8 @@ class MetObs
   int obType;
   float terrain_dx;
   float terrain_dy;
+  float terrain_x;
+  float terrain_y;
   float moistDensity;
   float airDensity;
   float mixingRatio;

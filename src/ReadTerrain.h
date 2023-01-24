@@ -22,7 +22,8 @@
 class ReadTerrain : public VarDriver3D
 {
 public:
-  bool readTerrainTXT(std::string &filename, std::vector<MetObs>* metData){
+    bool readTerrainTXT(std::string &filename, std::vector<MetObs>* terrainData)
+  {
     std::ifstream metFile(filename);
     if (!metFile.is_open()) {
       return false;
@@ -38,11 +39,13 @@ public:
       ob.setAltitude(std::stof(parts[2]));
       ob.setTerrainDX(std::stof(parts[3]));
       ob.setTerrainDY(std::stof(parts[4]));
+      ob.setTerrainX(std::stof(parts[5]));
+      ob.setTerrainY(std::stof(parts[6]));
       ob.setObType(MetObs::terrain);
-      metData->push_back(ob);
+      terrainData->push_back(ob);
     }
   	// std::cout << "Successfully read the terrain file" << std::endl;
-    // metFile.close();
+    metFile.close();
     return true;
     // return read_terrain(metFile, metData);
   }

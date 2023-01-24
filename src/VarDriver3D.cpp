@@ -1013,7 +1013,7 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(drhoudy_coeff, 0, 2);
 		varOb.setWeight(drhoudz_coeff, 0, 3);
 		varOb.setOb(0.0);
-		varOb.setError(0.001);//std::stof(configHash["terrain_dhdx_error"]));
+		varOb.setError(std::stof(configHash["neumann_u_weight"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 0, 1);
 		varOb.setWeight(0.0, 0, 2);
@@ -1022,8 +1022,8 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(drhovdx_coeff, 1, 1);
 		varOb.setWeight(drhovdy_coeff, 1, 2);
 		varOb.setWeight(drhovdz_coeff, 1, 3);
-		varOb.setOb(0);
-		varOb.setError(0.001);//std::stof(configHash["terrain_dhdy_error"]));
+		varOb.setOb(0.0);
+		varOb.setError(std::stof(configHash["neumann_v_weight"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 1, 1);
 		varOb.setWeight(0.0, 1, 2);
@@ -1033,7 +1033,7 @@ bool VarDriver3D::preProcessMetObs()
 		varOb.setWeight(dhdy, 1, 0);
 		varOb.setWeight(-1  , 2, 0);
 		varOb.setOb(0);
-		varOb.setError(0.001);//std::stof(configHash["terrain_dhdy_error"]));
+		varOb.setError(std::stof(configHash["dirichlet_w_weight"]));
 		obVector.push_back(varOb);
 		varOb.setWeight(0.0, 0, 0); // does it need to set weight?
 		varOb.setWeight(0.0, 1, 0);
@@ -1830,9 +1830,9 @@ bool VarDriver3D::preProcessMetObs()
   real mc_weight = std::stof(configHash["mc_weight"]);
 
 	// Initialize a MetObs for terrain
-	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
+// 	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
 	std::string fullpath = dataPath + "/" + "terrain.hgt";
-
+    std::ifstream terrainFile(fullpath);
 
   // Initialize the weights
   for (unsigned int var = 0; var < numVars; ++var) {
@@ -1926,10 +1926,11 @@ bool VarDriver3D::preProcessMetObs()
 		  varOb.setAltitude(maxrefHeight);
 		  obVector.push_back(varOb);
 		}
-
+    
 		// // Set a lower boundary condition for W
 		// // Ideally use a terrain map here, but just use Z=0 for now
-		if ((pseudow_weight > 0.0) and (!read_met_obs_file(dataSuffix["hgt"], fullpath, terrainData))) {
+        
+		if ((pseudow_weight > 0.0) and (!terrainFile.is_open())) {
 			std::cout << "No input terrain file ... setting the lower boundary z = 0" <<std::endl;
 			varOb.setAltitude(0);
 			varOb.setError(pseudow_weight);

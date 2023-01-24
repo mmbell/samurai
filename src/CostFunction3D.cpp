@@ -485,8 +485,9 @@ void CostFunction3D::initState(const int iteration)
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  			//int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+// 	  			int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
 	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
 				}
       }
@@ -499,8 +500,10 @@ void CostFunction3D::initState(const int iteration)
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  			//int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+// 	  			int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
 	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+//                 int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			varScale += bgState[bIndex] * bgState[bIndex];
 				}
       }
@@ -1672,14 +1675,23 @@ void CostFunction3D::obAdjustments() {
 	for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
 	  int kNode = kkNode;
 	  if ((kNode < 0) or (kNode >= kDim)) continue;
+//       int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+//       int bIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4);
+      int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+      int64_t *bIndex2 = (int64_t *)malloc(sizeof(int64_t));
+      *bIndex = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 4;
+      *bIndex2 = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 5;
+      // turn off print out January 24, 2023
+      // cout << "bIndex = " << *bIndex << endl;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
-	  qvprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4)] * ibasis * jbasis * kbasis;
+	  qvprime += bgState[*bIndex] * ibasis * jbasis * kbasis;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
-	  rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
+	  rhoprime += bgState[*bIndex2] * ibasis * jbasis * kbasis;
+//       rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
 	}
       }
     }

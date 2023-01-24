@@ -60,6 +60,9 @@ struct samurai_config {
   float bg_rhoa_error;
   float bg_qr_error;
   float mc_weight;
+  float neumann_u_weight;
+  float neumann_v_weight;
+  float dirichlet_w_weight;
   float i_filter_length;
   float j_filter_length;
   float k_filter_length;

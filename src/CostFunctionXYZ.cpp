@@ -51,28 +51,28 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 	// // Read the terrain file and project it to the desired grid structure
 
 	real tol = 2*DI;// + iincr/2;
-	real xT, yT, xR, yR;
 	std::vector<real> x_Ter, y_Ter, terrain_height;
 	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
-	std::string fullpath = dataPath + "/" + "terrain.hgt";
-	projection.Forward(lonReference, latReference, lonReference, xR, yR);
+	std::string fullpath = dataPath + "terrain.hgt";
 	ReadTerrain terrain;
-	// terrain.readTerrainTXT(fullpath, terrainData);
-	if (!terrain.readTerrainTXT(fullpath, terrainData)) {
+    std::ifstream terrainFile(fullpath);
+	if (!terrainFile.is_open()) {
 		cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
 		terrain_height.push_back(0);
 		// return false;
 	} else {
+    terrain.readTerrainTXT(fullpath, terrainData);
 	for (unsigned int ilength = 0; ilength < terrainData->size(); ++ilength) {
 		MetObs metOb = terrainData->at(ilength);
-		real latTerrain = metOb.getLat();
-		real lonTerrain = metOb.getLon();
+		real xT = metOb.getTerrainX();
+		real yT = metOb.getTerrainY();
 		terrain_height.push_back(metOb.getAltitude());
-		projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
-		x_Ter.push_back(xT-xR);
-		y_Ter.push_back(yT-yR);
+		// projection.Forward(lonReference, latTerrain, lonTerrain, xT, yT);
+		x_Ter.push_back(xT);
+		y_Ter.push_back(yT);
 	}}
-
+    terrainData->clear();
+    int terrain_index = 0;
   for (int iIndex = 1; iIndex < iDim - 1; iIndex++) {   // SItransform loops on both mish and mesh datapoints
     for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
       for (int imu = -ihalf; imu <= ihalf; imu++) {
@@ -352,14 +352,14 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
         std::string refmask = (*configHash)["mask_reflectivity"];
 		    if (refmask != "None") {
 		      real refthreshold = std::stof(refmask);
-					int ilength = 1;
-					real distance = 3*DI;
-					while ((distance > tol))
-					{
-						distance = sqrt((x_Ter.at(ilength)/1000 - i)*(x_Ter.at(ilength)/1000 - i)+(y_Ter.at(ilength)/1000 - j)*(y_Ter.at(ilength)/1000 - j));
-						ilength++;
-					}
-		      if ((qr < refthreshold) or (k < terrain_height.at(ilength-1)/1000)) {	
+					if (!terrainFile.is_open()) {
+                cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
+                    terrain_index = 0;}
+					else {
+
+						}
+
+		      if ((qr < refthreshold) or (k < terrain_height.at(terrain_index)/1000)) {
 			u = -999.0;
 			v = -999.0;
 			w = -999.0;
@@ -488,6 +488,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		  }
 		}
 	      }
+            terrain_index++;
 	    }
 	  }
 	}
