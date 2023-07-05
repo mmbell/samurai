@@ -34,7 +34,7 @@ VarDriver::VarDriver()
   dataSuffix["cen"] = cen;
   dataSuffix["frd"] = frd;
   dataSuffix["cls"] = cls;
-  dataSuffix["sec"] = sec;
+  dataSuffix["1sec"] = sec;
   dataSuffix["ten"] = ten;
   dataSuffix["swp"] = swp;
   dataSuffix["sfmr"] = sfmr;
@@ -187,7 +187,7 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
     break;
   case (sec):
     if (!read_sec(metFile, metData)) {
-      cout << "Error reading sec file" << endl;
+      cout << "Error reading 1sec file" << endl;
       return false;
     }
     break;
@@ -654,8 +654,62 @@ bool VarDriver::read_eol(std::string& filename, std::vector<MetObs>* metObVector
 bool VarDriver::read_sec(std::string& filename, std::vector<MetObs>* metObVector)
 {
   std::ifstream metFile(filename);
-  if (!metFile.is_open())
-    return false;
+  if (!metFile.is_open()){
+    return false;}
+// Skip four lines
+  std::string line;
+  std::getline(metFile, line);
+  auto parts = LineSplit(line, ' ');
+  std::string datestr = parts[1].substr(0,8);
+  datetime date = ParseDate(datestr.c_str(), "%Y%m%d") ;
+  std::getline(metFile, line);std::getline(metFile, line);std::getline(metFile, line);
+
+  MetObs ob;
+  while (std::getline(metFile, line)) {
+      auto parts = LineSplit(line, ' ');
+      ob.setStationName("aircraft");
+      std::string timestr;
+      int hours = std::stoi(parts[0].substr(0,2));
+      if (hours > 23) { // (FIXME : NCAR) The original code added a day here, then subtracted 24 from the hours, is this needed?
+		    date += date::days{1};
+		    hours -= 24;
+      }
+      int minutes = std::stoi(parts[0].substr(2,2));
+	    int seconds = std::stoi(parts[0].substr(4,2));
+      datetime datetime_ = date + std::chrono::hours{hours} + std::chrono::minutes{minutes} + std::chrono::seconds{seconds};
+      std::cout << "Date: " << PrintDate(datetime_) << std::endl;
+      ob.setTime(datetime_);
+      // ob.setStationName(aircraft);
+      ob.setLat(std::stof(parts[1]));
+      // Note that the longitude is given in degrees West,
+      ob.setLon(-std::stof(parts[2]));
+      ob.setAltitude(std::stof(parts[7]));
+      ob.setPressure(std::stof(parts[8]));
+      if ((std::stof(parts[11]) != -999) or (std::stof(parts[11]) != -32767)) {
+        ob.setTemperature(std::stof(parts[11]) + 273.15);
+      } else {
+        ob.setTemperature(-999.);
+      }
+      if ((std::stof(parts[12]) != -999) or (std::stof(parts[12]) != -32767)) {
+        ob.setDewpoint(std::stof(parts[12]) + 273.15);
+      } else {
+        ob.setDewpoint(-999.);
+      }
+      if (std::stof(parts[10]) >= 0) {
+        ob.setWindDirection(std::stof(parts[9]));
+        ob.setWindSpeed(std::stof(parts[10]));
+      }
+      if ((std::stof(parts[16]) != -999) or (std::stof(parts[16]) != -32767)) {
+        ob.setVerticalVelocity(std::stof(parts[16]));
+      }
+      ob.setObType(MetObs::flightlevel);
+      metObVector->push_back(ob);
+    }
+    metFile.close();
+    return true;
+
+}
+  
 
 /*
   QTextStream in(&metFile);
@@ -720,10 +774,10 @@ bool VarDriver::read_sec(std::string& filename, std::vector<MetObs>* metObVector
     metObVector->push_back(ob);
   }
 */
-  metFile.close();
-  return true;
+//   metFile.close();
+//   return true;
 
-}
+// }
 
 /* This routine reads a 10 sec flight level data file from the data provided by the USAF Hurricane Hunters */
 /* GMT Time   AOA     BSP   CAS    CC     CSP    DPR     DVAL      GA     GPSA   GS      HSS     LAT      LON       PA PITCH       RA ROLL     SLP   SS     TA   TAS    TDA    TDD  THD   TRK    TT   V V     WD     WS Valid Flags Source Tags */
