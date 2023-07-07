@@ -53,7 +53,7 @@ bool DirectoryExists(std::string in) {
       return true;
    }
 
-	closedir(directory);
+	//closedir(directory);
 
    return false;
 }
