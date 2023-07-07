@@ -6,8 +6,9 @@
 BkgdArray::BkgdArray(int nx, int ny, int nsigma,
 		     char *ctdg, int delta, int iter, // time elements
 		     float *sigmas,
-		     float *latitude,	// these 2 are 2D
+		     float *latitude,	// these 3 are 2D
 		     float *longitude,
+				 float *terrain_Height,
 		     float *u1,		// these are 3D
 		     float *v1,
 		     float *w1,
@@ -29,6 +30,7 @@ BkgdArray::BkgdArray(int nx, int ny, int nsigma,
   _sigmas = sigmas;
   _lat_2d  = latitude;
   _long_2d = longitude;
+	_terrainHgt_2d = terrain_Height;
 
   _u1_3d = u1;
   _v1_3d = v1;
@@ -46,16 +48,17 @@ BkgdArray::~BkgdArray()
 {
 }
 
-bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
-	    real &v, real &w, real &t, real &qv, real &rhoa, real &qr)
+bool BkgdArray::next(std::string &time, real &lat, real &lon, real &alt, real &u,
+	    real &v, real &w, real &t, real &qv, real &rhoa, real &qr, real &terrain_hgt)
 {
   if(_curr_x >= _xd) return false;
 
-#if 0  
+#if 0
   std::cout << "in next() time is " << _obTime << " time_t() : " << std::chrono::system_clock::to_time_t(_obTime) << std::endl;
-#endif  
+#endif
   lat = item2d(_lat_2d, _curr_x, _curr_y);
   lon = item2d(_long_2d, _curr_x, _curr_y);
+	terrain_hgt = item2d(_terrainHgt_2d, _curr_x, _curr_y);
   alt = _sigmas[_curr_z];
   u = item3d(_u1_3d, _curr_x, _curr_y, _curr_z);
   v = item3d(_v1_3d, _curr_x, _curr_y, _curr_z);
@@ -82,7 +85,7 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
   // with altitude increasing.
 
   // This assumes that altitudes are in decreasing order
-  
+
   _curr_z -= 1;
   if(_curr_z < 0) {
     _curr_z = _zd - 1;
@@ -92,7 +95,7 @@ bool BkgdArray::next(int &time, real &lat, real &lon, real &alt, real &u,
       _curr_x += 1;
     }
   }
-  
+
   return true;
 }
 

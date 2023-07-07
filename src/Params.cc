@@ -2597,6 +2597,66 @@
       tt->array_vals[1].f = 1;
     tt++;
     
+    // Parameter 'neumann_u_weight'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("neumann_u_weight");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_neumann_u_weight - &_start_;
+    tt->array_n_offset = (char *) &neumann_u_weight_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 0.01;
+      tt->array_vals[1].f = 0.01;
+    tt++;
+    
+    // Parameter 'neumann_v_weight'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("neumann_v_weight");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_neumann_v_weight - &_start_;
+    tt->array_n_offset = (char *) &neumann_v_weight_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 0.01;
+      tt->array_vals[1].f = 0.01;
+    tt++;
+    
+    // Parameter 'dirichlet_w_weight'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("dirichlet_w_weight");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_dirichlet_w_weight - &_start_;
+    tt->array_n_offset = (char *) &dirichlet_w_weight_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 0.01;
+      tt->array_vals[1].f = 0.01;
+    tt++;
+    
     // Parameter 'bg_qr_error'
     // ctype is 'float'
     

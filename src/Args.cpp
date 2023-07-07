@@ -299,7 +299,9 @@ bool Args::paramsToHash(HashMap *configHash) {
     CONFIG_INSERT_FLOAT_ARRAY(i_max_wavenumber, iter);
     CONFIG_INSERT_FLOAT_ARRAY(j_max_wavenumber, iter);
     CONFIG_INSERT_FLOAT_ARRAY(mc_weight, iter);
-  
+    CONFIG_INSERT_FLOAT_ARRAY(neumann_u_weight, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(neumann_v_weight, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(dirichlet_w_weight, iter);
   }
   return true;
 }

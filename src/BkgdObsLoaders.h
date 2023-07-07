@@ -14,7 +14,7 @@
 #include "Projection.h"
 #include "ReferenceState.h"
 #include "HashMap.h"
-
+#include "datetime.h"
 #include "precision.h"
 
 // Various loader for background observations
@@ -43,11 +43,11 @@ class BkgdObsLoader {
 			  float imn, float jmn, float kmn,
 			  float imx, float jmx, float kmx,
 			  real iinc, real jinc, real kinc);
-  
+
   KD_tree *buildKDTree(std::vector<double> &bgIn);
-  
+
   bool fillHoles(std::vector<int> &emptybg);
-  bool isTrue(const char *flag_in) { 
+  bool isTrue(const char *flag_in) {
 		std::string flag = flag_in;
 		if ((*configHash)[flag] == "true") {
 		  return true;
@@ -57,10 +57,10 @@ class BkgdObsLoader {
   void dumpBgIn(int from, int to, std::vector<real> &bgIn);
   void dumpBgU(int from, int to, real *bgu);
   void bgu2nc(const char *fname, real *bgu);
-  
+
   typedef BSpline<real> SplineD;
   typedef BSplineBase<real> SplineBase;
-  
+
   typedef enum {
     BG_LOADER_PRE,
     BG_LOADER_SPLINE,
@@ -72,7 +72,7 @@ class BkgdObsLoader {
     RUN_MODE_XYZ,
     RUN_MODE_RTZ
   } run_mode_t;
-  
+
  protected:
 
   BkgdAdapter *bkgdAdapter;
@@ -81,7 +81,7 @@ class BkgdObsLoader {
   int idim, jdim, kdim;
   float imin, jmin, kmin;
   float imax, jmax, kmax;
-  
+
   HashMap* configHash;
   std::vector<FrameCenter> frameVector;
   Projection projection;
@@ -104,7 +104,7 @@ class BkgdObsLoader {
 
   real maxGridDist;
   real iROI, jROI;
-  
+
 };
 
 // ----------------- Load preprocessed background obs --------------------
@@ -115,8 +115,8 @@ class BkgdObsPreLoader : public BkgdObsLoader {
 
   BkgdObsPreLoader();
   ~BkgdObsPreLoader();
-  
-  bool loadBkgdObs(std::vector<real> &bgIn);  
+
+  bool loadBkgdObs(std::vector<real> &bgIn);
 };
 
 
@@ -135,7 +135,7 @@ class BkgdObsSplineLoader : public BkgdObsLoader {
   ~BkgdObsSplineLoader();
 
   bool loadBkgdObs(std::vector<real> &bgIn);
-  
+
   bool initialize(HashMap *config,
 		  std::vector<FrameCenter> frames,
 		  BkgdAdapter *adapter,
@@ -165,10 +165,10 @@ class BkgdObsKDLoader : public BkgdObsLoader {
 
   BkgdObsKDLoader();
   ~BkgdObsKDLoader();
-  
+
   // bool initialize();
   bool loadBkgdObs(std::vector<real> &bgIn);
-  
+
  protected:
 
   bool fillBguEntry(KD_real *centerLoc, int nbrMax, float maxDistance,
@@ -185,7 +185,21 @@ class BkgdObsFractlLoader : public BkgdObsLoader {
 
   BkgdObsFractlLoader();
   ~BkgdObsFractlLoader();
-  
+
+  //  bool initialize();
+  bool loadBkgdObs(std::vector<real> &bgIn);
+  bool fillBguEntry(std::vector<real> &bgIn, real *bgU, int iIndex, int bIndex);
+};
+
+// --------------- Load WRF output Netcdf file -----------------------
+
+class BkgdObsWRFLoader : public BkgdObsLoader {
+
+ public:
+
+  BkgdObsWRFLoader();
+  ~BkgdObsWRFLoader();
+
   //  bool initialize();
   bool loadBkgdObs(std::vector<real> &bgIn);
   bool fillBguEntry(std::vector<real> &bgIn, real *bgU, int iIndex, int bIndex);

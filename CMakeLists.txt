@@ -9,7 +9,7 @@ project(samurai)
 set(MODE CPU)
 
 # Standard: Options are 'Debug' or 'Release'
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 # max iterations in the solver(src/CostFunction.cpp) default=2000
 set(SOLVER_MAXITER 2000)
@@ -42,7 +42,7 @@ set(SOLVER_CG_CONV_TYPE 1)
 set(IO_BENCHMARK 0)
 
 # Controls whether we write out the observations after reading them all in(probably safe to be 0)
-set(IO_WRITEOBS 0)
+set(IO_WRITEOBS 1)
 
 # ----- Users shouldn't need to change anything below this ----- 
 

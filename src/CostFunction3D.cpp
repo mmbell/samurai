@@ -11,6 +11,7 @@
 
 #include "CostFunction3D.h"
 #include "MetObs.h"
+#include "VarDriver.h" // added
 #include "timing/gptl.h"
 
 #define INDEX(i, j, k, idim, jdim, vdim, var) ((vdim) * ((idim) * ((jdim) * (k) + j) + i) + var)
@@ -140,6 +141,7 @@ void CostFunction3D::initialize(HashMap* config,
   configHash = config;
 
   /* Set the output path */
+	dataPath = (*configHash)["data_directory"];
   outputPath = (*configHash)["output_directory"];
 
   // Horizontal boundary conditions
@@ -190,6 +192,10 @@ void CostFunction3D::initialize(HashMap* config,
 
   // Define the Reference state
   refstate = ref;
+
+	// Assign Reference lat and lon
+	latReference = std::stof((*configHash)["ref_lat"]);
+	lonReference = std::stof((*configHash)["ref_lon"]);
 
   // Assign local object pointers
   bgFields = bgU;
@@ -278,8 +284,8 @@ void CostFunction3D::initialize(HashMap* config,
     kGamma[var] = new real[kRank[var] * kDim];
     kRankMax = max(kRank[var],kRankMax);
   }
-  
-  cout << "kRankMax: " << kRankMax << "\n"; 
+
+  cout << "kRankMax: " << kRankMax << "\n";
 
   /* Precalculate the basis functions for lookup table option
      basisappx = configHash->value("spline_approximation").toInt();
@@ -326,7 +332,7 @@ void CostFunction3D::initState(const int iteration)
     stateC[n] = 0.0;
   }
 
-    
+
   // Set up the recursive filter
   iFilterScale = std::stof((*configHash)["i_filter_length"]);
   jFilterScale = std::stof((*configHash)["j_filter_length"]);
@@ -395,7 +401,7 @@ void CostFunction3D::initState(const int iteration)
   }
   if(UseFFT)
     cout << "PERIODIC boundaries and maximum wavenumber enforcement will enable FFtransform() \n";
-  
+
 
   // Set up the spline matrices
   setupSplines();
@@ -413,7 +419,7 @@ void CostFunction3D::initState(const int iteration)
   cout << "Mass continuity weight set to " << mcWeight << endl;
 
   if (iteration == 1) {
-    
+
     cout << "Initializing background..." << endl;
     // Set up the background state
     for (int n = 0; n < nState; n++) {
@@ -445,7 +451,7 @@ void CostFunction3D::initState(const int iteration)
 	// variance.writeDebugNc("debug.out/std_errors_SA.nc", false, meshError);
       }
     }    	// end of background error transformations
- 
+
     if ((*configHash)["load_bg_coefficients"] == "true") {
 
       for (int64_t n = 0; n < nState; n++) {
@@ -468,19 +474,20 @@ void CostFunction3D::initState(const int iteration)
     // FF transform to match background and increment
     #pragma acc data copyin(stateA[0:nState]) copyout(bgState[0:nState])
     {
-    FFtransform(stateA, bgState); 
+    FFtransform(stateA, bgState);
     }
     // variance.writeDebugNc("debug.out/FF.nc", false, bgState);			// mesh sized DEBUG
 
   } // end of iteration == 1
-  
+
   for (int var = 0; var < varDim; var++) {
     // Init node variance
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  			//int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+// 	  			int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
 	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
 				}
       }
@@ -493,8 +500,10 @@ void CostFunction3D::initState(const int iteration)
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  			//int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
+// 	  			int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
 	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+//                 int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			varScale += bgState[bIndex] * bgState[bIndex];
 				}
       }
@@ -548,14 +557,14 @@ real CostFunction3D::funcValue(real* state)
   real J,qIP, obIP;
 
   int m, obIndex;
-  
+
   qIP = 0.;
   obIP = 0.;
 
   GPTLstart("CostFunction3D::funcValue");
 	#pragma acc data copyin(state[0:nState])
 	{
-  
+
   	GPTLstart("CostFunction3D::funcValue:updateHCq");
   	updateHCq(state,HCq);
   	GPTLstop("CostFunction3D::funcValue:updateHCq");
@@ -644,13 +653,13 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   	updateHCq(state,HCq);
 
   	//Func Value
-  	// Compute inner product of state vector                                                                                                                                
+  	// Compute inner product of state vector
   	//#pragma omp parallel for reduction(+:qIP)
   	#pragma acc parallel loop reduction(+:qIP)
   	for (n = 0; n < nState; n++) {
     	qIP += state[n]*state[n];
   	}
-  	// Subtract d from HCq to yield mObs length vector and compute inner product         
+  	// Subtract d from HCq to yield mObs length vector and compute inner product
   	//#pragma omp parallel for reduction(+:obIP)
   	#pragma acc parallel loop reduction(+:obIP) private(m)
   	for (m = 0; m < mObs; m++) {
@@ -673,7 +682,7 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   	}
 
   	GPTLstop("CostFunction3D::funcValueAndGradient");
-	//cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << "\n"; 
+	//cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << "\n";
    }
 	return J;
 
@@ -689,7 +698,7 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
     //DBG cout << "CostFunction3D::funcHessian\n";
     //calc HCx (store in global variable HCq)
     updateHCq(x,HCq);
-                                                               
+
     calcHTranspose(HCq, stateC);
     FFtransform(stateC, stateA);
     SAtransform(stateA, stateB);
@@ -750,7 +759,7 @@ void CostFunction3D::updateBG()
 	  	  	bgState[bgIndex] += stateC[bgIndex];
 	  		  cstream << bgState[bgIndex] << "\t";
 	  			cstream << stateC[bgIndex] << endl;
-  			} 
+  			}
       }
     }
   }
@@ -766,7 +775,7 @@ void CostFunction3D::calcInnovation()
   cout << "Initializing innovation vector..." << endl;
 
   // Use HCq to hold the transform, but C is not applied for the innovation
-#pragma acc data copyin(bgState[0:nState]) create(HCq[mObs+(iDim*jDim*kDim)]) 
+#pragma acc data copyin(bgState[0:nState]) create(HCq[mObs+(iDim*jDim*kDim)])
 {
   Htransform(bgState, HCq);
 }
@@ -793,16 +802,16 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
   integer j,n,m,k,ms,me;
   real tmp,val;
-	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H) 
+	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H)
 	{
   	GPTLstart("CostFunction3D::calcHTranspose");
-  	#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val) 
+  	#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val)
   	#pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
   	for(n=0;n<nState;n++){
     	ms = mPtr[n];
     	me = mPtr[n+1];
     	tmp = 0;
-    	if(me>ms){ 
+    	if(me>ms){
       	for (k=ms;k<me;k++){
           m=mVal[k];
           j=I2H[k];
@@ -879,7 +888,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	       	tmp += kGamma[var][kDim * m + k] * xk[m];
 	      }
               kIndex = INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var);
-	      Astate[kIndex] = tmp; 
+	      Astate[kIndex] = tmp;
 	    }
       	  }
     	}
@@ -890,7 +899,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
     	#pragma acc parallel loop gang vector collapse(2) vector_length(32) private(tmp,jB,xj,j,l,m,iIndex,kIndex) //[5.0.2]
     	for (iIndex = 0; iIndex < iDim; iIndex++) {
       	  for (kIndex = 0; kIndex < kDim; kIndex++) {
-            #pragma acc loop vector 
+            #pragma acc loop vector
 	    for (j = 0; j < jDim; j++) {
 	       	jB[j] = Astate[INDEX(iIndex, j, kIndex, iDim, jDim, varDim, var)];
 	    }
@@ -918,7 +927,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	      }
 	      xj[j] = tmp/jL[var][j*jLDim];
 	    }
-            #pragma acc loop vector 
+            #pragma acc loop vector
 	    for (j = 0; j < jDim; j++) {
 	      // Multiply by gammaT
               tmp = 0;
@@ -971,7 +980,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	     for (m = 0; m < iRank[var]; m++) {
 	       tmp += iGamma[var][iDim*m + i]*xi[m];
 	     }
-	     // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";	  
+	     // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";
 	     Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
 	   }
       	  }
@@ -988,7 +997,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 {
   GPTLstart("CostFunction3D::SAtranspose");
 
-  //#pragma omp parallel for 
+  //#pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
     int l;
     real* iB = new real[iDim];
@@ -1417,7 +1426,7 @@ void CostFunction3D::SCtransform(const real* Astate, real* Cstate)
 	           index = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	    	   Cstate[index] = iTemp[iIndex] * bgStdDev[index];
 	  	}
-             }	
+             }
       	   }
          //GPTLstop("CostFunction3D::SCtransform:FI");
     	 }  // end var for loop
@@ -1666,14 +1675,23 @@ void CostFunction3D::obAdjustments() {
 	for (int kkNode = (kk-1); kkNode <= (kk+2); ++kkNode) {
 	  int kNode = kkNode;
 	  if ((kNode < 0) or (kNode >= kDim)) continue;
+//       int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+//       int bIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4);
+      int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+      int64_t *bIndex2 = (int64_t *)malloc(sizeof(int64_t));
+      *bIndex = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 4;
+      *bIndex2 = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 5;
+      // turn off print out January 24, 2023
+      // cout << "bIndex = " << *bIndex << endl;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
-	  qvprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4)] * ibasis * jbasis * kbasis;
+	  qvprime += bgState[*bIndex] * ibasis * jbasis * kbasis;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
-	  rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
+	  rhoprime += bgState[*bIndex2] * ibasis * jbasis * kbasis;
+//       rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
 	}
       }
     }
@@ -2540,7 +2558,7 @@ void CostFunction3D::calcHmatrix()
               kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
               if (!kbasis) continue;
               // Count the number of non-zero entries in the observation matrix...
-              hi++;   
+              hi++;
             }
           }
         }
@@ -2567,7 +2585,7 @@ void CostFunction3D::calcHmatrix()
 
   hi=0;
   for (n=0;n<nState;n++){mIncr[n]=0;}
-  
+
 	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
 	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
@@ -2609,7 +2627,7 @@ void CostFunction3D::calcHmatrix()
     }
   }
   I2H = new integer [nonzeros];
-  
+
   //for (n=0;n<=8;n++) {cout << " mIncr: " << mIncr[n] << " \n"; }
   mPtr[0]=0;
   for (n=1;n<=nState;n++){
@@ -2626,7 +2644,7 @@ void CostFunction3D::calcHmatrix()
     mIncr[cIndex]+=1;
   }
   //
-  // copy H matrix stuff to the GPU Device 
+  // copy H matrix stuff to the GPU Device
   #pragma acc enter data copyin(mPtr,mVal,I2H)
   #pragma acc enter data copyin(H[:nonzeros])
   cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << "\n";
@@ -2635,7 +2653,7 @@ void CostFunction3D::calcHmatrix()
   cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(integer)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
   cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
   cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << "\n";
- 
+
   delete[] Hlength;
   delete[] mIncr;
   delete[] mTmp;
@@ -2690,7 +2708,7 @@ bool CostFunction3D::copyResults(int iDim, int jDim, int kDim,
 {
   // TODO do some error checking on the dimentions
   // if bad, return false
-  
+
   // question: Do the result sizes match the nx, ny, nsigmas passed in the VarDriver3d::run function?
 
   // See CostFunctionCOAMPS.cpp around line  355 for the meaning of the indices used here (0, 1, 2, 19, 26)
@@ -2699,7 +2717,6 @@ bool CostFunction3D::copyResults(int iDim, int jDim, int kDim,
   copy3DArray(&finalAnalysis[iDim * jDim * kDim * 2],  w, iDim, jDim, kDim);
   copy3DArray(&finalAnalysis[iDim * jDim * kDim * 19], p, iDim, jDim, kDim);
   copy3DArray(&finalAnalysis[iDim * jDim * kDim * 26], t, iDim, jDim, kDim);
-	  
+
   return true;
 }
-

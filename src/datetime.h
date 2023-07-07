@@ -16,6 +16,7 @@ datetime  ParseDate(const char *string, const char *fmt);
 datetime  ParseDate(std::string string_in, const char *fmt);
 datetime  ParseTime(const char *string, const char *fmt);
 datetime  ParseTime(std::string string_in, const char *fmt);
+// datetime  ParseWRFTime(std::string string_in);
 //std::string TimeString(datetime& in);
 std::string PrintTime(datetime in);
 std::string PrintDate(datetime in);

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "BkgdAdapter.h"
-
+// Adding terrain to background reader
 BkgdStream::BkgdStream(const char *fname)
 {
   _stream = new std::ifstream(fname);
@@ -15,8 +15,8 @@ BkgdStream::~BkgdStream()
   delete _stream;
 }
 
-bool BkgdStream::next(int &time, real &lat, real &lon, real &alt, real &u,
-		     real &v, real &w, real &t, real &qv, real &rhoa, real &qr)
+bool BkgdStream::next(std::string &time, real &lat, real &lon, real &alt, real &u,
+		     real &v, real &w, real &t, real &qv, real &rhoa, real &qr, real &terrain_hgt)
 {
-  return (bool) (*_stream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr);
+  return (bool) (*_stream >> time >> lat >> lon >> alt >> u >> v >> w >> t >> qv >> rhoa >> qr >> terrain_hgt);
 }

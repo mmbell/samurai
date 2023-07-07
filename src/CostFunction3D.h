@@ -14,7 +14,7 @@
 #include "RecursiveFilter.h"
 #include "Observation.h"
 #include "ReferenceState.h"
-// #include "VarDriver3D.h"
+#include "VarDriver.h" // added
 #include "ErrorData.h"
 #include "HashMap.h"
 
@@ -80,7 +80,7 @@ protected:
 
 	bool writeAsi(const std::string& asiFileName);
 	bool writeNetCDF(const std::string& netcdfFileName);
-	
+
 	void adjustInternalDomain(int increment);
 	void calcSplineCoefficients(const int& Dim, const real& eq, const int* BCL, const int* BCR,
                                 const real& xmin, const real& DX, const real& DXrecip, const int& LDim,
@@ -105,9 +105,9 @@ protected:
     }
     return false;
 	}
-	
+
 	void initBkgdErrors();
-	
+
 	bool mishFlag;
 	int iDim, jDim, kDim;
 	int iLDim, jLDim, kLDim;
@@ -145,6 +145,7 @@ protected:
 	int derivative[4][3];
 	real constHeight;
 	real mcWeight;
+	real latReference, lonReference;
 	int iMaxWavenumber[7], jMaxWavenumber[7], kMaxWavenumber[7];
 	fftw_plan iForward, jForward, iBackward, jBackward, kForward, kBackward;
 	double *iFFTin, *jFFTin, *kFFTin;
@@ -153,7 +154,7 @@ protected:
 	real *H;
 	integer *IH, *I2H,*JH;
   integer *mPtr, *mVal;
-		
+
 	int basisappx;
 	real* basis0;
 	real* basis1;
@@ -186,7 +187,7 @@ protected:
 	RecursiveFilter* kFilter;
 
 	ReferenceState* refstate;
-	std::string outputPath;
+	std::string dataPath, outputPath;
 
 	ErrorData variance;
 	#pragma acc declare copyin(iDim,jDim,kDim,varDim,kLDim)

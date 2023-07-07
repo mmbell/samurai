@@ -32,7 +32,7 @@ datetime  ParseDate(const char *string, const char *fmt) {
  // auto tt2 = std::mktime(&tt);
   //auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
   auto tp = std::chrono::system_clock::from_time_t(tt);
-  { 
+  {
      using namespace std::chrono;
      using namespace date;
 //     std::cout << "ParseDate tp<3> = " << tp <<  "   ( In: " << string << " )" << std::endl;
@@ -55,13 +55,30 @@ datetime  ParseTime(const char *string, const char *fmt) {
   strftime(buffer, 512, "%c %Z", &tm);
   std::gmtime(&tt);
   auto tp = std::chrono::system_clock::from_time_t(tt);
-  { 
+  {
      using namespace std::chrono;
      using namespace date;
 //     std::cout << "ParseDate tp<3> = " << tp <<  "   ( In: " << string << " )" << std::endl;
   }
   return tp;
 }
+
+// datetime  ParseWRFTime(const char *string) {
+//
+//   std::tm tm = {};
+//   strptime(string, "%Y-%m-%d_%H:%M:%SZ", &tm);
+//   char buffer[512];
+//   std::time_t tt = timegm(&tm);
+//   strftime(buffer, sizeof(buffer), "%c %Z", &tm);
+//   std::gmtime(&tt);
+//   auto tp = std::chrono::system_clock::from_time_t(tt);
+//   {
+//      using namespace std::chrono;
+//      using namespace date;
+// //     std::cout << "ParseDate tp<3> = " << tp <<  "   ( In: " << string << " )" << std::endl;
+//   }
+//   return tp;
+// }
 
 int64_t Time(datetime in) {
   datetime start_of_day = date::floor<date::days>(in);
@@ -111,4 +128,3 @@ std::string PrintDate(datetime in) {
    buf = ss.str();
    return buf;
 }
-

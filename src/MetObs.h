@@ -24,53 +24,59 @@
 
 class MetObs
 {
-		
+
  public:
   MetObs();
   MetObs(const MetObs& other);
   virtual ~MetObs();
   virtual bool readObs();
-		
+
   void printString();
-		
+
   std::string getStationName() const;
   void setStationName(const std::string& name);
-		
+
   float getLat() const;
   void setLat(const float& lat);
-		
+
   float getLon() const;
   void setLon(const float& lon);
-		
+
   float getAltitude() const;
   void setAltitude(const float& alt);
-		
+
   datetime getTime() const;
   void setTime(const datetime& obTime);
-		
+
   float getPressure() const;
   void setPressure(const float& press);
-		
+
   float getWindSpeed() const;
   void setWindSpeed(const float& speed);
   float getWindDirection() const;
   void setWindDirection(const float& dir);
-		
+
   float getVerticalVelocity() const;
   void setVerticalVelocity(const float& w);
-		
+
+  float getMeridionalVelocity() const;
+  void setMeridionalVelocity(const float& v);
+
+  float getZonalVelocity() const;
+  void setZonalVelocity(const float& u);
+
   float getTemperature() const;
   void setTemperature(const float& T);
   float getTemperatureError() const;
   void setTemperatureError(const float& T);
-        
+
   float getDewpoint() const;
   void setDewpoint(const float& D);
   void setRH(const float& RH);
-		
+
   float getRadialVelocity() const;
   void setRadialVelocity(const float& vr);
-		
+
   float getReflectivity() const;
   void setReflectivity(const float& dz);
 
@@ -79,20 +85,41 @@ class MetObs
 
   float getAzimuth() const;
   void setAzimuth(const float& az);
-		
+
   float getElevation() const;
   void setElevation(const float& el);
-		
+
+  float getTerrainDX() const;
+  void setTerrainDX(const float& dhdx);
+
+  float getTerrainDY() const;
+  void setTerrainDY(const float& dhdy);
+
+  float getTerrainX() const;
+  void setTerrainX(const float& x);
+
+  float getTerrainY() const;
+  void setTerrainY(const float& y);
+
+  float getModelQv() const;
+  void setModelQv(const float& qv);
+
+  float getModelMoistDensity() const;
+  void setModelMoistDensity(const float& rho);
+
+  float getModelAirDensity() const;
+  void setModelAirDensity(const float& rhoa);
+
   int getObType() const;
   void setObType(const int& type);
-		
+
   // Derived variables
   float getQv() const;
   float getQvSaturation() const;
   float getCartesianUwind() const;
   float getCartesianVwind() const;
   float getPolarUwind(const float& centerLat, const float& centerLon) const;
-  float getPolarVwind(const float& centerLat, const float& centerLon) const;	
+  float getPolarVwind(const float& centerLat, const float& centerLon) const;
   float getDryDensity() const;
   float getAirDensity() const;
   float getVaporDensity() const;
@@ -103,11 +130,11 @@ class MetObs
   float getMoistStaticEnergy() const;
   float getMoistSaturationStaticEnergy() const;
   float getTotalEnergy() const;
-		
+
   bool operator ==(const MetObs &other);
   bool operator < (const MetObs &other);
   bool operator > (const MetObs &other);
-		
+
   enum MetObTypes {
     dropsonde,
     flightlevel,
@@ -120,11 +147,15 @@ class MetObs
     insitu,
     mtp,
     mesonet,
-    aeri
+    aeri,
+    terrain,
+    model,
+    crsim
+    // add terrain type
   };
-		
+
  protected:
-		
+
   float latitude;
   float longitude;
   float altitude;
@@ -134,6 +165,8 @@ class MetObs
   float windSpeed;
   float windDirection;
   float verticalVelocity;
+  float meridionalVelocity;
+  float zonalVelocity;
   float dewpoint;
   float temperature;
   float temperatureError;
@@ -143,8 +176,18 @@ class MetObs
   float azimuth;
   float elevation;
   int obType;
+  float terrain_dx;
+  float terrain_dy;
+  float terrain_x;
+  float terrain_y;
+  float moistDensity;
+  float airDensity;
+  float mixingRatio;
+  // float differentialReflectivity; add Zdr
+  // float
+  // add terrain slope here
 
-		
+
 };
 
 #endif

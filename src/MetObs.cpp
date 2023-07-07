@@ -19,15 +19,24 @@ MetObs::MetObs()
 	windSpeed = -999;
 	windDirection = -999;
 	verticalVelocity = -999;
+	meridionalVelocity = -999;
+	zonalVelocity = -999;
 	dewpoint = -999;
 	temperature = -999;
-    temperatureError = -999;
+  temperatureError = -999;
 	radialVelocity = -999;
 	reflectivity = -999;
 	spectrumWidth = -999;
 	azimuth = -999;
 	elevation = -999;
 	stationName = "";
+	terrain_dx = -999;
+	terrain_dy = -999;
+	terrain_x = -999;
+	terrain_y = -999;
+	moistDensity = -999;
+	airDensity = -999;
+  mixingRatio = -999;
 	time = {};
 	obType = -1;
 
@@ -42,9 +51,11 @@ MetObs::MetObs(const MetObs& other)
 	windSpeed = other.windSpeed;
 	windDirection = other.windDirection;
 	verticalVelocity = other.verticalVelocity;
+	meridionalVelocity = other.meridionalVelocity;
+	zonalVelocity = other.zonalVelocity;
 	dewpoint = other.dewpoint;
 	temperature = other.temperature;
-    temperatureError = other.temperatureError;
+  temperatureError = other.temperatureError;
 	radialVelocity = other.radialVelocity;
 	reflectivity = other.reflectivity;
 	spectrumWidth = other.spectrumWidth;
@@ -52,8 +63,15 @@ MetObs::MetObs(const MetObs& other)
 	elevation = other.elevation;
 	stationName = other.stationName;
 	time = other.time;
+	terrain_dx = other.terrain_dx;
+	terrain_dy = other.terrain_dy;
+	terrain_x = other.terrain_x;
+	terrain_y = other.terrain_y;
+	moistDensity = other.moistDensity;
+	airDensity = other.airDensity;
+	mixingRatio = other.mixingRatio;
 	obType = other.obType;
-	
+
 }
 
 MetObs::~MetObs()
@@ -137,7 +155,7 @@ void  MetObs::setWindSpeed(const float& speed)
 	windSpeed = speed;
 }
 
-float  MetObs::getWindDirection() const 
+float  MetObs::getWindDirection() const
 {
 	return windDirection;
 }
@@ -156,6 +174,26 @@ float MetObs::getVerticalVelocity() const
 void MetObs::setVerticalVelocity(const float& w)
 {
 	verticalVelocity = w;
+}
+
+float MetObs::getMeridionalVelocity() const
+{
+	return meridionalVelocity;
+}
+
+void MetObs::setMeridionalVelocity(const float& v)
+{
+	meridionalVelocity = v;
+}
+
+float MetObs::getZonalVelocity() const
+{
+	return zonalVelocity;
+}
+
+void MetObs::setZonalVelocity(const float& u)
+{
+	zonalVelocity = u;
 }
 
 float MetObs::getTemperature() const
@@ -190,12 +228,12 @@ void MetObs::setDewpoint(const float& D)
 
 void MetObs::setRH(const float& RH)
 {
-	if ((RH > 0) and (RH < 101) and (temperature != -999)) { 
+	if ((RH > 0) and (RH < 101) and (temperature != -999)) {
 		float t = temperature;
-		float es = (E_3 * exp (_A_ * log (T_3 / t)) * 
+		float es = (E_3 * exp (_A_ * log (T_3 / t)) *
 					exp ((_A_ + _B_) * (1 - T_3 / t)));
 		float e = es*RH/100;
-		float u = log (e / E_3);	
+		float u = log (e / E_3);
 		dewpoint = (237.3 * u / (17.2694 - u) + T_3);
 	} else {
 		dewpoint = -999;
@@ -252,6 +290,76 @@ void MetObs::setElevation(const float& el)
 	elevation = el;
 }
 
+float MetObs::getTerrainDX() const
+{
+	return terrain_dx;
+}
+
+void MetObs::setTerrainDX(const float& dhdx)
+{
+	terrain_dx = dhdx;
+}
+
+float MetObs::getTerrainDY() const
+{
+	return terrain_dy;
+}
+
+void MetObs::setTerrainDY(const float& dhdy)
+{
+	terrain_dy = dhdy;
+}
+
+float MetObs::getTerrainX() const
+{
+	return terrain_x;
+}
+
+void MetObs::setTerrainX(const float& x)
+{
+	terrain_x = x;
+}
+
+float MetObs::getTerrainY() const
+{
+	return terrain_y;
+}
+
+void MetObs::setTerrainY(const float& y)
+{
+	terrain_y = y;
+}
+
+float MetObs::getModelMoistDensity() const
+{
+	return moistDensity;
+}
+
+void MetObs::setModelMoistDensity(const float& rho)
+{
+	moistDensity = rho;
+}
+
+float MetObs::getModelAirDensity() const
+{
+	return airDensity;
+}
+
+void MetObs::setModelAirDensity(const float& rhoa)
+{
+	airDensity = rhoa;
+}
+
+float MetObs::getModelQv() const
+{
+	return mixingRatio;
+}
+
+void MetObs::setModelQv(const float& qv)
+{
+	mixingRatio = qv;
+}
+
 int MetObs::getObType() const
 {
 	return obType;
@@ -264,7 +372,7 @@ void MetObs::setObType(const int& type)
 
 // Derived variables
 float MetObs::getQv() const
-{	
+{
 	if ((dewpoint != -999) and (pressure != -999)) {
 		float e = getVaporPressure();
 		return (1000.0 * EPSILON * e / (pressure - e));
@@ -274,7 +382,7 @@ float MetObs::getQv() const
 }
 
 float MetObs::getQvSaturation() const
-{	
+{
 	if ((temperature != -999) and (pressure != -999)) {
 		float e = getSatVaporPressure();
 		return (1000.0 * EPSILON * e / (pressure - e));
@@ -410,8 +518,8 @@ float MetObs::getSatVaporPressure() const
 float MetObs::getVirtualTemp() const
 {
 	float t = temperature;
-	float e = (E_3 * exp (_A_ * log (T_3 / t)) * 
-			   exp ((_A_ + _B_) * (1 - T_3 / t)));	
+	float e = (E_3 * exp (_A_ * log (T_3 / t)) *
+			   exp ((_A_ + _B_) * (1 - T_3 / t)));
 	return (t / (1 - (e / pressure) * (1 - EPSILON)));
 }
 
@@ -454,7 +562,7 @@ float MetObs::getTotalEnergy() const
 
 bool MetObs::operator ==(const MetObs &other)
 {
-    
+
 	if((this->time == other.time)
 	   &&(this->stationName==other.stationName))
 		return true;
@@ -481,7 +589,5 @@ void MetObs::printString()
   using namespace std::chrono;
 	std::cout << getStationName() << "_" << getTime() << "_" << getPressure() << std::endl;
 	//std::cout << printMessage.toAscii();
-	
+
 }
-
-

@@ -41,11 +41,11 @@ class VarDriver
   virtual ~VarDriver();
   virtual bool initialize(const XMLNode& configuration) = 0;
   virtual bool initialize(const samurai_config &configSam) = 0;
-  virtual bool initialize() = 0;  
+  virtual bool initialize() = 0;
 
   virtual bool run() = 0;
   virtual bool run(int nx, int ny, int nsigma,
-			 
+
 		   // ----- new -----
 		   char cdtg[10],	// "12Z oct 4 2015 -> "2015100412"
 		   int delta,	// delta * iter1 past cdtg
@@ -53,11 +53,12 @@ class VarDriver
 		   float imin, float imax, float iincr, // used to come from config
 		   float jmin, float jmax, float jincr,
 		   // ----- new -----
-			 
+
 		   float *sigmas,
 		   float *latitude, // 2D arrays
 		   float *longitude,
-		   float *u1,	// 3D array (nx, ny, nsigma)  
+			 float *terrain_Height,
+		   float *u1,	// 3D array (nx, ny, nsigma)
 		   float *v1,
 		   float *w1,
 		   float *th1,
@@ -70,17 +71,19 @@ class VarDriver
 		   float *psam) = 0;
 
   virtual bool finalize() = 0;
-	
+
   void clearCenters();
   void appendCenter(std::string date, std::string time, float lat, float lon, float Vm, float Um);
   void popCenter();
 
+	// bool readTerrain(std::string &filename, std::vector<MetObs>* metData);
+
   HashMap *getConfigHash() { return &configHash; }
-  
+
  protected:
-	
+
   bool fixedGrid;	// Indicates if the grid dims come from the config file or run call
-	
+
   real CoriolisF;
   real Pi;
   unsigned int numVars;
@@ -118,7 +121,10 @@ class VarDriver
     qcf,
     aeri,
     rad,
-    cfrad
+    cfrad,
+		terrain,
+		model,
+		crsim
   };
   Projection projection;
 
@@ -144,6 +150,9 @@ class VarDriver
   bool read_aeri(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_rad(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_cfrad(std::string &fileName, std::vector<MetObs>* metObVector);
+	bool read_terrain(std::string& filename, std::vector<MetObs>* metObVector);
+	bool read_model(std::string& filename, std::vector<MetObs>* metObVector);
+	bool read_crsim(std::string& filename, std::vector<MetObs>* metObVector);
   bool readFrameCenters();
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);

@@ -1008,6 +1008,24 @@ paramdef float {
 } mc_weight[];
 
 paramdef float {
+  p_default = {0.01, 0.01};
+  p_descr = "";
+  p_help = "";
+} neumann_u_weight[];
+
+paramdef float {
+  p_default = {0.01, 0.01};
+  p_descr = "";
+  p_help = "";
+} neumann_v_weight[];
+
+paramdef float {
+  p_default = {0.01, 0.01};
+  p_descr = "";
+  p_help = "";
+} dirichlet_w_weight[];
+
+paramdef float {
   p_default = {3.0, 1.0};
   p_descr = "";
   p_help = "";

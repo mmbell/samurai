@@ -62,7 +62,7 @@ bool VarDriver3D::initialize(const XMLNode& configuration)
 
   // Parse the XML configuration file
   if (!parseXMLconfig(configuration)) return false;
-  
+
   return validateDriver();
 }
 
@@ -75,7 +75,7 @@ bool VarDriver3D::initialize(const samurai_config &configSam)
 
   // Parse the Samurai configuration structure passed from COAMPS
   if (! parseSamuraiConfig(configSam)) return false;
-  
+
   return validateDriver();
 }
 
@@ -84,13 +84,13 @@ bool VarDriver3D::initialize(const samurai_config &configSam)
 bool VarDriver3D::validateDriver()
 {
   // Make sure the config has all the keys we need
-  
+
   if ( ! validateConfig())
     return false;
-  
+
   // std::cout << "==== Content of configHash" << std::endl;
   // dump_hash(configHash);
-  
+
   // Validate the run geometry
   if (configHash["mode"] == "XYZ") {
     runMode = XYZ;
@@ -103,7 +103,7 @@ bool VarDriver3D::validateDriver()
 
   bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
   bool loadBG = ( configHash["load_background"] == "true" );
-  
+
   // Warn is there are non-sensical combos of options.
   // Just 1 right now, so put it inlie
 
@@ -118,7 +118,7 @@ bool VarDriver3D::validateDriver()
 	      << std::endl;
     loadBG = true;
   }
-  
+
   // Set the projection (to be used by the cost functions)
   projection.setProjection(projectionFromConfig());
 
@@ -169,7 +169,7 @@ bool VarDriver3D::validateDriver()
     }
     return gridDependentInit();
   }
-  
+
   // If we got here, then everything probably went OK!
   return true;
 }
@@ -198,12 +198,12 @@ bool VarDriver3D::gridDependentInit()
     // cout << "\n";
   }
   cout << setprecision(9);
-  
+
   // Set the maximum number of iterations to the multipass reduction factor
   //  Multiple outer loops will reduce the cutoff wavelengths and background error variance
-  
+
   maxIter = std::stoi(configHash["num_iterations"]);
-    
+
   // Read in the Frame centers (if runGrid, user is responsible for managing center
   // structure instead)
   //
@@ -219,10 +219,10 @@ bool VarDriver3D::gridDependentInit()
   }
 
   // These are used to process the obs (bkg and met)
-  
+
   uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars); // bgU size
   bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;       // 2 mish points between nodes
-  
+
   std::cout << "Physical (mish) State size = " << uStateSize << std::endl;
   std::cout << "Nodal State size = " << bStateSize << std::endl;
   std::cout << "Grid dimensions: (" << idim << ", " << jdim << ", " << kdim << ")" << std::endl;
@@ -230,14 +230,14 @@ bool VarDriver3D::gridDependentInit()
   if (bgU != NULL)
     delete[] bgU;
   bgU = new real[uStateSize];
-  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0 
+  std::memset(bgU, 0, uStateSize * sizeof(real)); // needed, as data not necessarily initialized to 0
 
-  // Initialize this to zero. 
+  // Initialize this to zero.
   std::fill(bgU,bgU+uStateSize,0.0);
   //for (int i=0;i< uStateSize;i++) {bgU[i]=0.0;}
 
   // Optionally load a set of background coefficients directly
-  
+
   std::string loadBGcoeffs = configHash["load_bg_coefficients"];
 
   if (loadBGcoeffs == "true")
@@ -245,13 +245,13 @@ bool VarDriver3D::gridDependentInit()
       return false;
 
   // Optionally load a set of background estimates and interpolate to the Gaussian mish
-  
+
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
     START_TIMER(timeb);
     numbgObs = loadBackgroundObs();
     PRINT_TIMER("loadBackgroundObs", timeb);
-    
+
     if (numbgObs < 0) {
       cout << "Error loading background Obs\n";
       return false;
@@ -259,7 +259,7 @@ bool VarDriver3D::gridDependentInit()
     //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
     delete bkgdAdapter;
   }
-  
+
   // Optionally adjust the interpolated background to satisfy mass continuity
   // and match the supplied points exactly. In essence, do a SAMURAI analysis using
   // the background estimates as "observations"
@@ -276,7 +276,7 @@ bool VarDriver3D::gridDependentInit()
   if ( ! loadMetObs() )
     return false;
   PRINT_TIMER("loadMetObs", timem);
-  
+
   START_TIMER(timec);
   initObCost3D();
   PRINT_TIMER("initObCost3D", timec);
@@ -323,11 +323,12 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 		      float imin, float imax, float iincr, // used to come from config
 		      float jmin, float jmax, float jincr,
 		      // ----- new -----
-		      
+
 		      float *sigmas,
 		      float *latitude, // 2D arrays
 		      float *longitude,
-		      float *u1,	// 3D array (nx, ny, nsigma)  
+					float *terrain_Height,
+		      float *u1,	// 3D array (nx, ny, nsigma)
 		      float *v1,
 		      float *w1,
 		      float *th1,
@@ -340,33 +341,33 @@ bool VarDriver3D::run(int nx, int ny, int nsigma,
 		      float *psam)
 {
   fillRunCenters(cdtg, delta, iter, *latitude, *longitude);
-  
+
   if (! validateRunGrid(nx, ny, nsigma,
 			imin, imax, iincr,
 			jmin, jmax, jincr, sigmas) )
     return false;
 
   // Clean up from previous run if needed
-  
+
   if(bkgdAdapter != NULL)
     delete bkgdAdapter;
-  
+
   // Set the background obs adapter to get data from the passed arrays
   if (configHash["array_order"] == "row-major")
     bkgdAdapter = new BkgdCArray(nx, ny, nsigma,
 				 cdtg, delta, iter,
 				 sigmas,
-				 latitude, longitude,
+				 latitude, longitude, terrain_Height,
 				 u1, v1, w1, th1, p1);
   else
     bkgdAdapter = new BkgdFArray(nx, ny, nsigma,
 				 cdtg, delta, iter,
 				 sigmas,
-				 latitude, longitude,
+				 latitude, longitude, terrain_Height,
 				 u1, v1, w1, th1, p1);
   if (! gridDependentInit() )
     return false;
-  
+
   if( run() )
     return obCost3D->copyResults(nx, ny, nsigma, usam, vsam, wsam, thsam, psam);
   return false;
@@ -398,7 +399,7 @@ bool VarDriver3D::run()
 		START_TIMER(timeu);
 		obCost3D->updateBG();
 		PRINT_TIMER("Cost3d update", timeu);
-		
+
 		iter++;
 
 		// Optionally update the analysis parameters for an additional iteration
@@ -423,7 +424,7 @@ bool VarDriver3D::finalize()
 
 /* Pre-process the observations into a single vector
  On the wishlist is some integrated QC here other than just spatial thresholding */
-
+// Set lower boundary info in the preProcessMetObs function
 bool VarDriver3D::preProcessMetObs()
 {
   GPTLstart("VarDriver3D::preprocessMetObs");
@@ -484,7 +485,7 @@ bool VarDriver3D::preProcessMetObs()
 
   // Load Met. Observations
   auto filenames = FileList(dataPath);
-  
+
   int processedFiles = 0;
   int attemptedFiles = 0;
   std::vector<MetObs>* metData = new std::vector<MetObs>;
@@ -494,26 +495,22 @@ bool VarDriver3D::preProcessMetObs()
   for (std::size_t i = 0; i < filenames.size(); ++i) {
     metData->clear();
 
-		if (filenames[i].empty()) {
-      cout << "Unknown file! " << filenames[i] << endl;
-      continue;
-    }
-
 		std::string file = filenames[i];
     std::vector<std::string> parts = LineSplit(file, '.');
     std::string suffix = parts[parts.size()-1];
     std::string prefix = parts[0];
-		 
+
+
     if (prefix == "swp") {
       // Switch it to suffix
       suffix = "swp";
     }
-    
+
     if (suffix == "nc") {	// cfrad file?
-			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc"))) 
+			if (std::regex_match(file, std::regex(".*cfrad.*\\.nc")))
 				suffix = "cfrad";
     }
-    
+
     cout << "Processing " << file << " of type " << suffix << endl;
     attemptedFiles++;
     // Read different types of files
@@ -528,20 +525,20 @@ bool VarDriver3D::preProcessMetObs()
     int timeProblem = 0;
     int domainProblem = 0;
     int radiusProblem = 0;
-    
+
     // Process the metObs into Observations
 
     if (frameVector.size() == 0) {
       std::cout << "No centerfile, cannot process Met. Obs." << std::endl;
       return false;
     }
-    
+
     datetime startTime_ob = frameVector.front().getTime();
     auto startTime = Date(startTime_ob);
-    datetime endTime_ob = frameVector.back().getTime(); 
+    datetime endTime_ob = frameVector.back().getTime();
     auto endTime = Date(endTime_ob);
     int prevobs = obVector.size();
-    
+		std::cout << "i  = " << i << endl;
     for (std::size_t i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
@@ -549,22 +546,25 @@ bool VarDriver3D::preProcessMetObs()
       datetime obTime_ob = metOb.getTime();
       auto obTime = Date(obTime_ob);
 
+
       // NOTE: Changing below line to account for msec vs. sec differences (discussion with M Bell, ongoing)
       // This makes the DesRosier case similar for now, but may need to change later
-      //if ((obTime < startTime) or (obTime > endTime)) { 
+      //if ((obTime < startTime) or (obTime > endTime)) {
       if ((obTime < startTime) or (obTime >= endTime)) {
 				timeProblem++;
-	
-				if (timeProblem < 10) 
-				  std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
-				continue;
+
+				// if (timeProblem < 10) testing
+				//   std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
+				// continue;
       }
+			// std::cout << "timeProblem  = " << timeProblem << endl;
       int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
-      if ((fi < 0) or (fi > (int)frameVector.size())) {
-				cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
-				timeProblem++;
-				continue;
-      }
+			// std::cout << "fi = " << fi << endl;
+      // if ((fi < 0) or (fi > (int)frameVector.size())) {
+			// 	cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
+			// 	timeProblem++;
+			// 	continue;
+      // } testing
       real Um = frameVector[fi].getUmean();
       real Vm = frameVector[fi].getVmean();
 
@@ -578,9 +578,9 @@ bool VarDriver3D::preProcessMetObs()
       projection.Forward(referenceLon, metOb.getLat() , metOb.getLon() , metX, metY);
       real obX = (metX - tcX) / 1000.;
       real obY = (metY - tcY) / 1000.;
-      
+
       real heightm = metOb.getAltitude();
-      
+
       real obZ = heightm/1000.;
       real obRadius = sqrt(obX*obX + obY*obY);
       real obTheta = 180.0 * atan2(obY, obX) / Pi;
@@ -603,7 +603,7 @@ bool VarDriver3D::preProcessMetObs()
 	  domainProblem++;
 	  continue;
 	}
-	
+
 	if (obRadius == 0.0) {
 	  radiusProblem++;
 	  continue;
@@ -631,8 +631,9 @@ bool VarDriver3D::preProcessMetObs()
       }
 
       real u, v, w, rho, rhoa, qv, tempk, rhov, rhou, rhow, wspd;
+
       switch (metOb.getObType()) {
-	
+
       case (MetObs::dropsonde):
 	varOb.setType(MetObs::dropsonde);
 	u = metOb.getCartesianUwind();
@@ -657,7 +658,7 @@ bool VarDriver3D::preProcessMetObs()
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["dropsonde_rhou_error"]));
 	  obVector.push_back(varOb);
-	  
+
 	  varOb.setWeight(0., 0);
 
 	  varOb.setWeight(1., 1);
@@ -992,6 +993,55 @@ bool VarDriver3D::preProcessMetObs()
 	}
 	break;
 
+			case (MetObs::terrain):
+	{
+		varOb.setType(MetObs::terrain);
+		real dhdx = metOb.getTerrainDX();
+		real dhdy = metOb.getTerrainDY();
+		real drhoudx_coeff = -dhdx/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhoudy_coeff = -dhdy/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhoudz_coeff = 1/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+
+		real drhovdx_coeff = -dhdx/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhovdy_coeff = -dhdy/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		real drhovdz_coeff = 1/sqrt(1+dhdx*dhdx+dhdy*dhdy);
+		if (dhdy != -999) {
+		// rho u 10 m/s error
+
+// dudn = 0
+		varOb.setWeight(drhoudx_coeff, 0, 1);
+		varOb.setWeight(drhoudy_coeff, 0, 2);
+		varOb.setWeight(drhoudz_coeff, 0, 3);
+		varOb.setOb(0.0);
+		varOb.setError(std::stof(configHash["neumann_u_weight"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0.0, 0, 1);
+		varOb.setWeight(0.0, 0, 2);
+		varOb.setWeight(0.0, 0, 3);
+// dvdn = 0
+		varOb.setWeight(drhovdx_coeff, 1, 1);
+		varOb.setWeight(drhovdy_coeff, 1, 2);
+		varOb.setWeight(drhovdz_coeff, 1, 3);
+		varOb.setOb(0.0);
+		varOb.setError(std::stof(configHash["neumann_v_weight"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0.0, 1, 1);
+		varOb.setWeight(0.0, 1, 2);
+		varOb.setWeight(0.0, 1, 3);
+		// Dirichlet Boundary
+		varOb.setWeight(dhdx, 0, 0);
+		varOb.setWeight(dhdy, 1, 0);
+		varOb.setWeight(-1  , 2, 0);
+		varOb.setOb(0);
+		varOb.setError(std::stof(configHash["dirichlet_w_weight"]));
+		obVector.push_back(varOb);
+		varOb.setWeight(0.0, 0, 0); // does it need to set weight?
+		varOb.setWeight(0.0, 1, 0);
+		varOb.setWeight(0.0, 2, 0);
+		}
+	break;
+}
+
       case (MetObs::lidar):
 	{
 	  varOb.setType(MetObs::lidar);
@@ -1049,7 +1099,7 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  real wWgt = sin(el);
 	  // Restrict to horizontal component only
-	  if (configHash["horizontal_radar_appx"] == "true") 
+	  if (configHash["horizontal_radar_appx"] == "true")
 	    wWgt = 0;
 
 	  // Fall speed
@@ -1316,7 +1366,7 @@ bool VarDriver3D::preProcessMetObs()
 	  tempk = metOb.getTemperature();
 
 	  // Separate obs for each measurement
-	  
+
 	  // rho v 1 m/s error
 	  if ((u != -999) and (rho != -999)) {
 	    // rho u 1 m/s error
@@ -1380,17 +1430,385 @@ bool VarDriver3D::preProcessMetObs()
 	  }
 	  break;
 	}
+
+	case (MetObs::crsim):
+		{
+		varOb.setType(MetObs::crsim);
+
+		// Geometry terms
+		real az = metOb.getAzimuth()*Pi/180.;
+		real el = metOb.getElevation()*Pi/180.;
+		real uWgt, vWgt;
+		if (runMode == XYZ) {
+			uWgt = sin(az)*cos(el);
+			vWgt = cos(az)*cos(el);
+		} else if (runMode == RTZ) {
+			uWgt = (obX*sin(az)*cos(el) + obY*cos(az)*cos(el))/obRadius;
+			vWgt = (obX*cos(az)*cos(el) - obY*sin(az)*cos(el))/obRadius;
+		}
+		real wWgt = sin(el);
+		// Restrict to horizontal component only
+		if (configHash["horizontal_radar_appx"] == "true")
+			wWgt = 0;
+
+		// Fall speed
+		real Z = metOb.getReflectivity();
+		real w_term = 0.0;
+		real ZZ = -999.0;
+		if (Z > -999.0) {
+			real H = metOb.getAltitude();
+			ZZ=pow(10.0,(Z*0.1));
+			real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+			real hlow= zeroClevel;
+			real hhi= hlow + melting_zone;
+
+			/* density correction term (rhoo/rho)*0.45
+				 0.45 density correction from Beard (1985, JOAT pp 468-471) */
+			real rho = refstate->getReferenceVariable(ReferenceVariable::rhoref, H);
+			real rhosfc = refstate->getReferenceVariable(ReferenceVariable::rhoref, 0.);
+			real DCOR = pow((rhosfc/rho),(real)0.45);
+
+			// The snow relationship (Atlas et al., 1973) --- VT=0.817*Z**0.063  (m/s)
+			real VTS=-DCOR * (0.817*pow(ZZ,(real)0.063));
+
+			// The rain relationship (Joss and Waldvogel,1971) --- VT=2.6*Z**.107 (m/s) */
+			real VTR=-DCOR * (2.6*pow(ZZ,(real).107));
+
+			/* Test if height is in the transition region between SNOW and RAIN
+				 defined as hlow in km < H < hhi in km
+				 if in the transition region do a linear weight of VTR and VTS */
+			real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+			real rain_dbz = std::stof(configHash["rain_dbz"]);
+			if ((Z > mixed_dbz) and
+		(Z <= rain_dbz)) {
+				real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+				real WEIGHTS=1.-WEIGHTR;
+				VTS=(VTR*WEIGHTR+VTS*WEIGHTS)/(WEIGHTR+WEIGHTS);
+			} else if (Z > rain_dbz) {
+				VTS=VTR;
+			}
+			w_term=VTR*(hhi-H)/melting_zone + VTS*(H-hlow)/melting_zone;
+			if (H < hlow) w_term=VTR;
+			if (H > hhi) w_term=VTS;
+		}
+		real VR = metOb.getRadialVelocity();
+		if (VR != -999.0) {
+			real Vdopp = metOb.getRadialVelocity() - w_term*sin(el) - Um*sin(az)*cos(el) - Vm*cos(az)*cos(el);
+
+			varOb.setWeight(uWgt, 0);
+			varOb.setWeight(vWgt, 1);
+			varOb.setWeight(wWgt, 2);
+
+			/* Theoretically, rhoPrime could be included as a prognostic variable here...
+				 However, adding another unknown without an extra equation makes the problem even more underdetermined
+				 so assume it is small and ignore it
+				 real rhopWgt = -Vdopp;
+				 varOb.setWeight(rhopWgt, 5); */
+
+			// Set the error according to the spectrum width and potential fall speed error (assume 2 m/s?)
+			real DopplerError = fabs(wWgt)*std::stof(configHash["radar_fallspeed_error"]);
+			if (DopplerError < std::stof(configHash["radar_min_error"]))
+				DopplerError = std::stof(configHash["radar_min_error"]);
+			varOb.setError(DopplerError);
+			varOb.setOb(Vdopp);
+
+			real maxel;
+			if (configHash.exists("max_radar_elevation") == false) {
+				 maxel = 90.0;
+			} else {
+				 maxel = std::stof(configHash["max_radar_elevation"]);
+			 }
+			if (fabs(metOb.getElevation() <= maxel))
+				obVector.push_back(varOb);
+
+			varOb.setWeight(0., 0);
+			varOb.setWeight(0., 1);
+			varOb.setWeight(0., 2);
+		}
+
+		// Reflectivity observations
+		std::string gridref = configHash["qr_variable"];
+		real qr = 0.;
+		if (ZZ > 0) {
+			if (gridref == "qr") {
+				// Do the gridding as part of the variational synthesis using Z-M relationships
+				// Z-M relationships from Gamache et al (1993) JAS
+				real H = metOb.getAltitude();
+				real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+				real hlow= zeroClevel;
+				real hhi= hlow + melting_zone;
+				real rainmass = pow(ZZ/14630.,(real)0.6905);
+				real icemass = pow(ZZ/670.,(real)0.5587);
+				real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+				real rain_dbz = std::stof(configHash["rain_dbz"]);
+				if ((Z > mixed_dbz) and
+			(Z <= rain_dbz)) {
+		real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+		real WEIGHTS=1.-WEIGHTR;
+		icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
+				} else if (Z > 30) {
+		icemass=rainmass;
+				}
+
+				real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
+				if (H < hlow) precipmass = rainmass;
+				if (H > hhi) precipmass = icemass;
+				qr = refstate->bhypTransform(precipmass/rhoBar);
+
+				//Include an observation of this quantity in the variational synthesis
+				varOb.setOb(qr);
+				varOb.setWeight(1., 6);
+				varOb.setError(1.0);
+				obVector.push_back(varOb);
+
+			} else if (gridref == "dbz") {
+				qr = ZZ;
+				/* Include an observation of this quantity in the variational synthesis
+		 varOb.setOb(qr);
+		 varOb.setWeight(1., 6);
+		 varOb.setError(1.0);
+		 obVector.push_back(varOb); */
+
+			}
+
+			// Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+			real iROI = std::stof(configHash["i_reflectivity_roi"]) / iincr;
+			real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
+			real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
+			real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+		#pragma omp parallel for
+			for (int ki = 0; ki < (kdim-1); ki++) {
+				for (int kmu = -1; kmu <= 1; kmu += 2) {
+		real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+		if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+		for (int ii = 0; ii < (idim-1); ii++) {
+			for (int imu = -1; imu <= 1; imu += 2) {
+				real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+				if (runMode == XYZ) {
+					if (fabs(iPos-obX) > iincr*iROI*2.) continue;
+				} else if (runMode == RTZ) {
+					if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
+				}
+				for (int ji = 0; ji < (jdim-1); ji++) {
+					for (int jmu = -1; jmu <= 1; jmu += 2) {
+			real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+			real rSquare = 0.0;
+			if (runMode == XYZ) {
+				if (fabs(jPos-obY) > jincr*jROI*2.) continue;
+				rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+			} else if (runMode == RTZ) {
+				real dTheta = fabs(jPos-obTheta);
+				if (dTheta > 360.) dTheta -= 360.;
+				if (dTheta > jincr*jROI*2.) continue;
+				rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
+			}
+			// Add one extra index to account for buffer zone in analysis
+			int bgI = (ii+1)*2 + (imu+1)/2;
+			int bgJ = (ji+1)*2 + (jmu+1)/2;
+			int bgK = (ki+1)*2 + (kmu+1)/2;
+			int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+			if (rSquare < Rsquare) {
+				real weight = exp(-2.302585092994045*rSquare/Rsquare);
+				//real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+				//if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
+				bgU[bIndex +6] += weight*qr;
+				bgWeights[bIndex] += weight;
+			}
+					}
+				}
+			}
+		}
+				}
+			}
+		}
+		break;
+		}
+
+	case(MetObs::model):
+			varOb.setType(MetObs::model);
+			u = metOb.getZonalVelocity();
+			v = metOb.getMeridionalVelocity();
+			w = metOb.getVerticalVelocity();
+			rho = metOb.getModelMoistDensity();
+			rhoa = metOb.getModelAirDensity();
+			qv = metOb.getModelQv();
+			tempk = metOb.getTemperature();
+			real Z = metOb.getReflectivity();
+			real ZZ=pow(10.0,(Z*0.1));
+
+			// Separate obs for each measurement
+
+		  // rho v 1 m/s error
+		  if ((u != -999) and (rho != -999)) {
+		    // rho u 1 m/s error
+		    varOb.setWeight(1., 0);
+		    if (runMode == XYZ) {
+		      rhou = rho*(u - Um);
+		    } else if (runMode == RTZ) {
+		      rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
+		    }
+		    varOb.setOb(rhou);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 0);
+
+		    varOb.setWeight(1., 1);
+		    if (runMode == XYZ) {
+		      rhov = rho*(v - Vm);
+		    } else if (runMode == RTZ) {
+		      rhov = rho*(-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+		    }
+		    varOb.setOb(rhov);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 1);
+
+		  }
+		  if ((w != -999) and (rho != -999)) {
+		    // rho w 1.5 m/s error
+		    varOb.setWeight(1., 2);
+		    rhow = rho*w;
+		    varOb.setOb(rhow);
+		    varOb.setError(1);
+		    obVector.push_back(varOb);
+		    varOb.setWeight(0., 2);
+		  }
+
+			if (tempk != -999) {
+				// temperature 1 K error
+				varOb.setWeight(1., 3);
+				varOb.setOb(tempk - tBar);
+				varOb.setError(std::stof(configHash["aeri_tempk_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 3);
+			}
+			if (qv != -999) {
+				// Qv 0.5 g/kg error
+				varOb.setWeight(1., 4);
+				qv = refstate->bhypTransform(qv);
+				varOb.setOb(qv-qBar);
+				varOb.setError(std::stof(configHash["aeri_qv_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 4);
+			}
+			if (rhoa != -999) {
+				// Rho prime .1 kg/m^3 error
+				varOb.setWeight(1., 5);
+				varOb.setOb((rhoa-rhoBar)*100);
+				varOb.setError(std::stof(configHash["aeri_rhoa_error"]));
+				obVector.push_back(varOb);
+				varOb.setWeight(0., 5);
+			}
+
+			// Reflectivity observations
+		  std::string gridref = configHash["qr_variable"];
+		  real qr = 0.;
+		  if (ZZ > 0) {
+		    if (gridref == "qr") {
+		      // Do the gridding as part of the variational synthesis using Z-M relationships
+		      // Z-M relationships from Gamache et al (1993) JAS
+		      real H = metOb.getAltitude();
+		      real melting_zone = 1000 * std::stof(configHash["melting_zone_width"]);
+		      real hlow= zeroClevel;
+		      real hhi= hlow + melting_zone;
+		      real rainmass = pow(ZZ/14630.,(real)0.6905);
+		      real icemass = pow(ZZ/670.,(real)0.5587);
+		      real mixed_dbz = std::stof(configHash["mixed_phase_dbz"]);
+		      real rain_dbz = std::stof(configHash["rain_dbz"]);
+		      if ((Z > mixed_dbz) and
+			  (Z <= rain_dbz)) {
+			real WEIGHTR=(Z-mixed_dbz)/(rain_dbz - mixed_dbz);
+			real WEIGHTS=1.-WEIGHTR;
+			icemass=(rainmass*WEIGHTR+icemass*WEIGHTS)/(WEIGHTR+WEIGHTS);
+		      } else if (Z > 30) {
+			icemass=rainmass;
+		      }
+
+		      real precipmass = rainmass*(hhi-H)/melting_zone + icemass*(H-hlow)/melting_zone;
+		      if (H < hlow) precipmass = rainmass;
+		      if (H > hhi) precipmass = icemass;
+		      qr = refstate->bhypTransform(precipmass/rhoBar);
+
+		      //Include an observation of this quantity in the variational synthesis
+		      varOb.setOb(qr);
+		      varOb.setWeight(1., 6);
+		      varOb.setError(1.0);
+		      obVector.push_back(varOb);
+
+		    } else if (gridref == "dbz") {
+		      qr = ZZ;
+		      /* Include an observation of this quantity in the variational synthesis
+			 varOb.setOb(qr);
+			 varOb.setWeight(1., 6);
+			 varOb.setError(1.0);
+			 obVector.push_back(varOb); */
+
+		    }
+
+		    // Do a Exponential & power weighted interpolation of the reflectivity/qr in a grid box
+		    real iROI = std::stof(configHash["i_reflectivity_roi"]) / iincr;
+		    real jROI = std::stof(configHash["j_reflectivity_roi"]) / jincr;
+		    real kROI = std::stof(configHash["k_reflectivity_roi"]) / kincr;
+		    real Rsquare = (iincr*iROI)*(iincr*iROI) + (jincr*jROI)*(jincr*jROI) + (kincr*kROI)*(kincr*kROI);
+	#pragma omp parallel for
+		    for (int ki = 0; ki < (kdim-1); ki++) {
+		      for (int kmu = -1; kmu <= 1; kmu += 2) {
+			real kPos = kmin + kincr * (ki + (0.5*sqrt(1./3.) * kmu + 0.5));
+			if (fabs(kPos-obZ) > kincr*kROI*2.) continue;
+			for (int ii = 0; ii < (idim-1); ii++) {
+			  for (int imu = -1; imu <= 1; imu += 2) {
+			    real iPos = imin + iincr * (ii + (0.5*sqrt(1./3.) * imu + 0.5));
+			    if (runMode == XYZ) {
+			      if (fabs(iPos-obX) > iincr*iROI*2.) continue;
+			    } else if (runMode == RTZ) {
+			      if (fabs(iPos-obRadius) > iincr*iROI*2.) continue;
+			    }
+			    for (int ji = 0; ji < (jdim-1); ji++) {
+			      for (int jmu = -1; jmu <= 1; jmu += 2) {
+				real jPos = jmin + jincr * (ji + (0.5*sqrt(1./3.) * jmu + 0.5));
+				real rSquare = 0.0;
+				if (runMode == XYZ) {
+				  if (fabs(jPos-obY) > jincr*jROI*2.) continue;
+				  rSquare = (obX-iPos)*(obX-iPos) + (obY-jPos)*(obY-jPos) + (obZ-kPos)*(obZ-kPos);
+				} else if (runMode == RTZ) {
+				  real dTheta = fabs(jPos-obTheta);
+				  if (dTheta > 360.) dTheta -= 360.;
+				  if (dTheta > jincr*jROI*2.) continue;
+				  rSquare = (obRadius-iPos)*(obRadius-iPos) + (dTheta)*(dTheta) + (obZ-kPos)*(obZ-kPos);
+				}
+				// Add one extra index to account for buffer zone in analysis
+				int bgI = (ii+1)*2 + (imu+1)/2;
+				int bgJ = (ji+1)*2 + (jmu+1)/2;
+				int bgK = (ki+1)*2 + (kmu+1)/2;
+				int64_t bIndex = numVars*(idim+1)*2*(jdim+1)*2*bgK + numVars*(idim+1)*2*bgJ +numVars*bgI;
+				if (rSquare < Rsquare) {
+				  real weight = exp(-2.302585092994045*rSquare/Rsquare);
+				  //real weight = (Rsquare - rSquare)/(Rsquare + rSquare);
+				  //if (qr > bgU[bIndex +6]) bgU[bIndex +6] = qr;
+				  bgU[bIndex +6] += weight*qr;
+				  bgWeights[bIndex] += weight;
+				}
+			      }
+			    }
+			  }
+			}
+		      }
+		    }
+		  }
+
+		break;
+
       }
 
     } // for everything in metData
 
     // Show a summary of what got tossed out
-    
+
     cout << "Observation problem: " << obsProblem << ", Time problem: " << timeProblem
 	 << ", Coordinate problem: " <<  coordProblem << ", Domain problem: " << domainProblem
 	 << ", Radius problem: " << radiusProblem << endl;
     std::cout << "obVector size: " << obVector.size() << std::endl;
-    
+
     int newobs = obVector.size() - prevobs;
     // if (metData->size() > 0) {
     if (newobs > 0) {
@@ -1405,11 +1823,17 @@ bool VarDriver3D::preProcessMetObs()
   delete metData;
 
   // Finish reflectivity interpolation
-  
+
   Observation varOb;
   varOb.setTime(std::stoi(configHash["ref_time"]));
   real pseudow_weight = std::stof(configHash["dbz_pseudow_weight"]);
   real mc_weight = std::stof(configHash["mc_weight"]);
+
+	// Initialize a MetObs for terrain
+// 	std::vector<MetObs>* terrainData = new std::vector<MetObs>;
+	std::string fullpath = dataPath + "/" + "terrain.hgt";
+    std::ifstream terrainFile(fullpath);
+
   // Initialize the weights
   for (unsigned int var = 0; var < numVars; ++var) {
     for (unsigned int d = 0; d < numDerivatives; ++d) {
@@ -1502,13 +1926,16 @@ bool VarDriver3D::preProcessMetObs()
 		  varOb.setAltitude(maxrefHeight);
 		  obVector.push_back(varOb);
 		}
+    
+		// // Set a lower boundary condition for W
+		// // Ideally use a terrain map here, but just use Z=0 for now
+        
+		if ((pseudow_weight > 0.0) and (!terrainFile.is_open())) {
+			std::cout << "No input terrain file ... setting the lower boundary z = 0" <<std::endl;
+			varOb.setAltitude(0);
+			varOb.setError(pseudow_weight);
+			obVector.push_back(varOb);
 
-		// Set a lower boundary condition for W
-		// Ideally use a terrain map here, but just use Z=0 for now
-		if (pseudow_weight > 0.0) {
-		  varOb.setAltitude(0.0);
-		  varOb.setError(pseudow_weight);
-		  obVector.push_back(varOb);
 		}
 	      }
 	      varOb.setWeight(0., 2);
@@ -1571,7 +1998,7 @@ bool VarDriver3D::preProcessMetObs()
     obstream << endl;
   }
   GPTLstop("VarDriver3D::preprocessMetObs->writeobs");
-#endif 
+#endif
 
   // Load the observations into a vector
   int64_t vector_size = (obVector.size() * (7 + numVars * numDerivatives));
@@ -1698,6 +2125,7 @@ bool VarDriver3D::loadPreProcessMetObs()
 // Background Observations can come from
 // - a samurai_Background.in file,
 // - a FRACTL generated netcdf file
+// - a WRF netcdf flie
 // - from passed arguments to the run() function.
 
 int VarDriver3D::loadBackgroundObs()
@@ -1710,12 +2138,12 @@ int VarDriver3D::loadBackgroundObs()
 
   // Get a background obs loader to load the background observations
   // Default is Spline.
-  
+
   BkgdObsLoader::bg_loader_t loaderType =  BkgdObsLoader::BG_LOADER_SPLINE;
   if (configHash["bkgd_obs_interpolation"] == "kd_tree")
     loaderType = BkgdObsLoader::BG_LOADER_KD;
   else if (configHash["bkgd_obs_interpolation"] == "fractl")
-    loaderType = BkgdObsLoader::BG_LOADER_FRACTL;  
+    loaderType = BkgdObsLoader::BG_LOADER_FRACTL;
   BkgdObsLoader *bkgdObsLoader = BkgdObsLoaderFactory::createBkgdObsLoader(loaderType);
   if (bkgdObsLoader == NULL)
     return -1;
@@ -1725,10 +2153,10 @@ int VarDriver3D::loadBackgroundObs()
 			    numVars,
 			    idim, jdim, kdim,
 			    imin, jmin, kmin,
-			    imax, jmax, kmax,			    
+			    imax, jmax, kmax,
 			    iincr, jincr, kincr);
 
-  
+
   if (! bkgdObsLoader->loadBkgdObs(bgIn)) {
     std::cerr << "Failed to load background observations" << std::endl;
     return -1;
@@ -1743,7 +2171,7 @@ bool VarDriver3D::adjustBackground()
   // to avoid artifacts when running interpolating to small mesoscale grids
 
   START_TIMER(timeab);
-  
+
   // Load the observations into a vector
   int numbgObs = bgIn.size() * 7 / 11;
   if (std::stof(configHash["mc_weight"]) > 0) {
@@ -1875,9 +2303,9 @@ bool VarDriver3D::adjustBackground()
   configHash.update("bg_rhoa_error", bg_interpolation_error);
   configHash.update("bg_qr_error", bg_interpolation_error);
   configHash.update("save_mish", "true");
-  
+
   // Adjust the background field to the spline mish
-  
+
   if (runMode == XYZ) {
     if (std::stof(configHash["output_pressure_increment"]) > 0) {
       bgCost3D = new CostFunctionXYP(projection, numbgObs, bStateSize);
@@ -1888,11 +2316,11 @@ bool VarDriver3D::adjustBackground()
     bgCost3D = new CostFunctionRTZ(projection, numbgObs, bStateSize);
   }
   bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
-  
-  // Set the iteration to zero -- 
+
+  // Set the iteration to zero --
   // this will prevent writing the background file until after the adjustment
   // which is presumably what you want most of the time. Otherwise, you would not be here
-  
+
   int bgIter = 1;
   bgCost3D->initState(bgIter);
   bgCost3D->minimize();
@@ -1905,7 +2333,7 @@ bool VarDriver3D::adjustBackground()
   delete[] bgObs;
 
   // Reset the background errors
-  
+
   configHash.update("bg_rhou_error", bgError[0]);
   configHash.update("bg_rhov_error", bgError[1]);
   configHash.update("bg_rhow_error", bgError[2]);
@@ -1916,7 +2344,7 @@ bool VarDriver3D::adjustBackground()
   configHash.update("save_mish", "false");
 
   // Convert the dBZ back to Z for further processing
-  
+
   if (configHash["qr_variable"] == "dbz") {
     for (int ki = -1; ki < (kdim); ki++) {
       for (int kmu = -1; kmu <= 1; kmu += 2) {
@@ -1940,7 +2368,7 @@ bool VarDriver3D::adjustBackground()
     }
   }
   PRINT_TIMER("adjustBackground", timeab);
-  
+
   return true;
 }
 
@@ -2089,17 +2517,17 @@ bool VarDriver3D::validateConfig()
 
     if ( configHash.exists("bkgd_obs_interpolation") == false)
       configHash.insert("bkgd_obs_interpolation", "spline");
-    
+
     if ( configHash.exists("bkgd_kd_num_neighbors") == false)
       configHash.insert("bkgd_kd_num_neighbors", "6");
-    
+
     if ( configHash.exists("bkgd_kd_max_distance") == false) {
       // TODO What should the default max distance for a nearest neighbor be?
       configHash.insert("bkgd_kd_max_distance", "100");
     }
 
     // All done
-    
+
     return true;
 }
 
@@ -2109,7 +2537,7 @@ bool VarDriver3D::loadBackgroundCoeffs()
 	cout << "Loading previous coefficients from samurai_Coefficients.in" << endl;
 
 	std::ifstream bgFile(dataPath + "/samurai_Coefficients.in");
-	if (!bgFile.is_open()) 
+	if (!bgFile.is_open())
 		return false;
 
 	int numbgCoeffs = 0;
@@ -2151,11 +2579,11 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
 				  float *sigmas)
 {
   // Grid specs
-  
+
   imin = i_min;
   imax = i_max;
   iincr = i_incr;
-  
+
   jmin = j_min;
   jmax = j_max;
   jincr = j_incr;
@@ -2165,15 +2593,15 @@ bool VarDriver3D::validateRunGrid(float n_x, float n_y, float n_z,
   // kmax = sigmas[0] / 1000;	// do we ned to round this up?
   kmax = *std::max_element(sigmas, sigmas + (int) n_z) / 1000;
   kincr = 0.5;
-  
+
   // Array dimensions
-  
+
   idim = n_x;
   jdim = n_y;
   kdim = n_z;
 
   sigmaTable = sigmas;
-  
+
   return validateGrid();
 }
 
@@ -2182,10 +2610,10 @@ bool VarDriver3D::validateFractlGrid()
   // Need to read grid from fractl file.
   Nc3Error err(Nc3Error::verbose_nonfatal);
   std::string fname = configHash["fractl_nc_file"];
-  
+
    // Open the file.
   Nc3File dataFile(fname.c_str(), Nc3File::ReadOnly);
-   
+
    // Check to see if the file was opened.
    if(!dataFile.is_valid()) {
      std::cout << "Failed to read FRACTL generated nc file " << fname << std::endl;
@@ -2218,7 +2646,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_kdim = dataFile.get_att("sam_kdim");
    if (! sam_kdim)
      return false;
-   
+
    Nc3Att *sam_imin = dataFile.get_att("sam_imin");
    if (! sam_imin)
      return false;
@@ -2228,7 +2656,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_iincr = dataFile.get_att("sam_iincr");
    if (! sam_iincr)
      return false;
-   
+
    Nc3Att *sam_jmin = dataFile.get_att("sam_jmin");
    if (! sam_jmin)
      return false;
@@ -2238,7 +2666,7 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_jincr = dataFile.get_att("sam_jincr");
    if (! sam_jincr)
      return false;
-   
+
    Nc3Att *sam_kmin = dataFile.get_att("sam_kmin");
    if (! sam_kmin)
      return false;
@@ -2248,16 +2676,16 @@ bool VarDriver3D::validateFractlGrid()
    Nc3Att *sam_kincr = dataFile.get_att("sam_kincr");
    if (! sam_kincr)
      return false;
-   
+
    // long ntime = timeDim->size();
    long nz0 = z0Dim->size();
    long ny0 = y0Dim->size();
-   long nx0 = x0Dim->size();   
+   long nx0 = x0Dim->size();
 
    Nc3Var *z0 = dataFile.get_var("z0");
    if (! z0)
      return false;
-   
+
    Nc3Var *y0 = dataFile.get_var("y0");
    if (! y0)
      return false;
@@ -2266,7 +2694,7 @@ bool VarDriver3D::validateFractlGrid()
      return false;
 
    double *xs = new double[nx0];
-   double *ys = new double[ny0];   
+   double *ys = new double[ny0];
    double *zs = new double[nz0];
 
    bool success = true;
@@ -2291,20 +2719,20 @@ bool VarDriver3D::validateFractlGrid()
    if (success) {
      idim = sam_idim->as_long(0);
      jdim = sam_jdim->as_long(0);
-     kdim = sam_kdim->as_long(0);     
-     
+     kdim = sam_kdim->as_long(0);
+
      imin  = sam_imin->as_double(0);
      imax  = sam_imax->as_double(0);
      iincr = sam_iincr->as_double(0);
-     
+
      jmin  = sam_jmin->as_double(0);
      jmax  = sam_jmax->as_double(0);
      jincr = sam_jincr->as_double(0);
-     
+
      kmin  = sam_kmin->as_double(0);
      kmax  = sam_kmax->as_double(0);
      kincr = sam_kincr->as_double(0);
-     
+
      // TODO Do we need to read in the sigmas?
 
      // CostFunction3D reads grid dims from the configHash
@@ -2321,7 +2749,7 @@ bool VarDriver3D::validateFractlGrid()
 
      success = validateGrid();
    }
-   
+
    delete[] xs;
    delete[] ys;
    delete[] zs;
@@ -2340,11 +2768,11 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   // Compute ref_time
   // NCAR - question for CSU - do we deal with time zones other than UTC?  That was specified in the original file (Qt::UTC)
   std::string tString;
-  datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter); 
+  datetime cDateTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter);
 
   configHash.insert("ref_time", PrintTime(cDateTime));
   configHash.insert("ref_lat",  std::to_string(lat));
-  configHash.insert("ref_lat",  std::to_string(lon));  
+  configHash.insert("ref_lat",  std::to_string(lon));
 
   // create 6 "centers" centered around the ref time, at 1 second intervals
 
@@ -2352,9 +2780,9 @@ void VarDriver3D::fillRunCenters(char *cdtg, int delta, int iter, float lat, flo
   for(int delta2 = -2; delta2 <= 2; delta2 += 1) {
     datetime tTime = ParseDate(cdtg, "%Y%m%d%H") + std::chrono::seconds(delta * iter) + std::chrono::seconds(delta2);
     frameVector.push_back(FrameCenter(tTime, lat, lon, zero, zero));
-  }    
+  }
 }
-		      
+
 // fill up variables from the config hash  and call the common validateGrid()
 
 bool VarDriver3D::validateFixedGrid()
@@ -2374,7 +2802,7 @@ bool VarDriver3D::validateFixedGrid()
   kmax = std::stof(configHash["k_max"]);
   kincr = std::stof(configHash["k_incr"]);
   kdim = (int)((kmax - kmin)/kincr) + 1;
-  
+
   return validateGrid();
 }
 
@@ -2382,7 +2810,7 @@ bool VarDriver3D::validateGrid()
 {
   // The recursive filter uses a fourth order stencil to spread the observations,
   // so less than 4 gridpoints will cause a memory fault
-  
+
   if (idim < 4) {
     cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
     return false;
@@ -2412,15 +2840,16 @@ bool VarDriver3D::loadMetObs()
   // Either preprocess from raw observations or load an already processed Observations.in file
 
   std::string preprocess = configHash["preprocess_obs"];
-  if (preprocess == "true") {
+  if (preprocess == "true") { // it should be true, testing
     bgWeights = new real[uStateSize];
     bool success = preProcessMetObs();
     delete[] bgWeights;
-    
+
     if (! success) {
       cout << "Error pre-processing observations\n";
       return false;
     }
+
   } else {
     if (!loadPreProcessMetObs()) {
       cout << "Error loading observations\n";
@@ -2453,7 +2882,7 @@ bool VarDriver3D::initObCost3D()
   } else if (runMode == RTZ) {
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }
- 
+
   obCost3D->initialize(&configHash, bgU, obs, refstate);
   return true;
 }
@@ -2467,7 +2896,7 @@ void VarDriver3D::dumpBgu()
       std::cout << std::endl;
     std::cout << bgU[i] << " ";
   }
-  std::cout << std::endl << "------ Done with bgU dump -----";  
+  std::cout << std::endl << "------ Done with bgU dump -----";
 }
 
 void VarDriver3D::dumpBgIn()
@@ -2478,5 +2907,5 @@ void VarDriver3D::dumpBgIn()
      std::cout << std::endl;
    std::cout << bgIn[i] << " ";
  }
- std::cout << std::endl << "------ Done with bgIn dump -----";   
+ std::cout << std::endl << "------ Done with bgIn dump -----";
 }

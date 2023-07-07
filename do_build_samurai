@@ -24,8 +24,8 @@ function usage() {
 
 scriptName=$(basename $0)
 debug=false
-prefix=/usr/local/lrose
-lrose_install_dir=/usr/local/lrose
+prefix=/bell-scratch/mmbell/community
+LROSE_INSTALL_DIR=/bell-scratch/mmbell/community
 do_install=false
 use_cmake3=false
 
@@ -43,7 +43,7 @@ while getopts hdi3p:l: OPT; do
             prefix=$OPTARG
             ;;
         l)
-            lrose_install_dir=$OPTARG
+            LROSE_INSTALL_DIR=$OPTARG
             ;;
         i)
             do_install=true
@@ -62,10 +62,10 @@ done
 
 echo "===>> Building samurai <<==="
 echo "      prefix: $prefix"
-echo "      lrose_install_dir: $lrose_install_dir"
+echo "      lrose_install_dir: $LROSE_INSTALL_DIR"
 echo "      do_install: $do_install"
 
-export LROSE_ROOT_DIR=$lrose_install_dir
+export LROSE_ROOT_DIR=$LROSE_INSTALL_DIR
 
 # clean up
 
