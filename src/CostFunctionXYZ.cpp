@@ -57,7 +57,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 	ReadTerrain terrain;
     std::ifstream terrainFile(fullpath);
 	if (!terrainFile.is_open()) {
-		cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
+	// comment out the error message	cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
 		terrain_height.push_back(0);
 		// return false;
 	} else {
@@ -353,7 +353,7 @@ bool CostFunctionXYZ::SItransform(size_t numVars, double *finalAnalysis, double 
 		    if (refmask != "None") {
 		      real refthreshold = std::stof(refmask);
 					if (!terrainFile.is_open()) {
-                cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
+              // comment out the error message  cout << "No terrain file to read in CostFunctionXYZ.cpp ..." << endl;
                     terrain_index = 0;}
 					else {
 
