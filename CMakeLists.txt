@@ -9,7 +9,7 @@ project(samurai)
 set(MODE CPU)
 
 # Standard: Options are 'Debug' or 'Release'
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 # max iterations in the solver(src/CostFunction.cpp) default=2000
 set(SOLVER_MAXITER 2000)
@@ -72,7 +72,7 @@ if(MODE STREQUAL "GPU")
   endif()
 else()
   # For CPU versions(required; run with 1 thread if we want serial times)  
-  find_package(OpenMP REQUIRED)
+  #find_package(OpenMP REQUIRED)
   find_package(FFTW REQUIRED)
   # set(ADDITIONAL_FLAGS "-pg") 
 endif()

@@ -56,6 +56,7 @@ VarDriver::VarDriver()
 	dataSuffix["hgt"] = terrain;
 	dataSuffix["txt"] = model;
 	dataSuffix["rf"] = crsim;
+    dataSuffix["list"] = hrdradial;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -318,6 +319,12 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
 	    return false;
 	  }
 	    break;
+  case(hrdradial):
+    if (!read_hrdradial(metFile, metData)) {
+      cout << "Error reading hrd radial file" << endl;
+      return false;
+    }
+      break;
 
   default:
     cout << "Unknown data type, skipping..." << endl;
@@ -2650,4 +2657,93 @@ bool VarDriver::read_crsim(std::string& filename, std::vector<MetObs>* metObVect
 	std::cout << "Successfully read the crsim file" << std::endl;
   metFile.close();
   return true;
+}
+
+bool VarDriver::read_hrdradial(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
+    return false;
+    }
+    MetObs ob;
+    std::string line;
+
+    // These lines are not needed data, but must be read through
+    std::getline(metFile, line); // Date
+    std::getline(metFile, line); // Aircraft number NXXRF (42, 43, or 49)
+    std::getline(metFile, line); // Storm number
+    
+    std::getline(metFile, line); // How many radial bins
+    int num_gates = std::stoi(line);
+    
+    std::getline(metFile, line); // The radius of the first bin
+    real radius_first_bin = std::stof(line);
+
+    std::getline(metFile, line); // The radial resolution of the data
+    real range_bin_resolution = std::stof(line);
+    
+    std::getline(metFile, line); // Octal for type of data.
+    std::getline(metFile, line); // Type of antenna.
+    
+    /* Epoch time, aircraft latitude, aircraft longitude,
+     aircraft altitude (m), mathematical earth-relative azimuth of
+     pointing angle (0 east, 90 north, 180 west, 270 south),
+     earth-relative elevation angle */
+    std::string radial;
+    while (std::getline(metFile, radial)) {
+        auto header = LineSplit(radial, ' ');
+        std::time_t tt = std::stof(header[0]);
+        std::gmtime(&tt);
+        datetime datetime_ = std::chrono::system_clock::from_time_t(tt);
+        real radarLat = std::stof(header[1]);
+        real radarLon = std::stof(header[2]);
+        real radarAlt = std::stof(header[3]);
+        real az = 90.0 - std::stof(header[4]);
+        real el = std::stof(header[5]);
+        
+        int num_lines = num_gates / 10;
+        if ( num_gates % 10 ) {
+            num_lines += 1;
+        }
+        real range = radius_first_bin;
+        for (size_t idx = 0; idx < num_lines; idx++) {
+            std::getline(metFile, line);
+            auto parts = LineSplit(line, ' ');
+            std::vector<std::string>::iterator ptr;
+            for (ptr = parts.begin(); ptr < parts.end(); ptr++) {
+                real vr = std::stof(*ptr);
+                range += range_bin_resolution;
+                if (vr != -8888.0) {
+                    real vr_scale = vr / 10.0;
+                    real relX = range * sin(az * Pi / 180.0) * cos(el * Pi / 180.0);
+                    real relY = range * cos(az * Pi / 180.0) * cos(el * Pi / 180.0);
+                    real rEarth = 6371000.0;
+                    
+                    // Take into account curvature of the earth for the height of the radar beam
+                    real relZ = sqrt(range * range + rEarth * rEarth + 2.0 * range
+                                     * rEarth * sin(el * Pi / 180.0)) - rEarth;
+                    
+                    real radarX, radarY, gateLat, gateLon;
+                    projection.Forward(radarLon, radarLat, radarLon, radarX, radarY);
+                    projection.Reverse(radarLon, radarX + relX, radarY + relY, gateLat, gateLon);
+                    real gateAlt = relZ + radarAlt;
+                    
+                    ob.setTime(datetime_);
+                    ob.setLat(gateLat);
+                    ob.setLon(gateLon);
+                    ob.setAltitude(gateAlt);
+                    ob.setAzimuth(az);
+                    ob.setElevation(el);
+                    ob.setRadialVelocity(vr_scale);
+                    // Set a fake reflectivity
+                    ob.setReflectivity(10.0);
+                    ob.setObType(MetObs::radar);
+                    metObVector->push_back(ob);
+                }
+            }
+        }
+    }
+    std::cout << "Successfully read the hrd radial file" << std::endl;
+    metFile.close();
+    return true;
 }
