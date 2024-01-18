@@ -57,6 +57,7 @@ VarDriver::VarDriver()
 	dataSuffix["txt"] = model;
 	dataSuffix["rf"] = crsim;
     dataSuffix["list"] = hrdradial;
+    dataSuffix["hdob"] = hdob;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -325,7 +326,12 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
       return false;
     }
       break;
-
+  case(hdob):
+    if (!read_hdobs(metFile, metData)) {
+      cout << "Error reading hdob file" << endl;
+      return false;
+    }
+      break;
   default:
     cout << "Unknown data type, skipping..." << endl;
     return false;
@@ -2744,6 +2750,158 @@ bool VarDriver::read_hrdradial(std::string& filename, std::vector<MetObs>* metOb
         }
     }
     std::cout << "Successfully read the hrd radial file" << std::endl;
+    metFile.close();
+    return true;
+}
+
+bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
+    return false;
+    }
+    MetObs ob;
+    std::string line;
+
+    // These lines are not needed data, but must be read through
+    std::getline(metFile, line); // Blank
+    std::getline(metFile, line); // Not sure what this is
+    std::getline(metFile, line); // HDOB header
+    
+    std::getline(metFile, line); // Storm, aircraft, and date info
+    auto header = LineSplit(line, ' ');
+    string date = header[5];
+    int year = std::stoi(date.substr(0,4));
+    int mon = std::stoi(date.substr(4,2));
+    int day = std::stoi(date.substr(6,2));
+    
+    std::string hdob;
+    while (std::getline(metFile, hdob)) {
+        if (hdob.empty()) {
+            break;
+        }
+        if (hdob.compare("$$") == 0) {
+            break;
+        }
+        auto obdata = LineSplit(hdob, ' ');
+        string obtime = obdata[0];
+        int hr = std::stoi(obtime.substr(0,2));
+        int min = std::stoi(obtime.substr(2,2));
+        int sec = std::stoi(obtime.substr(4,2));
+        
+        std::time_t tt;
+        time ( &tt );
+        struct tm *timeinfo;
+        timeinfo = gmtime ( &tt );
+        timeinfo->tm_year = year - 1900;
+        timeinfo->tm_mon = mon - 1;
+        timeinfo->tm_mday = day;
+        timeinfo->tm_hour = hr;
+        timeinfo->tm_min = min;
+        timeinfo->tm_sec = sec;
+        tt = timegm ( timeinfo );
+        datetime datetime_ = std::chrono::system_clock::from_time_t(tt);
+        
+        real obLatDeg = std::stof(obdata[1].substr(0,2));
+        real obLatMin = std::stof(obdata[1].substr(2,2));
+        string obLatHem = obdata[1].substr(4,1);
+        real obLat = obLatDeg + obLatMin/60.0;
+        if (obLatHem.compare("S") == 0) {
+            obLat = -obLat;
+        }
+        
+        real obLonDeg = std::stof(obdata[2].substr(0,3));
+        real obLonMin = std::stof(obdata[2].substr(3,2));
+        string obLonHem = obdata[2].substr(5,1);
+        real obLon = obLonDeg + obLonMin/60.0;
+        if (obLonHem.compare("W") == 0) {
+            obLon = -obLon;
+        }
+        
+        real obPressure = std::stof(obdata[3]);
+        // Check to see if pressure is above 1000 hPa
+        if (obPressure < 1000.0) {
+            obPressure = obPressure + 10000.0;
+        }
+        obPressure = obPressure / 10.0;
+        
+        real obAlt = std::stof(obdata[4]);
+        
+        string press = obdata[5];
+        real obSfcpress = -999.0;
+        if (press.compare("////") != 0) {
+            obSfcpress = std::stof(press);
+            // Check to see if pressure is above 1000 hPa
+            if (obSfcpress < 1000.0) {
+                obSfcpress = obSfcpress + 10000.0;
+            }
+            obSfcpress = obSfcpress / 10.0;
+        }
+        
+        string temp = obdata[6].substr(1,3);
+        real obTemp = -999.0;
+        if (temp.compare("///") != 0) {
+            obTemp = std::stof(temp);
+        }
+        if (obdata[6].substr(1,3).compare("-") == 0) {
+            obTemp = -obTemp;
+        }
+        obTemp = (obTemp/10.0) + 273.15;
+        
+        string dewp = obdata[7].substr(1,3);
+        real obDewp = -999.0;
+        if (dewp.compare("///") != 0) {
+            obDewp = std::stof(dewp);
+        }
+        if (obdata[7].substr(1,3).compare("-") == 0) {
+            obDewp = -obDewp;
+        }
+        obDewp = (obDewp/10.0) + 273.15;
+        
+        real obWdir = std::stof(obdata[8].substr(0,3));
+        //real obWspd30s = std::stof(obdata[8].substr(3,3)) * 0.514;
+        string wspd = obdata[9];
+        real obWspd10s = -999.0;
+        if (wspd.compare("///") != 0) {
+            obWspd10s = std::stof(wspd) * 0.514;
+        }
+        wspd = obdata[10];
+        real obSFMR10s = -999.0;
+        if (wspd.compare("///") != 0) {
+            obSFMR10s = std::stof(wspd) * 0.514;
+        }
+        
+        // Ignoring SFMR rain rate for now, but could be useful
+        
+        int qualityflag = std::stoi(obdata[12]);
+        
+        ob.setTime(datetime_);
+        ob.setLat(obLat);
+        ob.setLon(obLon);
+        ob.setAltitude(obAlt);
+        ob.setPressure(obPressure);
+        ob.setTemperature(obTemp);
+        ob.setDewpoint(obDewp);
+        ob.setWindSpeed(obWspd10s);
+        ob.setWindDirection(obWdir);
+        ob.setObType(MetObs::flightlevel);
+        metObVector->push_back(ob);
+        
+        /*  Pseudo-surface ob
+        ob.setAltitude(10.0);
+        ob.setPressure(obSfcpress);
+        // Crudely estimate the surface temperature with a 8 K/km lapse rate
+        real sfcTemp = obTemp + (8.0 * obAlt/1000.0);
+        ob.setTemperature(sfcTemp);
+        ob.setDewpoint(sfcTemp - 1.0);
+        ob.setWindSpeed(obSFMR10s);
+        ob.setWindDirection(obWdir);
+        ob.setObType(MetObs::sfmr);
+        //metObVector->push_back(ob); */
+
+    }
+        
+    std::cout << "Successfully read the hdob file" << std::endl;
     metFile.close();
     return true;
 }
