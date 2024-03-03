@@ -911,13 +911,13 @@ commentdef {
 }
 
 paramdef float {
-  p_default = 1.0; // TODO
+  p_default = -1.0; // TODO
   p_descr = "";
   p_help = "";
 } output_latlon_increment;
 
 paramdef float {
-  p_default = 1.0; // TODO
+  p_default = -1.0; // TODO
   p_descr = "";
   p_help = "";
 } output_pressure_increment;
