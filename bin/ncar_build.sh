@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Assume that this script is run under the current directory
+
 # If an argument is supplied, if it's 'GPU' (case insensitive), assign that to the variable in CMakeLists.txt 
 # (note that this assumes we're running from the source root.)  Default is CPU mode.
+
 MODE=${1^^}
 if [ "$MODE" == "GPU" ]; then
-  if [ "$COMPILER" != "pgi" ]; then
-    echo "NOTE: You currently need the PGI compiler to build in GPU mode.  You have: ${COMPILER}.  Exiting..."
+  if [ "$COMPILER" != "nvhpc" ]; then
+    echo "NOTE: You currently need the NVHPC compiler to build in GPU mode.  You have: ${COMPILER}.  Exiting..."
     exit 1
   fi
   sed -i 's/MODE CPU/MODE GPU/g' ./CMakeLists.txt
@@ -13,27 +16,39 @@ else
   sed -i 's/MODE GPU/MODE CPU/g' ./CMakeLists.txt     # This will switch it to CPU if it was GPU
 fi
 
+# Load desired modules on Derecho
 
-# Normally we'd clear our old modules -- this hopefully isn't necessary, as we should be able to build/link with
-# multiple compilers.  We'll try this out, and if it fails, add an explicit purge/load sequence again:
-# module purge
+module purge 
+module load ncarenv/23.09
+if [ "$MODE" == "GPU" ]; then
+    module load nvhpc/23.7
+    module load cuda/12.2.1
+else
+    module load intel/2023.2.1
+fi
+module load fftw/3.3.10
+module load netcdf/4.9.2
+module load cmake/3.26.3
+module load ncarcompilers/1.0.0
 
+# Export the path to the pre-built LROSE library, which is currently pointed to Jian's directory on Derecho
+# Currently the available LROSE library is built by intel/2023.2.1 and nvhpc/23.7
 
-# One thing we DO need is to load up the LROSE module, which is currently in Brian's directory, not the system-wide
-# ones.  So we need to modify MODULEPATH first.  We should have LROSE modules for Intel 18+, GNU 8+ and PGI 19 (and 20?). 
-# You should be able to use whatever compiler is in your current environment, and it'll pick up the right LROSE.
+if [ "$MODE" == "GPU" ]; then
+    export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/nvhpc23.7
+else
+    export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/intel2023.2.1
+fi
 
-MODULEPATH=${MODULEPATH}:/glade/p/cisl/asap/modules
-module load lrose
-module load netcdf
-module load fftw
-module load cmake
-#module load cuda/10.1
+# Generate an empty folder
 
-
+if [ ! -d "build" ]; then
+    mkdir build
+fi
+cd build
 rm -rf CMakeFiles/
 rm CMakeCache.txt
 
-cmake .
+cmake ../..
 
-make -j 4 VERBOSE=1
+make -j 8 VERBOSE=1
