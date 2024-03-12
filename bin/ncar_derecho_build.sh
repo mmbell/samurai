@@ -2,18 +2,14 @@
 
 # Assume that this script is run under the current directory
 
-# If an argument is supplied, if it's 'GPU' (case insensitive), assign that to the variable in CMakeLists.txt 
-# (note that this assumes we're running from the source root.)  Default is CPU mode.
+# If an argument is supplied and if it's 'GPU' (case insensitive), assign that to the variable 
+#    in CMakeLists.txt file under the root directory. Default is CPU mode.
 
 MODE=${1^^}
 if [ "$MODE" == "GPU" ]; then
-  if [ "$COMPILER" != "nvhpc" ]; then
-    echo "NOTE: You currently need the NVHPC compiler to build in GPU mode.  You have: ${COMPILER}.  Exiting..."
-    exit 1
-  fi
-  sed -i 's/MODE CPU/MODE GPU/g' ./CMakeLists.txt
+  sed -i 's/MODE CPU/MODE GPU/g' ../CMakeLists.txt
 else
-  sed -i 's/MODE GPU/MODE CPU/g' ./CMakeLists.txt     # This will switch it to CPU if it was GPU
+  sed -i 's/MODE GPU/MODE CPU/g' ../CMakeLists.txt     # This will switch it to CPU if it was GPU
 fi
 
 # Load desired modules on Derecho
