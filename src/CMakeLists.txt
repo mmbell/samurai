@@ -205,22 +205,22 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE IO_BENCHMARK=${IO_BENCHMARK} 
 # off by the subsequent '-O1'.
 # This is annoying, and I don't currently have a workaround.
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "PGI")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "")
     set(CMAKE_CXX_FLAGS_RELEASE "")
     set_source_files_properties(${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O0 -fast")
     if(MODE STREQUAL "GPU")
-      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -fast ${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}")
-      target_link_libraries(${PROJECT_NAME} -ta=${OpenACC_ACCEL_TARGET})
+      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -fast ${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
+      target_link_libraries(${PROJECT_NAME} -gpu=${OpenACC_ACCEL_TARGET})
     else()
       set_source_files_properties(CostFunction3D.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -fast ${OpenMP_CXX_FLAGS}")
     endif()
     set_source_files_properties(BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O0") # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
   else()
     if(MODE STREQUAL "GPU")
-      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -ta=${OpenACC_ACCEL_TARGET}")
-      target_link_libraries(${PROJECT_NAME} -ta=${OpenACC_ACCEL_TARGET})
+      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
+      target_link_libraries(${PROJECT_NAME} -gpu=${OpenACC_ACCEL_TARGET})
     endif()
   endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Cray")
