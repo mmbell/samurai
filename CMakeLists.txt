@@ -60,9 +60,9 @@ if(MODE STREQUAL "GPU")
   # For GPU versions
   find_package(OpenACC REQUIRED)
   # NCAR: Target options for GPU version - unused in CPU version  
-  set(OpenACC_ACCEL_TARGET "tesla:cc70,managed,lineinfo")
+  set(OpenACC_ACCEL_TARGET "cc80,managed,lineinfo")
   # NCAR: If you want to add custom C++ flags, add them here
-  set(ADDITIONAL_FLAGS "-Mcudalib=cufft")
+  set(ADDITIONAL_FLAGS "-cudalib=cufft")
   # NCAR: If you want to add custom C++ flags, add them here  
   #set(ADDITIONAL_FLAGS "-Minfo=accel")
   # Optionally find CUDA - if found, we'll use CuFFTW, if not, we'll need FFTW
