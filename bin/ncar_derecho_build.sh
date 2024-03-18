@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Assume that this script is run under the current directory
+# Assume that this script is run from the root directory
 
 # If an argument is supplied and if it's 'GPU' (case insensitive), assign that to the variable 
 #    in CMakeLists.txt file under the root directory. Default is CPU mode.
