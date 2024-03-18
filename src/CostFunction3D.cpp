@@ -530,9 +530,7 @@ void CostFunction3D::initState(const int iteration)
   calcInnovation();
 
   // Output the original background field
-  //cout << "CostFunction3D::initState: before outputAnalysis" << "\n";
   outputAnalysis("background", bgState);
-  //cout << "CostFunction3D::initState: after outputAnalysis" << "\n";
 
   cout << "Beginning analysis...\n";
 

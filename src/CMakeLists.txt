@@ -196,9 +196,9 @@ set(CMAKE_INSTALL_RPATH ${INSTALL_PREFIX}/lib)
 add_executable(${PROJECT_NAME} ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE IO_BENCHMARK=${IO_BENCHMARK} IO_WRITEOBS=${IO_WRITEOBS})
 
-# NCAR: Unfortunately the PGI compiler doesn't work out of the box.
+# NCAR: Unfortunately the NVHPC compiler doesn't work out of the box.
 # These are to fix various issues(maybe there's a better way to do this?):
-# Note that because of how PGI treats command-line arguments,
+# Note that because of how NVHPC treats command-line arguments,
 # this is still imperfect - eg, adding '-O1' to a release build doesn't completely
 # override the earlier, default '-O3' - rather,
 # the '-O3' sets various things on(like vectorization), that are NOT turned
@@ -216,7 +216,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
     else()
       set_source_files_properties(CostFunction3D.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}")
     endif()
-    set_source_files_properties(BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1") # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
+    set_source_files_properties(BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1") # BSpineD.cpp has issues above -O1 with the NVHPC compiler
   else()
     if(MODE STREQUAL "GPU")
       set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
