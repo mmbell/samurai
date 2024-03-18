@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Assume that this script is run under the current directory
+# Assume that this script is run from the root directory
 
 # If an argument is supplied and if it's 'GPU' (case insensitive), assign that to the variable 
 #    in CMakeLists.txt file under the root directory. Default is CPU mode.
 
 MODE=${1^^}
 if [ "$MODE" == "GPU" ]; then
-  sed -i 's/MODE CPU/MODE GPU/g' ../CMakeLists.txt
+  sed -i 's/MODE CPU/MODE GPU/g' CMakeLists.txt
   # Somehow the Release mode will break the GPU code; change back to Debug mode
-  sed -i 's/CMAKE_BUILD_TYPE Release/CMAKE_BUILD_TYPE Debug/g' ../CMakeLists.txt
+  sed -i 's/CMAKE_BUILD_TYPE Release/CMAKE_BUILD_TYPE Debug/g' CMakeLists.txt
 else
-  sed -i 's/MODE GPU/MODE CPU/g' ../CMakeLists.txt     # This will switch it to CPU if it was GPU
+  sed -i 's/MODE GPU/MODE CPU/g' CMakeLists.txt     # This will switch it to CPU if it was GPU
 fi
 
 # Load desired modules on Derecho
@@ -47,6 +47,6 @@ cd build
 rm -rf CMakeFiles/
 rm CMakeCache.txt
 
-cmake ../..
+cmake ..
 
 make -j 8 VERBOSE=1

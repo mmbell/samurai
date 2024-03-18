@@ -196,9 +196,9 @@ set(CMAKE_INSTALL_RPATH ${INSTALL_PREFIX}/lib)
 add_executable(${PROJECT_NAME} ${APP_TYPE} ${samurai_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE IO_BENCHMARK=${IO_BENCHMARK} IO_WRITEOBS=${IO_WRITEOBS})
 
-# NCAR: Unfortunately the PGI compiler doesn't work out of the box.
+# NCAR: Unfortunately the NVHPC compiler doesn't work out of the box.
 # These are to fix various issues(maybe there's a better way to do this?):
-# Note that because of how PGI treats command-line arguments,
+# Note that because of how NVHPC treats command-line arguments,
 # this is still imperfect - eg, adding '-O1' to a release build doesn't completely
 # override the earlier, default '-O3' - rather,
 # the '-O3' sets various things on(like vectorization), that are NOT turned
@@ -209,14 +209,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "")
     set(CMAKE_CXX_FLAGS_RELEASE "")
-    set_source_files_properties(${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O0 -fast")
+    set_source_files_properties(${samurai_SRCS} PROPERTIES COMPILE_FLAGS "-O3 -fast")
     if(MODE STREQUAL "GPU")
-      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -fast ${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
+      set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
       target_link_libraries(${PROJECT_NAME} -gpu=${OpenACC_ACCEL_TARGET})
     else()
-      set_source_files_properties(CostFunction3D.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -fast ${OpenMP_CXX_FLAGS}")
+      set_source_files_properties(CostFunction3D.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -fast ${OpenMP_CXX_FLAGS}")
     endif()
-    set_source_files_properties(BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O0") # BSpineD.cpp has issues above -O1 with PGI 19.3 & 19.9 at least
+    set_source_files_properties(BSplineD.cpp PROPERTIES COMPILE_FLAGS "-O1") # BSpineD.cpp has issues above -O1 with the NVHPC compiler
   else()
     if(MODE STREQUAL "GPU")
       set_source_files_properties(CostFunction3D.cpp CostFunction.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "${OpenACC_CXX_FLAGS} -gpu=${OpenACC_ACCEL_TARGET}")
@@ -224,12 +224,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
     endif()
   endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Cray")
-  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 ${OpenMP_CXX_FLAGS},aggress,flex_mp=tolerant,vector3 ")
+  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 ${OpenMP_CXX_FLAGS},aggress,flex_mp=tolerant,vector3 ")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Fujitsu")
-  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 ${OpenMP_CXX_FLAGS},fast,cmodel=large ")
+  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 ${OpenMP_CXX_FLAGS},fast,cmodel=large ")
 else() # Intel, GNU:
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-unknown-pragmas)
-  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O0 -Ofast ${OpenMP_CXX_FLAGS} ")
+  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -Ofast ${OpenMP_CXX_FLAGS} ")
 endif()
 
 # If we're in GPU mode, check if we have cuFFT 

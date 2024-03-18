@@ -6,10 +6,10 @@ project(samurai)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC(default: CPU)
-set(MODE CPU)
+set(MODE GPU)
 
 # Standard: Options are 'Debug' or 'Release'
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 # max iterations in the solver(src/CostFunction.cpp) default=2000
 set(SOLVER_MAXITER 2000)

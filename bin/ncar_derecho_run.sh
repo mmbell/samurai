@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # ./build/release/bin/samurai does not work somehow
-cd build
-EXE="./release/bin/samurai"
+EXE="./build/release/bin/samurai"
 
 # Determine if we're running on the GPU or not by checking the libraries we've linked:
 GPU=$(grep -c libacc ${EXE})
