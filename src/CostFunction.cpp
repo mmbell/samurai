@@ -201,8 +201,6 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
     //CG LOOP
     for (cg_its = 0; cg_its < cg_itmax; cg_its ++){
 
-    //#pragma acc data copyin(p[0:nState],r[0:nState]) copyout(p[0:nState],Ap[0:nState]) 
-    //{
       //update search direction
       if (cg_its == 0) {
 	//rr = <r0, r0>
@@ -230,7 +228,6 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
       }
      
       alpha = rr/pAp;
-    //}
 
       //check for negative curvature
       if (pAp < 0) {
