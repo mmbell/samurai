@@ -845,8 +845,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
   	GPTLstart("CostFunction3D::SAtransform");
   	for (int var = 0; var < varDim; var++) {
     	kRankVar = kRank[var];
-        // std::cout << "{I,J,K}RankVar: " << iRank[var] << " " << jRank[var] << " " << kRank[var] << std::endl;
-	// std::cout << "{I,J,K}Dim: " << iDim << " " << jDim << " " << kDim << std::endl;
     	//GPTLstart("IJK Loop");
 
     	#pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
