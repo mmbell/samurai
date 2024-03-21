@@ -9,18 +9,9 @@ if [ "$MODE" == "GPU" ]; then
   sed -i 's/MODE CPU/MODE GPU/g' CMakeLists.txt
   # Somehow the Release mode will break the GPU code; change back to Debug mode
   sed -i 's/CMAKE_BUILD_TYPE Release/CMAKE_BUILD_TYPE Debug/g' CMakeLists.txt
-  if [ "$NCAR_HOST" == "casper" ]; then
-    # Use cc70 for V100 GPU on Casper
-    sed -i 's/cc80/cc70/g' CMakeLists.txt
-  fi
 else
   sed -i 's/MODE GPU/MODE CPU/g' CMakeLists.txt     # This will switch it to CPU if it was GPU
 fi
-
-# If we are going to measure the performance for Supercell and Hurricane,
-# we only want to run the first 20 iterations for each case.
-sed -i 's/SOLVER_MAXITER 2000/SOLVER_MAXITER 1/g' CMakeLists.txt
-sed -i 's/SOLVER_INNER_MAXITER 2000/SOLVER_INNER_MAXITER 20/g' CMakeLists.txt
 
 # Load desired modules
 module purge 
