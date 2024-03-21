@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# ./build/release/bin/samurai does not work somehow
-EXE="./build/release/bin/samurai"
+# This script should be executed under /path_to_samurai_root/run directory
+
+EXE="../build/release/bin/samurai"
 
 # Determine if we're running on the GPU or not by checking the libraries we've linked:
 GPU=$(grep -c libacc ${EXE})
