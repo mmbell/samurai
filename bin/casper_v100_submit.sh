@@ -14,6 +14,10 @@ cd $PBS_O_WORKDIR
 # Build the code #
 ##################
 cd ..
+
+# Use cc70 for V100 GPU on Casper
+sed -i 's/cc80/cc70/g' CMakeLists.txt
+
 ./bin/ncar_build.sh gpu
 
 ##############
