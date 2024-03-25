@@ -1680,21 +1680,22 @@ void CostFunction3D::obAdjustments() {
 	  if ((kNode < 0) or (kNode >= kDim)) continue;
 //       int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
 //       int bIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4);
-      int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
-      int64_t *bIndex2 = (int64_t *)malloc(sizeof(int64_t));
-      *bIndex = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 4;
-      *bIndex2 = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 5;
+//      int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
+//      int64_t *bIndex2 = (int64_t *)malloc(sizeof(int64_t));
+//      *bIndex = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 4;
+//      *bIndex2 = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 5;
       // turn off print out January 24, 2023
       // cout << "bIndex = " << *bIndex << endl;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
-	  qvprime += bgState[*bIndex] * ibasis * jbasis * kbasis;
+	  // qvprime += bgState[*bIndex] * ibasis * jbasis * kbasis;
+	  qvprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 4)] * ibasis * jbasis * kbasis;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[5], iBCR[5]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[5], jBCR[5]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[5], kBCR[5]);
-	  rhoprime += bgState[*bIndex2] * ibasis * jbasis * kbasis;
-//       rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
+//	  rhoprime += bgState[*bIndex2] * ibasis * jbasis * kbasis;
+       rhoprime += bgState[INDEX(iNode, jNode, kNode, iDim, jDim, varDim, 5)] * ibasis * jbasis * kbasis;
 	}
       }
     }
