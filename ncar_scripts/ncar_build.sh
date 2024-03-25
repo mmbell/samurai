@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Assume that this script is run from the root directory
+if [[ ! -v SAMURAI_ROOT ]]; then
+    echo "Please set the SAMURAI_ROOT environment variable first."
+    echo "Use export SAMURAI=/path_to_samurai_root_directory"
+    exit 911
+fi
+cd $SAMURAI_ROOT
 
 # If an argument is supplied and if it's 'GPU' (case insensitive), assign that to the variable 
 #    in CMakeLists.txt file under the root directory. Default is CPU mode.
@@ -60,3 +65,5 @@ cd build
 cmake ..
 
 make -j 8 VERBOSE=1
+
+ln -sf $(pwd)/release/bin/samurai ../bin

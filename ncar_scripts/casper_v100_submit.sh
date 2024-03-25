@@ -9,30 +9,25 @@
 #PBS -k eod
  
 cd $PBS_O_WORKDIR
+cd ..
+export SAMURAI_ROOT=$(pwd)
 
 ##################
 # Build the code #
 ##################
-cd ..
-
 # Use cc70 for V100 GPU on Casper
 sed -i 's/cc80/cc70/g' CMakeLists.txt
 
-./bin/ncar_build.sh gpu
+cd ncar_scripts 
+./ncar_build.sh gpu
 
 ##############
 # Run a case #
 ##############
-# Generate a "run" folder
-if [ ! -d run ]; then
-  mkdir run
-fi
-cd run
 suffix="casper_gpu"
 for i in beltrami # supercell hurricane # hurricane_4panel
 do
-  ../bin/ncar_run.sh /glade/campaign/cisl/asap/samurai/cases/preprocessed/${i}_preprocessed.xml >& log_${i}_$suffix
-  mv timing.0 timing_${i}_$suffix
+  ./ncar_run.sh /glade/campaign/cisl/asap/samurai/cases/preprocessed/${i}_preprocessed.xml >& log_${i}_$suffix
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi

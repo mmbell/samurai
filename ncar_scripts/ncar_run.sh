@@ -1,8 +1,20 @@
 #!/bin/bash
 
-# This script should be executed under /path_to_samurai_root/run directory
+if [[ ! -v SAMURAI_ROOT ]]; then
+    echo "Please set the SAMURAI_ROOT environment variable first."
+    echo "Use export SAMURAI=/path_to_samurai_root_directory"
+    exit 911
+fi
+cd $SAMURAI_ROOT
 
-EXE="../build/release/bin/samurai"
+# Generate a "run" folder
+if [ -d "run" ]; then
+    rm -rf run
+fi
+mkdir run
+cd run
+
+EXE="../bin/samurai"
 
 # Determine if we're running on the GPU or not by checking the libraries we've linked:
 GPU=$(grep -c libacc ${EXE})
