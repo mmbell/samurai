@@ -27,5 +27,5 @@ do
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
-  mv samurai* log* timing* ${i}_${suffix}
+  mv $SAMURAI_ROOT/run/samurai* $SAMURAI_ROOT/run/timing* log* ${i}_${suffix}
 done
