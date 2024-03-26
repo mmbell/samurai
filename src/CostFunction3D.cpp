@@ -846,10 +846,9 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
     	//GPTLstart("IJK Loop");
 
     	#pragma omp parallel for private(tmp,kB,xk,k,l,m,iIndex,jIndex,kIndex) //[5.0.1]
-    	#pragma acc parallel loop gang worker collapse(2) private(tmp,kB,xk) //[5.0.1]
+    	#pragma acc parallel loop gang worker vector collapse(2) private(tmp,kB,xk) //[5.0.1]
     	for (int iIndex = 0; iIndex < iDim; iIndex++) {
       	  for (int jIndex = 0; jIndex < jDim; jIndex++) {
-            #pragma acc loop vector
 	    for (int k = 0; k < kDim; k++) {
 	       	kB[k] = Bstate[INDEX(iIndex, jIndex, k, iDim, jDim, varDim, var)];
 	    }
@@ -857,11 +856,9 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	    for (int m = 0; m < kRankVar; m++) {
 	       	//bk[m] = 0;
               tmp = 0;
-              #pragma acc loop vector reduction(+:tmp)
 	      for (int k = 0; k < kDim; k++) {
 	       	tmp += kGamma[var][kDim * m + k] * kB[k];
 	      }
-              #pragma acc loop vector reduction(+:tmp)
 	      // Solve for A's using compact storage
 	      for (int l=-1;l>=-(kLDim-1);l--) {
 	       	if ((m + l >= 0) and ((m * kLDim - l) >= 0)) {
@@ -872,7 +869,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	    }
 	    for (int k = kRankVar - 1; k >= 0; k--) {
           	tmp = xk[k];
-                #pragma acc loop vector reduction(+:tmp)
 	       	for (int l = 1; l <= (kLDim - 1); l++) {
 	       	   if ((k + l < kRankVar) and (((k + l) * kLDim + l) < kRankVar * kLDim)) {
 	             tmp -= kL[var][(k + l) * kLDim +l] * xk[k + l];
@@ -880,7 +876,6 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	        }
 	        xk[k] = tmp / kL[var][k * kLDim];
 	    }
-            #pragma acc loop vector
 	    for (int k = 0; k < kDim; k++) {
 	      // Multiply by gammaT
 	      tmp = 0;
