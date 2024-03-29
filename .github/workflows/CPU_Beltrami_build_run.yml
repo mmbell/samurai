@@ -17,4 +17,4 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag samurai_build_run:$(date +%s)
     - name: Running the Docker image for Beltrami case
-      run: docker run -it samurai_build_run:$(date +%s)
+      run: docker run samurai_build_run:$(date +%s)
