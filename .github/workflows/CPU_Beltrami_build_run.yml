@@ -15,6 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag samurai_build_run:$(date +%s)
+      run: docker build . --file Dockerfile --tag samurai_build_run:latest
     - name: Running the Docker image for Beltrami case
-      run: docker run samurai_build_run:$(date +%s)
+      run: docker run samurai_build_run:latest
