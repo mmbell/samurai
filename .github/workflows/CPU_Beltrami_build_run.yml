@@ -1,0 +1,20 @@
+name: Samurai CPU test with Beltrami
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag samurai_build_run:$(date +%s)
+    - name: Running the Docker image for Beltrami case
+      run: docker run -it samurai_build_run:$(date +%s)
