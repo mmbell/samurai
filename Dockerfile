@@ -1,4 +1,10 @@
+# Author: Supreeth Suresh
+# Affiliation: National Center for Atmospheric Research, Computational and Information Systems Laboratory
+# Created: 03-29-2024
+
 FROM ssuresh1809/samurai:latest
+
+LABEL maintainer="Supreeth Suresh <ssuresh@ucar.edu>"
 
 RUN mkdir -p /app/
 WORKDIR /app/
