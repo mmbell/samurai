@@ -2406,7 +2406,7 @@
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &output_latlon_increment - &_start_;
-    tt->single_val.f = 1;
+    tt->single_val.f = -1;
     tt++;
     
     // Parameter 'output_pressure_increment'
@@ -2418,7 +2418,7 @@
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &output_pressure_increment - &_start_;
-    tt->single_val.f = 1;
+    tt->single_val.f = -1;
     tt++;
     
     // Parameter 'Comment 11'
