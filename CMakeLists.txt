@@ -15,7 +15,12 @@ else()
 endif()
 
 # Standard: Options are 'Debug' or 'Release'
-set(CMAKE_BUILD_TYPE Debug)
+string(TOLOWER "${DEBUG_COMPILE}" debug_compile_lower )
+if(debug_compile_lower STREQUAL "true")
+  set(CMAKE_BUILD_TYPE Debug)
+else()
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 # max iterations in the solver(src/CostFunction.cpp) default=2000
 set(SOLVER_MAXITER 2000)
