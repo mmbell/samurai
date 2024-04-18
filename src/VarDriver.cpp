@@ -54,7 +54,7 @@ VarDriver::VarDriver()
   dataSuffix["rad"] = rad;
   dataSuffix["cfrad"] = cfrad;
 	dataSuffix["hgt"] = terrain;
-	dataSuffix["txt"] = model;
+	dataSuffix["model"] = model;
 	dataSuffix["rf"] = crsim;
     dataSuffix["list"] = hrdradial;
     dataSuffix["hdob"] = hdob;
@@ -1538,7 +1538,7 @@ bool VarDriver::read_terrain(std::string& filename, std::vector<MetObs>* metObVe
 
 }
 
-/* This routine reads a text file from a WRF output*/
+/* This routine reads a text file from WRF or other model output as pseudo-observations*/
 
 bool VarDriver::read_model(std::string& filename, std::vector<MetObs>* metObVector)
 {
@@ -1568,7 +1568,7 @@ bool VarDriver::read_model(std::string& filename, std::vector<MetObs>* metObVect
     ob.setObType(MetObs::model);
     metObVector->push_back(ob);
   }
-	std::cout << "Successfully read the text file" << std::endl;
+	std::cout << "Successfully read the model file" << std::endl;
   metFile.close();
   return true;
 
