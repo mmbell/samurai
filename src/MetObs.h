@@ -150,7 +150,8 @@ class MetObs
     aeri,
     terrain,
     model,
-    crsim
+    crsim,
+    hrdradial
     // add terrain type
   };
 

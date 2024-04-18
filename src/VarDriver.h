@@ -122,9 +122,11 @@ class VarDriver
     aeri,
     rad,
     cfrad,
-		terrain,
-		model,
-		crsim
+    terrain,
+    model,
+    crsim,
+    hrdradial,
+    hdob
   };
   Projection projection;
 
@@ -150,9 +152,11 @@ class VarDriver
   bool read_aeri(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_rad(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_cfrad(std::string &fileName, std::vector<MetObs>* metObVector);
-	bool read_terrain(std::string& filename, std::vector<MetObs>* metObVector);
-	bool read_model(std::string& filename, std::vector<MetObs>* metObVector);
-	bool read_crsim(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_terrain(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_model(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_crsim(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_hrdradial(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_hdobs(std::string& filename, std::vector<MetObs>* metObVector); 
   bool readFrameCenters();
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);
