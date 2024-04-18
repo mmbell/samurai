@@ -2,7 +2,7 @@
 #PBS -N SAMURAI
 #PBS -A NTDD0004
 #PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
-#PBS -l gpu_type=v100
+#PBS -l gpu_type=a100
 #PBS -q casper
 #PBS -l walltime=00:30:00
 #PBS -j oe
@@ -16,8 +16,6 @@ ID=`date '+%Y%m%d%H%M'
 ##################
 # Build the code #
 ##################
-# Use cc70 for V100 GPU on Casper
-sed -i 's/cc80/cc70/g' CMakeLists.txt
 
 cd ncar_scripts 
 ./ncar_build.sh gpu
