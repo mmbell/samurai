@@ -53,7 +53,7 @@ set(SOLVER_CG_CONV_TYPE 1)
 set(IO_BENCHMARK 0)
 
 # Controls whether we write out the observations after reading them all in(probably safe to be 0)
-set(IO_WRITEOBS 1)
+set(IO_WRITEOBS 0)
 
 # ----- Users shouldn't need to change anything below this ----- 
 
