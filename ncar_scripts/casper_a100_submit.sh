@@ -1,9 +1,10 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
 #PBS -A NTDD0004
-#PBS -l select=1:ncpus=128:ompthreads=128:mem=230GB
-#PBS -q main
-#PBS -l walltime=02:30:00
+#PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
+#PBS -l gpu_type=a100
+#PBS -q casper
+#PBS -l walltime=00:30:00
 #PBS -j oe
 #PBS -k eod
  
@@ -11,17 +12,18 @@ cd $PBS_O_WORKDIR
 cd ..
 export SAMURAI_ROOT=$(pwd)
 
-ID=`date '+%Y%m%d%H%M'`
+ID=`date '+%Y%m%d%H%M'
 ##################
 # Build the code #
 ##################
+
 cd ncar_scripts 
-./ncar_build.sh
+./ncar_build.sh gpu
 
 ##############
 # Run a case #
 ##############
-suffix="derecho_cpu"
+suffix="casper_gpu"
 for i in beltrami supercell hurricane # hurricane_4panel
 do
   ./ncar_run.sh /glade/campaign/cisl/asap/samurai/cases/preprocessed/${i}_preprocessed.xml >& log_${i}_$suffix.$ID
