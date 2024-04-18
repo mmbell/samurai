@@ -6,10 +6,21 @@ project(samurai)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # NCAR: Options are 'CPU' or 'GPU' - CPU enables OpenMP, GPU enables OpenACC(default: CPU)
-set(MODE CPU)
+# When invoking cmake, add -DUSE_GPU=true to the args. 
+string(TOLOWER "${USE_GPU}" use_gpu_lower )
+if(use_gpu_lower STREQUAL "true")
+  set(MODE GPU)
+else()
+  set(MODE CPU)
+endif()
 
 # Standard: Options are 'Debug' or 'Release'
-set(CMAKE_BUILD_TYPE Release)
+string(TOLOWER "${DEBUG_COMPILE}" debug_compile_lower )
+if(debug_compile_lower STREQUAL "true")
+  set(CMAKE_BUILD_TYPE Debug)
+else()
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 # max iterations in the solver(src/CostFunction.cpp) default=2000
 set(SOLVER_MAXITER 2000)
@@ -60,9 +71,9 @@ if(MODE STREQUAL "GPU")
   # For GPU versions
   find_package(OpenACC REQUIRED)
   # NCAR: Target options for GPU version - unused in CPU version  
-  set(OpenACC_ACCEL_TARGET "tesla:cc70,managed,lineinfo")
+  set(OpenACC_ACCEL_TARGET "cc80,managed,lineinfo")
   # NCAR: If you want to add custom C++ flags, add them here
-  set(ADDITIONAL_FLAGS "-Mcudalib=cufft")
+  set(ADDITIONAL_FLAGS "-cudalib=cufft")
   # NCAR: If you want to add custom C++ flags, add them here  
   #set(ADDITIONAL_FLAGS "-Minfo=accel")
   # Optionally find CUDA - if found, we'll use CuFFTW, if not, we'll need FFTW
@@ -72,7 +83,7 @@ if(MODE STREQUAL "GPU")
   endif()
 else()
   # For CPU versions(required; run with 1 thread if we want serial times)  
-  #find_package(OpenMP REQUIRED)
+  find_package(OpenMP REQUIRED)
   find_package(FFTW REQUIRED)
   # set(ADDITIONAL_FLAGS "-pg") 
 endif()
