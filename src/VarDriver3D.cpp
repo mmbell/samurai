@@ -555,7 +555,7 @@ bool VarDriver3D::preProcessMetObs()
 
 				// if (timeProblem < 10) testing
 				//   std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
-				// continue;
+				continue;
       }
 			// std::cout << "timeProblem  = " << timeProblem << endl;
       int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
