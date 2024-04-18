@@ -558,7 +558,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
     real rhoBar = refstate->getReferenceVariable(ReferenceVariable::rhoaref, heightm);
     real qBar = refstate->getReferenceVariable(ReferenceVariable::qvbhypref, heightm);
     real tBar = refstate->getReferenceVariable(ReferenceVariable::tempref, heightm);
-		std::cout << "tBar = " << tBar << std::endl;
+		//std::cout << "tBar = " << tBar << std::endl;
 
     real rho = rhoa + rhoa * qv / 1000.;
     real rhou = rho * (u - Um);
@@ -603,7 +603,7 @@ bool BkgdObsSplineLoader::loadBkgdObs(std::vector<real> &bgIn)
 		}
 
     // Push values for an entire column, then solve for the spline
-		std::cout << "logheights size = " << logheights.size() << std::endl;
+		//std::cout << "logheights size = " << logheights.size() << std::endl;
     if ( (logheights.size() != 0) && (logZ <= logheights.back()) ) {
       // Not first level, not same column, Solve for the spline
       if (logheights.size() == 1) {
@@ -955,7 +955,10 @@ bool BkgdObsKDLoader::loadBkgdObs(std::vector<real> &bgIn)
     std::cout << "*** Debug KD Step: " << debugKdStep << std::endl;
   }
 
+    //int lineno = 0;
   while( bkgdAdapter->next(time, lat, lon, alt, u, v, w, t, qv, rhoa, qr, terrain_hgt) ) {
+      //lineno = lineno +1;
+      //std::cout << "*** Debug Lineno: " << lineno << std::endl;
     // Process the bkgdObs into Observations
     int tci;
 		datetime dtime = ParseDate(time, "%Y-%m-%d_%H:%M:%S");
