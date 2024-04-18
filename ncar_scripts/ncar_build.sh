@@ -10,13 +10,6 @@ cd $SAMURAI_ROOT
 # If an argument is supplied and if it's 'GPU' (case insensitive), assign that to the variable 
 #    in CMakeLists.txt file under the root directory. Default is CPU mode.
 MODE=${1^^}
-if [ "$MODE" == "GPU" ]; then
-  sed -i 's/MODE CPU/MODE GPU/g' CMakeLists.txt
-  # Somehow the Release mode will break the GPU code; change back to Debug mode
-  sed -i 's/CMAKE_BUILD_TYPE Release/CMAKE_BUILD_TYPE Debug/g' CMakeLists.txt
-else
-  sed -i 's/MODE GPU/MODE CPU/g' CMakeLists.txt     # This will switch it to CPU if it was GPU
-fi
 
 # Load desired modules
 module purge 
@@ -62,7 +55,11 @@ fi
 mkdir build
 cd build
 
-cmake ..
+if [ "$MODE" == "GPU" ]; then
+   cmake -DUSE_GPU=true -DDEBUG_COMPILE=false ..
+else
+   cmake -DDEBUG_COMPILE=false ..
+fi
 
 make -j 8 VERBOSE=1
 
