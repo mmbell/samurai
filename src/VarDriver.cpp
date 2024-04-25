@@ -2981,18 +2981,18 @@ bool VarDriver::read_ict(std::string& filename, std::vector<MetObs>* metObVector
   ob.setStationName(fileparts[0]);
   for (int rec = 0; rec < NREC; rec++)
     {
-      if ((lat[rec] != -9999.0) and (lat[rec] < 1.0e32)) {
+      if ((lat[rec] != -999.0) and (lat[rec] < 1.0e32)) {
     ob.setLat(lat[rec]);
       } else {
     ob.setLat(-999.0);
       }
-      if ((lon[rec] != -9999.0) and (lon[rec] < 1.0e32)) {
+      if ((lon[rec] != -999.0) and (lon[rec] < 1.0e32)) {
     ob.setLon(lon[rec]);
       } else {
     ob.setLon(-999.0);
       }
-      if ((alt[rec] != -9999.0) and (alt[rec] < 1.0e32)) {
-    ob.setAltitude(alt[rec]*1000.0);
+      if ((alt[rec] != -999.0) and (alt[rec] < 1.0e32)) {
+    ob.setAltitude(alt[rec]);
       } else {
     ob.setAltitude(-999.0);
       }
@@ -3001,27 +3001,27 @@ bool VarDriver::read_ict(std::string& filename, std::vector<MetObs>* metObVector
       datetime datetime_ = ParseDate(combined.c_str(), "%Y%m%d%H%M%S") + std::chrono::seconds(long(obtime[rec]));
       ob.setTime(datetime_);
 
-      if ((temp[rec] != -9999.0) and (temp[rec] < 1.0e32)) {
+      if ((temp[rec] != -999.0) and (temp[rec] < 1.0e32)) {
     ob.setTemperature(temp[rec]+273.15);
       } else {
     ob.setTemperature(-999.0);
       }
-      if ((rh[rec] != -9999.0) and (rh[rec] < 1.0e32)) {
+      if ((rh[rec] != -999.0) and (rh[rec] < 1.0e32)) {
     ob.setRH(rh[rec]);
       } else {
     ob.setRH(-999.0);
       }
-      if ((wdir[rec] != -9999.0) and (wdir[rec] < 1.0e32)) {
+      if ((wdir[rec] != -999.0) and (wdir[rec] < 1.0e32)) {
     ob.setWindDirection(wdir[rec]);
       } else {
     ob.setWindDirection(-999.0);
       }
-      if ((wspd[rec] != -9999.0) and (wspd[rec] < 1.0e32)) {
+      if ((wspd[rec] != -999.0) and (wspd[rec] < 1.0e32)) {
     ob.setWindSpeed(wspd[rec]);
       } else {
     ob.setWindSpeed(-999.0);
       }
-      if ((press[rec] != -9999.0) and (press[rec] < 1.0e32)) {
+      if ((press[rec] != -999.0) and (press[rec] < 1.0e32)) {
     ob.setPressure(press[rec]);
       } else {
     ob.setPressure(-999.0);
