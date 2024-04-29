@@ -22,9 +22,9 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="casper_cpu"
-for i in beltrami supercell hurricane # hurricane_4panel
+for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
-  ./ncar_run.sh /glade/campaign/cisl/asap/samurai/cases/preprocessed/${i}_preprocessed.xml >& log_${i}_$suffix.$ID
+  ./ncar_run.sh TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
