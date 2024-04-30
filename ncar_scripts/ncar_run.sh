@@ -35,4 +35,4 @@ else
   export OMP_NUM_THREADS=1
 fi
 
-${EXE} $*
+${EXE} -params $*
