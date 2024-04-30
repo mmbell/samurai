@@ -28,7 +28,7 @@ cd ncar_scripts
 suffix="casper_gpu"
 for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
-  ./ncar_run.sh TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
+  ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
