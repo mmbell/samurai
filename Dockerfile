@@ -10,11 +10,12 @@ RUN mkdir -p /app/
 WORKDIR /app/
 RUN git clone https://github.com/mmbell/samurai.git && \
     cd samurai && \
-    sed -i 's/MODE GPU/MODE CPU/g' CMakeLists.txt && \
+    export SAMURAI_ROOT=$(pwd) && \
+    export LROSE_INSTALL_DIR=/usr/local && \
     mkdir build && \
     cd build && \
-    cmake .. && \
-    make -j 2
+    cmake -DUSE_GPU=false -DDEBUG_COMPILE=false .. && \
+    make -j 2 VERBOSE=1
 
 ENV PATH="/app/samurai/build:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
