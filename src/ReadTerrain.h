@@ -19,7 +19,7 @@
 #include <sstream>
 #include <fstream>
 
-class ReadTerrain : public VarDriver3D
+class ReadTerrain
 {
 public:
     bool readTerrainTXT(std::string &filename, std::vector<MetObs>* terrainData)
