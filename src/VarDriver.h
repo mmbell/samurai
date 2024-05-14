@@ -126,7 +126,8 @@ class VarDriver
     model,
     crsim,
     hrdradial,
-    hdob
+    hdob,
+    ict
   };
   Projection projection;
 
@@ -156,7 +157,8 @@ class VarDriver
   bool read_model(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_crsim(std::string& filename, std::vector<MetObs>* metObVector);
   bool read_hrdradial(std::string& filename, std::vector<MetObs>* metObVector);
-  bool read_hdobs(std::string& filename, std::vector<MetObs>* metObVector); 
+  bool read_hdobs(std::string& filename, std::vector<MetObs>* metObVector);
+  bool read_ict(std::string& filename, std::vector<MetObs>* metObVector); 
   bool readFrameCenters();
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);

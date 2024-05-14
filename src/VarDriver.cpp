@@ -58,6 +58,7 @@ VarDriver::VarDriver()
 	dataSuffix["rf"] = crsim;
     dataSuffix["list"] = hrdradial;
     dataSuffix["hdob"] = hdob;
+    dataSuffix["ict"] = ict;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -329,6 +330,12 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
   case(hdob):
     if (!read_hdobs(metFile, metData)) {
       cout << "Error reading hdob file" << endl;
+      return false;
+    }
+      break;
+  case(ict):
+    if (!read_ict(metFile, metData)) {
+      cout << "Error reading ict file" << endl;
       return false;
     }
       break;
@@ -2904,4 +2911,126 @@ bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVect
     std::cout << "Successfully read the hdob file" << std::endl;
     metFile.close();
     return true;
+}
+
+bool VarDriver::read_ict(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  Nc3Error err(Nc3Error::verbose_nonfatal);
+
+  // Read the file.
+  Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
+
+  // Check to see if the file was read.
+  if(!dataFile.is_valid())
+    return false;
+
+  // Get the number of records
+  // Nc3Dim* recnum;
+  Nc3Dim* recnum;
+  if (!(recnum = dataFile.get_dim("time")))
+    return false;
+  int NREC = recnum->size();
+
+  Nc3Var *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+    *rhVar, *wdirVar, *wspdVar, *pressVar;
+  if (!(latVar = dataFile.get_var("lat")))
+    return false;
+  if (!(lonVar = dataFile.get_var("lon")))
+    return false;
+  if (!(altVar = dataFile.get_var("alt")))
+    return false;
+  if (!(timeVar = dataFile.get_var("time")))
+    return false;
+  if (!(tempVar  = dataFile.get_var("tdry")))
+    return false;
+  if (!(rhVar = dataFile.get_var("rh")))
+    return false;
+  if (!(wdirVar = dataFile.get_var("wdir")))
+    return false;
+  if (!(wspdVar = dataFile.get_var("wspd")))
+    return false;
+  if (!(pressVar = dataFile.get_var("pres")))
+    return false;
+
+  real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC],
+    rh[NREC], wdir[NREC], wspd[NREC], press[NREC];
+  if (!latVar->get(lat, NREC))
+    return false;
+  if (!lonVar->get(lon, NREC))
+    return false;
+  if (!altVar->get(alt, NREC))
+    return false;
+  if (!timeVar->get(obtime, NREC))
+    return false;
+  if (!tempVar->get(temp, NREC))
+    return false;
+  if (!rhVar->get(rh, NREC))
+    return false;
+  if (!wdirVar->get(wdir, NREC))
+    return false;
+  if (!wspdVar->get(wspd, NREC))
+    return false;
+  if (!pressVar->get(press, NREC))
+    return false;
+
+  datetime datetime_;
+  std::vector<std::string> fileparts = LineSplit(filename, '_');
+
+  // Get the platform name
+  MetObs ob;
+  ob.setStationName(fileparts[0]);
+  for (int rec = 0; rec < NREC; rec++)
+    {
+      if ((lat[rec] != -999.0) and (lat[rec] < 1.0e32)) {
+    ob.setLat(lat[rec]);
+      } else {
+    ob.setLat(-999.0);
+      }
+      if ((lon[rec] != -999.0) and (lon[rec] < 1.0e32)) {
+    ob.setLon(lon[rec]);
+      } else {
+    ob.setLon(-999.0);
+      }
+      if ((alt[rec] != -999.0) and (alt[rec] < 1.0e32)) {
+    ob.setAltitude(alt[rec]);
+      } else {
+    ob.setAltitude(-999.0);
+      }
+
+      auto combined = fileparts[5] + fileparts[6];
+      datetime datetime_ = ParseDate(combined.c_str(), "%Y%m%d%H%M%S") + std::chrono::seconds(long(obtime[rec]));
+      ob.setTime(datetime_);
+
+      if ((temp[rec] != -999.0) and (temp[rec] < 1.0e32)) {
+    ob.setTemperature(temp[rec]+273.15);
+      } else {
+    ob.setTemperature(-999.0);
+      }
+      if ((rh[rec] != -999.0) and (rh[rec] < 1.0e32)) {
+    ob.setRH(rh[rec]);
+      } else {
+    ob.setRH(-999.0);
+      }
+      if ((wdir[rec] != -999.0) and (wdir[rec] < 1.0e32)) {
+    ob.setWindDirection(wdir[rec]);
+      } else {
+    ob.setWindDirection(-999.0);
+      }
+      if ((wspd[rec] != -999.0) and (wspd[rec] < 1.0e32)) {
+    ob.setWindSpeed(wspd[rec]);
+      } else {
+    ob.setWindSpeed(-999.0);
+      }
+      if ((press[rec] != -999.0) and (press[rec] < 1.0e32)) {
+    ob.setPressure(press[rec]);
+      } else {
+    ob.setPressure(-999.0);
+      }
+
+      ob.setObType(MetObs::dropsonde);
+      metObVector->push_back(ob);
+    }
+
+  return true;
+
 }
