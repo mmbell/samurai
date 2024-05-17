@@ -10,7 +10,7 @@ on:
 
 jobs:
 
-  build:
+  build_run:
 
     runs-on: ubuntu-latest
 
