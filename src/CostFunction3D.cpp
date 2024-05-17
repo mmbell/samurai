@@ -56,7 +56,7 @@ CostFunction3D::CostFunction3D(const Projection& proj, const int& numObs, const 
 
   derivative[3][0] = 0;
   derivative[3][1] = 0;
-  derivative[3][2] = 1;
+  derivative[3][2] = 1  // What is the big deal with semicolons
 
   // Use the full basis unless otherwise specified
   basisappx = 0;
