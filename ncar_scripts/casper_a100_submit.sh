@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
-#PBS -A NTDD0004
+#PBS -A NEOL0013
 #PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
 #PBS -l gpu_type=a100
 #PBS -q casper

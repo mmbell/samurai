@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
-#PBS -A NTDD0004
+#PBS -A NEOL0013
 #PBS -l select=1:ncpus=36:ompthreads=36:mem=350GB
 #PBS -q casper
 #PBS -l walltime=00:30:00
