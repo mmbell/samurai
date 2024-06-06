@@ -107,3 +107,13 @@ message("HDF5_C_INCLUDE_DIR: ${HDF5_C_INCLUDE_DIR}")
 
 add_subdirectory(src)  
 
+# Enable CodeCoverage analysis
+option(ENABLE_COVERAGE "Enable code coverage output" OFF)
+if(ENABLE_COVERAGE)
+  include(CodeCoverage)
+  append_coverage_compiler_flags()
+  setup_target_for_coverage_lcov(
+      NAME coverage
+      EXECUTABLE "./run_samurai.sh"
+      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+endif()
