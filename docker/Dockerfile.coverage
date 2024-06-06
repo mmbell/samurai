@@ -11,12 +11,13 @@ WORKDIR /app/
 # Copy the modified SAMURAI source code from a particular PR
 COPY . /app/samurai
 
+# Build SAMURAI with coverage and debug mode
 RUN cd samurai && \
     export SAMURAI_ROOT=$(pwd) && \
     export LROSE_INSTALL_DIR=/usr/local && \
     mkdir build && \
     cd build && \
-    cmake -DUSE_GPU=false -DDEBUG_COMPILE=false -D ENABLE_COVERAGE=ON .. && \
+    cmake -DUSE_GPU=false -DDEBUG_COMPILE=true -D ENABLE_COVERAGE=ON .. && \
     make -j 8 VERBOSE=1
 
 RUN sed -i 's|data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami";|data_directory = "/app/data/beltrami";|g' /app/samurai/ncar_scripts/TDRP/beltrami.tdrp
@@ -25,11 +26,4 @@ ENV PATH="/app/samurai/build:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 ENV PATH="/usr/local/bin:${PATH}"
 
-RUN echo "#!/bin/bash \n\
-cd /app/samurai/build/release/bin/ \n\
-./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp\
-" > /app/run_samurai.sh
-WORKDIR /app/
-RUN chmod +x /app/run_samurai.sh
-
-CMD [ "./run_samurai.sh" ]
+WORKDIR /app/samurai/build
