@@ -48,4 +48,3 @@ jobs:
       with:
         files: coverage.info
         token: ${{ secrets.CODECOV_TOKEN }}
-        verbose: true
