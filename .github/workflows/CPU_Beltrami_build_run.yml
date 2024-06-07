@@ -1,6 +1,12 @@
 name: Samurai CPU test with Beltrami
 
-on: [pull_request, workflow_dispatch]
+on:
+  workflow_dispatch:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   docker-build-and-test:
@@ -38,7 +44,8 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       if: matrix.dockerfile == 'Dockerfile.coverage'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
