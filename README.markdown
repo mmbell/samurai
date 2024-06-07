@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/github/sjsprecious/samurai/graph/badge.svg?token=DYJVUZGB4T)](https://codecov.io/github/sjsprecious/samurai)
+
 # SAMURAI
 
 ## Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation
