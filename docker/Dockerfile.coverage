@@ -1,0 +1,28 @@
+# Author: Jian Sun (borrowed from Supreeth Suresh)
+# Affiliation: National Center for Atmospheric Research, Computational and Information Systems Laboratory
+# Created: 06/05/2024
+FROM jiansunncar/ubuntu_gcc13.2.0_samurai_beltrami:v0
+
+LABEL maintainer="Jian Sun <sunjian@ucar.edu>"
+
+RUN mkdir -p /app/
+WORKDIR /app/
+
+# Copy the modified SAMURAI source code from a particular PR
+COPY . /app/samurai
+
+# Build with reduced iteration numbers to save execution time, since we are using debug mode
+RUN cd samurai && \
+    sed -i 's|set(SOLVER_MAXITER 2000)|set(SOLVER_MAXITER 1)|g' CMakeLists.txt && \
+	sed -i 's|set(SOLVER_INNER_MAXITER 4000)|set(SOLVER_INNER_MAXITER 20)|g' CMakeLists.txt && \
+	export SAMURAI_ROOT=$(pwd) && \
+    export LROSE_INSTALL_DIR=/usr/local && \
+    mkdir build && \
+    cd build && \
+    cmake -DUSE_GPU=false -DDEBUG_COMPILE=false -D ENABLE_COVERAGE=ON .. && \
+    make -j 8 VERBOSE=1
+
+# Update input data directory inside the container
+RUN sed -i 's|data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami";|data_directory = "/app/data/beltrami";|g' /app/samurai/ncar_scripts/TDRP/beltrami.tdrp
+
+WORKDIR /app/samurai/build
