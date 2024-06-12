@@ -12,7 +12,7 @@ cd $PBS_O_WORKDIR
 cd ..
 export SAMURAI_ROOT=$(pwd)
 
-ID=`date '+%Y%m%d%H%M'
+ID=`date '+%Y%m%d%H%M'`
 ##################
 # Build the code #
 ##################
