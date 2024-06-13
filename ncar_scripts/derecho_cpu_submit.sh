@@ -3,7 +3,7 @@
 #PBS -A NEOL0013
 #PBS -l select=1:ncpus=128:ompthreads=128:mem=230GB
 #PBS -q main
-#PBS -l walltime=00:10:00
+#PBS -l walltime=02:30:00
 #PBS -j oe
 #PBS -k eod
  
@@ -22,7 +22,7 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="derecho_cpu"
-for i in beltrami # supercell hurricane typhoonChanthu2020 # hurricane_4panel
+for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
   ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   if [ ! -d  ${i}_${suffix} ]; then
