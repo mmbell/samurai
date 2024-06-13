@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
 #PBS -A NEOL0013
-#PBS -l select=1:ncpus=64:ompthreads=1:mem=100GB:ngpus=1
+#PBS -l select=1:ncpus=1:ompthreads=1:mem=100GB:ngpus=1
 #PBS -q main
-#PBS -l walltime=02:30:00
+#PBS -l walltime=00:10:00
 #PBS -j oe
 #PBS -k eod
  
@@ -22,7 +22,7 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="derecho_gpu"
-for i in  beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
+for i in  beltrami # supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
 
   ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
