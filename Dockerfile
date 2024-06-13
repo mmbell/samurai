@@ -7,9 +7,12 @@ FROM ssuresh1809/samurai:nvhpc24_3
 LABEL maintainer="Supreeth Suresh <ssuresh@ucar.edu>"
 
 RUN mkdir -p /app/
+
 WORKDIR /app/
-RUN git clone https://github.com/mmbell/samurai.git && \
-    cd samurai && \
+
+COPY . /app/samurai
+
+RUN cd samurai && \
     export SAMURAI_ROOT=$(pwd) && \
     export LROSE_INSTALL_DIR=/usr/local && \
     mkdir build && \
