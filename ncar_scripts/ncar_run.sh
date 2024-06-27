@@ -31,6 +31,7 @@ if [ "${GPU}" == "0" ]; then
       export OMP_NUM_THREADS=128
    fi
 else
+  nvidia-smi
   echo "GPU run; using 1 thread and 1 GPU"
   export OMP_NUM_THREADS=1
 fi
