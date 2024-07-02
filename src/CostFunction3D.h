@@ -71,6 +71,7 @@ protected:
 	bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
+	void calcHTranspose2(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const std::string& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
@@ -151,9 +152,18 @@ protected:
 	double *iFFTin, *jFFTin, *kFFTin;
 	fftw_complex *iFFTout, *jFFTout, *kFFTout;
         bool UseFFT;
+
+	// explicitly store the H matrix in CSR format
 	real *H;
-	integer *IH, *I2H,*JH;
-  integer *mPtr, *mVal;
+	integer *IH, *JH;
+
+	// Arrays to access the H matrix for H^t operator 
+	integer *I2H;
+        integer *mPtr, *mVal;
+
+	// explicity store the H^t matrix in CSR format
+        real *Ht;
+	integer *IHt,*JHt;
 
 	int basisappx;
 	real* basis0;
