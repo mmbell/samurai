@@ -155,15 +155,18 @@ protected:
 
 	// explicitly store the H matrix in CSR format
 	real *H;
-	integer *IH, *JH;
+	integer *IH; // uint64_t
+        integer	*JH; // uint32_t
 
 	// Arrays to access the H matrix for H^t operator 
-	integer *I2H;
-        integer *mPtr, *mVal;
+	integer *I2H;   // uint64_t
+        integer *mPtr;  // uint64_t
+        integer	*mVal;  // uint64_t
 
 	// explicity store the H^t matrix in CSR format
         real *Ht;
-	integer *IHt,*JHt;
+	integer *IHt; // uint64_t
+	integer *JHt; // uint32_t
 
 	int basisappx;
 	real* basis0;
