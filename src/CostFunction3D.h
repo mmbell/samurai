@@ -139,7 +139,7 @@ protected:
   real* kGammaL;
 	real* kLL;
 	real* finalAnalysis;
-	int64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
+	uint64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
 	int derivDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
@@ -155,18 +155,18 @@ protected:
 
 	// explicitly store the H matrix in CSR format
 	real *H;
-	integer *IH; // uint64_t
-        integer	*JH; // uint32_t
+	uint64_t *IH; // uint64_t
+        uint32_t *JH; // uint32_t
 
 	// Arrays to access the H matrix for H^t operator 
-	integer *I2H;   // uint64_t
-        integer *mPtr;  // uint64_t
-        integer	*mVal;  // uint64_t
+	uint64_t *I2H;   // uint64_t
+        uint64_t *mPtr;  // uint64_t
+        uint64_t *mVal;  // uint64_t
 
 	// explicity store the H^t matrix in CSR format
         real *Ht;
-	integer *IHt; // uint64_t
-	integer *JHt; // uint32_t
+	uint64_t *IHt; // uint64_t
+	uint32_t *JHt; // uint32_t
 
 	int basisappx;
 	real* basis0;

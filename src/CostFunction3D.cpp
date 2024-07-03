@@ -248,7 +248,7 @@ void CostFunction3D::initialize(HashMap* config,
   // These are local to this one
   CTHTd      = new real[nState];
   stateU     = new real[nState];
-  int64_t vector_size = mObs*(7+varDim*derivDim);
+  uint64_t vector_size = mObs*(7+varDim*derivDim);
   obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
@@ -461,7 +461,7 @@ void CostFunction3D::initState(const int iteration)
 
     if ((*configHash)["load_bg_coefficients"] == "true") {
 
-      for (int64_t n = 0; n < nState; n++) {
+      for (uint64_t n = 0; n < nState; n++) {
 	stateA[n] = bgFields[n];
       }
     } else {
@@ -494,7 +494,7 @@ void CostFunction3D::initState(const int iteration)
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 // 	  			int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			uint64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 // 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
 				}
@@ -510,7 +510,7 @@ void CostFunction3D::initState(const int iteration)
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
 // 	  			int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  			uint64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 //                 int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
 // 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
 	  			varScale += bgState[bIndex] * bgState[bIndex];
@@ -826,8 +826,8 @@ void CostFunction3D::calcInnovation()
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
-  integer n,k;       // uint32_t
-  integer j,m,ms,me; // uint64_t
+  uint32_t n,k;       // uint32_t
+  uint64_t j,m,ms,me; // uint64_t
   real tmp,val;
 	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H)
 	{
@@ -855,8 +855,8 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 
 void CostFunction3D::calcHTranspose2(const real* yhat, real* Astate)
 {
-  integer n,m;   // uint64_t
-  integer j,begin,end; // uint32_t
+  uint64_t n,m;   // uint64_t
+  uint32_t j,begin,end; // uint32_t
   real tmp,val;
 
         #pragma acc data present(yhat,Astate)
@@ -1323,7 +1323,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 {
   // Clear the Bstate
-  for (int64_t n = 0; n < nState; n++) {
+  for (uint64_t n = 0; n < nState; n++) {
     Bstate[n] = 0.;
   }
   real gausspoint = 0.5*sqrt(1./3.);
@@ -1360,13 +1360,13 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
 		      real kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
 		      real ijkbasis = 0.125 * ijbasis * kbasis;
 		      int uK = kIndex*2 + (kmu+1)/2;
-		      int64_t uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
+		      uint64_t uIndex = varDim * (iDim - 1) * 2 * (jDim - 1) * 2 * uK
 			+ varDim * (iDim -1 ) * 2 * uJ + varDim * uI;
-		      int64_t bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+		      uint64_t bIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
 
-		      int64_t ui = uIndex + var;
+		      uint64_t ui = uIndex + var;
 		      if (Ustate[ui] == 0) continue;
-		      int64_t bi = bIndex + var;
+		      uint64_t bi = bIndex + var;
 		      //#pragma omp atomic
 		      Bstate[bi] += Ustate[ui] * ijkbasis;
 		    }
@@ -2586,16 +2586,16 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 void CostFunction3D::calcHmatrix()
 {
   int n;
-  integer hi,m,mi;  // uint64_t
+  uint64_t hi,m,mi;  // uint64_t
   real i,j,k;
   int ii,jj,kk,d,var;
-  integer cIndex,wgt_index; // uint64_t
+  uint64_t cIndex,wgt_index; // uint64_t
   int iNode,jNode,kNode;
   int iiNode,jjNode,kkNode;
   int iis,iie,jjs,jje,kks,kke;
   int *Hlength;
-  integer *mTmp, *mIncr; // uint64_t
-  integer dst;           // uint64_t
+  uint64_t *mTmp, *mIncr; // uint64_t
+  uint64_t dst;           // uint64_t
 
   real ibasis,jbasis,kbasis;
   real weight;
@@ -2608,10 +2608,10 @@ void CostFunction3D::calcHmatrix()
   //GPTLstart("CostFunction3D::calcHmatrix:allocate");
 
   Hlength = new int[mObs];
-  mPtr = new integer[nState+1]; // uint64_t
+  mPtr = new uint64_t [nState+1]; // uint64_t
 
-  IH   = new integer [mObs+1];    // uint64_t
-  IHt  = new integer [nState+1];  // uint64_t
+  IH   = new uint64_t [mObs+1];    // uint64_t
+  IHt  = new uint64_t [nState+1];  // uint64_t
 
   //JMD variable-interleave
   //GPTLstart("CostFunction3D::calcHmatrix:nonzeros");
@@ -2655,26 +2655,37 @@ void CostFunction3D::calcHmatrix()
     }
     Hlength[m]=hi;
   }
-
-  integer nonzeros = 0; // uint64_t
-  for (int m = 0; m < mObs; m++) {
+  std::cout << "CostFunction3D:: After big loop " << std::endl;
+  uint64_t nonzeros = 0; // uint64_t
+  for (m = 0; m < mObs; m++) {
     nonzeros += Hlength[m];
   }
   //GPTLstop("CostFunction3D::calcHmatrix:nonzeros");
+  std::cout << "CostFunction3D:: nonzeros " << nonzeros << std::endl;
+  std::cout << "CostFunction3D:: mObs " << mObs << std::endl;
 
   IH[mObs] = nonzeros;
-  std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
+  std::cout << "CostFunction3D:: after IH[mObs] " << IH[mObs] << std::endl;
+  // std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
+  // std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
   std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
   H    = new real[nonzeros];
+  std::cout << "After allocation of H" << std::endl;
   Ht   = new real[nonzeros];
+  std::cout << "After allocation of Ht" << std::endl;
 
-  JH   = new integer [nonzeros];  // uint32_t
-  JHt  = new integer [nonzeros];  // uint32_t
 
-  mVal = new integer [nonzeros];  // uint64_t
-  mTmp = new integer [nonzeros];  // uint64_t
-  mIncr = new integer [nState];   // uint64_t
+  JH   = new uint32_t [nonzeros];  // uint32_t
+  std::cout << "After allocation of JH" << std::endl;
+  JHt  = new uint32_t [nonzeros];  // uint32_t
+  std::cout << "After allocation of JHt" << std::endl;
+
+  mVal = new uint64_t [nonzeros];  // uint64_t
+  std::cout << "After allocation of mVal" << std::endl;
+  mTmp = new uint64_t [nonzeros];  // uint64_t
+  std::cout << "After allocation of mTmp" << std::endl;
+  mIncr = new uint64_t [nState];   // uint64_t
+  std::cout << "After allocation of mIncr" << std::endl;
 
   hi=0;
   for (n=0;n<nState;n++){mIncr[n]=0;}
@@ -2719,7 +2730,8 @@ void CostFunction3D::calcHmatrix()
       }
     }
   }
-  I2H = new integer [nonzeros]; // uint64_t
+  std::cout << "After second big loop" << std::endl;
+  I2H = new uint64_t [nonzeros]; // uint64_t
 
   //for (n=0;n<=8;n++) {cout << " mIncr: " << mIncr[n] << " \n"; }
   mPtr[0]=0;
@@ -2736,30 +2748,32 @@ void CostFunction3D::calcHmatrix()
     mVal[dst] = mTmp[hi];
     mIncr[cIndex]+=1;
   }
+  std::cout << "Before indicies for H^t" << std::endl;
   /* Calculate the indicies for the H^t matrix */
-  for (int n=0;n<nState;n++) {IHt[n]=0;}
-  for (int hi=0;hi<nonzeros;hi++) {
+  for (uint32_t n=0;n<nState;n++) {IHt[n]=0;}
+  for (uint64_t hi=0;hi<nonzeros;hi++) {
       cIndex = JH[hi];
       IHt[cIndex] = IHt[cIndex]+1;
   }
-  int cusum=0;
-  for (int col=0; col < nState;col++) {
-     int temp = IHt[col];
+  uint64_t cusum=0;
+  for (uint32_t col=0; col < nState;col++) {
+     uint64_t temp = IHt[col];
      IHt[col] = cusum;
      cusum += temp;
   } 
   IHt[nState]=cusum;
-  for (int row = 0;row<mObs;row++) {
-      for (int jj = IH[row];jj< IH[row+1];jj++) {
-	  int col = JH[jj];
-          int dest = IHt[col];
+  for (uint32_t row = 0;row<mObs;row++) {
+      for (uint64_t jj = IH[row];jj< IH[row+1];jj++) {
+	  uint32_t col = JH[jj];
+          uint64_t dest = IHt[col];
 	  JHt[dest] = row;
 	  Ht[dest] = H[jj];
 	  IHt[col] += 1;
       }
   }
-  for(int i=nState;i>0;i--) {IHt[i] = IHt[i-1];}
+  for(uint32_t i=nState;i>0;i--) {IHt[i] = IHt[i-1];}
   IHt[0]=0;
+  std::cout << "After construction of H^t" << std::endl;
   
   //
   // copy H matrix stuff to the GPU Device
@@ -2770,14 +2784,14 @@ void CostFunction3D::calcHmatrix()
   cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << "\n";
   cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << "\n";
 
-  // cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(uint32_t)*nonzeros)/(1024.*1024.) << "\n";
-  cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
+  cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << "\n";
+  // cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
 
-  //cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
-  cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(integer)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
+  cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
+  // cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(integer)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
 
-  // cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(uint32_t)*nonzeros)/(1024.*1024.) << "\n";
-  cout << "Memory usage for [IHt,JHt]         (Mbytes): " << sizeof(integer)*(nState+nonzeros+1)/(1024.*1024.) << "\n";
+  cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << "\n";
+  // cout << "Memory usage for [IHt,JHt]         (Mbytes): " << sizeof(integer)*(nState+nonzeros+1)/(1024.*1024.) << "\n";
 
   cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << "\n";
 
@@ -2791,8 +2805,8 @@ void CostFunction3D::calcHmatrix()
 
 void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
 {
-  integer i;           // uint32_t
-  integer j,begin,end; // uint64_t
+  uint32_t i;           // uint32_t
+  uint64_t j,begin,end; // uint64_t
   real tmp;
 
 	#pragma acc data present(Cstate,Hstate)
