@@ -544,23 +544,7 @@ void CostFunction3D::initState(const int iteration)
   cout << "Beginning analysis...\n";
 
   // HTd
-  calcHTranspose2(innovation, stateC);
-  // calcHTranspose2(innovation, stateC2);
-  /*
-  exit(1);
-
-  cout << "CostFunction3D::initState: " << endl;
-  
-  for (int i=120;i<140;i++) {
-     // if(stateC[i] != stateC2[i]) {
-         cout << i << " " << stateC[i] << " " << stateC2[i] << endl;}
-     // }
-  for (int i=0;i< 100; i++) {
-         cout << "IHt[" << i  << "]:= " << IHt[i] << endl;}
-  for (int i=0;i< 100; i++) {
-         cout << "JHt[" << i  << "]:= " << JHt[i] << endl;}
-  */
-
+  calcHTranspose(innovation, stateC);
 
 #pragma acc data create(stateB[0:nState])
 {
@@ -631,7 +615,7 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
 
   	GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
   	// HTHCq
-  	calcHTranspose2(HCq, stateC);
+  	calcHTranspose(HCq, stateC);
   	GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
   	GPTLstart("CostFunction3D::funcGradient:FFtransform");
@@ -696,7 +680,7 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   	J = 0.5*(qIP + obIP);
 
   	//Now Gradient (also uses HCq)
-	calcHTranspose2(HCq, stateC);
+	calcHTranspose(HCq, stateC);
   	FFtransform(stateC, stateA);
   	SAtransform(stateA, stateB);
   	SCtransform(stateB, stateC);
@@ -724,7 +708,7 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
     //calc HCx (store in global variable HCq)
     updateHCq(x,HCq);
 
-    calcHTranspose2(HCq, stateC);
+    calcHTranspose(HCq, stateC);
     FFtransform(stateC, stateA);
     SAtransform(stateA, stateB);
     SCtransform(stateB, stateC);
@@ -824,7 +808,7 @@ void CostFunction3D::calcInnovation()
   GPTLstop("CostFunction3D::calcInnovation");
 }
 
-void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
+void CostFunction3D::calcHTransposeOLD(const real* yhat, real* Astate)
 {
   uint32_t n,k;       // uint32_t
   uint64_t j,m,ms,me; // uint64_t
@@ -853,7 +837,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 	}
 }
 
-void CostFunction3D::calcHTranspose2(const real* yhat, real* Astate)
+void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
   uint64_t n,m;   // uint64_t
   uint32_t j,begin,end; // uint32_t
@@ -861,7 +845,7 @@ void CostFunction3D::calcHTranspose2(const real* yhat, real* Astate)
 
         #pragma acc data present(yhat,Astate)
         {
-        GPTLstart("CostFunction3D::calcHTranspose2");
+        GPTLstart("CostFunction3D::calcHTranspose");
         // Multiply the state by the observation matrix
         #pragma omp parallel for private(n,m,j,tmp,begin,end) //[9]
         #pragma acc parallel loop vector gang vector_length(32) private(n,m,j,tmp,begin,end) //[9]
@@ -871,43 +855,14 @@ void CostFunction3D::calcHTranspose2(const real* yhat, real* Astate)
           for(j=begin; j<end; j++) {
              m = JHt[j];
              tmp += Ht[j] * yhat[m] * obsData[m];
-	     //if(n==126) {cout << "calcHTranpose2 new algorithm Astate[126] m := " << m << endl;}
-	     //if(n==126) {cout << "calcHTranpose2 new algorithm Astate[126] Ht[j] := " << Ht[j] << endl;}
 	     
             }
           Astate[n] = tmp;
-	  //if(n==126) {cout << "calcHTranpose2 new algorithm Astate[126] := " << tmp << endl;}
         }
 
-        GPTLstop("CostFunction3D::calcHTranspose2");
+        GPTLstop("CostFunction3D::calcHTranspose");
         }
-
-	/*
-	 #pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H)
-	 {
-  	 #pragma omp parallel for private(n,k,ms,me,tmp,m,j,val)
-  	 #pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
-  	 for(n=0;n<nState;n++){
-    	   ms = mPtr[n];
-    	   me = mPtr[n+1];
-    	   tmp = 0;
-    	   if(me>ms){
-      	     for (k=ms;k<me;k++){
-                m=mVal[k];
-                j=I2H[k];
-                val = yhat[m] * obsData[m];
-                tmp += H[j] * val;
-	        if(n==126) {cout << "calcHTranpose2 old algorithm Astate[126] m := " << m << endl;}
-	        if(n==126) {cout << "calcHTranpose2 old algorithm Astate[126] H[j] := " << H[j] << endl;}
-             }
-           }
-	   if(n==126) {cout << "calcHTranpose2 old algorithm Astate[126] := " << tmp << endl;}
-         }
-  	 }
-	 */
 }
-
-
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
@@ -2602,7 +2557,7 @@ void CostFunction3D::calcHmatrix()
 
   GPTLstart("CostFunction3D::calcHmatrix");
 
-  std::cout << "Build H transform matrix...\n";
+  std::cout << "Build H transform matrix..." << std::endl;
   std::cout << "calcHmatrix: Grid dimensions: (" << iDim << ", " << jDim << ", " << kDim << ")" << std::endl;
 
   //GPTLstart("CostFunction3D::calcHmatrix:allocate");
@@ -2655,37 +2610,25 @@ void CostFunction3D::calcHmatrix()
     }
     Hlength[m]=hi;
   }
-  std::cout << "CostFunction3D:: After big loop " << std::endl;
   uint64_t nonzeros = 0; // uint64_t
   for (m = 0; m < mObs; m++) {
     nonzeros += Hlength[m];
   }
   //GPTLstop("CostFunction3D::calcHmatrix:nonzeros");
-  std::cout << "CostFunction3D:: nonzeros " << nonzeros << std::endl;
-  std::cout << "CostFunction3D:: mObs " << mObs << std::endl;
-
   IH[mObs] = nonzeros;
-  std::cout << "CostFunction3D:: after IH[mObs] " << IH[mObs] << std::endl;
-  // std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
-  // std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
-  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
+
+  std::cout << "CostFunction3D:: nonzeros " << nonzeros << std::endl;
+  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << std::endl;
   H    = new real[nonzeros];
-  std::cout << "After allocation of H" << std::endl;
   Ht   = new real[nonzeros];
-  std::cout << "After allocation of Ht" << std::endl;
 
 
   JH   = new uint32_t [nonzeros];  // uint32_t
-  std::cout << "After allocation of JH" << std::endl;
   JHt  = new uint32_t [nonzeros];  // uint32_t
-  std::cout << "After allocation of JHt" << std::endl;
 
   mVal = new uint64_t [nonzeros];  // uint64_t
-  std::cout << "After allocation of mVal" << std::endl;
   mTmp = new uint64_t [nonzeros];  // uint64_t
-  std::cout << "After allocation of mTmp" << std::endl;
   mIncr = new uint64_t [nState];   // uint64_t
-  std::cout << "After allocation of mIncr" << std::endl;
 
   hi=0;
   for (n=0;n<nState;n++){mIncr[n]=0;}
@@ -2730,16 +2673,12 @@ void CostFunction3D::calcHmatrix()
       }
     }
   }
-  std::cout << "After second big loop" << std::endl;
   I2H = new uint64_t [nonzeros]; // uint64_t
 
-  //for (n=0;n<=8;n++) {cout << " mIncr: " << mIncr[n] << " \n"; }
   mPtr[0]=0;
   for (n=1;n<=nState;n++){
      mPtr[n] = mPtr[n-1]+mIncr[n-1];
   }
-  //for (n=0;n<=12;n++) {cout << " mPtr: " << mPtr[n] << " \n"; }
-  //cout << "mPtr[nState]: " << mPtr[nState] << " \n";
   for (n=0;n<nState;n++){mIncr[n]=0;}
   for (hi=0;hi<nonzeros;hi++){
     cIndex = JH[hi];
@@ -2748,7 +2687,7 @@ void CostFunction3D::calcHmatrix()
     mVal[dst] = mTmp[hi];
     mIncr[cIndex]+=1;
   }
-  std::cout << "Before indicies for H^t" << std::endl;
+  std::cout << "CostFunction3D::calcHmatrix: Before construction of H^t" << std::endl;
   /* Calculate the indicies for the H^t matrix */
   for (uint32_t n=0;n<nState;n++) {IHt[n]=0;}
   for (uint64_t hi=0;hi<nonzeros;hi++) {
@@ -2773,27 +2712,20 @@ void CostFunction3D::calcHmatrix()
   }
   for(uint32_t i=nState;i>0;i--) {IHt[i] = IHt[i-1];}
   IHt[0]=0;
-  std::cout << "After construction of H^t" << std::endl;
+  std::cout << "CostFunction3D::calcHmatrix: After construction of H^t" << std::endl;
   
   //
   // copy H matrix stuff to the GPU Device
   #pragma acc enter data copyin(mPtr,mVal,I2H)
   #pragma acc enter data copyin(H[:nonzeros])
   #pragma acc enter data copyin(Ht[:nonzeros])
-  cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << "\n";
-  cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << "\n";
-  cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << "\n";
-
-  cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << "\n";
-  // cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
-
-  cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
-  // cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(integer)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
-
-  cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << "\n";
-  // cout << "Memory usage for [IHt,JHt]         (Mbytes): " << sizeof(integer)*(nState+nonzeros+1)/(1024.*1024.) << "\n";
-
-  cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << "\n";
+  std::cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << std::endl; 
+  std::cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nonzeros+1)/(1024.*1024.) << std::endl;
+  std::cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << std::endl;
+  std::cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << std::endl;
 
   delete[] Hlength;
   delete[] mIncr;

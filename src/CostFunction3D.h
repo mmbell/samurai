@@ -70,8 +70,8 @@ protected:
 	bool SAtransform(const real* Bstate, real* Astate);
 	bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
+	void calcHTransposeOLD(const real* yhat, real* Astate);
 	void calcHTranspose(const real* yhat, real* Astate);
-	void calcHTranspose2(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const std::string& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
@@ -121,7 +121,7 @@ protected:
 	real* bgState;
 	real* bgStdDev;
 	real* obsVector;
-  real* obsData;  // This only contains data that is needed by the calcHTranspose2 subroutine
+        real* obsData;  // This only contains the necessary data for the calcHTranspose subroutine
 	real* rawObs;
 	real* stateA;
 	real* stateB;
@@ -136,7 +136,7 @@ protected:
 	real* iGamma[7];
 	real* jGamma[7];
 	real* kGamma[7];
-  real* kGammaL;
+        real* kGammaL;
 	real* kLL;
 	real* finalAnalysis;
 	uint64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
