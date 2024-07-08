@@ -168,7 +168,7 @@ projection = PROJ_TRANSVERSE_MERCATOR_EXACT;
 //
 // Type: string
 
-data_directory = "/glade/campaign/cisl/asap/samurai/data/special/hurricane";
+data_directory = "/glade/campaign/cisl/asap/samurai/data/special/hurricane_4panel";
 
 ///////////// output_directory ////////////////////////
 //
