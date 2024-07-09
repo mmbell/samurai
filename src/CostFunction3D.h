@@ -166,7 +166,7 @@ protected:
 	// explicity store the H^t matrix in CSR format
         real *Ht;
 	uint64_t *IHt; // uint64_t
-	uint64_t *JHt; // uint32_t
+	uint32_t *JHt; // uint32_t
 
 	int basisappx;
 	real* basis0;

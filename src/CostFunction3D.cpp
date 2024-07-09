@@ -874,7 +874,7 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
           begin = IHt[n]; end = IHt[n + 1];
           #pragma acc loop reduction(+:tmp)
           for(j=begin; j<end; j++) {
-             m = JHt[j];
+             m = (uint64_t) JHt[j];
              tmp += Ht[j] * yhat[m] * obsData[m];
 	     
             }
@@ -2646,7 +2646,7 @@ void CostFunction3D::calcHmatrix()
   JH   = new uint32_t [nonzeros];  // uint32_t
 #ifdef NEWHT
   Ht   = new real[nonzeros];
-  JHt  = new uint64_t [nonzeros];  // uint32_t
+  JHt  = new uint32_t [nonzeros];  // uint32_t
 #else
   mVal = new uint64_t [nonzeros];  // uint64_t
   mTmp = new uint64_t [nonzeros];  // uint64_t
@@ -2718,9 +2718,9 @@ void CostFunction3D::calcHmatrix()
   IHt[nState]=cusum;
   for (uint64_t row = 0;row<mObs;row++) {
       for (uint64_t jj = IH[row];jj< IH[row+1];jj++) {
-	  uint64_t col = JH[jj];
+	  uint64_t col = (uint64_t) JH[jj];
           uint64_t dest = IHt[col];
-	  JHt[dest] = row;
+	  JHt[dest] = (uint32_t) row;
 	  Ht[dest] = H[jj];
 	  IHt[col] += 1;
       }
