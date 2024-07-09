@@ -547,7 +547,7 @@ void CostFunction3D::initState(const int iteration)
   // HTd
 #ifdef NEWHT
   calcHTranspose(innovation, stateC);
-#endif
+#else
   calcHTransposeOLD(innovation, stateC);
 #endif
 
@@ -2653,7 +2653,9 @@ void CostFunction3D::calcHmatrix()
 
   std::cout << "CostFunction3D::calcHmatrix: before big loop" << std::endl;
   hi=0;
+#ifndef NEWHT
   for (n=0;n<nState;n++){mIncr[n]=0;}
+#endif
 
 	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
 	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
