@@ -95,10 +95,12 @@ void CostFunction3D::finalize()
   delete[] stateB;
   delete[] stateC;
   // deallocate Clean-up the data that correspond to the H matrix
+#ifndef NEWHT
   #pragma acc exit data delete(mPtr,mVal,I2H)
   delete[] mPtr;
   delete[] mVal;
   delete[] I2H;
+#endif
 
   #pragma acc exit data delete(H,JH,IH)
   delete[] H;
@@ -2641,7 +2643,7 @@ void CostFunction3D::calcHmatrix()
   std::cout << "CostFunction3D:: nonzeros " << nonzeros << std::endl;
   std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << std::endl;
   H    = new real[nonzeros];
-  JH   = new uint64_t [nonzeros];  // uint32_t
+  JH   = new uint32_t [nonzeros];  // uint32_t
 #ifdef NEWHT
   Ht   = new real[nonzeros];
   JHt  = new uint64_t [nonzeros];  // uint32_t
@@ -2686,7 +2688,7 @@ void CostFunction3D::calcHmatrix()
 	  					cIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, var);
               weight = ibasis * jbasis * kbasis * obsVector[wgt_index];
               H[hi] = weight;
-              JH[hi] = cIndex;
+              JH[hi] = (uint32_t) cIndex;
 #ifndef NEWHT)
               mIncr[cIndex]+=1;
               mTmp[hi]=m;
@@ -2704,10 +2706,7 @@ void CostFunction3D::calcHmatrix()
   std::cout << "CostFunction3D::calcHmatrix: Before construction of H^t" << std::endl;
   /* Calculate the indicies for the H^t matrix */
   for (uint64_t n=0;n<nState;n++) {IHt[n]=0;}
-  for (uint64_t hi=0;hi<nonzeros;hi++) {
-      cIndex = JH[hi];
-      IHt[cIndex] = IHt[cIndex]+1;
-  }
+  for (uint64_t hi=0;hi<nonzeros;hi++) {IHt[JH[hi]]++;}
   std::cout << "CostFunction3D::calcHmatrix: After counting rows H^t" << std::endl;
   uint64_t cusum=0;
   for (uint64_t col=0; col < nState;col++) {

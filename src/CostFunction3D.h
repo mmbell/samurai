@@ -156,7 +156,7 @@ protected:
 	// explicitly store the H matrix in CSR format
 	real *H;
 	uint64_t *IH; // uint64_t
-        uint64_t *JH; // uint32_t
+        uint32_t *JH; // uint32_t
 
 	//JMD Arrays to access the H matrix for H^t operator 
 	uint64_t *I2H;   // uint64_t
