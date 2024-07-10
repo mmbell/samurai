@@ -19,6 +19,9 @@ sed -i 's/cc90/cc80/g' CMakeLists.txt
 ##################
 # Build the code #
 ##################
+sed -i 's/cc70/cc80/g' CMakeLists.txt
+sed -i 's/cc90/cc80/g' CMakeLists.txt
+
 cd ncar_scripts 
 ./ncar_build.sh gpu
 
