@@ -70,7 +70,6 @@ protected:
 	bool SAtransform(const real* Bstate, real* Astate);
 	bool SAtranspose(const real* Astate, real* Bstate);
 	void calcInnovation();
-	void calcHTransposeOLD(const real* yhat, real* Astate);
 	void calcHTranspose(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const std::string& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);

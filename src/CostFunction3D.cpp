@@ -2517,8 +2517,6 @@ void CostFunction3D::calcHmatrix()
   int iNode,jNode,kNode;
   int iiNode,jjNode,kkNode;
   int iis,iie,jjs,jje,kks,kke;
-  uint64_t *mTmp, *mIncr; // uint64_t
-  uint64_t dst;           // uint64_t
 
   real ibasis,jbasis,kbasis;
   real weight;
