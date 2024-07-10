@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
 #PBS -l gpu_type=h100
 #PBS -q casper
-#PBS -l walltime=03:30:00
+#PBS -l walltime=05:00:00
 #PBS -j oe
 #PBS -k eod
  
