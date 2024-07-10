@@ -2563,13 +2563,13 @@ void CostFunction3D::calcHmatrix()
 {
   int n;
   uint64_t hi,m,mi;  // uint64_t
+  uint64_t nnz;
   real i,j,k;
   int ii,jj,kk,d,var;
   uint64_t cIndex,wgt_index; // uint64_t
   int iNode,jNode,kNode;
   int iiNode,jjNode,kkNode;
   int iis,iie,jjs,jje,kks,kke;
-  int *Hlength;
   uint64_t *mTmp, *mIncr; // uint64_t
   uint64_t dst;           // uint64_t
 
@@ -2583,27 +2583,27 @@ void CostFunction3D::calcHmatrix()
 
   //GPTLstart("CostFunction3D::calcHmatrix:allocate");
 
-  Hlength = new int[mObs];
-  mPtr = new uint64_t [nState+1]; // uint64_t
-
   IH   = new uint64_t [mObs+1];    // uint64_t
 #ifdef NEWHT
   IHt  = new uint64_t [nState+1];  // uint64_t
+#else
+  mPtr = new uint64_t [nState+1]; // uint64_t
 #endif
 
+  nnz=0;
   //JMD variable-interleave
-  //GPTLstart("CostFunction3D::calcHmatrix:nonzeros");
+  //GPTLstart("CostFunction3D::calcHmatrix:nnz");
   // Determine the number of non-zeros in H
 	//#pragma omp parallel for private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
-  #pragma acc parallel loop vector gang vector_length(32) copyout(Hlength[0:mObs]) private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
+  #pragma acc parallel loop vector gang vector_length(32) private(m,mi,hi,iis,iie,jjs,jje,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) reduction(+:nnz)
   for (m = 0; m < mObs; m++) {
     mi = m*(7+varDim*derivDim);
-    i = obsVector[mi+2];
-    j = obsVector[mi+3];
-    k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
+    real i = obsVector[mi+2];
+    real j = obsVector[mi+3];
+    real k = obsVector[mi+4];
+    int ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    int jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    int kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0;
     jbasis = 0;
     kbasis = 0;
@@ -2626,30 +2626,27 @@ void CostFunction3D::calcHmatrix()
               if (!kbasis) continue;
               // Count the number of non-zero entries in the observation matrix...
               hi++;
+              nnz++;
             }
           }
         }
       }
     }
-    Hlength[m]=hi;
   }
-  uint64_t nonzeros = 0; // uint64_t
-  for (m = 0; m < mObs; m++) {
-    nonzeros += Hlength[m];
-  }
-  //GPTLstop("CostFunction3D::calcHmatrix:nonzeros");
-  IH[mObs] = nonzeros;
 
-  std::cout << "CostFunction3D:: nonzeros " << nonzeros << std::endl;
-  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << std::endl;
-  H    = new real[nonzeros];
-  JH   = new uint32_t [nonzeros];  // uint32_t
+  //GPTLstop("CostFunction3D::calcHmatrix:nnz");
+  IH[mObs] = nnz;
+
+  std::cout << "CostFunction3D:: nnz " << nnz << std::endl;
+  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nnz)/(1024.0*1024.0) << std::endl;
+  H    = new real[nnz];
+  JH   = new uint32_t [nnz];  // uint32_t
 #ifdef NEWHT
-  Ht   = new real[nonzeros];
-  JHt  = new uint32_t [nonzeros];  // uint32_t
+  Ht   = new real[nnz];
+  JHt  = new uint32_t [nnz];  // uint32_t
 #else
-  mVal = new uint64_t [nonzeros];  // uint64_t
-  mTmp = new uint64_t [nonzeros];  // uint64_t
+  mVal = new uint64_t [nnz];  // uint64_t
+  mTmp = new uint64_t [nnz];  // uint64_t
   mIncr = new uint64_t [nState];   // uint64_t
 #endif
 
@@ -2706,7 +2703,7 @@ void CostFunction3D::calcHmatrix()
   std::cout << "CostFunction3D::calcHmatrix: Before construction of H^t" << std::endl;
   /* Calculate the indicies for the H^t matrix */
   for (uint64_t n=0;n<nState;n++) {IHt[n]=0;}
-  for (uint64_t hi=0;hi<nonzeros;hi++) {IHt[JH[hi]]++;}
+  for (uint64_t hi=0;hi<nnz;hi++) {IHt[JH[hi]]++;}
   std::cout << "CostFunction3D::calcHmatrix: After counting rows H^t" << std::endl;
   uint64_t cusum=0;
   for (uint64_t col=0; col < nState;col++) {
@@ -2731,13 +2728,13 @@ void CostFunction3D::calcHmatrix()
   std::cout << "CostFunction3D::calcHmatrix: After construction of H^t" << std::endl;
 #else
 
-  I2H = new uint64_t [nonzeros]; // uint64_t
+  I2H = new uint64_t [nnz]; // uint64_t
   mPtr[0]=0;
   for (n=1;n<=nState;n++){
      mPtr[n] = mPtr[n-1]+mIncr[n-1];
   }
   for (n=0;n<nState;n++){mIncr[n]=0;}
-  for (hi=0;hi<nonzeros;hi++){
+  for (hi=0;hi<nnz;hi++){
     cIndex = JH[hi];
     dst = mPtr[cIndex]+mIncr[cIndex];
     I2H[dst] = hi;
@@ -2748,22 +2745,21 @@ void CostFunction3D::calcHmatrix()
   
   //
   // copy H matrix stuff to the GPU Device
-  #pragma acc enter data copyin(H[:nonzeros])
+  #pragma acc enter data copyin(H[:nnz])
   std::cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << std::endl;
   std::cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << std::endl;
   std::cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << std::endl;
-  std::cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << std::endl; 
+  std::cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nnz)/(1024.*1024.) << std::endl; 
   std::cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << std::endl;
 #ifdef NEWHT 
-  #pragma acc enter data copyin(Ht[:nonzeros])
-  std::cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nonzeros)/(1024.*1024.) << std::endl;
+  #pragma acc enter data copyin(Ht[:nnz])
+  std::cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nnz)/(1024.*1024.) << std::endl;
 #else
   #pragma acc enter data copyin(mPtr,mVal,I2H)
-  std::cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nonzeros+1)/(1024.*1024.) << std::endl;
+  std::cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(uint64_t)*(nState+2.*nnz+1)/(1024.*1024.) << std::endl;
   delete[] mIncr;
   delete[] mTmp;
 #endif
-  delete[] Hlength;
 
   //GPTLstop("CostFunction3D::calcHmatrix:deallocate");
 
