@@ -158,11 +158,6 @@ protected:
 	uint64_t *IH; // uint64_t
         uint32_t *JH; // uint32_t
 
-	//JMD Arrays to access the H matrix for H^t operator 
-	uint64_t *I2H;   // uint64_t
-        uint64_t *mPtr;  // uint64_t
-        uint64_t *mVal;  // uint64_t
-
 	// explicity store the H^t matrix in CSR format
         real *Ht;
 	uint64_t *IHt; // uint64_t
