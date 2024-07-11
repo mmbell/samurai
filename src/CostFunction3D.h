@@ -154,13 +154,13 @@ protected:
 
 	// explicitly store the H matrix in CSR format
 	real *H;
-	uint64_t *IH; // uint64_t
-        uint32_t *JH; // uint32_t
+	uint64_t *IH; // Array with extent:(nState+1) can take on values [0 to nonzeros]
+        uint32_t *JH; // Array with extent:(nonzeros) can take on values [0 to nState-1]
 
 	// explicity store the H^t matrix in CSR format
         real *Ht;
-	uint64_t *IHt; // uint64_t
-	uint32_t *JHt; // uint32_t
+	uint64_t *IHt; // Array with extent(mObs+1_ can take on values [0 to nonzeros]
+	uint32_t *JHt; // Array with extent(nonzeros) can take on values [0 to mObs-1]
 
 	int basisappx;
 	real* basis0;

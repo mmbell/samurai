@@ -806,8 +806,8 @@ void CostFunction3D::calcInnovation()
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
-  uint64_t n,m;         // uint64_t
-  uint64_t j,begin,end; // uint32_t
+  uint64_t n,m;       
+  uint64_t j,begin,end;
   real tmp,val;
 
         #pragma acc data present(yhat,Astate)
@@ -2578,17 +2578,15 @@ void CostFunction3D::calcHmatrix()
   //GPTLstop("CostFunction3D::calcHmatrix:nnz");
   IH[mObs] = nnz;
 
-  std::cout << "CostFunction3D:: nnz " << nnz << std::endl;
+  std::cout << "CostFunction3D:: nonzeros " << nnz << std::endl;
   std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nnz)/(1024.0*1024.0) << std::endl;
   H    = new real[nnz];
-  JH   = new uint32_t [nnz];  // uint32_t
+  JH   = new uint32_t [nnz];
   Ht   = new real[nnz];
-  JHt  = new uint32_t [nnz];  // uint32_t
+  JHt  = new uint32_t [nnz];
   std::cout << "CostFunction3D::calcHmatrix: before big loop" << std::endl;
   hi=0;
 
-	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
-	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
     IH[m]=hi;
     mi = m*(7+varDim*derivDim);
@@ -2670,8 +2668,8 @@ void CostFunction3D::calcHmatrix()
 
 void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
 {
-  uint64_t i;           // uint32_t
-  uint64_t j,begin,end; // uint64_t
+  uint64_t i;          
+  uint64_t j,begin,end;
   real tmp;
 
 	#pragma acc data present(Cstate,Hstate)
