@@ -819,7 +819,6 @@ void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
         for(n=0; n<nState; n++) {
           tmp = 0.0;
           begin = IHt[n]; end = IHt[n + 1];
-          #pragma acc loop reduction(+:tmp)
           for(j=begin; j<end; j++) {
              m = (uint64_t) JHt[j];
              tmp += Ht[j] * yhat[m] * obsData[m];
