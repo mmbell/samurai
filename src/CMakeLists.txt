@@ -1,7 +1,5 @@
 # CMakeLists for src-level of samurai
 
-project(samurai)
-
 # Compile flags
 
 set(CMAKE_CXX_STANDARD 11) # C++11
@@ -228,8 +226,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Cray")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Fujitsu")
   set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 ${OpenMP_CXX_FLAGS},fast,cmodel=large ")
 else() # Intel, GNU:
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-unknown-pragmas)
-  set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -Ofast ${OpenMP_CXX_FLAGS} ")
+  if(CMAKE_BUILD_TYPE STREQUAL "Release") 
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-unknown-pragmas)
+    set_source_files_properties(CostFunction3D.cpp BkgdObsLoaders.cpp RecursiveFilter.cpp PROPERTIES COMPILE_FLAGS "-O3 -Ofast ${OpenMP_CXX_FLAGS} ")
+  endif()
 endif()
 
 # If we're in GPU mode, check if we have cuFFT 

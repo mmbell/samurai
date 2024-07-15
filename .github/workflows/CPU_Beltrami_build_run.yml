@@ -9,14 +9,42 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build_run:
-
+  docker-build-and-test:
+    name: Build and Test - ${{ matrix.dockerfile }}
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        dockerfile:
+          - Dockerfile
+          - Dockerfile.coverage 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag samurai_build_run:latest
+    - name: Checkout code from a pull request or push
+      uses: actions/checkout@v3
+
+    - name: Delete huge unnecessary tools folder
+      run: rm -rf /opt/hostedtoolcache
+
+    - name: Build Docker image
+      run: docker build -f docker/${{ matrix.dockerfile }} -t samurai .
+
     - name: Running the Docker image for Beltrami case
-      run: docker run samurai_build_run:latest
+      # only run this if we are not running codecoverage tests
+      if: matrix.dockerfile != 'Dockerfile.coverage'
+      run: docker run --name test-container -t samurai
+
+    - name: Run coverage tests in container
+      if: matrix.dockerfile == 'Dockerfile.coverage'
+      run: docker run --name test-container -t samurai make coverage
+
+    - name: Copy coverage from container
+      if: matrix.dockerfile == 'Dockerfile.coverage'
+      run: docker cp test-container:/app/samurai/build/coverage.info .
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.dockerfile == 'Dockerfile.coverage'
+      uses: codecov/codecov-action@v4
+      with:
+        files: coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
