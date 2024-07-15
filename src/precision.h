@@ -13,6 +13,5 @@
 #include <cstdint>
 
 typedef double real;
-typedef unsigned long int integer;
 
 #endif
