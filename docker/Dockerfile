@@ -28,9 +28,10 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 RUN echo "#!/bin/bash \n\
 cd /app/samurai/build/release/bin/ \n\
-./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp\
+./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp > /app/test.log
 " > /app/run_samurai.sh
 WORKDIR /app/
 RUN chmod +x /app/run_samurai.sh
+RUN python /app/samurai/ncar_scripts/validation/validation.py ref.log test.log
 
 CMD [ "./run_samurai.sh" ]
