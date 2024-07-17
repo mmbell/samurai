@@ -120,7 +120,7 @@ protected:
 	real* bgState;
 	real* bgStdDev;
 	real* obsVector;
-  real* obsData;  // This only contains data that is needed by the calcHTranspose2 subroutine
+        real* obsData;  // This only contains the necessary data for the calcHTranspose subroutine
 	real* rawObs;
 	real* stateA;
 	real* stateB;
@@ -135,10 +135,10 @@ protected:
 	real* iGamma[7];
 	real* jGamma[7];
 	real* kGamma[7];
-  real* kGammaL;
+        real* kGammaL;
 	real* kLL;
 	real* finalAnalysis;
-	int64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
+	uint64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
 	int derivDim;
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];
@@ -151,9 +151,16 @@ protected:
 	double *iFFTin, *jFFTin, *kFFTin;
 	fftw_complex *iFFTout, *jFFTout, *kFFTout;
         bool UseFFT;
+
+	// explicitly store the H matrix in CSR format
 	real *H;
-	integer *IH, *I2H,*JH;
-  integer *mPtr, *mVal;
+	uint64_t *IH; // Array with extent:(nState+1) can take on values [0 to nonzeros]
+        uint32_t *JH; // Array with extent:(nonzeros) can take on values [0 to nState-1]
+
+	// explicity store the H^t matrix in CSR format
+        real *Ht;
+	uint64_t *IHt; // Array with extent(mObs+1_ can take on values [0 to nonzeros]
+	uint32_t *JHt; // Array with extent(nonzeros) can take on values [0 to mObs-1]
 
 	int basisappx;
 	real* basis0;

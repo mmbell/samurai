@@ -2,9 +2,9 @@
 #PBS -N SAMURAI
 #PBS -A NEOL0013
 #PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
-#PBS -l gpu_type=a100
+#PBS -l gpu_type=h100
 #PBS -q casper
-#PBS -l walltime=00:30:00
+#PBS -l walltime=05:00:00
 #PBS -j oe
 #PBS -k eod
  
@@ -16,9 +16,9 @@ ID=`date '+%Y%m%d%H%M'`
 ##################
 # Build the code #
 ##################
-sed -i 's/cc70/cc80/g' CMakeLists.txt
-sed -i 's/cc90/cc80/g' CMakeLists.txt
-
+# Use cc90 for h100 GPU on Casper
+sed -i 's/cc80/cc90/g' CMakeLists.txt
+sed -i 's/cc70/cc90/g' CMakeLists.txt
 
 cd ncar_scripts 
 ./ncar_build.sh gpu
@@ -27,7 +27,7 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="casper_gpu"
-for i in beltrami supercell hurricane typhoonChanthu2020  # hurricane_4panel
+for i in beltrami supercell hurricane typhoonChanthu2020 hurricane_4panel
 do
   ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   if [ ! -d  ${i}_${suffix} ]; then
