@@ -101,6 +101,10 @@ bool VarDriver3D::validateDriver()
     return false;
   }
 
+   // SS: Print the analysis_type from the TDRP config file
+   cout << "Analysis type: " << configHash["analysis_type"] << endl;
+//   exit(0);
+
   bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
   bool loadBG = ( configHash["load_background"] == "true" );
 
