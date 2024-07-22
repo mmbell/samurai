@@ -2,7 +2,7 @@
 
 if [[ ! -v SAMURAI_ROOT ]]; then
     echo "Please set the SAMURAI_ROOT environment variable first."
-    echo "Use export SAMURAI=/path_to_samurai_root_directory"
+    echo "Use export SAMURAI_ROOT=/path_to_samurai_root_directory"
     exit 911
 fi
 cd $SAMURAI_ROOT
@@ -20,7 +20,12 @@ else
     module load ncarenv/23.09
 fi
 if [ "$MODE" == "GPU" ]; then
-    module load nvhpc/23.7
+   if [ "$NCAR_HOST" == "casper" ]; then 
+      module load nvhpc/23.7
+    else
+      # Assume it is Derecho
+      module load nvhpc/24.3
+    fi
     module load cuda/12.2.1
 else
     module load intel/2023.2.1
@@ -31,20 +36,18 @@ module load cmake/3.26.3
 module load ncarcompilers/1.0.0
 
 # Export the path to the pre-built LROSE library, which is currently pointed to Jian's directory
-# Currently the available LROSE library is built by intel/2023.2.1 and nvhpc/23.7
-
 if [ "$NCAR_HOST" == "casper" ]; then
     if [ "$MODE" == "GPU" ]; then
-        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/casper/nvhpc23.7
+        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/casper/nvhpc/23.7/lrose-core-20240525
     else
-        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/casper/intel2023.2.1
+        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/casper/intel/2023.2.1/lrose-core-20240525
     fi
 else
     # Assume it is Derecho
     if [ "$MODE" == "GPU" ]; then
-        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/nvhpc23.7
+        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/nvhpc/24.3/lrose-core-20240525
     else
-        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/intel2023.2.1
+        export LROSE_INSTALL_DIR=/glade/work/sunjian/lrose/derecho/intel/2023.2.1/lrose-core-20240525
     fi
 fi
 

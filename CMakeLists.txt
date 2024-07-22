@@ -103,7 +103,18 @@ message("netCDF_INSTALL_PREFIX: ${netCDF_INSTALL_PREFIX}")
 message("HDF5_INSTALL_PREFIX: ${HDF5_INSTALL_PREFIX}")
 message("HDF5_C_INCLUDE_DIR: ${HDF5_C_INCLUDE_DIR}")
 
+# Enable CodeCoverage analysis
+option(ENABLE_COVERAGE "Enable code coverage output" OFF)
+if(ENABLE_COVERAGE)
+  include(CodeCoverage)
+  append_coverage_compiler_flags()
+  setup_target_for_coverage_lcov(
+      NAME coverage
+      EXECUTABLE "./release/bin/samurai"
+      EXECUTABLE_ARGS -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp
+      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+endif()
+
 # recurse into src directory for the build
 
-add_subdirectory(src)  
-
+add_subdirectory(src)

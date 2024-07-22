@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/github/mmbell/samurai/graph/badge.svg?token=YI7nJHhUCX)](https://codecov.io/github/mmbell/samurai)
+
 # SAMURAI
 
 ## Spline Analysis at Mesoscale Utilizing Radar and Aircraft Instrumentation

@@ -2,7 +2,7 @@
 
 if [[ ! -v SAMURAI_ROOT ]]; then
     echo "Please set the SAMURAI_ROOT environment variable first."
-    echo "Use export SAMURAI=/path_to_samurai_root_directory"
+    echo "Use export SAMURAI_ROOT=/path_to_samurai_root_directory"
     exit 911
 fi
 cd $SAMURAI_ROOT
@@ -31,6 +31,7 @@ if [ "${GPU}" == "0" ]; then
       export OMP_NUM_THREADS=128
    fi
 else
+  nvidia-smi
   echo "GPU run; using 1 thread and 1 GPU"
   export OMP_NUM_THREADS=1
 fi

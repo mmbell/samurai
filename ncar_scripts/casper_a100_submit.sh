@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
-#PBS -A NTDD0004
+#PBS -A NEOL0013
 #PBS -l select=1:ncpus=36:ompthreads=1:mem=700GB:ngpus=1
 #PBS -l gpu_type=a100
 #PBS -q casper
@@ -12,10 +12,13 @@ cd $PBS_O_WORKDIR
 cd ..
 export SAMURAI_ROOT=$(pwd)
 
-ID=`date '+%Y%m%d%H%M'
+ID=`date '+%Y%m%d%H%M'`
 ##################
 # Build the code #
 ##################
+sed -i 's/cc70/cc80/g' CMakeLists.txt
+sed -i 's/cc90/cc80/g' CMakeLists.txt
+
 
 cd ncar_scripts 
 ./ncar_build.sh gpu

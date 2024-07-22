@@ -94,14 +94,17 @@ void CostFunction3D::finalize()
   delete[] stateB;
   delete[] stateC;
   // deallocate Clean-up the data that correspond to the H matrix
-  #pragma acc exit data delete(mPtr,mVal,I2H)
-  delete[] mPtr;
-  delete[] mVal;
-  delete[] I2H;
+
   #pragma acc exit data delete(H,JH,IH)
   delete[] H;
   delete[] JH;
   delete[] IH;
+
+  #pragma acc exit data delete(Ht,JHt,IHt)
+  delete[] Ht;
+  delete[] JHt;
+  delete[] IHt;
+
 
   if (basisappx > 0) {
     delete[] basis0;
@@ -480,6 +483,7 @@ void CostFunction3D::initState(const int iteration)
 
   } // end of iteration == 1
 
+  //JMD variable-interleave
   for (int var = 0; var < varDim; var++) {
     // Init node variance
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -494,6 +498,7 @@ void CostFunction3D::initState(const int iteration)
     }
   }
 
+  //JMD variable-interleave
   // Compute and display the variable BG errors and RMS of values
   for (int var = 0; var < varDim; var++) {
     real varScale = 0;
@@ -747,6 +752,7 @@ void CostFunction3D::updateBG()
   std::string cFilename = outputPath + "/samurai_Coefficients.out";
   ofstream cstream(cFilename);
 
+  //JMD variable-interleave
   cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
@@ -800,33 +806,30 @@ void CostFunction3D::calcInnovation()
 
 void CostFunction3D::calcHTranspose(const real* yhat, real* Astate)
 {
-  integer j,n,m,k,ms,me;
+  uint64_t n,m;       
+  uint64_t j,begin,end;
   real tmp,val;
-	#pragma acc data present(yhat,Astate,mPtr,mVal,I2H,H)
-	{
-  	GPTLstart("CostFunction3D::calcHTranspose");
-  	#pragma omp parallel for private(n,k,ms,me,tmp,m,j,val)
-  	#pragma acc parallel loop gang vector vector_length(32) private(n,k,ms,me,tmp,m,j,val)
-  	for(n=0;n<nState;n++){
-    	ms = mPtr[n];
-    	me = mPtr[n+1];
-    	tmp = 0;
-    	if(me>ms){
-      	for (k=ms;k<me;k++){
-          m=mVal[k];
-          j=I2H[k];
-          //val = yhat[m] * obsVector[m*(7+varDim*derivDim)+1];
-          val = yhat[m] * obsData[m];
-          tmp += H[j] * val;
-       }
-    }
-    Astate[n]=tmp;
-  }
-  GPTLstop("CostFunction3D::calcHTranspose");
-	}
+
+        #pragma acc data present(yhat,Astate)
+        {
+        GPTLstart("CostFunction3D::calcHTranspose");
+        // Multiply the state by the observation matrix
+        #pragma omp parallel for private(n,m,j,tmp,begin,end) //[9]
+        #pragma acc parallel loop vector gang vector_length(32) private(n,m,j,tmp,begin,end) reduction(+:tmp) //[9]
+        for(n=0; n<nState; n++) {
+          tmp = 0.0;
+          begin = IHt[n]; end = IHt[n + 1];
+          for(j=begin; j<end; j++) {
+             m = (uint64_t) JHt[j];
+             tmp += Ht[j] * yhat[m] * obsData[m];
+	     
+            }
+          Astate[n] = tmp;
+        }
+
+        GPTLstop("CostFunction3D::calcHTranspose");
+        }
 }
-
-
 
 bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 {
@@ -997,6 +1000,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
 {
   GPTLstart("CostFunction3D::SAtranspose");
 
+  //JMD variable-interleave
   //#pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
     int l;
@@ -1246,6 +1250,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
   }
   real gausspoint = 0.5*sqrt(1./3.);
 
+  //JMD variable-interleave
   //#pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
@@ -1308,6 +1313,7 @@ void CostFunction3D::SBtranspose(const real* Bstate, real* Ustate)
   }
   real gausspoint = 0.5*sqrt(1./3.);
 
+  //JMD variable-interleave
   //#pragma omp parallel for
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = min(rankHash[iBCL[var]],1); iIndex < max(iDim-1-rankHash[iBCR[var]],iDim-2); iIndex++) {
@@ -1446,6 +1452,7 @@ void CostFunction3D::SCtranspose(const real* Cstate, real* Astate)
       Astate[n]= Cstate[n];
     }
     //_#pragma omp parallel for
+    //JMD variable-interleave
     for (int var = 0; var < varDim; var++) {
 
       // These are local for parallelization
@@ -1635,6 +1642,7 @@ bool CostFunction3D::setupSplines()
 void CostFunction3D::obAdjustments() {
   GPTLstart("CostFunction3D::obAdjustments");
 
+  //JMD variable-interleave
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
   for (int m = 0; m < mObs; m++) {
     int mi = m*(7+varDim*derivDim);
@@ -2425,6 +2433,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
     Cstate[n]= Astate[n];
   }
 
+  //JMD variable-interleave
   if(UseFFT) {
     // This should only be done if FFTW needs to be performed
     #pragma acc update self(Cstate[0:nState])
@@ -2499,43 +2508,42 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 void CostFunction3D::calcHmatrix()
 {
   int n;
-  integer hi,m,mi;
+  uint64_t hi,m,mi;  // uint64_t
+  uint64_t nnz;
   real i,j,k;
   int ii,jj,kk,d,var;
-  integer cIndex,wgt_index;
+  uint64_t cIndex,wgt_index; // uint64_t
   int iNode,jNode,kNode;
   int iiNode,jjNode,kkNode;
   int iis,iie,jjs,jje,kks,kke;
-  int *Hlength;
-  integer *mTmp, *mIncr;
-  integer dst;
 
   real ibasis,jbasis,kbasis;
   real weight;
 
   GPTLstart("CostFunction3D::calcHmatrix");
 
-  std::cout << "Build H transform matrix...\n";
+  std::cout << "Build H transform matrix..." << std::endl;
   std::cout << "calcHmatrix: Grid dimensions: (" << iDim << ", " << jDim << ", " << kDim << ")" << std::endl;
 
   //GPTLstart("CostFunction3D::calcHmatrix:allocate");
 
-  Hlength = new int[mObs];
-  mPtr = new integer[nState+1];
-  IH   = new integer [mObs+1];
+  IH   = new uint64_t [mObs+1];    // uint64_t
+  IHt  = new uint64_t [nState+1];  // uint64_t
 
-  //GPTLstart("CostFunction3D::calcHmatrix:nonzeros");
+  nnz=0;
+  //JMD variable-interleave
+  //GPTLstart("CostFunction3D::calcHmatrix:nnz");
   // Determine the number of non-zeros in H
 	//#pragma omp parallel for private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
-  #pragma acc parallel loop vector gang vector_length(32) copyout(Hlength[0:mObs]) private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
+  #pragma acc parallel loop vector gang vector_length(32) private(m,mi,hi,iis,iie,jjs,jje,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) reduction(+:nnz)
   for (m = 0; m < mObs; m++) {
     mi = m*(7+varDim*derivDim);
-    i = obsVector[mi+2];
-    j = obsVector[mi+3];
-    k = obsVector[mi+4];
-    ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
-    jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
-    kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
+    real i = obsVector[mi+2];
+    real j = obsVector[mi+3];
+    real k = obsVector[mi+4];
+    int ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
+    int jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
+    int kk = (int)((k - kMin)*DKrecip);kks=max(0,kk-1);kke=min(kk+2,kDim-1);
     ibasis = 0;
     jbasis = 0;
     kbasis = 0;
@@ -2558,35 +2566,26 @@ void CostFunction3D::calcHmatrix()
               if (!kbasis) continue;
               // Count the number of non-zero entries in the observation matrix...
               hi++;
+              nnz++;
             }
           }
         }
       }
     }
-    Hlength[m]=hi;
   }
 
-  integer nonzeros = 0;
-  for (int m = 0; m < mObs; m++) {
-    nonzeros += Hlength[m];
-  }
-  //GPTLstop("CostFunction3D::calcHmatrix:nonzeros");
+  //GPTLstop("CostFunction3D::calcHmatrix:nnz");
+  IH[mObs] = nnz;
 
-  IH[mObs] = nonzeros;
-  std::cout << "sizeof(integer): " << sizeof(integer) << "\n";
-  std::cout << "Non-zero entries in sparse H matrix: " << nonzeros << " = " << 100.0*float(nonzeros)/(float(mObs)*float(nState)) << " %\n";
-  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nonzeros)/(1024.0*1024.0) << "\n";
-  H    = new real[nonzeros];
-  JH   = new integer [nonzeros];
-  mVal = new integer [nonzeros];
-  mTmp = new integer [nonzeros];
-  mIncr = new integer [nState];
-
+  std::cout << "CostFunction3D:: nonzeros " << nnz << std::endl;
+  std::cout << "Memory usage for [H]             (Mbytes): " << sizeof(real)*(nnz)/(1024.0*1024.0) << std::endl;
+  H    = new real[nnz];
+  JH   = new uint32_t [nnz];
+  Ht   = new real[nnz];
+  JHt  = new uint32_t [nnz];
+  std::cout << "CostFunction3D::calcHmatrix: before big loop" << std::endl;
   hi=0;
-  for (n=0;n<nState;n++){mIncr[n]=0;}
 
-	//#pragma omp parallel for private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
-	//#pragma acc parallel loop vector gang vector_length(32) private(m,mi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex)
   for (m = 0; m < mObs; m++) {
     IH[m]=hi;
     mi = m*(7+varDim*derivDim);
@@ -2614,10 +2613,7 @@ void CostFunction3D::calcHmatrix()
 	  					cIndex = INDEX(iNode, jNode, kNode, iDim, jDim, varDim, var);
               weight = ibasis * jbasis * kbasis * obsVector[wgt_index];
               H[hi] = weight;
-              JH[hi] = cIndex;
-              mIncr[cIndex]+=1;
-              // if(cIndex==0) {cout << "cindex==0 m: " << m << "\n";}
-              mTmp[hi]=m;
+              JH[hi] = (uint32_t) cIndex;
               hi++;
             }
           }
@@ -2625,37 +2621,45 @@ void CostFunction3D::calcHmatrix()
       }
     }
   }
-  I2H = new integer [nonzeros];
-
-  //for (n=0;n<=8;n++) {cout << " mIncr: " << mIncr[n] << " \n"; }
-  mPtr[0]=0;
-  for (n=1;n<=nState;n++){
-     mPtr[n] = mPtr[n-1]+mIncr[n-1];
+  std::cout << "CostFunction3D::calcHmatrix: after big loop" << std::endl;
+  std::cout << "CostFunction3D::calcHmatrix: Before construction of H^t" << std::endl;
+  /* Calculate the indicies for the H^t matrix */
+  for (uint64_t n=0;n<nState;n++) {IHt[n]=0;}
+  for (uint64_t hi=0;hi<nnz;hi++) {IHt[JH[hi]]++;}
+  std::cout << "CostFunction3D::calcHmatrix: After counting rows H^t" << std::endl;
+  uint64_t cusum=0;
+  for (uint64_t col=0; col < nState;col++) {
+     uint64_t temp = IHt[col];
+     IHt[col] = cusum;
+     cusum += temp;
+  } 
+  std::cout << "CostFunction3D::calcHmatrix: before H^t assignment" << std::endl;
+  IHt[nState]=cusum;
+  for (uint64_t row = 0;row<mObs;row++) {
+      for (uint64_t jj = IH[row];jj< IH[row+1];jj++) {
+	  uint64_t col = (uint64_t) JH[jj];
+          uint64_t dest = IHt[col];
+	  JHt[dest] = (uint32_t) row;
+	  Ht[dest] = H[jj];
+	  IHt[col] += 1;
+      }
   }
-  //for (n=0;n<=12;n++) {cout << " mPtr: " << mPtr[n] << " \n"; }
-  //cout << "mPtr[nState]: " << mPtr[nState] << " \n";
-  for (n=0;n<nState;n++){mIncr[n]=0;}
-  for (hi=0;hi<nonzeros;hi++){
-    cIndex = JH[hi];
-    dst = mPtr[cIndex]+mIncr[cIndex];
-    I2H[dst] = hi;
-    mVal[dst] = mTmp[hi];
-    mIncr[cIndex]+=1;
-  }
+  std::cout << "CostFunction3D::calcHmatrix: after H^t assignment" << std::endl;
+  for(uint64_t i=nState;i>0;i--) {IHt[i] = IHt[i-1];}
+  IHt[0]=0;
+  std::cout << "CostFunction3D::calcHmatrix: After construction of H^t" << std::endl;
+  
   //
   // copy H matrix stuff to the GPU Device
-  #pragma acc enter data copyin(mPtr,mVal,I2H)
-  #pragma acc enter data copyin(H[:nonzeros])
-  cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << "\n";
-  cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << "\n";
-  cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << "\n";
-  cout << "Memory usage for [mPtr,mVal,I2H] (Mbytes): " << sizeof(integer)*(nState+2.*nonzeros+1)/(1024.*1024.) << "\n";
-  cout << "Memory usage for [IH,JH]         (Mbytes): " << sizeof(integer)*(mObs+nonzeros+1)/(1024.*1024.) << "\n";
-  cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << "\n";
+  #pragma acc enter data copyin(H[:nnz])
+  std::cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nnz)/(1024.*1024.) << std::endl; 
+  std::cout << "Memory usage for [state]         (Mbytes): " << sizeof(real)*(nState)/(1024.*1024.) << std::endl;
+  #pragma acc enter data copyin(Ht[:nnz])
+  std::cout << "Memory usage for [IHt,JHt]         (Mbytes): " << (sizeof(uint64_t)*(nState+1)+ sizeof(int32_t)*nnz)/(1024.*1024.) << std::endl;
 
-  delete[] Hlength;
-  delete[] mIncr;
-  delete[] mTmp;
   //GPTLstop("CostFunction3D::calcHmatrix:deallocate");
 
   GPTLstop("CostFunction3D::calcHmatrix");
@@ -2663,8 +2667,8 @@ void CostFunction3D::calcHmatrix()
 
 void CostFunction3D::Htransform(const real* Cstate, real* Hstate)
 {
-  integer i,j;
-  integer begin,end;
+  uint64_t i;          
+  uint64_t j,begin,end;
   real tmp;
 
 	#pragma acc data present(Cstate,Hstate)
