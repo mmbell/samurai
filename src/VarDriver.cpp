@@ -13,6 +13,7 @@
 #include "LineSplit.h"
 #include <fstream>
 #include <cmath>
+#include <netcdf>
 #include <euclid/GeographicLib/TransverseMercatorExact.hpp>
 #include <euclid/GeographicLib/LambertConformalConic.hpp>
 
@@ -1942,6 +1943,134 @@ Projection::ProjectionType VarDriver::projectionFromConfig()
   }*/
   return retVal;
 }
+
+// This routine from the thermo branch, NetCDF_XYZ::readNetCDF
+
+int VarDriver::readNetCDF_thermo(const char* filename){
+
+  
+  Nc3Error err(Nc3Error::verbose_nonfatal);
+    Nc3File dataFile(filename, Nc3File::ReadOnly);
+
+    if(!dataFile.is_valid())
+    	return NC_ERR;
+     
+	// Get pointers to the latitude and longitude variables.
+    Nc3Var *lonVar, *latVar, *altVar;
+    if (!(lonVar = dataFile.get_var("lon")))
+    	return NC_ERR;
+    if (!(latVar = dataFile.get_var("lat")))
+        return NC_ERR;
+    if (!(altVar = dataFile.get_var("z")))
+        return NC_ERR;  
+     
+    // Get the lat/lon data from the file.
+    if (!lonVar->get(longitude, NLON))
+    	return NC_ERR;
+    if (!latVar->get(latitude, NLAT))
+    	return NC_ERR;
+    if (!altVar->get(altitude, NALT))
+    	return NC_ERR;
+
+     // Get pointers to the pressure and temperature variables.
+    Nc3Var *uVar,*vVar,*wVar,*dudxVar,*dvdxVar,*dwdxVar,*dudyVar,*dvdyVar,*dwdyVar,*dudzVar,*dvdzVar,*dwdzVar, *trbVar, *dpibdxVar, *dpibdyVar;
+
+    if (!(uVar = dataFile.get_var("u")))
+    	return NC_ERR;
+    if (!(vVar = dataFile.get_var("v")))
+    	return NC_ERR;
+    if (!(wVar = dataFile.get_var("w")))
+    	return NC_ERR;    	     
+    if (!(dudxVar = dataFile.get_var("dudx")))
+    	return NC_ERR;   
+    if (!(dvdxVar = dataFile.get_var("dvdx")))
+    	return NC_ERR;   
+    if (!(dwdxVar = dataFile.get_var("dwdx")))
+    	return NC_ERR;   
+    if (!(dudyVar = dataFile.get_var("dudy")))
+    	return NC_ERR;   
+    if (!(dvdyVar = dataFile.get_var("dvdy")))
+    	return NC_ERR;   
+    if (!(dwdyVar = dataFile.get_var("dwdy")))
+    	return NC_ERR;   
+    if (!(dudzVar = dataFile.get_var("dudz")))
+    	return NC_ERR;   
+    if (!(dvdzVar = dataFile.get_var("dvdz")))
+    	return NC_ERR;   
+    if (!(dwdzVar = dataFile.get_var("dwdz")))
+    	return NC_ERR;       	  
+    if (!(trbVar = dataFile.get_var("trb")))
+    	return NC_ERR; 
+    if (!(dpibdxVar = dataFile.get_var("dpibdx")))
+    	return NC_ERR; 
+    if (!(dpibdyVar = dataFile.get_var("dpibdy")))
+    	return NC_ERR; 
+                	
+    if (!uVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!vVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!wVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dudxVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dvdxVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dwdxVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dudyVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dvdyVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dwdyVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dudzVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dvdzVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;
+    if (!dwdzVar->set_cur(NREC, 0, 0, 0))
+		return NC_ERR;			
+    if (!trbVar->set_cur(NREC, 0, 0, 0))
+    return NC_ERR; 
+    if (!dpibdxVar->set_cur(NREC, 0, 0, 0))
+    return NC_ERR; 
+    if (!dpibdyVar->set_cur(NREC, 0, 0, 0))
+    return NC_ERR; 
+											 
+	if (!uVar->get(u, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+  	if (!vVar->get(v, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+ 	if (!wVar->get(w, 1, NALT, NLAT, NLON))
+		return NC_ERR; 
+	if (!dudxVar->get(dudx, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+  	if (!dvdxVar->get(dvdx, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+ 	if (!dwdxVar->get(dwdx, 1, NALT, NLAT, NLON))
+		return NC_ERR; 
+	if (!dudyVar->get(dudy, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+  	if (!dvdyVar->get(dvdy, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+ 	if (!dwdyVar->get(dwdy, 1, NALT, NLAT, NLON))
+		return NC_ERR; 
+	if (!dudzVar->get(dudz, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+  	if (!dvdzVar->get(dvdz, 1, NALT, NLAT, NLON))
+		return NC_ERR;
+ 	if (!dwdzVar->get(dwdz, 1, NALT, NLAT, NLON))
+		return NC_ERR; 
+  if (!trbVar->get(thetarhobar, 1, NALT, NLAT, NLON))
+    return NC_ERR; 
+  if (!dpibdxVar->get(dpibardx, 1, NALT, NLAT, NLON))
+    return NC_ERR; 
+  if (!dpibdyVar->get(dpibardy, 1, NALT, NLAT, NLON))
+    return NC_ERR; 
+
+   return 0;
+}
+
 
 bool VarDriver::read_mesonet(std::string& filename, std::vector<MetObs>* metObVector)
 {
