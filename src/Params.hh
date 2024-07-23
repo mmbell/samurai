@@ -79,7 +79,6 @@ public:
     MODE_RTZ = 1
   } mode_t;
 
-// Added by SS
   typedef enum {
     WIND = 0,
     THERMO = 1,
@@ -407,7 +406,6 @@ public:
 
   mode_t mode;
 
-// Added by SS
   analysis_type_t analysis_type;
 
   projection_t projection;

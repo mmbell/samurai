@@ -104,7 +104,6 @@ paramdef enum mode_t {
   p_help = "XYZ for Cartesian, RTZ for spherical";
 } mode;
 
-// Added by SS
 typedef enum {
   WIND, THERMO, WIND_THERMO
 } analysis_type_t;

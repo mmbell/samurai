@@ -78,7 +78,6 @@ std::string interp_map[] = { "none", "spline", "kd_tree", "fractl" };
 
 std::string mode_map[] = { "XYZ", "RTZ" };
 
-// Added by SS
 // This needs to match analysis_type_t in paramdef.samurai
 
 std::string analysis_type_map[] = { "WIND", "THERMO", "WIND_THERMO" };

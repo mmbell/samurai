@@ -742,7 +742,6 @@
     tt->single_val.e = MODE_XYZ;
     tt++;
 
-// ADDED by SS
     // Parameter 'analysis_type'
     // ctype is '_analysis_type_t'
     
