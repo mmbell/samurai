@@ -107,7 +107,6 @@ bool VarDriver3D::validateDriver()
        std::cout << "Currently unsupported Analysis type: " << configHash["analysis_type"] << ", Aborting..." << std::endl;
        return false;	   
    }
-//   exit(0);
 
   bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
   bool loadBG = ( configHash["load_background"] == "true" );
