@@ -78,6 +78,10 @@ std::string interp_map[] = { "none", "spline", "kd_tree", "fractl" };
 
 std::string mode_map[] = { "XYZ", "RTZ" };
 
+// This needs to match analysis_type_t in paramdef.samurai
+
+std::string analysis_type_map[] = { "WIND", "THERMO", "WIND_THERMO" };
+
 // This needs to match projection_t in paramdef.samurai
 
 std::string projection_map[] = { "lambert_conformal_conic",
@@ -102,6 +106,7 @@ bool Args::paramsToHash(HashMap *configHash) {
   CONFIG_INSERT_BOOL(load_bg_coefficients);
   CONFIG_INSERT_FLOAT(mask_reflectivity);
   CONFIG_INSERT_MAP_VALUE(mode, mode_map);
+  CONFIG_INSERT_MAP_VALUE(analysis_type, analysis_type_map);
   CONFIG_INSERT_BOOL(output_asi);
   CONFIG_INSERT_BOOL(output_COAMPS);
   CONFIG_INSERT_STR(output_directory);
