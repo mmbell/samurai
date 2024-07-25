@@ -147,6 +147,21 @@ bkgd_obs_interpolation = INTERP_SPLINE;
 
 mode = MODE_XYZ;
 
+///////////// mode ////////////////////////////////////
+// Type of analysis.
+//
+// WIND for wind analysis
+// THERMO for Thermo analysis using samurai output from a file
+// WIND_THERMO for wind analysis and then Thermo analysis        
+//
+// Type: enum
+// Options:
+//     WIND
+//     THERMO
+//     WIND_THERMO
+
+analysis_type = WIND; 
+
 ///////////// projection //////////////////////////////
 //
 // Projection.

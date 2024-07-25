@@ -741,6 +741,29 @@
       tt->enum_def.fields[1].val = MODE_RTZ;
     tt->single_val.e = MODE_XYZ;
     tt++;
+
+    // Parameter 'analysis_type'
+    // ctype is '_analysis_type_t'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = ENUM_TYPE;
+    tt->param_name = tdrpStrDup("analysis_type");
+    tt->descr = tdrpStrDup("Type of analysis to perform");
+    tt->help = tdrpStrDup("TODO");
+    tt->val_offset = (char *) &analysis_type - &_start_;
+    tt->enum_def.name = tdrpStrDup("analysis_type_t");
+    tt->enum_def.nfields = 3;
+    tt->enum_def.fields = (enum_field_t *)
+        tdrpMalloc(tt->enum_def.nfields * sizeof(enum_field_t));
+      tt->enum_def.fields[0].name = tdrpStrDup("WIND");
+      tt->enum_def.fields[0].val = WIND;
+      tt->enum_def.fields[1].name = tdrpStrDup("THERMO");
+      tt->enum_def.fields[1].val = THERMO;
+      tt->enum_def.fields[2].name = tdrpStrDup("WIND_THERMO");
+      tt->enum_def.fields[2].val = WIND_THERMO;
+    tt->single_val.e = WIND;
+    tt++;
+
     
     // Parameter 'projection'
     // ctype is '_projection_t'

@@ -111,7 +111,7 @@ mode = MODE_XYZ;
 //     THERMO
 //     WIND_THERMO
 
-analysis_type = WIND;
+analysis_type = THERMO;
 
 ///////////// projection //////////////////////////////
 //
