@@ -1131,4 +1131,115 @@ paramdef float {
   p_help = "";
 } k_max_wavenumber[];
 
+commentdef {
+   p_header = "VARIABLES NEEDED BY THERMO";
+   p_help = "";
+}
 
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_pip_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_pip_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_thetarhop_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_thetarhop_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_ftheta_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} i_ftheta_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_pip_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_pip_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_thetarhop_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_thetarhop_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_ftheta_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} j_ftheta_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_pip_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_pip_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_thetarhop_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_thetarhop_bcR;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_ftheta_bcL;
+
+paramdef int {
+  p_default = -999;
+  p_descr = "";
+  p_help = "";
+} k_ftheta_bcR;

@@ -756,6 +756,42 @@ public:
   float *_k_max_wavenumber;
   int k_max_wavenumber_n;
 
+  int i_pip_bcL;
+
+  int i_pip_bcR;
+
+  int i_thetarho_bcL;
+
+  int i_thetarho_bcR;
+
+  int i_ftheta_bcL;
+
+  int i_ftheta_bcR;
+ 
+  int j_pip_bcL;
+
+  int j_pip_bcR;
+
+  int j_thetarho_bcL;
+
+  int j_thetarho_bcR;
+
+  int j_ftheta_bcL;
+
+  int j_ftheta_bcR; 
+
+  int k_pip_bcL;
+
+  int k_pip_bcR;
+
+  int k_thetarho_bcL;
+
+  int k_thetarho_bcR;
+
+  int k_ftheta_bcL;
+
+  int k_ftheta_bcR;
+
   char _end_; // end of data region
               // needed for zeroing out data
 

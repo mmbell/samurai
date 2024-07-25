@@ -308,5 +308,27 @@ bool Args::paramsToHash(HashMap *configHash) {
     CONFIG_INSERT_FLOAT_ARRAY(neumann_v_weight, iter);
     CONFIG_INSERT_FLOAT_ARRAY(dirichlet_w_weight, iter);
   }
+  // arguments required by THERMO
+  CONFIG_INSERT_INT(i_pip_bcL);
+  CONFIG_INSERT_INT(i_pip_bcR);
+  CONFIG_INSERT_INT(i_thetarhop_bcL);
+  CONFIG_INSERT_INT(i_thetarhop_bcR);
+  CONFIG_INSERT_INT(i_ftheta_bcL);
+  CONFIG_INSERT_INT(i_ftheta_bcR);
+
+  CONFIG_INSERT_INT(j_pip_bcL);
+  CONFIG_INSERT_INT(j_pip_bcR);
+  CONFIG_INSERT_INT(j_thetarhop_bcL);
+  CONFIG_INSERT_INT(j_thetarhop_bcR);
+  CONFIG_INSERT_INT(j_ftheta_bcL);
+  CONFIG_INSERT_INT(j_ftheta_bcR);
+
+  CONFIG_INSERT_INT(k_pip_bcL);
+  CONFIG_INSERT_INT(k_pip_bcR);
+  CONFIG_INSERT_INT(k_thetarhop_bcL);
+  CONFIG_INSERT_INT(k_thetarhop_bcR);
+  CONFIG_INSERT_INT(k_ftheta_bcL);
+  CONFIG_INSERT_INT(k_ftheta_bcR);
+
   return true;
 }
