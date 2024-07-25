@@ -80,6 +80,12 @@ public:
   } mode_t;
 
   typedef enum {
+    WIND = 0,
+    THERMO = 1,
+    WIND_THERMO = 2
+  } analysis_type_t;
+
+  typedef enum {
     PROJ_LAMBERT_CONFORMAL_CONIC = 0,
     PROJ_TRANSVERSE_MERCATOR_EXACT = 1
   } projection_t;
@@ -399,6 +405,8 @@ public:
   bkgd_interp_method_t bkgd_obs_interpolation;
 
   mode_t mode;
+
+  analysis_type_t analysis_type;
 
   projection_t projection;
 

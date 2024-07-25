@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/github/mmbell/samurai/graph/badge.svg?token=YI7nJHhUCX)](https://codecov.io/github/mmbell/samurai)
+[![codecov](https://codecov.io/github/mmbell/samurai/branch/main/graph/badge.svg?token=YI7nJHhUCX)](https://codecov.io/github/mmbell/samurai/branch/main)
 
 # SAMURAI
 
