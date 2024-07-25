@@ -760,9 +760,9 @@ public:
 
   int i_pip_bcR;
 
-  int i_thetarho_bcL;
+  int i_thetarhop_bcL;
 
-  int i_thetarho_bcR;
+  int i_thetarhop_bcR;
 
   int i_ftheta_bcL;
 
@@ -772,9 +772,9 @@ public:
 
   int j_pip_bcR;
 
-  int j_thetarho_bcL;
+  int j_thetarhop_bcL;
 
-  int j_thetarho_bcR;
+  int j_thetarhop_bcR;
 
   int j_ftheta_bcL;
 
@@ -784,9 +784,9 @@ public:
 
   int k_pip_bcR;
 
-  int k_thetarho_bcL;
+  int k_thetarhop_bcL;
 
-  int k_thetarho_bcR;
+  int k_thetarhop_bcR;
 
   int k_ftheta_bcL;
 
