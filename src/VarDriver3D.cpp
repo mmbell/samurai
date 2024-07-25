@@ -103,7 +103,11 @@ bool VarDriver3D::validateDriver()
 
    // Print the analysis_type from the TDRP config file
   std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
-   if(configHash["analysis_type"] != "WIND") {
+   if(configHash["analysis_type"] != "WIND")
+   {
+	   std::cout << "i_pip_bcL = " << configHash["i_pip_bcL"] << std::endl;
+	   std::cout << "j_pip_bcR = " << configHash["j_pip_bcR"] << std::endl;
+	   std::cout << "k_ftheta_bcL = " << configHash["k_ftheta_bcL"] << std::endl;
        std::cout << "Currently unsupported Analysis type: " << configHash["analysis_type"] << ", Aborting..." << std::endl;
        return false;	   
    }
