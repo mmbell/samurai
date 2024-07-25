@@ -13,7 +13,6 @@
 #include "LineSplit.h"
 #include <fstream>
 #include <cmath>
-#include <netcdf>
 #include <euclid/GeographicLib/TransverseMercatorExact.hpp>
 #include <euclid/GeographicLib/LambertConformalConic.hpp>
 
