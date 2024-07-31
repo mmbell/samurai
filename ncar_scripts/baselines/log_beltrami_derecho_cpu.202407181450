@@ -1,0 +1,238 @@
+
+Currently Loaded Modules:
+  1) ncarenv/23.09  (S)   4) ncarcompilers/1.0.0   7) netcdf/4.9.2
+  2) craype/2.7.23        5) cray-mpich/8.1.27
+  3) intel/2023.2.1       6) hdf5/1.12.2
+
+  Where:
+   S:  Module is Sticky, requires --force to unload or purge
+
+ 
+
+CPU run; using 128 threads
+Initializing SAMURAI 3D
+iMin	iMax	iIncr	jMin	jMax	jIncr	kMin	kMax	kIncr
+12	28	0.5	-4	12	0.5	0	18	0.5
+
+Can't open Reference State file for reading,  'dunion_mt.snd' using default...
+DEBUG: center date = 2008-09-14 00:00:00.000000000, time = 0
+Found matching reference time 23:51:32 at 16.7150002, 148
+Physical (mish) State size = 2459968
+Nodal State size = 334425
+Grid dimensions: (33, 33, 37)
+Loading preprocessed observations from samurai_Observations.in
+Number of New Observations: 45134
+runTime: loadMetObs: 0.295442
+done with stof conversion...
+kRankMax: 39
+runTime: initObCost3D: 0.012787
+runTime: gridDependentInit: 0.604037
+Outer Loop Iteration: 1
+Initializing state vector...
+4th Order Recursive Filter coefficients computed for lengthscale 2 Delta X
+4th Order Recursive Filter coefficients computed for lengthscale 2 Delta X
+4th Order Recursive Filter coefficients computed for lengthscale 2 Delta X
+i Spline cutoff set to 2
+j Spline cutoff set to 2
+k Spline cutoff set to 2
+Mass continuity weight set to 1
+Initializing background...
+Variable 0 RMS = 0	 BG Error = 2.0003561e-264 ( Infinite! %)
+Variable 1 RMS = 0	 BG Error = 6.9244327e-77 ( Infinite! %)
+Variable 2 RMS = 0	 BG Error = 1.98973863e-264 ( Infinite! %)
+Variable 3 RMS = 0	 BG Error = 2.35119669e-154 ( Infinite! %)
+Variable 4 RMS = 0	 BG Error = 2.46005736e-91 ( Infinite! %)
+Variable 5 RMS = 0	 BG Error = 6.74774891e-67 ( Infinite! %)
+Variable 6 RMS = 0	 BG Error = 2.26065223e-264 ( Infinite! %)
+Build H transform matrix...
+calcHmatrix: Grid dimensions: (35, 35, 39)
+CostFunction3D:: nonzeros 2913945
+Memory usage for [H]             (Mbytes): 22.231636
+CostFunction3D::calcHmatrix: before big loop
+CostFunction3D::calcHmatrix: after big loop
+CostFunction3D::calcHmatrix: Before construction of H^t
+CostFunction3D::calcHmatrix: After counting rows H^t
+CostFunction3D::calcHmatrix: before H^t assignment
+CostFunction3D::calcHmatrix: after H^t assignment
+CostFunction3D::calcHmatrix: After construction of H^t
+Memory usage for [obsVector]     (Mbytes): 12.0520782
+Memory usage for [obsData]       (Mbytes): 0.344345093
+Memory usage for [HCq]           (Mbytes): 0.708839417
+Memory usage for [IH,JH]         (Mbytes): 11.4601707
+Memory usage for [state]         (Mbytes): 2.55146027
+Memory usage for [IHt,JHt]         (Mbytes): 13.6672859
+Initializing innovation vector...
+Innovation RMS : 1.11738249
+Outputting background...
+Beginning analysis...
+runTime: Cost3D Init: 1.978866
+Beginning minimize()
+	Solver conv. tolerance = 0.0001
+SOLVER: Samurai Truncated Newton 
+	Newton Iteration: 0	J = 22845.4899	Residual = 8893.1589
+		CG iteration       0:  r_norm =        8893.15889806     rel_resid =   1.0000000000
+		CG iteration       1:  r_norm =        4162.93153086     rel_resid =   0.4681049308
+		CG iteration       2:  r_norm =        2047.43746854     rel_resid =   0.2302261201
+		CG iteration       3:  r_norm =        1238.49654418     rel_resid =   0.1392639622
+		CG iteration       4:  r_norm =         868.82281041     rel_resid =   0.0976956355
+		CG iteration       5:  r_norm =         602.01151759     rel_resid =   0.0676937773
+		CG iteration       6:  r_norm =         474.02685117     rel_resid =   0.0533024156
+		CG iteration       7:  r_norm =         355.57888632     rel_resid =   0.0399834176
+		CG iteration       8:  r_norm =         290.70520463     rel_resid =   0.0326886327
+		CG iteration       9:  r_norm =         264.01537576     rel_resid =   0.0296874686
+		CG iteration      10:  r_norm =         216.92878478     rel_resid =   0.0243927706
+		CG iteration      11:  r_norm =         207.52870253     rel_resid =   0.0233357691
+		CG iteration      12:  r_norm =         180.64181457     rel_resid =   0.0203124465
+		CG iteration      13:  r_norm =         147.97433934     rel_resid =   0.0166391201
+		CG iteration      14:  r_norm =         131.23412405     rel_resid =   0.0147567502
+		CG iteration      15:  r_norm =         115.75319538     rel_resid =   0.0130159819
+		CG iteration      16:  r_norm =          97.65788542     rel_resid =   0.0109812370
+		CG iteration      17:  r_norm =          94.68235310     rel_resid =   0.0106466503
+		CG iteration      18:  r_norm =          89.37095074     rel_resid =   0.0100494045
+		CG iteration      19:  r_norm =          80.17847261     rel_resid =   0.0090157472
+		CG iteration      20:  r_norm =          72.08148736     rel_resid =   0.0081052737
+		CG iteration      21:  r_norm =          68.49380676     rel_resid =   0.0077018535
+		CG iteration      22:  r_norm =          70.31787102     rel_resid =   0.0079069622
+		CG iteration      23:  r_norm =          64.82677166     rel_resid =   0.0072895101
+		CG iteration      24:  r_norm =          62.74736281     rel_resid =   0.0070556889
+		CG iteration      25:  r_norm =          67.29492475     rel_resid =   0.0075670440
+		CG iteration      26:  r_norm =          66.54665787     rel_resid =   0.0074829044
+		CG iteration      27:  r_norm =          58.84495271     rel_resid =   0.0066168786
+		CG iteration      28:  r_norm =          60.89486818     rel_resid =   0.0068473834
+		CG iteration      29:  r_norm =          62.21405828     rel_resid =   0.0069957210
+		CG iteration      30:  r_norm =          55.65349553     rel_resid =   0.0062580120
+		CG iteration      31:  r_norm =          48.11997939     rel_resid =   0.0054108984
+		CG iteration      32:  r_norm =          46.94731410     rel_resid =   0.0052790369
+		CG iteration      33:  r_norm =          43.76094925     rel_resid =   0.0049207430
+		CG iteration      34:  r_norm =          44.70758848     rel_resid =   0.0050271888
+		CG iteration      35:  r_norm =          44.72064494     rel_resid =   0.0050286569
+		CG iteration      36:  r_norm =          41.35665015     rel_resid =   0.0046503892
+		CG iteration      37:  r_norm =          42.16742241     rel_resid =   0.0047415573
+		CG iteration      38:  r_norm =          38.56333405     rel_resid =   0.0043362920
+		CG iteration      39:  r_norm =          37.62799631     rel_resid =   0.0042311171
+		CG iteration      40:  r_norm =          35.34243590     rel_resid =   0.0039741150
+		CG iteration      41:  r_norm =          33.61047335     rel_resid =   0.0037793627
+		CG iteration      42:  r_norm =          31.60390820     rel_resid =   0.0035537325
+		CG iteration      43:  r_norm =          30.40648847     rel_resid =   0.0034190875
+		CG iteration      44:  r_norm =          30.76831463     rel_resid =   0.0034597734
+		CG iteration      45:  r_norm =          28.72439874     rel_resid =   0.0032299433
+		CG iteration      46:  r_norm =          29.70275956     rel_resid =   0.0033399560
+		CG iteration      47:  r_norm =          26.88786278     rel_resid =   0.0030234322
+		CG iteration      48:  r_norm =          25.95826203     rel_resid =   0.0029189023
+		CG iteration      49:  r_norm =          23.75956315     rel_resid =   0.0026716674
+		CG iteration      50:  r_norm =          23.47248221     rel_resid =   0.0026393864
+		CG iteration      51:  r_norm =          21.64059958     rel_resid =   0.0024333985
+		CG iteration      52:  r_norm =          21.58347000     rel_resid =   0.0024269745
+		CG iteration      53:  r_norm =          22.15319672     rel_resid =   0.0024910380
+		CG iteration      54:  r_norm =          22.18192833     rel_resid =   0.0024942688
+		CG iteration      55:  r_norm =          22.28958106     rel_resid =   0.0025063739
+		CG iteration      56:  r_norm =          20.56453781     rel_resid =   0.0023123997
+		CG iteration      57:  r_norm =          18.92880434     rel_resid =   0.0021284680
+		CG iteration      58:  r_norm =          17.07489257     rel_resid =   0.0019200031
+		CG iteration      59:  r_norm =          17.29416734     rel_resid =   0.0019446597
+		CG iteration      60:  r_norm =          17.47935010     rel_resid =   0.0019654827
+		CG iteration      61:  r_norm =          16.86648760     rel_resid =   0.0018965688
+		CG iteration      62:  r_norm =          15.92286284     rel_resid =   0.0017904620
+		CG iteration      63:  r_norm =          15.52547686     rel_resid =   0.0017457775
+		CG iteration      64:  r_norm =          14.56473001     rel_resid =   0.0016377454
+		CG iteration      65:  r_norm =          13.37195416     rel_resid =   0.0015036225
+		CG iteration      66:  r_norm =          12.21969102     rel_resid =   0.0013740552
+		CG iteration      67:  r_norm =          11.95532287     rel_resid =   0.0013443280
+		CG iteration      68:  r_norm =          12.13270685     rel_resid =   0.0013642742
+		CG iteration      69:  r_norm =          11.82062274     rel_resid =   0.0013291816
+		CG iteration      70:  r_norm =          11.21483718     rel_resid =   0.0012610634
+		CG iteration      71:  r_norm =          11.24227308     rel_resid =   0.0012641485
+		CG iteration      72:  r_norm =          11.71015645     rel_resid =   0.0013167601
+		CG iteration      73:  r_norm =          11.40490381     rel_resid =   0.0012824356
+		CG iteration      74:  r_norm =           9.99458472     rel_resid =   0.0011238509
+		CG iteration      75:  r_norm =           9.63897382     rel_resid =   0.0010838639
+		CG iteration      76:  r_norm =           9.44004541     rel_resid =   0.0010614952
+		CG iteration      77:  r_norm =           9.48480114     rel_resid =   0.0010665278
+		CG iteration      78:  r_norm =           8.87386995     rel_resid =   0.0009978310
+		CG iteration      79:  r_norm =           8.36685943     rel_resid =   0.0009408197
+		CG iteration      80:  r_norm =           7.77376291     rel_resid =   0.0008741284
+		CG iteration      81:  r_norm =           7.29505530     rel_resid =   0.0008202997
+		CG iteration      82:  r_norm =           7.39570557     rel_resid =   0.0008316174
+		CG iteration      83:  r_norm =           7.25638160     rel_resid =   0.0008159510
+		CG iteration      84:  r_norm =           6.92466577     rel_resid =   0.0007786509
+		CG iteration      85:  r_norm =           6.90214451     rel_resid =   0.0007761184
+		CG iteration      86:  r_norm =           6.69068487     rel_resid =   0.0007523406
+		CG iteration      87:  r_norm =           6.64120062     rel_resid =   0.0007467763
+		CG iteration      88:  r_norm =           6.22775740     rel_resid =   0.0007002863
+		CG iteration      89:  r_norm =           6.00583613     rel_resid =   0.0006753322
+		CG iteration      90:  r_norm =           5.65447372     rel_resid =   0.0006358229
+		CG iteration      91:  r_norm =           5.56643990     rel_resid =   0.0006259238
+		CG iteration      92:  r_norm =           5.49256369     rel_resid =   0.0006176167
+		CG iteration      93:  r_norm =           5.23172798     rel_resid =   0.0005882868
+		CG iteration      94:  r_norm =           5.10392229     rel_resid =   0.0005739156
+		CG iteration      95:  r_norm =           5.08984235     rel_resid =   0.0005723323
+		CG iteration      96:  r_norm =           4.72277256     rel_resid =   0.0005310568
+		CG iteration      97:  r_norm =           4.65545328     rel_resid =   0.0005234870
+		CG iteration      98:  r_norm =           4.52631123     rel_resid =   0.0005089655
+		CG iteration      99:  r_norm =           4.57129724     rel_resid =   0.0005140240
+		CG iteration     100:  r_norm =           4.54460937     rel_resid =   0.0005110231
+		CG iteration     101:  r_norm =           4.39884497     rel_resid =   0.0004946324
+		CG iteration     102:  r_norm =           4.23931901     rel_resid =   0.0004766944
+		CG iteration     103:  r_norm =           3.97345914     rel_resid =   0.0004467995
+		CG iteration     104:  r_norm =           3.71478107     rel_resid =   0.0004177122
+		CG iteration     105:  r_norm =           3.58829070     rel_resid =   0.0004034889
+		CG iteration     106:  r_norm =           3.57938777     rel_resid =   0.0004024878
+		CG iteration     107:  r_norm =           3.38103596     rel_resid =   0.0003801839
+		CG iteration     108:  r_norm =           3.35069452     rel_resid =   0.0003767721
+		CG iteration     109:  r_norm =           3.19970660     rel_resid =   0.0003597942
+		CG iteration     110:  r_norm =           3.07443917     rel_resid =   0.0003457083
+		CG iteration     111:  r_norm =           3.04813185     rel_resid =   0.0003427502
+		CG iteration     112:  r_norm =           2.81360367     rel_resid =   0.0003163784
+		CG iteration     113:  r_norm =           2.80285026     rel_resid =   0.0003151693
+		CG iteration     114:  r_norm =           2.62541830     rel_resid =   0.0002952177
+		CG iteration     115:  r_norm =           2.38092428     rel_resid =   0.0002677254
+		CG iteration     116:  r_norm =           2.41001169     rel_resid =   0.0002709961
+		CG iteration     117:  r_norm =           2.37950511     rel_resid =   0.0002675658
+		CG iteration     118:  r_norm =           2.30051427     rel_resid =   0.0002586836
+		CG iteration     119:  r_norm =           2.19909196     rel_resid =   0.0002472791
+		CG iteration     120:  r_norm =           2.14157848     rel_resid =   0.0002408119
+		CG iteration     121:  r_norm =           2.06127150     rel_resid =   0.0002317817
+		CG iteration     122:  r_norm =           1.96671461     rel_resid =   0.0002211492
+		CG iteration     123:  r_norm =           1.90756005     rel_resid =   0.0002144975
+		CG iteration     124:  r_norm =           1.87359055     rel_resid =   0.0002106777
+		CG iteration     125:  r_norm =           1.91550687     rel_resid =   0.0002153911
+		CG iteration     126:  r_norm =           1.78644462     rel_resid =   0.0002008785
+		CG iteration     127:  r_norm =           1.66072477     rel_resid =   0.0001867418
+		CG iteration     128:  r_norm =           1.62003045     rel_resid =   0.0001821659
+		CG iteration     129:  r_norm =           1.62113823     rel_resid =   0.0001822905
+		CG iteration     130:  r_norm =           1.59533477     rel_resid =   0.0001793890
+		CG iteration     131:  r_norm =           1.44329085     rel_resid =   0.0001622923
+		CG iteration     132:  r_norm =           1.41321668     rel_resid =   0.0001589105
+		CG iteration     133:  r_norm =           1.40829051     rel_resid =   0.0001583566
+		CG iteration     134:  r_norm =           1.32176348     rel_resid =   0.0001486270
+		CG iteration     135:  r_norm =           1.32989402     rel_resid =   0.0001495412
+		CG iteration     136:  r_norm =           1.34231612     rel_resid =   0.0001509381
+		CG iteration     137:  r_norm =           1.30437025     rel_resid =   0.0001466712
+		CG iteration     138:  r_norm =           1.26083915     rel_resid =   0.0001417763
+		CG iteration     139:  r_norm =           1.26903707     rel_resid =   0.0001426981
+		CG iteration     140:  r_norm =           1.23673534     rel_resid =   0.0001390659
+		CG iteration     141:  r_norm =           1.21438356     rel_resid =   0.0001365526
+		CG iteration     142:  r_norm =           1.16227793     rel_resid =   0.0001306935
+		CG iteration     143:  r_norm =           1.19017860     rel_resid =   0.0001338308
+		CG iteration     144:  r_norm =           1.15322936     rel_resid =   0.0001296760
+		CG iteration     145:  r_norm =           1.15515919     rel_resid =   0.0001298930
+		CG iteration     146:  r_norm =           1.19631853     rel_resid =   0.0001345212
+		CG iteration     147:  r_norm =           1.14829536     rel_resid =   0.0001291212
+		CG iteration     148:  r_norm =           1.00166296     rel_resid =   0.0001126330
+		CG iteration     149:  r_norm =           0.98818708     rel_resid =   0.0001111177
+		CG iteration     150:  r_norm =           0.95645222     rel_resid =   0.0001075492
+		CG iteration     151:  r_norm =           0.92715127     rel_resid =   0.0001042544
+		CG iteration     152:  r_norm =           0.84393961     rel_resid =   0.0000948976
+		MT LS: Number of function evals = 1
+		MT LS: step = 1.0000000000
+	Newton Iteration: 1	J = 53.3723651020	Residual = 0.8439396137
+	Minimum J: 53.3723651020
+	Found minimum in 1 outer Newton iterations.
+	(and a total of 152 inner CG iterations.)
+	FINAL  ||g(X)||/||g(X0)|| = 0.0000948976
+		 (Linesearch iterations = 1 )
+runTime: Cost3D minimize: 4.4299580000
+Outputting increment...
+Outputting analysis...
+runTime: Cost3d update: 3.1956590000
+Analysis successful!
