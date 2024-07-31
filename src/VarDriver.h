@@ -79,6 +79,9 @@ class VarDriver
 	// bool readTerrain(std::string &filename, std::vector<MetObs>* metData);
 
   HashMap *getConfigHash() { return &configHash; }
+  double calc_A_thermo(const int &i,const int &j,const int &k);
+  double calc_B_thermo(const int &i,const int &j,const int &k);
+  double calc_C_thermo(const int &i,const int &j,const int &k);
 
  protected:
 
@@ -184,7 +187,7 @@ class VarDriver
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);
   int readNetCDF_thermo(const char* filename);
-  double getValue_thermo((const int &i,const int &j,const int &k, const std::string& key);
+  double getValue_thermo(const int &i,const int &j,const int &k, const std::string& varName);
   Projection::ProjectionType projectionFromConfig();
 };
 

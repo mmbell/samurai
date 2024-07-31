@@ -2070,7 +2070,7 @@ int VarDriver::readNetCDF_thermo(const char* filename){
    return 0;
 }
 
-double VarDriver::getValue_thermo((const int &i,const int &j,const int &k, const std::string& varName){
+double VarDriver::getValue_thermo(const int &i,const int &j,const int &k, const std::string& varName){
   //Returned values are all in SI units
 	double value_out;
 
@@ -2115,22 +2115,22 @@ double VarDriver::getValue_thermo((const int &i,const int &j,const int &k, const
 	} else if (varName=="dpibdy") {
 	value_out= dpibardy[k*NLAT*NLON + j*NLAT + i]/1000.0;	 
         } else if (varName=="A") {
-        value_out= this->calc_A(i,j,k); 
+        value_out= this->calc_A_thermo(i,j,k); 
         } else if (varName=="B") {
-       	value_out= this->calc_B(i,j,k);
+       	value_out= this->calc_B_thermo(i,j,k);
        	} else if (varName=="C") {
-       	value_out= this->calc_C(i,j,k);
+       	value_out= this->calc_C_thermo(i,j,k);
 
 	} else {
 	std::cout << "Requested Variable unknown. \n";
-  std::cout << varName.toStdString() << "\n";
+  std::cout << varName << "\n";
 	return false;
 	}
 	
 	return value_out;
 }
 
-double calc_A_thermo(const int &i,const int &j,const int &k)
+double VarDriver::calc_A_thermo(const int &i,const int &j,const int &k)
 {
   double thetarhobar = this->getValue_thermo(i,j,k,"trb");
 	double u = this->getValue_thermo(i,j,k,"u");
@@ -2147,6 +2147,44 @@ double calc_A_thermo(const int &i,const int &j,const int &k)
   
         double a = 1.0/(c_p*thetarhobar)* (u*dudx+v*dudy+w*dudz-f*v)+dpibdx;   
 	return a;	
+}
+
+double VarDriver::calc_B_thermo(const int &i,const int &j,const int &k)
+{
+  double thetarhobar = this->getValue_thermo(i,j,k,"trb");
+  double u = this->getValue_thermo(i,j,k,"u");
+  double dvdx = this->getValue_thermo(i,j,k,"dvdx");
+  double v = this->getValue_thermo(i,j,k,"v");	
+  double dvdy = this->getValue_thermo(i,j,k,"dvdy");
+  double w = this->getValue_thermo(i,j,k,"w");	
+  double dvdz = this->getValue_thermo(i,j,k,"dvdz");
+    double dpibdy = this->getValue_thermo(i,j,k,"dpibdy");
+    float c_p = 1005.7;
+
+  if (thetarhobar==-999 or u==-999 or dvdx*1.0E5==-999 or v==-999 or dvdy*1.0E5==-999 or w==-999 or dvdz*1.0E5==-999 or dpibdy*1000.0==-999){
+    return -999;}
+    
+    double b = 1.0/(c_p*thetarhobar)*(u*dvdx+v*dvdy+w*dvdz+f*u)+dpibdy;   // trp neglected
+    return b;	
+}
+
+double VarDriver::calc_C_thermo(const int &i,const int &j,const int &k)
+{
+  double thetarhobar = this->getValue_thermo(i,j,k,"trb");
+  double u = this->getValue_thermo(i,j,k,"u");
+  double dwdx = this->getValue_thermo(i,j,k,"dwdx");
+  double v = this->getValue_thermo(i,j,k,"v");	
+  double dwdy = this->getValue_thermo(i,j,k,"dwdy");
+  double w = this->getValue_thermo(i,j,k,"w");	
+  double dwdz = this->getValue_thermo(i,j,k,"dwdz");
+    float c_p = 1005.7;
+    float g = 9.81;
+  
+  if (thetarhobar==-999 or u==-999 or dwdx*1.0E5==-999 or v==-999 or dwdy*1.0E5==-999 or w==-999 or dwdz*1.0E5==-999){
+    return -999;}
+
+    double c = 1.0/(c_p*thetarhobar)*(u*dwdx+v*dwdy+w*dwdz);
+    return c;	
 }
 
 bool VarDriver::read_mesonet(std::string& filename, std::vector<MetObs>* metObVector)
