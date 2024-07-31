@@ -184,6 +184,7 @@ class VarDriver
   bool parseXMLconfig(const XMLNode& config);
   bool parseSamuraiConfig(const samurai_config &config);
   int readNetCDF_thermo(const char* filename);
+  double getValue_thermo((const int &i,const int &j,const int &k, const std::string& key);
   Projection::ProjectionType projectionFromConfig();
 };
 

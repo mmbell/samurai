@@ -2070,6 +2070,84 @@ int VarDriver::readNetCDF_thermo(const char* filename){
    return 0;
 }
 
+double VarDriver::getValue_thermo((const int &i,const int &j,const int &k, const std::string& varName){
+  //Returned values are all in SI units
+	double value_out;
+
+	if ((i<0) or (i > NLON-1)) return false;
+	if ((j<0) or (j > NLAT-1)) return false;
+	if ((k<0) or (k > NALT-1)) return false;
+	
+	if (varName=="lon") {
+	value_out= longitude[i];
+	} else if (varName=="lat") {
+	value_out= latitude[j];	
+	} else if (varName=="z") {
+	value_out= altitude[k]*1000.0;
+	} else if (varName=="u") {
+	value_out= u[k*NLAT*NLON + j*NLAT + i];
+	} else if (varName=="v") {
+	value_out= v[k*NLAT*NLON + j*NLAT + i];
+	} else if (varName=="w") {
+	value_out= w[k*NLAT*NLON + j*NLAT + i];	
+	} else if (varName=="dudx") {
+	value_out= dudx[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="dvdx") {
+	value_out= dvdx[k*NLAT*NLON + j*NLAT + i]/1.0E5;		
+	} else if (varName=="dwdx") {
+	value_out= dwdx[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="dudy") {
+	value_out= dudy[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="dvdy") {
+	value_out= dvdy[k*NLAT*NLON + j*NLAT + i]/1.0E5;		
+	} else if (varName=="dwdy") {
+	value_out= dwdy[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="dudz") {
+	value_out= dudz[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="dvdz") {
+	value_out= dvdz[k*NLAT*NLON + j*NLAT + i]/1.0E5;		
+	} else if (varName=="dwdz") {
+	value_out= dwdz[k*NLAT*NLON + j*NLAT + i]/1.0E5;	
+	} else if (varName=="trb") {
+	value_out= thetarhobar[k*NLAT*NLON + j*NLAT + i];	
+	} else if (varName=="dpibdx") {
+	value_out= dpibardx[k*NLAT*NLON + j*NLAT + i]/1000.0;	
+	} else if (varName=="dpibdy") {
+	value_out= dpibardy[k*NLAT*NLON + j*NLAT + i]/1000.0;	 
+        } else if (varName=="A") {
+        value_out= this->calc_A(i,j,k); 
+        } else if (varName=="B") {
+       	value_out= this->calc_B(i,j,k);
+       	} else if (varName=="C") {
+       	value_out= this->calc_C(i,j,k);
+
+	} else {
+	std::cout << "Requested Variable unknown. \n";
+  std::cout << varName.toStdString() << "\n";
+	return false;
+	}
+	
+	return value_out;
+}
+
+double calc_A_thermo(const int &i,const int &j,const int &k)
+{
+  double thetarhobar = this->getValue_thermo(i,j,k,"trb");
+	double u = this->getValue_thermo(i,j,k,"u");
+	double dudx = this->getValue_thermo(i,j,k,"dudx");
+	double v = this->getValue_thermo(i,j,k,"v");	
+	double dudy = this->getValue_thermo(i,j,k,"dudy");
+	double w = this->getValue_thermo(i,j,k,"w");	
+	double dudz = this->getValue_thermo(i,j,k,"dudz");
+  double dpibdx = this->getValue_thermo(i,j,k,"dpibdx");
+  float c_p = 1005.7;
+
+  if (thetarhobar==-999 or u==-999 or dudx*1.0E5==-999 or v==-999 or dudy*1.0E5==-999 or w==-999 or dudz*1.0E5==-999 or dpibdx*1000.0==-999){
+    return -999;}
+  
+        double a = 1.0/(c_p*thetarhobar)* (u*dudx+v*dudy+w*dudz-f*v)+dpibdx;   
+	return a;	
+}
 
 bool VarDriver::read_mesonet(std::string& filename, std::vector<MetObs>* metObVector)
 {
