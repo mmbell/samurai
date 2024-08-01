@@ -26,6 +26,7 @@
 #include <algorithm>
 // Constructor
 VarDriver::VarDriver()
+  :f_thermo(5.85e-05) // this needs to be made dynamic eventually, here lat assumed to be 22 deg north
 {
   // Constant for all drivers
   Pi = acos(-1);
@@ -62,11 +63,54 @@ VarDriver::VarDriver()
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
+
+  // enable for thermo
+  if(0){
+    longitude = new float [NLON];
+    latitude = new float [NLAT];
+    altitude = new float [NALT];
+    u = new float[NALT*NLON*NLAT];
+    v = new float[NALT*NLON*NLAT];
+    w = new float[NALT*NLON*NLAT];
+    dudx = new float[NALT*NLON*NLAT];
+    dvdx = new float[NALT*NLON*NLAT];
+    dwdx = new float[NALT*NLON*NLAT];
+    dudy = new float[NALT*NLON*NLAT];
+    dvdy = new float[NALT*NLON*NLAT];
+    dwdy = new float[NALT*NLON*NLAT];
+    dudz = new float[NALT*NLON*NLAT];
+    dvdz = new float[NALT*NLON*NLAT];
+    dwdz = new float[NALT*NLON*NLAT];	
+    thetarhobar = new float[NALT*NLON*NLAT];	
+    dpibardx = new float[NALT*NLON*NLAT];	
+    dpibardy = new float[NALT*NLON*NLAT];	
+  }
 }
 
 // Destructor
 VarDriver::~VarDriver()
 {
+  //enable for thermo
+  if(0){
+    delete[] longitude;
+    delete[] latitude;
+    delete[] altitude;
+    delete[] u;
+    delete[] v;
+    delete[] w;
+    delete[] dudx;
+    delete[] dvdx;
+    delete[] dwdx;
+    delete[] dudy;
+    delete[] dvdy;
+    delete[] dwdy;
+    delete[] dudz;
+    delete[] dvdz;
+    delete[] dwdz;	
+    delete[] thetarhobar;
+    delete[] dpibardx;
+    delete[] dpibardy;
+  }
 
 }
 
@@ -2145,7 +2189,7 @@ double VarDriver::calc_A_thermo(const int &i,const int &j,const int &k)
   if (thetarhobar==-999 or u==-999 or dudx*1.0E5==-999 or v==-999 or dudy*1.0E5==-999 or w==-999 or dudz*1.0E5==-999 or dpibdx*1000.0==-999){
     return -999;}
   
-        double a = 1.0/(c_p*thetarhobar)* (u*dudx+v*dudy+w*dudz-f*v)+dpibdx;   
+        double a = 1.0/(c_p*thetarhobar)* (u*dudx+v*dudy+w*dudz-f_thermo*v)+dpibdx;   
 	return a;	
 }
 
@@ -2164,7 +2208,7 @@ double VarDriver::calc_B_thermo(const int &i,const int &j,const int &k)
   if (thetarhobar==-999 or u==-999 or dvdx*1.0E5==-999 or v==-999 or dvdy*1.0E5==-999 or w==-999 or dvdz*1.0E5==-999 or dpibdy*1000.0==-999){
     return -999;}
     
-    double b = 1.0/(c_p*thetarhobar)*(u*dvdx+v*dvdy+w*dvdz+f*u)+dpibdy;   // trp neglected
+    double b = 1.0/(c_p*thetarhobar)*(u*dvdx+v*dvdy+w*dvdz+f_thermo*u)+dpibdy;   // trp neglected
     return b;	
 }
 
@@ -2185,6 +2229,142 @@ double VarDriver::calc_C_thermo(const int &i,const int &j,const int &k)
 
     double c = 1.0/(c_p*thetarhobar)*(u*dwdx+v*dwdy+w*dwdz);
     return c;	
+}
+
+double VarDriver::calc_D_thermo(const int &i,const int &j,const int &k)
+{
+
+  double thetarhobar = this->getValue_thermo(i,j,k,"trb");
+  double dAdz = this->getDerivative_thermo(i,j,k,"A",3)*1000.0;   // per km
+  double dCdx = this->getDerivative_thermo(i,j,k,"C",1)*1000.0;   // per km
+  float c_p = 1005.7;
+  float g = 9.81;  
+
+ if (thetarhobar==-999 or dAdz==-999000 or dCdx==-999000){
+    return -999;}
+
+  double d = (dAdz-dCdx)*thetarhobar*thetarhobar*(-c_p/g);
+
+	return d;	
+}
+
+double VarDriver::calc_E_thermo(const int &i,const int &j,const int &k)
+{
+  double thetarhobar = this->getValue_thermo(i,j,k,"trb");
+  double dBdz = this->getDerivative_thermo(i,j,k,"B",3)*1000.0;  // per km
+  double dCdy = this->getDerivative_thermo(i,j,k,"C",2)*1000.0;  // per km
+  float	c_p = 1005.7;
+  float	g = 9.81;
+  
+ if (thetarhobar==-999 or dBdz==-999000 or dCdy==-999000){
+    return -999;}
+
+  double e = (dBdz-dCdy)*thetarhobar*thetarhobar*(-c_p/g);
+
+        return e;
+}
+
+double VarDriver::getDerivative_thermo(const int &i,const int &j,const int &k, const std::string &var, const int &der)
+{
+  // input variable "der" specifies direction of derivation: 1=dx, 2=dy, 3=dz
+  double derivative;
+  std::string derDir;
+  // Geographic functions
+  GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+  double referenceLon = -90.0;  //arbitrary
+  double x1,x2,y1,y2;      
+
+    switch ( der ) {
+      case 1:
+      derDir = "X";
+      if (i==0){
+    //need to convert lat/lon differences to kms
+    tm.Forward(referenceLon,this->getValue_thermo(i+1,j,k,"lat"),this->getValue_thermo(i+1,j,k,"lon"),x1,y1);
+    tm.Forward(referenceLon,this->getValue_thermo(i,j,k,"lat"),this->getValue_thermo(i,j,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i+1,j,k,var)==-999 || this->getValue_thermo(i,j,k,var)==-999){
+         derivative = -999;
+        } else {
+         derivative = (this->getValue_thermo(i+1,j,k,var)-this->getValue_thermo(i,j,k,var))/distance;
+        }
+      } else if (i== NLON-1) {
+    tm.Forward(referenceLon,this->getValue_thermo(i,j,k,"lat"),this->getValue_thermo(i,j,k,"lon"),x1,y1);
+    tm.Forward(referenceLon,this->getValue_thermo(i-1,j,k,"lat"),this->getValue_thermo(i-1,j,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i,j,k,var)==-999 || this->getValue_thermo(i-1,j,k,var)==-999){
+         derivative = -999;
+        } else {
+        derivative = (this->getValue_thermo(i,j,k,var)-this->getValue_thermo(i-1,j,k,var))/distance;
+        }
+      } else {
+    tm.Forward(referenceLon,this->getValue_thermo(i+1,j,k,"lat"),this->getValue_thermo(i+1,j,k,"lon"),x1,y1);
+    tm.Forward(referenceLon,this->getValue_thermo(i-1,j,k,"lat"),this->getValue_thermo(i-1,j,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i+1,j,k,var)==-999 || this->getValue_thermo(i-1,j,k,var)==-999){
+         derivative = -999;
+        } else {
+         derivative = (this->getValue_thermo(i+1,j,k,var)-this->getValue_thermo(i-1,j,k,var))/distance;
+        }
+      }
+      break;
+      case 2:
+       derDir = "Y";
+      if (j==0){
+    tm.Forward(referenceLon,this->getValue_thermo(i,j+1,k,"lat"),this->getValue_thermo(i,j+1,k,"lon"),x1,y1);
+    tm.Forward(referenceLon,this->getValue_thermo(i,j,k,"lat"),this->getValue_thermo(i,j,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i,j+1,k,var)==-999 || this->getValue_thermo(i,j,k,var)==-999){
+         derivative = -999;
+        } else {
+         derivative = (this->getValue_thermo(i,j+1,k,var)-this->getValue_thermo(i,j,k,var))/distance;
+        }
+      } else if (j== NLAT-1) {
+    tm.Forward(referenceLon,this->getValue_thermo(i,j,k,"lat"),this->getValue_thermo(i,j,k,"lon"),x1,y1);
+    tm.Forward(referenceLon,this->getValue_thermo(i,j-1,k,"lat"),this->getValue_thermo(i,j-1,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i,j,k,var)==-999 || this->getValue_thermo(i,j-1,k,var)==-999){
+         derivative = -999;
+        } else {
+        derivative = (this->getValue_thermo(i,j,k,var)-this->getValue_thermo(i,j-1,k,var))/distance;
+        }
+      } else {
+    tm.Forward(referenceLon,this->getValue_thermo(i,j+1,k,"lat"),this->getValue_thermo(i,j+1,k,"lon"),x2,y2);
+    tm.Forward(referenceLon,this->getValue_thermo(i,j-1,k,"lat"),this->getValue_thermo(i,j-1,k,"lon"),x2,y2);
+    double distance = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        if (this->getValue_thermo(i,j+1,k,var)==-999 || this->getValue_thermo(i,j-1,k,var)==-999){
+         derivative = -999;
+        } else {
+        derivative = (this->getValue_thermo(i,j+1,k,var)-this->getValue_thermo(i,j-1,k,var))/distance;
+        }
+      }
+      break;
+      case 3:
+        derDir = "Z";
+      if (k==0){
+        if (this->getValue_thermo(i,j,k+1,var)==-999 || this->getValue_thermo(i,j,k,var)==-999){
+         derivative = -999;
+        } else {
+        derivative = (this->getValue_thermo(i,j,k+1,var)-this->getValue_thermo(i,j,k,var))/(this->getValue_thermo(i,j,k+1,"z")-this->getValue_thermo(i,j,k,"z"));
+        }
+      } else if (k== NALT-1) {
+        if (this->getValue_thermo(i+1,j,k,var)==-999 || this->getValue_thermo(i,j,k,var)==-999){
+         derivative = -999;
+        } else {
+         derivative = (this->getValue_thermo(i,j,k,var)-this->getValue_thermo(i,j,k-1,var))/(this->getValue_thermo(i,j,k,"z")-this->getValue_thermo(i,j,k-1,"z"));
+        }   
+      } else {
+        if (this->getValue_thermo(i,j,k+1,var)==-999 || this->getValue_thermo(i,j,k-1,var)==-999){
+         derivative = -999;
+        } else {
+         derivative = (this->getValue_thermo(i,j,k+1,var)-this->getValue_thermo(i,j,k-1,var))/(this->getValue_thermo(i,j,k+1,"z")-this->getValue_thermo(i,j,k-1,"z"));
+        }
+      }
+      break;
+      default:
+        std::cout << "Unknown value for calculating derivative. Valid options are 1, 2 and 3.\n";
+        exit(1);
+    }
+  return derivative;
 }
 
 bool VarDriver::read_mesonet(std::string& filename, std::vector<MetObs>* metObVector)

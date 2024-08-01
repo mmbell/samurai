@@ -82,7 +82,8 @@ class VarDriver
   double calc_A_thermo(const int &i,const int &j,const int &k);
   double calc_B_thermo(const int &i,const int &j,const int &k);
   double calc_C_thermo(const int &i,const int &j,const int &k);
-
+  double calc_D_thermo(const int &i,const int &j,const int &k);
+  double calc_E_thermo(const int &i,const int &j,const int &k);
  protected:
 
   bool fixedGrid;	// Indicates if the grid dims come from the config file or run call
@@ -109,6 +110,7 @@ class VarDriver
   float* thetarhobar;
 	float* dpibardx;
 	float* dpibardy;
+  const double f_thermo; //this needs to be made dynamic eventually, here lat assumed to be 22 deg north
   // end netcdf thermo variables
   unsigned int numVars;
   unsigned int numHeights;
@@ -188,6 +190,7 @@ class VarDriver
   bool parseSamuraiConfig(const samurai_config &config);
   int readNetCDF_thermo(const char* filename);
   double getValue_thermo(const int &i,const int &j,const int &k, const std::string& varName);
+  double getDerivative_thermo(const int &i,const int &j,const int &k, const std::string &var, const int &der);
   Projection::ProjectionType projectionFromConfig();
 };
 
