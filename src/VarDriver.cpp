@@ -54,12 +54,12 @@ VarDriver::VarDriver()
   dataSuffix["aeri"] = aeri;
   dataSuffix["rad"] = rad;
   dataSuffix["cfrad"] = cfrad;
-	dataSuffix["hgt"] = terrain;
-	dataSuffix["model"] = model;
-	dataSuffix["rf"] = crsim;
-    dataSuffix["list"] = hrdradial;
-    dataSuffix["hdob"] = hdob;
-    dataSuffix["ict"] = ict;
+  dataSuffix["hgt"] = terrain;
+  dataSuffix["model"] = model;
+  dataSuffix["rf"] = crsim;
+  dataSuffix["list"] = hrdradial;
+  dataSuffix["hdob"] = hdob;
+  dataSuffix["ict"] = ict;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
