@@ -2,12 +2,18 @@ name: Samurai CPU test with Beltrami
 
 on:
   workflow_dispatch:
-    branches: [ "main" ]
+    branches: 
+      - "main"
+      - "thermo_asap"
   push:
-    branches: [ "main" ]
+    branches: 
+      - "main"
+      - "thermo_asap"
   pull_request:
-    branches: [ "main" ]
-
+    branches: 
+      - "main"
+      - "thermo_asap"
+      
 jobs:
   docker-build-and-test:
     name: Build and Test - ${{ matrix.dockerfile }}
