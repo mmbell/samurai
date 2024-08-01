@@ -1,53 +1,4 @@
-/**********************************************************************
- * TDRP params for build/release/bin/samurai
- **********************************************************************/
 
-//======================================================================
-//
-// Spline Analysis at Mesoscale Utilizing Radar and Aircraft 
-//   Instrumentation.
-//
-//======================================================================
- 
-//======================================================================
-//
-// DEBUGGING SECTION.
-//
-//======================================================================
- 
-///////////// debug_bgu ///////////////////////////////
-//
-// Dump the content of the bgU array.
-//
-// If true, the bgU array will be dumped into a netcdf file.
-//
-// Type: boolean
-
-debug_bgu = FALSE;
-
-///////////// debug_bgu_nc ////////////////////////////
-//
-// Dump the content of the bgU array in this file.
-//
-// If debug_bgu is set to true, the bgU array will be dumped into this 
-//   file.
-//
-// Type: string
-
-debug_bgu_nc = "/tmp/bgu.nc";
-
-///////////// debug_bgin //////////////////////////////
-//
-// Dump the content of the bgIn array.
-//
-// If true, the bgIn array will be dumped on stdout.
-//
-// Type: boolean
-
-debug_bgin = FALSE;
-
-///////////// debug_bgu_overwrite /////////////////////
-//
 // Overwrite bgU with the content of this file.
 //
 // If set to a valid file, the bgU array will be overwritten.
@@ -152,7 +103,7 @@ mode = MODE_XYZ;
 //
 // WIND for wind analysis
 // THERMO for Thermo analysis using samurai output from a file
-// WIND_THERMO for wind analysis and then Thermo analysis        
+// WIND_THERMO for wind analysis and then Thermo analysis 
 //
 // Type: enum
 // Options:
@@ -160,7 +111,7 @@ mode = MODE_XYZ;
 //     THERMO
 //     WIND_THERMO
 
-analysis_type = WIND;
+analysis_type = THERMO;
 
 ///////////// projection //////////////////////////////
 //
@@ -183,7 +134,7 @@ projection = PROJ_TRANSVERSE_MERCATOR_EXACT;
 //
 // Type: string
 
-data_directory = "/glade/campaign/cisl/asap/samurai/data/special/hurricane_4panel";
+data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami";
 
 ///////////// output_directory ////////////////////////
 //
@@ -266,49 +217,49 @@ save_mish = FALSE;
 //
 // Type: float
 
-i_min = -300;
+i_min = 12.0; 
 
 ///////////// i_max ///////////////////////////////////
 //
 // Type: float
 
-i_max = 300;
+i_max = 28.0;
 
 ///////////// i_incr //////////////////////////////////
 //
 // Type: float
 
-i_incr = 1;
+i_incr = 0.5;
 
 ///////////// j_min ///////////////////////////////////
 //
 // Type: float
 
-j_min = -150;
+j_min = -4.0;
 
 ///////////// j_max ///////////////////////////////////
 //
 // Type: float
 
-j_max = 250;
+j_max = 12.0;
 
 ///////////// j_incr //////////////////////////////////
 //
 // Type: float
 
-j_incr = 1;
+j_incr = 0.5;
 
 ///////////// k_min ///////////////////////////////////
 //
 // Type: float
 
-k_min = 0;
+k_min = 0.0; 
 
 ///////////// k_max ///////////////////////////////////
 //
 // Type: float
 
-k_max = 16;
+k_max = 18.0;
 
 ///////////// k_incr //////////////////////////////////
 //
@@ -336,7 +287,7 @@ ref_state = "dunion_mt.snd";
 //
 // Type: string
 
-ref_time = "00:19:58";
+ref_time = "23:51:32";
 
 ///////////// i_background_roi ////////////////////////
 //
@@ -364,13 +315,13 @@ j_background_roi = 25;
 //
 // Type: int
 
-radar_skip = 1;
+radar_skip = 2;
 
 ///////////// radar_stride ////////////////////////////
 //
 // Type: int
 
-radar_stride = 5;
+radar_stride = 3;
 
 ///////////// dynamic_stride //////////////////////////
 //
@@ -394,7 +345,7 @@ qr_variable = "dbz";
 //
 // Type: string
 
-radar_dbz = "Zhh";
+radar_dbz = "DBZ";
 
 ///////////// radar_vel ///////////////////////////////
 //
@@ -404,25 +355,25 @@ radar_dbz = "Zhh";
 //
 // Type: string
 
-radar_vel = "VELTRU";
+radar_vel = "VG";
 
 ///////////// radar_sw ////////////////////////////////
 //
 // Type: string
 
-radar_sw = "VELUNF";
+radar_sw = "SW";
 
 ///////////// i_reflectivity_roi //////////////////////
 //
 // Type: float
 
-i_reflectivity_roi = 1;
+i_reflectivity_roi = 0.5;
 
 ///////////// j_reflectivity_roi //////////////////////
 //
 // Type: float
 
-j_reflectivity_roi = 1;
+j_reflectivity_roi = 0.5;
 
 ///////////// k_reflectivity_roi //////////////////////
 //
@@ -434,13 +385,13 @@ k_reflectivity_roi = 0.5;
 //
 // Type: float
 
-dbz_pseudow_weight = 0;
+dbz_pseudow_weight = 1.0;
 
 ///////////// mask_reflectivity ///////////////////////
 //
 // Type: float
 
-mask_reflectivity = -999.9;
+mask_reflectivity = -500;
 
 ///////////// melting_zone_width //////////////////////
 //
@@ -758,7 +709,7 @@ dropsonde_rhow_error = 50;
 //
 // Type: float
 
-dropsonde_tempk_error = 1;
+dropsonde_tempk_error = 2;
 
 ///////////// dropsonde_qv_error //////////////////////
 //
@@ -1226,21 +1177,21 @@ bg_tempk_error = { 20, 2 };
 // Type: float
 // 1D array - variable length.
 
-i_filter_length = { 4, 2 };
+i_filter_length = { 2, 2 };
 
 ///////////// j_filter_length /////////////////////////
 //
 // Type: float
 // 1D array - variable length.
 
-j_filter_length = { 4, 2 };
+j_filter_length = { 2, 2 };
 
 ///////////// k_filter_length /////////////////////////
 //
 // Type: float
 // 1D array - variable length.
 
-k_filter_length = { 4, 2 };
+k_filter_length = { 2, 2 };
 
 ///////////// i_spline_cutoff /////////////////////////
 //
@@ -1284,3 +1235,116 @@ j_max_wavenumber = { -1, -1 };
 
 k_max_wavenumber = { -1, -1 };
 
+//======================================================================
+//
+// VARIABLES NEEDED BY THERMO.
+//
+//======================================================================
+ 
+///////////// i_pip_bcL ///////////////////////////////
+//
+// Type: int
+
+i_pip_bcL = -1;
+
+///////////// i_pip_bcR ///////////////////////////////
+//
+// Type: int
+
+i_pip_bcR = -1;
+
+///////////// i_thetarhop_bcL ///////////////////////////////
+//
+// Type: int
+
+i_thetarhop_bcL = -1;
+
+///////////// i_thetarhop_bcR ///////////////////////////////
+//
+// Type: int
+
+i_thetarhop_bcR = -1;
+
+///////////// i_ftheta_bcL ///////////////////////////////
+//
+// Type: int
+
+i_ftheta_bcL = -1;
+
+///////////// i_ftheta_bcR ///////////////////////////////
+//
+// Type: int
+
+i_ftheta_bcR = -1;
+
+///////////// j_pip_bcL ///////////////////////////////
+//
+// Type: int
+
+j_pip_bcL = -1;
+
+///////////// j_pip_bcR ///////////////////////////////
+//
+// Type: int
+
+j_pip_bcR = -1;
+
+///////////// j_thetarhop_bcL ///////////////////////////////
+//
+// Type: int
+
+j_thetarhop_bcL = -1;
+
+///////////// j_thetarhop_bcR ///////////////////////////////
+//
+// Type: int
+
+j_thetarhop_bcR = -1;
+
+///////////// j_ftheta_bcL ///////////////////////////////
+//
+// Type: int
+
+j_ftheta_bcL = -1;
+
+///////////// j_ftheta_bcR ///////////////////////////////
+//
+// Type: int
+
+j_ftheta_bcR = -1;
+
+///////////// k_pip_bcL ///////////////////////////////
+//
+// Type: int
+
+k_pip_bcL = -1;
+
+///////////// k_pip_bcR ///////////////////////////////
+//
+// Type: int
+
+k_pip_bcR = -1;
+
+///////////// k_thetarhop_bcL ///////////////////////////////
+//
+// Type: int
+
+k_thetarhop_bcL = -1;
+
+///////////// k_thetarhop_bcR ///////////////////////////////
+//
+// Type: int
+
+k_thetarhop_bcR = -1;
+
+///////////// k_ftheta_bcL ///////////////////////////////
+//
+// Type: int
+
+k_ftheta_bcL = -1;
+
+///////////// k_ftheta_bcR ///////////////////////////////
+//
+// Type: int
+
+k_ftheta_bcR = -1;

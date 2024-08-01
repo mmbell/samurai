@@ -80,6 +80,12 @@ public:
   } mode_t;
 
   typedef enum {
+    WIND = 0,
+    THERMO = 1,
+    WIND_THERMO = 2
+  } analysis_type_t;
+
+  typedef enum {
     PROJ_LAMBERT_CONFORMAL_CONIC = 0,
     PROJ_TRANSVERSE_MERCATOR_EXACT = 1
   } projection_t;
@@ -399,6 +405,8 @@ public:
   bkgd_interp_method_t bkgd_obs_interpolation;
 
   mode_t mode;
+
+  analysis_type_t analysis_type;
 
   projection_t projection;
 
@@ -748,6 +756,42 @@ public:
   float *_k_max_wavenumber;
   int k_max_wavenumber_n;
 
+  int i_pip_bcL;
+
+  int i_pip_bcR;
+
+  int i_thetarhop_bcL;
+
+  int i_thetarhop_bcR;
+
+  int i_ftheta_bcL;
+
+  int i_ftheta_bcR;
+ 
+  int j_pip_bcL;
+
+  int j_pip_bcR;
+
+  int j_thetarhop_bcL;
+
+  int j_thetarhop_bcR;
+
+  int j_ftheta_bcL;
+
+  int j_ftheta_bcR; 
+
+  int k_pip_bcL;
+
+  int k_pip_bcR;
+
+  int k_thetarhop_bcL;
+
+  int k_thetarhop_bcR;
+
+  int k_ftheta_bcL;
+
+  int k_ftheta_bcR;
+
   char _end_; // end of data region
               // needed for zeroing out data
 
@@ -755,7 +799,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[191];
+  mutable TDRPtable _table[210];
 
   const char *_className;
 

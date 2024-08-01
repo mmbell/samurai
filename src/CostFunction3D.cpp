@@ -147,6 +147,8 @@ void CostFunction3D::initialize(HashMap* config,
 	dataPath = (*configHash)["data_directory"];
   outputPath = (*configHash)["output_directory"];
 
+  //JMD TODO:  Need to plug in the Thermo boundary conditions here.  
+  //JMD        Currently this is only the wind boundary condidtions.
   // Horizontal boundary conditions
   iBCL[0] = bcHash[(*configHash)["i_rhou_bcL"]];
   iBCR[0] = bcHash[(*configHash)["i_rhou_bcR"]];
