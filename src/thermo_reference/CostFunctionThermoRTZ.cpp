@@ -6,6 +6,9 @@
 #include <netcdfcpp.h>
 #include <GeographicLib/TransverseMercatorExact.hpp>
 
+
+//Not going to be integrated for V3 release of Samurai_TR. Sticking to cartesian for V3.
+
 CostFunctionThermoRTZ::CostFunctionThermoRTZ(const int& numObs, const int& stateSize)
     : CostFunctionThermo(numObs, stateSize)
 {
