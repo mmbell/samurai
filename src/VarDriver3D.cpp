@@ -31,8 +31,9 @@
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
 {
-  numVars = 7;
+  numVars = 7;          // Number of variables on which to perform the anslysis
   numDerivatives = 4;
+  obMetaSize = 7;       // Size of the observation Meta data
   bkgdAdapter = NULL;
   bgU = NULL;
   bgWeights = NULL;
@@ -2012,10 +2013,10 @@ bool VarDriver3D::preProcessMetObs()
 #endif
 
   // Load the observations into a vector
-  int64_t vector_size = (obVector.size() * (7 + numVars * numDerivatives));
+  int64_t vector_size = (obVector.size() * (obMetaSize + numVars * numDerivatives));
   obs = new real[vector_size];
   for (int64_t m=0; m < obVector.size(); m++) {
-    int64_t n = m * (7 + numVars * numDerivatives);
+    int64_t n = m * (obMetaSize + numVars * numDerivatives);
     Observation ob = obVector.at(m);
     obs[n] = ob.getOb();
     real invError = ob.getInverseError();
@@ -2036,7 +2037,7 @@ bool VarDriver3D::preProcessMetObs()
     obs[n+6] = ob.getTime();
     for (unsigned int var = 0; var < numVars; var++) {
       for (unsigned int d = 0; d < numDerivatives; ++d) {
-	      int64_t wgt_index = n + ( 7 * (d + 1)) + var;
+	      int64_t wgt_index = n + ( obMetaSize * (d + 1)) + var;
 	obs[wgt_index] = ob.getWeight(var, d);
       }
     }
@@ -2099,9 +2100,9 @@ bool VarDriver3D::loadPreProcessMetObs()
     }
 
     // Load the observations into the vector
-    obs = new real[obVector.size() * (7 + numVars * numDerivatives)];
+    obs = new real[obVector.size() * (obMetaSize + numVars * numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
-        int n = m * (7 + numVars * numDerivatives);
+        int n = m * (obMetaSize + numVars * numDerivatives);
         Observation ob = obVector.at(m);
         obs[n] = ob.getOb();
         real invError = ob.getInverseError();
@@ -2122,7 +2123,7 @@ bool VarDriver3D::loadPreProcessMetObs()
         obs[n+6] = ob.getTime();
         for (unsigned int var = 0; var < numVars; var++) {
             for (unsigned int d = 0; d < numDerivatives; ++d) {
-                int wgt_index = n + (7 * (d + 1)) + var;
+                int wgt_index = n + (obMetaSize * (d + 1)) + var;
                 obs[wgt_index] = ob.getWeight(var, d);
             }
         }
@@ -2173,7 +2174,7 @@ int VarDriver3D::loadBackgroundObs()
     return -1;
   }
 
-  return  bgIn.size() * 7 / 11;
+  return  bgIn.size() * obMetaSize / 11;
 }
 
 bool VarDriver3D::adjustBackground()
@@ -2184,12 +2185,12 @@ bool VarDriver3D::adjustBackground()
   START_TIMER(timeab);
 
   // Load the observations into a vector
-  int numbgObs = bgIn.size() * 7 / 11;
+  int numbgObs = bgIn.size() * obMetaSize / 11;
   if (std::stof(configHash["mc_weight"]) > 0) {
     numbgObs += idim * jdim  * kdim;
   }
-  bgObs = new real[numbgObs * (7 + numVars * numDerivatives)];
-  for (unsigned int m = 0; m < numbgObs * (7 + numVars * numDerivatives); m++)
+  bgObs = new real[numbgObs * (obMetaSize + numVars * numDerivatives)];
+  for (unsigned int m = 0; m < numbgObs * (obMetaSize + numVars * numDerivatives); m++)
     bgObs[m] = 0.;
 
   int p = 0;
@@ -2247,7 +2248,7 @@ bool VarDriver3D::adjustBackground()
       bgObs[p + 5] = -1;
       bgObs[p + 6] = obTime;
       bgObs[p + 7 + n] = 1.;
-      p += (7 + numVars * numDerivatives);
+      p += (obMetaSize + numVars * numDerivatives);
     }
   }
 
@@ -2271,19 +2272,19 @@ bool VarDriver3D::adjustBackground()
 	  bgObs[p + 5] = -1;
 	  bgObs[p + 6] = std::stoi(configHash["ref_time"]);
 	  if (runMode == XYZ) {
-	    bgObs[p + (7 * (1 + 1))] = 1.0;
-	    bgObs[p + (7 * (2 + 1)) + 1] = 1.0;
-	    bgObs[p + (7 * (3 + 1)) + 2] = 1.0;
+	    bgObs[p + (obMetaSize * (1 + 1))] = 1.0;
+	    bgObs[p + (obMetaSize * (2 + 1)) + 1] = 1.0;
+	    bgObs[p + (obMetaSize * (3 + 1)) + 2] = 1.0;
 	  } else if (runMode == RTZ) {
 	    if (i > 0) {
 	      real rInverse = 180.0/(i * Pi);
-	      bgObs[p + 7] = 1.0/i;
-	      bgObs[p + (7 * (1 + 1))] = 1.0;
-	      bgObs[p + (7 * (2 + 1)) + 1] = rInverse;
-	      bgObs[p + (7 * (3 + 1)) + 2] = 1.0;
+	      bgObs[p + obMetaSize] = 1.0/i;
+	      bgObs[p + (obMetaSize * (1 + 1))] = 1.0;
+	      bgObs[p + (obMetaSize * (2 + 1)) + 1] = rInverse;
+	      bgObs[p + (obMetaSize * (3 + 1)) + 2] = 1.0;
 	    }
 	  }
-	  p  += (7 + numVars * numDerivatives);
+	  p  += (obMetaSize + numVars * numDerivatives);
 	}
       }
     }

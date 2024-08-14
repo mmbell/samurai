@@ -73,6 +73,8 @@ public:
 	void setGridFlag(bool flag) { fixedGrid = flag; };
 	bool isFixedGrid() { return fixedGrid == true; };
 
+        int obMetaSize;
+
 private:
 
 	typedef BSplineBase<real> SplineBase;
@@ -145,6 +147,7 @@ private:
 
 	int64_t bStateSize;
 	int64_t uStateSize;
+
 
 	BkgdAdapter *bkgdAdapter;
 

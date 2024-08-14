@@ -11,7 +11,7 @@
 
 #include "CostFunction3D.h"
 #include "MetObs.h"
-#include "VarDriver.h" // added
+#include "VarDriver.h"
 #include "timing/gptl.h"
 
 #define INDEX(i, j, k, idim, jdim, vdim, var) ((vdim) * ((idim) * ((jdim) * (k) + j) + i) + var)
@@ -139,8 +139,9 @@ void CostFunction3D::initialize(HashMap* config,
 				real* bgU, real* obs, ReferenceState* ref)
 {
   // Initialize number of variables
-  varDim = 7;
-  derivDim = 4;
+  varDim     = 7;
+  derivDim   = 4;
+  obMetaSize = 7;
   configHash = config;
 
   /* Set the output path */
@@ -223,6 +224,7 @@ void CostFunction3D::initialize(HashMap* config,
   DJrecip = 1. / DJ;
   DKrecip = 1. / DK;
 
+
   // Adjust the internal, variable domain to include boundaries
   adjustInternalDomain(1);
 
@@ -246,7 +248,7 @@ void CostFunction3D::initialize(HashMap* config,
   // These are local to this one
   CTHTd      = new real[nState];
   stateU     = new real[nState];
-  int64_t vector_size = mObs*(7+varDim*derivDim);
+  int64_t vector_size = mObs*(obMetaSize+varDim*derivDim);
   obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
@@ -347,14 +349,14 @@ void CostFunction3D::initState(const int iteration)
   kFilter->setFilterLengthScale(kFilterScale);
 
   // Set up the Fourier filter
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < varDim; i++) {
     iMaxWavenumber[i] = -1.0;
     jMaxWavenumber[i] = -1.0;
     kMaxWavenumber[i] = -1.0;
   }
 	if (configHash->exists("i_max_wavenumber")) {
     // Set all the variables to the same filter
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < varDim; i++) {
       iMaxWavenumber[i] = std::stof((*configHash)["i_max_wavenumber"]);
     }
   } else {
@@ -369,7 +371,7 @@ void CostFunction3D::initState(const int iteration)
   }
 
 	if (configHash->exists("j_max_wavenumber")) {
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < varDim; i++) {
       jMaxWavenumber[i] = std::stof((*configHash)["j_max_wavenumber"]);
     }
   } else {
@@ -383,7 +385,7 @@ void CostFunction3D::initState(const int iteration)
   }
 
 	if (configHash->exists("k_max_wavenumber")) {
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < varDim; i++) {
       kMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }
   } else {
@@ -670,7 +672,7 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
   	//#pragma omp parallel for reduction(+:obIP)
   	#pragma acc parallel loop reduction(+:obIP) private(m)
   	for (m = 0; m < mObs; m++) {
-			//int obIndex = m*(7+varDim*derivDim) + 1;
+			//int obIndex = m*(obMetaSize+varDim*derivDim) + 1;
     	//obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
     	obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
   	}
@@ -793,7 +795,7 @@ void CostFunction3D::calcInnovation()
   #pragma omp parallel for reduction(+:innovationRMS) //[0]
   #pragma acc parallel loop reduction(+:innovationRMS) //[0]
   for (int m = 0; m < mObs; m++) {
-    innovation[m] = obsVector[m*(7+varDim*derivDim)] - HCq[m];
+    innovation[m] = obsVector[m*(obMetaSize+varDim*derivDim)] - HCq[m];
     //innovation[m] = obsData[m] - HCq[m];
     innovationRMS += (innovation[m]*innovation[m]);
     HCq[m] = 0.0;
@@ -1647,8 +1649,8 @@ void CostFunction3D::obAdjustments() {
   //JMD variable-interleave
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
   for (int m = 0; m < mObs; m++) {
-    int mi = m*(7+varDim*derivDim);
-    for (int ob = 0; ob < (7+varDim*derivDim); ob++) {
+    int mi = m*(obMetaSize+varDim*derivDim);
+    for (int ob = 0; ob < (obMetaSize+varDim*derivDim); ob++) {
       obsVector[mi+ob] = rawObs[mi+ob];
     }
     real type = obsVector[mi+5];
@@ -1726,7 +1728,7 @@ void CostFunction3D::obAdjustments() {
     }
   }
   for(int m=0;m<mObs;m++) {
-     obsData[m]=obsVector[m*(7+varDim*derivDim)+1];
+     obsData[m]=obsVector[m*(obMetaSize+varDim*derivDim)+1];
   }
   #pragma acc enter data copyin(obsData)
   GPTLstop("CostFunction3D::obAdjustments");
@@ -2539,7 +2541,7 @@ void CostFunction3D::calcHmatrix()
 	//#pragma omp parallel for private(m,mi,hi,i,j,k,ii,iis,iie,jj,jjs,jje,kk,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) //[8.1]
   #pragma acc parallel loop vector gang vector_length(32) private(m,mi,hi,iis,iie,jjs,jje,kks,kke,ibasis,jbasis,kbasis,iiNode,jjNode,kkNode,iNode,jNode,kNode,var,d,wgt_index,weight,cIndex) reduction(+:nnz)
   for (m = 0; m < mObs; m++) {
-    mi = m*(7+varDim*derivDim);
+    mi = m*(obMetaSize+varDim*derivDim);
     real i = obsVector[mi+2];
     real j = obsVector[mi+3];
     real k = obsVector[mi+4];
@@ -2552,7 +2554,7 @@ void CostFunction3D::calcHmatrix()
     hi = 0;
     for (var = 0; var < varDim; var++) {
       for (d = 0; d < derivDim; d++) {
-        wgt_index = mi + (7*(d+1)) + var;
+        wgt_index = mi + (obMetaSize*(d+1)) + var;
         if (!obsVector[wgt_index]) continue;
         for (iiNode=iis;iiNode<=iie;++iiNode) {
           iNode = iiNode;
@@ -2590,7 +2592,7 @@ void CostFunction3D::calcHmatrix()
 
   for (m = 0; m < mObs; m++) {
     IH[m]=hi;
-    mi = m*(7+varDim*derivDim);
+    mi = m*(obMetaSize+varDim*derivDim);
     i = obsVector[mi+2]; j = obsVector[mi+3]; k = obsVector[mi+4];
     ii = (int)((i - iMin)*DIrecip);iis=max(0,ii-1);iie=min(ii+2,iDim-1);
     jj = (int)((j - jMin)*DJrecip);jjs=max(0,jj-1);jje=min(jj+2,jDim-1);
@@ -2598,7 +2600,7 @@ void CostFunction3D::calcHmatrix()
     ibasis = 0; jbasis = 0; kbasis = 0;
     for (var = 0; var < varDim; var++) {
       for (d = 0; d < derivDim; d++) {
-        wgt_index = mi + (7*(d+1)) + var;
+        wgt_index = mi + (obMetaSize*(d+1)) + var;
         if (!obsVector[wgt_index]) continue;
         for (iiNode=iis;iiNode<=iie;++iiNode) {
           iNode = iiNode;
@@ -2654,7 +2656,7 @@ void CostFunction3D::calcHmatrix()
   //
   // copy H matrix stuff to the GPU Device
   #pragma acc enter data copyin(H[:nnz])
-  std::cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(7+varDim*derivDim))/(1024.0*1024.0) << std::endl;
+  std::cout << "Memory usage for [obsVector]     (Mbytes): " << sizeof(real)*(mObs*(obMetaSize+varDim*derivDim))/(1024.0*1024.0) << std::endl;
   std::cout << "Memory usage for [obsData]       (Mbytes): " << sizeof(real)*(mObs)/(1024.0*1024.0) << std::endl;
   std::cout << "Memory usage for [HCq]           (Mbytes): " << sizeof(real)*(mObs+(iDim*jDim*kDim))/(1024.0*1024.0) << std::endl;
   std::cout << "Memory usage for [IH,JH]         (Mbytes): " << (sizeof(uint64_t)*(mObs+1)+ sizeof(int32_t)*nnz)/(1024.*1024.) << std::endl; 
