@@ -477,7 +477,7 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 
         ostream_iterator<real> od(qcstream, "\t ");
         for (int m = 0; m < mObs; m++) {
-            int64_t mi = m*(7+varDim*derivDim);
+            int64_t mi = m*(obMetaSize+varDim*derivDim);
             real i = obsVector[mi+2];
             real j = obsVector[mi+3];
             real k = obsVector[mi+4];
