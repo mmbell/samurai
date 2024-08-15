@@ -136,12 +136,13 @@ void CostFunction3D::finalize()
 }
 
 void CostFunction3D::initialize(HashMap* config,
-				real* bgU, real* obs, ReferenceState* ref)
+				real* bgU, real* obs, ReferenceState* ref,
+        uint64_t numVar, int numDerivatives, int numObMetaData)
 {
   // Initialize number of variables
-  varDim     = 7;
-  derivDim   = 4;
-  obMetaSize = 7;
+  varDim     = numVar;
+  derivDim   = numDerivatives;
+  obMetaSize = numObMetaData;
   configHash = config;
 
   /* Set the output path */

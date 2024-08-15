@@ -23,7 +23,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
-#include <string>
+#include <cstdint>
 #include <unordered_map>
 //#include <complex.h>
 
@@ -42,7 +42,7 @@ public:
 
 CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(HashMap* config, real* bgU, real* obs, ReferenceState* ref);
+    void initialize(HashMap* config, real* bgU, real* obs, ReferenceState* ref, uint64_t numVar, int numDerivatives, int numObMetaData);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
