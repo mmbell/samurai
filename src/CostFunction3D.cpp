@@ -149,8 +149,7 @@ void CostFunction3D::initialize(HashMap* config,
 
   /* Set the number of meta-data associated with each observation */
   obMetaSize = std::stoi((*configHash)["obMetaSize"]);
-  std::cout << "obMetaSize: " << obMetaSize << std::endl;
-  
+
   //JMD TODO:  Need to plug in the Thermo boundary conditions here.  
   //JMD        Currently this is only the wind boundary condidtions.
   // Horizontal boundary conditions
@@ -252,11 +251,6 @@ void CostFunction3D::initialize(HashMap* config,
   CTHTd      = new real[nState];
   stateU     = new real[nState];
   int64_t vector_size = mObs*(obMetaSize+varDim*derivDim);
-  std::cout << "vector_size: " << vector_size << std::endl;
-  std::cout << "mObs: " << mObs << std::endl;
-  std::cout << "obMetaSize: " << obMetaSize << std::endl;
-  std::cout << "varDim: " << varDim << std::endl;
-  std::cout << "derivDim: " << derivDim << std::endl;
   obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
