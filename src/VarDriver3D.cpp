@@ -33,6 +33,7 @@ VarDriver3D::VarDriver3D() : VarDriver()
 {
   numVars = 7;          // Number of variables on which to perform the anslysis
   numDerivatives = 4;
+  obMetaSize = -1;      // Size of the observation Meta data; set by the TDRP config file
   bkgdAdapter = NULL;
   bgU = NULL;
   bgWeights = NULL;
@@ -103,6 +104,7 @@ bool VarDriver3D::validateDriver()
 
    // Print the analysis_type from the TDRP config file
    std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
+   obMetaSize = std::stoi(configHash["obMetaSize"]);
    // Print the obMetaSize from the TDRP config file
    std::cout << "obMetaSize: " << configHash["obMetaSize"] << std::endl;
    if(configHash["analysis_type"] != "WIND")
