@@ -748,8 +748,8 @@
     memset(tt, 0, sizeof(TDRPtable));
     tt->ptype = ENUM_TYPE;
     tt->param_name = tdrpStrDup("analysis_type");
-    tt->descr = tdrpStrDup("Analysis type");
-    tt->help = tdrpStrDup("");
+    tt->descr = tdrpStrDup("Type of analysis to perform");
+    tt->help = tdrpStrDup("TODO");
     tt->val_offset = (char *) &analysis_type - &_start_;
     tt->enum_def.name = tdrpStrDup("analysis_type_t");
     tt->enum_def.nfields = 3;

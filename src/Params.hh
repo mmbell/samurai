@@ -801,7 +801,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[212];
+  mutable TDRPtable _table[211];
 
   const char *_className;
 

@@ -113,6 +113,14 @@ mode = MODE_XYZ;
 
 analysis_type = THERMO;
 
+///////////// obMetaSize //////////////////////////////
+//
+// number of meta-data associated with each observation
+//
+// Type: int
+
+obMetaSize = 7;
+
 ///////////// projection //////////////////////////////
 //
 // Projection.
