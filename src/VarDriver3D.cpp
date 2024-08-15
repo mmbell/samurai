@@ -103,7 +103,9 @@ bool VarDriver3D::validateDriver()
   }
 
    // Print the analysis_type from the TDRP config file
-  std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
+   std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
+   // Print the obMetaSize from the TDRP config file
+   std::cout << "obMetaSize: " << obMetaSize << std::endl;
    if(configHash["analysis_type"] != "WIND")
    {
 	   std::cout << "i_pip_bcL = " << configHash["i_pip_bcL"] << std::endl;

@@ -126,6 +126,7 @@ bool Args::paramsToHash(HashMap *configHash) {
   
   // int arguments
 
+  CONFIG_INSERT_INT(obMetaSize);
   CONFIG_INSERT_INT(bkgd_kd_num_neighbors);
   CONFIG_INSERT_INT(debug_kd);
   CONFIG_INSERT_INT(debug_kd_step);

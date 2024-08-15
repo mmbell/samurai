@@ -114,6 +114,12 @@ paramdef enum analysis_type_t {
   p_help = "WIND for Samurai wind analysis, THERMO for Thermo analysis from samurai output file, WIND_THERMO for Wind and then Thermo analysis (in-memory)"
 } analysis_type;
 
+paramdef int {
+  p_default = -999;
+  p_descr = "number of meta-data associated with each observation";
+  p_help = "";
+} obMetaSize;
+
 typedef enum {
   PROJ_LAMBERT_CONFORMAL_CONIC,
   PROJ_TRANSVERSE_MERCATOR_EXACT

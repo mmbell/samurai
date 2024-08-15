@@ -408,6 +408,8 @@ public:
 
   analysis_type_t analysis_type;
 
+  int obMetaSize;
+
   projection_t projection;
 
   char* data_directory;
@@ -767,7 +769,7 @@ public:
   int i_ftheta_bcL;
 
   int i_ftheta_bcR;
- 
+
   int j_pip_bcL;
 
   int j_pip_bcR;
@@ -778,7 +780,7 @@ public:
 
   int j_ftheta_bcL;
 
-  int j_ftheta_bcR; 
+  int j_ftheta_bcR;
 
   int k_pip_bcL;
 
@@ -799,7 +801,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[210];
+  mutable TDRPtable _table[212];
 
   const char *_className;
 
