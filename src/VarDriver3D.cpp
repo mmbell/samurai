@@ -31,9 +31,9 @@
 // Constructor
 VarDriver3D::VarDriver3D() : VarDriver()
 {
-  numVars = 7;          // Number of variables on which to perform the anslysis
+  numVars = -1;          // Set in the validateDriver() function
   numDerivatives = 4;
-  obMetaSize = 7;       // Size of the observation Meta data
+  obMetaSize = -1;       // Set in the validateDriver() function
   bkgdAdapter = NULL;
   bgU = NULL;
   bgWeights = NULL;
@@ -104,6 +104,16 @@ bool VarDriver3D::validateDriver()
 
    // Print the analysis_type from the TDRP config file
   std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
+  if (configHash["analysis_type"] == "WIND")
+  {
+    numVars = 7;          // Number of variables on which to perform the anslysis
+    obMetaSize = 7;       // Size of the observation Meta data
+  }
+  if (configHash["analysis_type"] == "THERMO")
+  {
+	numVars = 3;          // Number of variables on which to perform the anslysis
+	obMetaSize = 7;       // Size of the observation Meta data
+  }
    if(configHash["analysis_type"] != "WIND")
    {
 	   std::cout << "i_pip_bcL = " << configHash["i_pip_bcL"] << std::endl;
@@ -2327,7 +2337,7 @@ bool VarDriver3D::adjustBackground()
   } else if (runMode == RTZ) {
     bgCost3D = new CostFunctionRTZ(projection, numbgObs, bStateSize);
   }
-  bgCost3D->initialize(&configHash, bgU, bgObs, refstate);
+  bgCost3D->initialize(&configHash, bgU, bgObs, refstate, numVars, numDerivatives, obMetaSize);
 
   // Set the iteration to zero --
   // this will prevent writing the background file until after the adjustment
@@ -2895,7 +2905,7 @@ bool VarDriver3D::initObCost3D()
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }
 
-  obCost3D->initialize(&configHash, bgU, obs, refstate);
+  obCost3D->initialize(&configHash, bgU, obs, refstate, numVars, numDerivatives, obMetaSize);
   return true;
 }
 
