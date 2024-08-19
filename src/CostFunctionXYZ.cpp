@@ -698,242 +698,241 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 
 bool CostFunctionXYZ::outputAnalysis_thermo(const std::string& suffix, real* Astate)
 {
-    std::string samuraiMode = "thermo";
-    cout << "Outputting " << suffix.toStdString() << "...\n";
-    // H --> to Mish for output
-    QString samuraiout = "samurai_XYZ_" + samuraiMode + "_" + suffix + ".out";
-    ofstream samuraistream;
-    if (configHash->value("output_txt") == "true") {
-        samuraistream.open(outputPath.absoluteFilePath(samuraiout).toAscii().data());
-        samuraistream << "X\tY\tZ\tpip\tthetarhop\tftheta\n";
-        samuraistream.precision(10);
-    }
+  std::string samuraiMode = "thermo";
+  std::cout << "Outputting " << suffix << "...\n";
+  // H --> to Mish for output
+  std::string samuraiout = "samurai_XYZ_" + samuraiMode + "_" + suffix + ".out";
+  std::ofstream samuraistream;
+  if ((*configHash)["output_txt"] == "true") {
+    samuraistream.open(outputPath + samuraiout);
+    samuraistream << "X\tY\tZ\tpip\tthetarhop\tftheta\n";
+    samuraistream.precision(10);
+  }
 
-    int analysisDim = 12;
-    int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
-    finalAnalysis = new real[analysisSize*analysisDim];
-    real gausspoint = 0.5*sqrt(1./3.);
+  int analysisDim = 12;
+  int analysisSize = (iDim-2)*(jDim-2)*(kDim-2);
+  finalAnalysis = new real[analysisSize*analysisDim];
+  real gausspoint = 0.5*sqrt(1./3.);
 
-    for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
-        for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
-            for (int imu = -ihalf; imu <= ihalf; imu++) {
-                real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5*ihalf));
-                if (i > ((iDim-1)*DI + iMin)) continue;
+  for (int iIndex = 1; iIndex < iDim-1; iIndex++) {
+    for (int ihalf = 0; ihalf <= mishFlag; ihalf++) {
+      for (int imu = -ihalf; imu <= ihalf; imu++) {
+        real i = iMin + DI * (iIndex + (gausspoint * imu + 0.5*ihalf));
+        if (i > ((iDim-1)*DI + iMin)) continue;
 
-                for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
-                    for (int jhalf =0; jhalf <=mishFlag; jhalf++) {
-                        for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
-                            real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5*jhalf));
-                            if (j > ((jDim-1)*DJ + jMin)) continue;
+        for (int jIndex = 1; jIndex < jDim-1; jIndex++) {
+          for (int jhalf =0; jhalf <=mishFlag; jhalf++) {
+            for (int jmu = -jhalf; jmu <= jhalf; jmu++) {
+              real j = jMin + DJ * (jIndex + (gausspoint * jmu + 0.5*jhalf));
+              if (j > ((jDim-1)*DJ + jMin)) continue;
 
-                            for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
-                                for (int khalf =0; khalf <=mishFlag; khalf++) {
-                                    for (int kmu = -khalf; kmu <= khalf; kmu++) {
-                                        real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5*khalf));
-                                        if (k > ((kDim-1)*DK + kMin)) continue;
+              for (int kIndex = 1; kIndex < kDim-1; kIndex++) {
+                for (int khalf =0; khalf <=mishFlag; khalf++) {
+                  for (int kmu = -khalf; kmu <= khalf; kmu++) {
+                    real k = kMin + DK * (kIndex + (gausspoint * kmu + 0.5*khalf));
+                    if (k > ((kDim-1)*DK + kMin)) continue;
 
-                                        int ii = (int)((i - iMin)*DIrecip);
-                                        int jj = (int)((j - jMin)*DJrecip);
-                                        int kk = (int)((k - kMin)*DKrecip);
-                                        real ibasis = 0.;
-                                        real jbasis = 0.;
-                                        real kbasis = 0.;
-                                        real idbasis = 0.;
-                                        real jdbasis = 0.;
-                                        real kdbasis = 0.;
-                                        real pip = 0.;
-                                        real thetarhop = 0.;
-                                        real ftheta = 0.;
-                                        real pipdx = 0.; real thetarhopdx = 0.; real fthetadx = 0.;
-                                        real pipdy = 0.; real thetarhopdy = 0.; real fthetady = 0.;
-                                        real pipdz = 0.; real thetarhopdz = 0.; real fthetadz = 0.;
+                    int ii = (int)((i - iMin)*DIrecip);
+                    int jj = (int)((j - jMin)*DJrecip);
+                    int kk = (int)((k - kMin)*DKrecip);
+                    real ibasis = 0.;
+                    real jbasis = 0.;
+                    real kbasis = 0.;
+                    real idbasis = 0.;
+                    real jdbasis = 0.;
+                    real kdbasis = 0.;
+                    real pip = 0.;
+                    real thetarhop = 0.;
+                    real ftheta = 0.;
+                    real pipdx = 0.; real thetarhopdx = 0.; real fthetadx = 0.;
+                    real pipdy = 0.; real thetarhopdy = 0.; real fthetady = 0.;
+                    real pipdz = 0.; real thetarhopdz = 0.; real fthetadz = 0.;
 
-                                        for (int var = 0; var < varDim; var++) {
-                                            for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                                                for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                                                    int iNode = iiNode;
-                                                    if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
-                                                    if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
-                                                    if ((iNode < 0) or (iNode >= iDim)) continue;
-                                                    for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                                        int jNode = jjNode;
-                                                        if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
-                                                        if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
-                                                        if ((jNode < 0) or (jNode >= jDim)) continue;
-                                                        ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
-                                                        jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
-                                                        kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
-                                                        idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
-                                                        jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
-                                                        kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
-                                                        real basis3x = ibasis*jbasis*kbasis;
-                                                        int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                                                        switch (var) {
-                                                            case 0:
-                                                                pip +=  Astate[aIndex] * basis3x;
-                                                                pipdx += Astate[aIndex] * idbasis * jbasis * kbasis;
-                                                                pipdy += Astate[aIndex] * ibasis * jdbasis * kbasis;
-                                                                pipdz += Astate[aIndex] * ibasis * jbasis * kdbasis;
-                                                                break;
-                                                            case 1:
-                                                                thetarhop +=  Astate[aIndex + 1] * basis3x;
-                                                                thetarhopdx += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
-                                                                thetarhopdy += Astate[aIndex + 1] * ibasis * jdbasis * kbasis;
-                                                                thetarhopdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
-                                                                break;
-                                                            case 2:
-                                                                ftheta += Astate[aIndex + 2] * basis3x;
-                                                                fthetadx += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
-                                                                fthetady += Astate[aIndex + 2] * ibasis * jdbasis * kbasis;
-                                                                fthetadz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
-                                                                break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-
-                                        if (configHash->value("output_txt") == "true") {
-                                            samuraistream << scientific << i << "\t" << j << "\t"  << k
-                                            << "\t" << pip << "\t" << thetarhop << "\t" << ftheta << "\t" << "\n";
-                                        }
-
-                                        // On the nodes
-                                        if (!ihalf and !jhalf and !khalf){
-                                            int fIndex = (iDim-2)*(jDim-2)*(kDim-2);
-                                            int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
-                                            finalAnalysis[fIndex * 0 + posIndex] = pip;
-                                            finalAnalysis[fIndex * 1 + posIndex] = thetarhop;
-                                            finalAnalysis[fIndex * 2 + posIndex] = ftheta;
-                                            finalAnalysis[fIndex * 3 + posIndex] = pipdx;
-                                            finalAnalysis[fIndex * 4 + posIndex] = thetarhopdx;
-                                            finalAnalysis[fIndex * 5 + posIndex] = fthetadx;
-                                            finalAnalysis[fIndex * 6 + posIndex] = pipdy;
-                                            finalAnalysis[fIndex * 7 + posIndex] = thetarhopdy;
-                                            finalAnalysis[fIndex * 8 + posIndex] = fthetady;
-                                            finalAnalysis[fIndex * 9 + posIndex] = pipdz;
-                                            finalAnalysis[fIndex * 10 + posIndex] = thetarhopdz;
-                                            finalAnalysis[fIndex * 11 + posIndex] = fthetadz;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    QString fileName = "samurai_XYZ_" + samuraiMode + "_" + suffix;
-    QString outFileName = outputPath.absoluteFilePath(fileName);
-
-    // Write the Obs to a summary text file
-    if (configHash->value("output_qc") == "true") {
-        QString qcout = "samurai_QC_" + samuraiMode + "_" + suffix + ".out";
-        QString qcFileName = outputPath.absoluteFilePath(qcout);
-        ofstream qcstream(qcFileName.toAscii().data());
-        ostream_iterator<string> os(qcstream, "\t ");
-        *os++ = "Observation";
-        *os++ = "Inverse Error";
-        *os++ = "X";
-        *os++ = "Y";
-        *os++ = "Z";
-        *os++ = "Type";
-        *os++ = "Time";
-        *os++ = "pip";
-        *os++ = "thetarhop";
-        *os++ = "ftheta";
-        *os++ = "Analysis";
-        *os++ = "Background";
-        qcstream << endl;
-        qcstream.precision(10);
-
-        ostream_iterator<real> od(qcstream, "\t ");
-        for (int m = 0; m < mObs; m++) {
-            int mi = m*(obMetaSize+varDim*derivDim);
-            real i = obsVector[mi+2];
-            real j = obsVector[mi+3];
-            real k = obsVector[mi+4];
-            real tempsum = 0;
-            int ii = (int)((i - iMin)*DIrecip);
-            int jj = (int)((j - jMin)*DJrecip);
-            int kk = (int)((k - kMin)*DKrecip);
-            real ibasis = 0;
-            real jbasis = 0;
-            real kbasis = 0;
-            for (int var = 0; var < varDim; var++) {
-                for (int d = 0; d < derivDim; d++) {
-                    int wgt_index = mi + obMetaSize +d*varDim + var;
-                    if (!obsVector[wgt_index]) continue;
-                    for (int kNode = max(kk-1,0); kNode <= min(kk+2,kDim-1); ++kNode) {
-                        kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+                    for (int var = 0; var < varDim; var++) {
+                      for (int kNode = std::max(kk-1,0); kNode <= std::min(kk+2,kDim-1); ++kNode) {
                         for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
-                            int iNode = iiNode;
-                            if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
-                            if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
-                            if ((iNode < 0) or (iNode >= iDim)) continue;
-                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
-
-                            for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
-                                int jNode = jjNode;
-                                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
-                                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
-                                if ((jNode < 0) or (jNode >= jDim)) continue;
-                                int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
-                                jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
-                                tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
+                          int iNode = iiNode;
+                          if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
+                          if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
+                          if ((iNode < 0) or (iNode >= iDim)) continue;
+                          for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+                            int jNode = jjNode;
+                            if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
+                            if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
+                            if ((jNode < 0) or (jNode >= jDim)) continue;
+                            ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[var], iBCR[var]);
+                            jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[var], jBCR[var]);
+                            kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[var], kBCR[var]);
+                            idbasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 1, iBCL[var], iBCR[var]);
+                            jdbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 1, jBCL[var], jBCR[var]);
+                            kdbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 1, kBCL[var], kBCR[var]);
+                            real basis3x = ibasis*jbasis*kbasis;
+                            int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+                            switch (var) {
+                              case 0:
+                                pip +=  Astate[aIndex] * basis3x;
+                                pipdx += Astate[aIndex] * idbasis * jbasis * kbasis;
+                                pipdy += Astate[aIndex] * ibasis * jdbasis * kbasis;
+                                pipdz += Astate[aIndex] * ibasis * jbasis * kdbasis;
+                                break;
+                              case 1:
+                                thetarhop +=  Astate[aIndex + 1] * basis3x;
+                                thetarhopdx += Astate[aIndex + 1] * idbasis * jbasis * kbasis;
+                                thetarhopdy += Astate[aIndex + 1] * ibasis * jdbasis * kbasis;
+                                thetarhopdz += Astate[aIndex + 1] * ibasis * jbasis * kdbasis;
+                                break;
+                              case 2:
+                                ftheta += Astate[aIndex + 2] * basis3x;
+                                fthetadx += Astate[aIndex + 2] * idbasis * jbasis * kbasis;
+                                fthetady += Astate[aIndex + 2] * ibasis * jdbasis * kbasis;
+                                fthetadz += Astate[aIndex + 2] * ibasis * jbasis * kdbasis;
+                                break;
                             }
+                          }
                         }
+                      }
                     }
+
+
+                    if ((*configHash)["output_txt"] == "true"){
+                      samuraistream << std::scientific << i << "\t" << j << "\t"  << k
+                      << "\t" << pip << "\t" << thetarhop << "\t" << ftheta << "\t" << "\n";
+                    }
+
+                    // On the nodes
+                    if (!ihalf and !jhalf and !khalf){
+                      int fIndex = (iDim-2)*(jDim-2)*(kDim-2);
+                      int posIndex = (iDim-2)*(jDim-2)*(kIndex-1) + (iDim-2)*(jIndex-1) + (iIndex-1);
+                      finalAnalysis[fIndex * 0 + posIndex] = pip;
+                      finalAnalysis[fIndex * 1 + posIndex] = thetarhop;
+                      finalAnalysis[fIndex * 2 + posIndex] = ftheta;
+                      finalAnalysis[fIndex * 3 + posIndex] = pipdx;
+                      finalAnalysis[fIndex * 4 + posIndex] = thetarhopdx;
+                      finalAnalysis[fIndex * 5 + posIndex] = fthetadx;
+                      finalAnalysis[fIndex * 6 + posIndex] = pipdy;
+                      finalAnalysis[fIndex * 7 + posIndex] = thetarhopdy;
+                      finalAnalysis[fIndex * 8 + posIndex] = fthetady;
+                      finalAnalysis[fIndex * 9 + posIndex] = pipdz;
+                      finalAnalysis[fIndex * 10 + posIndex] = thetarhopdz;
+                      finalAnalysis[fIndex * 11 + posIndex] = fthetadz;
+                    }
+                  }
                 }
+              }
             }
-            for (int t=0; t < obMetaSize-1; t++) {
-                *od++ = obsVector[mi+t];
-            }
-            int unixtime = (int)obsVector[mi+6];
-            QDateTime obtime;
-            obtime.setTime_t(unixtime);
-            obtime.setTimeSpec(Qt::UTC);
-            QString timestring = obtime.toString("hh:mm:ss.zzz");
-            qcstream << timestring.toStdString() << "\t";
-
-            // Multiply the weight by the ob -- Observations.in has individual weights already
-            // Only non-derivative for now
-            for (int t=obMetaSize; t<obMetaSize+varDim; t++) {
-                *od++ = obsVector[mi+t] * obsVector[mi];
-            }
-
-            *od++ = tempsum;
-            *od++ = obsVector[mi]-innovation[m];
-            qcstream << endl;
-
+          }
         }
+      }
     }
+  }
 
-    adjustInternalDomain(-1);
+  std::string fileName = "samurai_XYZ_" + samuraiMode + "_" + suffix;
+  std::string outFileName = outputPath + fileName;
 
-    // Write out to a netCDF file
-    if (configHash->value("output_netcdf") == "true") {
-        QString cdfFileName = outFileName + ".nc";
-        if (!writeNetCDF(outputPath.absoluteFilePath(cdfFileName)))
-            cout << "Error writing netcdf file " << cdfFileName.toStdString() << endl;
+  // Write the Obs to a summary text file
+  if ((*configHash)["output_qc"] == "true") {
+    std::string qcout = "samurai_QC_" + samuraiMode + "_" + suffix + ".out";
+    std::string qcFileName = outputPath + qcout;
+    std::ofstream qcstream(qcFileName);
+    std::ostream_iterator<std::string> os(qcstream, "\t ");
+    *os++ = "Observation";
+    *os++ = "Inverse Error";
+    *os++ = "X";
+    *os++ = "Y";
+    *os++ = "Z";
+    *os++ = "Type";
+    *os++ = "Time";
+    *os++ = "pip";
+    *os++ = "thetarhop";
+    *os++ = "ftheta";
+    *os++ = "Analysis";
+    *os++ = "Background";
+    qcstream << std::endl;
+    qcstream.precision(10);
+
+    std::ostream_iterator<real> od(qcstream, "\t ");
+    for (int m = 0; m < mObs; m++) {
+      int mi = m*(obMetaSize+varDim*derivDim);
+      real i = obsVector[mi+2];
+      real j = obsVector[mi+3];
+      real k = obsVector[mi+4];
+      real tempsum = 0;
+      int ii = (int)((i - iMin)*DIrecip);
+      int jj = (int)((j - jMin)*DJrecip);
+      int kk = (int)((k - kMin)*DKrecip);
+      real ibasis = 0;
+      real jbasis = 0;
+      real kbasis = 0;
+      for (int var = 0; var < varDim; var++) {
+        for (int d = 0; d < derivDim; d++) {
+          int wgt_index = mi + obMetaSize +d*varDim + var;
+          if (!obsVector[wgt_index]) continue;
+          for (int kNode = std::max(kk-1,0); kNode <= std::min(kk+2,kDim-1); ++kNode) {
+            kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, derivative[d][2], kBCL[var], kBCR[var]);
+            for (int iiNode = (ii-1); iiNode <= (ii+2); ++iiNode) {
+              int iNode = iiNode;
+              if ((iBCL[var] == PERIODIC) and (iNode < 1)) iNode = iDim-3;
+              if ((iBCR[var] == PERIODIC) and (iNode > (iDim-3))) iNode = iiNode - (iDim-3);
+              if ((iNode < 0) or (iNode >= iDim)) continue;
+              ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, derivative[d][1], iBCL[var], iBCR[var]);
+
+              for (int jjNode = (jj-1); jjNode <= (jj+2); ++jjNode) {
+                int jNode = jjNode;
+                if ((jBCL[var] == PERIODIC) and (jNode < 1)) jNode = jDim-3;
+                if ((jBCR[var] == PERIODIC) and (jNode > (jDim-3))) jNode = jjNode - (jDim-3);
+                if ((jNode < 0) or (jNode >= jDim)) continue;
+                int aIndex = varDim*iDim*jDim*kNode + varDim*iDim*jNode +varDim*iNode;
+                jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, derivative[d][0], jBCL[var], jBCR[var]);
+                tempsum += Astate[aIndex + var] * ibasis * jbasis * kbasis * obsVector[wgt_index];
+              }
+            }
+          }
+        }
+      }
+      for (int t=0; t < obMetaSize-1; t++) {
+        *od++ = obsVector[mi+t];
+      }
+      int unixtime = (int)obsVector[mi+6];
+      std::time_t obtime = static_cast<std::time_t>(unixtime);
+      std::tm* timeinfo = std::gmtime(&obtime);
+      char timestring[100];
+      std::strftime(timestring, sizeof(timestring), "%H:%M:%S", timeinfo);
+      qcstream << timestring << "\t";
+
+      // Multiply the weight by the ob -- Observations.in has individual weights already
+      // Only non-derivative for now
+      for (int t=obMetaSize; t<obMetaSize+varDim; t++) {
+        *od++ = obsVector[mi+t] * obsVector[mi];
+      }
+
+      *od++ = tempsum;
+      *od++ = obsVector[mi]-innovation[m];
+      qcstream << std::endl;
+
     }
-    // Write out to an asi file
-    if (configHash->value("output_asi") == "true") {
-        QString asiFileName = outFileName + ".asi";
-        if (!writeAsi(outputPath.absoluteFilePath(asiFileName)))
-            cout << "Error writing asi file " << asiFileName.toStdString() << endl;
-    }
-    // Set the domain back
-    adjustInternalDomain(1);
+  }
 
-    // Free the memory for the analysis variables
-    delete[] finalAnalysis;
+  adjustInternalDomain(-1);
 
-    return true;
+  // Write out to a netCDF file
+  if ((*configHash)["output_netcdf"] == "true") {
+    std::string cdfFileName = outFileName + ".nc";
+    if (!writeNetCDF(outputPath + cdfFileName))
+      std::cout << "Error writing netcdf file " << cdfFileName << std::endl;
+  }
+  // Write out to an asi file
+  if ((*configHash)["output_asi"] == "true") {
+    std::string asiFileName = outFileName + ".asi";
+    if (!writeAsi(outputPath + asiFileName))
+      std::cout << "Error writing asi file " << asiFileName << std::endl;
+  }
+  // Set the domain back
+  adjustInternalDomain(1);
 
+  // Free the memory for the analysis variables
+  delete[] finalAnalysis;
+
+  return true;
 }
 
 bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
