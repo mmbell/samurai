@@ -80,7 +80,9 @@ set(samurai_HDRS
   Dorade.h
   ErrorData.h
   FrameCenter.h
-  MetObs.h 
+  MetObs.h
+  NetCDF.h
+  NetCDF_XYZ.h 
   Observation.h 
   precision.h 
   Projection.h
@@ -116,6 +118,8 @@ set(common_SRCS
   MetObs.cpp
   mac_debug.xcconfig
   mac_release.xcconfig
+  NetCDF.cpp
+  NetCDF_XYZ.cpp
   Observation.cpp
   Projection.cpp
   RecursiveFilter.cpp
