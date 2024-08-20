@@ -101,6 +101,7 @@ bool Args::paramsToHash(HashMap *configHash) {
   CONFIG_INSERT_STR(debug_bgu_nc);
   CONFIG_INSERT_STR(debug_bgu_overwrite);
   CONFIG_INSERT_STR(fractl_nc_file);
+  CONFIG_INSERT_STR(wind_file);
   CONFIG_INSERT_BOOL(horizontal_radar_appx);
   CONFIG_INSERT_BOOL(load_background);
   CONFIG_INSERT_BOOL(load_bg_coefficients);

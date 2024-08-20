@@ -696,6 +696,8 @@ public:
 
   tdrp_bool_t use_fractl_errors;
 
+  char* wind_file;
+
   float *_mc_weight;
   int mc_weight_n;
 
@@ -767,7 +769,7 @@ public:
   int i_ftheta_bcL;
 
   int i_ftheta_bcR;
- 
+
   int j_pip_bcL;
 
   int j_pip_bcR;
@@ -778,7 +780,7 @@ public:
 
   int j_ftheta_bcL;
 
-  int j_ftheta_bcR; 
+  int j_ftheta_bcR;
 
   int k_pip_bcL;
 
@@ -799,7 +801,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[210];
+  mutable TDRPtable _table[212];
 
   const char *_className;
 

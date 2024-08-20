@@ -100,6 +100,7 @@ private:
 	bool loadPreProcessMetObs();
 	bool loadBGfromFile();
 	bool loadBackgroundCoeffs();
+	bool loadObservations(std::string filename);
 	int loadBackgroundObs(const char *background_fname);
 	int loadBackgroundObs(int nx, int ny, int nsigma,
 			      char *ctdg, int delta, int iter, // time elements

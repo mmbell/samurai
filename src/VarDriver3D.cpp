@@ -50,7 +50,7 @@ VarDriver3D::~VarDriver3D()
 bool VarDriver3D::initialize()
 {
   // Run a 3D vortex background field
-  cout << "Initializing SAMURAI 3D" << endl;
+  std::cout << "Initializing SAMURAI 3D" << std::endl;
   return validateDriver();
 }
 
@@ -59,7 +59,7 @@ bool VarDriver3D::initialize()
 bool VarDriver3D::initialize(const XMLNode& configuration)
 {
   // Run a 3D vortex background field
-  cout << "Initializing SAMURAI 3D" << endl;
+  std::cout << "Initializing SAMURAI 3D" << std::endl;
 
   // Parse the XML configuration file
   if (!parseXMLconfig(configuration)) return false;
@@ -72,7 +72,7 @@ bool VarDriver3D::initialize(const XMLNode& configuration)
 bool VarDriver3D::initialize(const samurai_config &configSam)
 {
   // Run a 3D vortex background field
-  cout << "Initializing SAMURAI 3D" << endl;
+  std::cout << "Initializing SAMURAI 3D" << std::endl;
 
   // Parse the Samurai configuration structure passed from COAMPS
   if (! parseSamuraiConfig(configSam)) return false;
@@ -98,30 +98,23 @@ bool VarDriver3D::validateDriver()
   } else if (configHash["mode"] == "RTZ") {
     runMode = RTZ;
   } else {
-    cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";
+    std::cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";
     return false;
   }
 
    // Print the analysis_type from the TDRP config file
-  std::cout << "Analysis type: " << configHash["analysis_type"] << std::endl;
-  if (configHash["analysis_type"] == "WIND")
-  {
-    numVars = 7;          // Number of variables on which to perform the anslysis
-    obMetaSize = 7;       // Size of the observation Meta data
+  std::string analysis_type = configHash["analysis_type"];
+  std::cout << "Analysis type: " << analysis_type << std::endl;
+  if(analysis_type == "WIND") {
+      numVars = 7;          // Number of variables on which to perform the anslysis
+      obMetaSize = 7;       // Size of the observation Meta data
+  } else if (analysis_type == "THERMO") {
+      numVars = 3;          // Number of variables on which to perform the anslysis
+      obMetaSize = 7;       // Size of the observation Meta data
+  } else {
+      std::cout << "Currently unsupported Analysis type: " << configHash["analysis_type"] << ", Aborting..." << std::endl;
+      return false;
   }
-  if (configHash["analysis_type"] == "THERMO")
-  {
-	numVars = 3;          // Number of variables on which to perform the anslysis
-	obMetaSize = 7;       // Size of the observation Meta data
-  }
-   if(configHash["analysis_type"] != "WIND")
-   {
-	   std::cout << "i_pip_bcL = " << configHash["i_pip_bcL"] << std::endl;
-	   std::cout << "j_pip_bcR = " << configHash["j_pip_bcR"] << std::endl;
-	   std::cout << "k_ftheta_bcL = " << configHash["k_ftheta_bcL"] << std::endl;
-       std::cout << "Currently unsupported Analysis type: " << configHash["analysis_type"] << ", Aborting..." << std::endl;
-       return false;	   
-   }
 
   bool fractlBkgd = ( configHash["bkgd_obs_interpolation"] == "fractl" );
   bool loadBG = ( configHash["load_background"] == "true" );
@@ -149,7 +142,7 @@ bool VarDriver3D::validateDriver()
   // that's not fully implemented in some compilers yet, so for the moment we're just assuming it's a directory
   dataPath = configHash["data_directory"];
   if (!DirectoryExists(dataPath)) {
-    std::cout << "Can't find data directory: " << configHash["data_directory"] << endl;
+    std::cout << "Can't find data directory: " << configHash["data_directory"] << std::endl;
     return false;
   }
 
@@ -157,7 +150,7 @@ bool VarDriver3D::validateDriver()
 
   std::string outputPath(configHash["output_directory"]);
   if (!DirectoryExists(outputPath)) {
-    std::cout << "Can't find output directory: " << configHash["output_directory"] << endl;
+    std::cout << "Can't find output directory: " << configHash["output_directory"] << std::endl;
     return false;
   }
 
@@ -209,17 +202,26 @@ bool VarDriver3D::gridDependentInit()
 
   std::string refSounding = configHash["ref_state"];
   refstate = new ReferenceState(refSounding);
-  // cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
+
+  if (configHash["analysis_type"] == "THERMO") {
+     std::string windFile = configHash["wind_file"]; 
+     std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
+     this->loadObservations(windFile);
+     return false;
+  }
+
+
+  // std::cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
   for (real k = kmin; k < kmax + kincr; k += kincr) {
-    // cout << "                   " << k << "\t";
+    // std::cout << "                   " << k << "\t";
     for (int i = 0; i < 6; i++) {
       real var = refstate->getReferenceVariable(i, k * 1000);
       if (i == 0) var = refstate->bhypInvTransform(var);
-      // cout << setw(9) << setprecision(4)  << var << "\t";
+      // std::cout << setw(9) << setprecision(4)  << var << "\t";
     }
-    // cout << "\n";
+    // std::cout << "\n";
   }
-  cout << setprecision(9);
+  std::cout << setprecision(9);
 
   // Set the maximum number of iterations to the multipass reduction factor
   //  Multiple outer loops will reduce the cutoff wavelengths and background error variance
@@ -235,7 +237,7 @@ bool VarDriver3D::gridDependentInit()
   if ( fixedGrid) {
     readFrameCenters();
     if ( ! findReferenceCenter() ) {
-      cout << "Error finding reference time, please check date and time in XML file\n";
+      std::cout << "Error finding reference time, please check date and time in XML file\n";
       return false;
     }
   }
@@ -275,7 +277,7 @@ bool VarDriver3D::gridDependentInit()
     PRINT_TIMER("loadBackgroundObs", timeb);
 
     if (numbgObs < 0) {
-      cout << "Error loading background Obs\n";
+      std::cout << "Error loading background Obs\n";
       return false;
     }
     //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
@@ -289,7 +291,7 @@ bool VarDriver3D::gridDependentInit()
   std::string adjustBG = configHash["adjust_background"];
   if ((adjustBG == "true") and numbgObs) {
     if ( ! adjustBackground()) {
-      cout << "Error adjusting background\n";
+      std::cout << "Error adjusting background\n";
       return false;
     }
   }
@@ -323,7 +325,7 @@ bool VarDriver3D::findReferenceCenter()
       // Note - we can't insert, since it already exists.. so we're doing the awkward 'GetMap', then assigning
       // a new value directly.  This can definitely be cleaner, but let's get it correct first, clean later.
       configHash.GetMap()->find("ref_time")->second = std::to_string(Date(frametime));
-      cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
+      std::cout << "Found matching reference time " << PrintTime(reftime) << " at " << frameVector[fi].getLat() << ", " << frameVector[fi].getLon() << "\n";
       return true;
     }
   }
@@ -409,7 +411,7 @@ bool VarDriver3D::run()
 		} else {
                        configHash.update("save_mish", "false");
 		}
-		cout << "Outer Loop Iteration: " << iter << endl;
+		std::cout << "Outer Loop Iteration: " << iter << endl;
 		START_TIMER(timei);
 		obCost3D->initState(iter);
 		PRINT_TIMER("Cost3D Init", timei);
@@ -451,6 +453,7 @@ bool VarDriver3D::preProcessMetObs()
 {
   GPTLstart("VarDriver3D::preprocessMetObs");
 
+  int pSize=0;
   vector<real> rhoP;
 
   // Convert the bg dBZ back to Z for further processing with real radar data
@@ -503,7 +506,7 @@ bool VarDriver3D::preProcessMetObs()
     iter++;
   }
   zeroClevel = height;
-  cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << endl;
+  std::cout << "Found zero C level at " << zeroClevel << " based on reference sounding" << std::endl;
 
   // Load Met. Observations
   auto filenames = FileList(dataPath);
@@ -511,7 +514,7 @@ bool VarDriver3D::preProcessMetObs()
   int processedFiles = 0;
   int attemptedFiles = 0;
   std::vector<MetObs>* metData = new std::vector<MetObs>;
-  cout << "Found " << filenames.size() << " data files to read..." << endl;
+  std::cout << "Found " << filenames.size() << " data files to read..." << std::endl;
 
   int totalFiles = filenames.size();
   for (std::size_t i = 0; i < filenames.size(); ++i) {
@@ -533,12 +536,13 @@ bool VarDriver3D::preProcessMetObs()
 				suffix = "cfrad";
     }
 
-    cout << "Processing " << file << " of type " << suffix << endl;
+    std::cout << "Processing " << file << " of type " << suffix << std::endl;
     attemptedFiles++;
     // Read different types of files
     std::string fullpath = dataPath + "/" + file;
     if (! read_met_obs_file(dataSuffix[suffix], fullpath, metData))
       continue;
+    // std::cout << "Number of potential observations: " << metData->size() << std::endl;
 
     processedFiles++;
 
@@ -560,7 +564,7 @@ bool VarDriver3D::preProcessMetObs()
     datetime endTime_ob = frameVector.back().getTime();
     auto endTime = Date(endTime_ob);
     int prevobs = obVector.size();
-		std::cout << "i  = " << i << endl;
+		std::cout << "i  = " << i << std::endl;
     for (std::size_t i = 0; i < metData->size(); ++i) {
 
       // Make sure the ob is within the time limits
@@ -579,11 +583,11 @@ bool VarDriver3D::preProcessMetObs()
 				//   std::cout << "tcstart: " << PrintDate(startTime_ob) << ", tcend: " << PrintDate(endTime_ob) << ", obTime: " << PrintDate(obTime_ob) << std::endl;
 				continue;
       }
-			// std::cout << "timeProblem  = " << timeProblem << endl;
+			// std::cout << "timeProblem  = " << timeProblem << std::endl;
       int fi = std::chrono::duration_cast<std::chrono::seconds>(obTime_ob - startTime_ob).count();
-			// std::cout << "fi = " << fi << endl;
+			// std::cout << "fi = " << fi << std::endl;
       // if ((fi < 0) or (fi > (int)frameVector.size())) {
-			// 	cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << endl;
+			// 	std::cout << "**Time problem with observation " << fi << ", " << startTime << ", " << obTime << std::endl;
 			// 	timeProblem++;
 			// 	continue;
       // } testing
@@ -676,7 +680,7 @@ bool VarDriver3D::preProcessMetObs()
 	  } else if (runMode == RTZ) {
 	    rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
-	  //cout << "RhoU: " << rhou << endl;
+	  //std::cout << "RhoU: " << rhou << std::endl;
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["dropsonde_rhou_error"]));
 	  obVector.push_back(varOb);
@@ -825,7 +829,7 @@ bool VarDriver3D::preProcessMetObs()
 	  } else if (runMode == RTZ) {
 	    rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
-	  //cout << "RhoU: " << rhou << endl;
+	  //std::cout << "RhoU: " << rhou << std::endl;
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["insitu_rhou_error"]));
 	  obVector.push_back(varOb);
@@ -929,7 +933,7 @@ bool VarDriver3D::preProcessMetObs()
 	  } else if (runMode == RTZ) {
 	    rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
-	  //cout << "RhoU: " << rhou << endl;
+	  //std::cout << "RhoU: " << rhou << std::endl;
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["qscat_rhou_error"]));
 	  obVector.push_back(varOb);
@@ -962,7 +966,7 @@ bool VarDriver3D::preProcessMetObs()
 	  } else if (runMode == RTZ) {
 	    rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
-	  //cout << "RhoU: " << rhou << endl;
+	  //std::cout << "RhoU: " << rhou << std::endl;
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["ascat_rhou_error"]));
 	  obVector.push_back(varOb);
@@ -995,7 +999,7 @@ bool VarDriver3D::preProcessMetObs()
 	  } else if (runMode == RTZ) {
 	    rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	  }
-	  //cout << "RhoU: " << rhou << endl;
+	  //std::cout << "RhoU: " << rhou << std::endl;
 	  varOb.setOb(rhou);
 	  varOb.setError(std::stof(configHash["amv_rhou_error"]));
 	  obVector.push_back(varOb);
@@ -1321,7 +1325,7 @@ bool VarDriver3D::preProcessMetObs()
 	    } else if (runMode == RTZ) {
 	      rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	    }
-	    //cout << "RhoU: " << rhou << endl;
+	    //std::cout << "RhoU: " << rhou << std::endl;
 	    varOb.setOb(rhou);
 	    varOb.setError(std::stof(configHash["mesonet_rhou_error"]));
 	    obVector.push_back(varOb);
@@ -1398,7 +1402,7 @@ bool VarDriver3D::preProcessMetObs()
 	    } else if (runMode == RTZ) {
 	      rhou = rho*((u - Um)*obX + (v - Vm)*obY)/obRadius;
 	    }
-	    //cout << "RhoU: " << rhou << endl;
+	    //std::cout << "RhoU: " << rhou << std::endl;
 	    varOb.setOb(rhou);
 	    varOb.setError(std::stof(configHash["aeri_rhou_error"]));
 	    obVector.push_back(varOb);
@@ -1826,20 +1830,22 @@ bool VarDriver3D::preProcessMetObs()
 
     // Show a summary of what got tossed out
 
-    cout << "Observation problem: " << obsProblem << ", Time problem: " << timeProblem
+    std::cout << "Observation problem: " << obsProblem << ", Time problem: " << timeProblem
 	 << ", Coordinate problem: " <<  coordProblem << ", Domain problem: " << domainProblem
-	 << ", Radius problem: " << radiusProblem << endl;
+	 << ", Radius problem: " << radiusProblem << std::endl;
+    std::cout << "Potential size: " << pSize << std::endl;
     std::cout << "obVector size: " << obVector.size() << std::endl;
+    pSize += (metData->size() - (obsProblem+timeProblem+coordProblem+domainProblem+radiusProblem));  
 
     int newobs = obVector.size() - prevobs;
     // if (metData->size() > 0) {
     if (newobs > 0) {
-      cout << "Processed " << newobs << " observations from " << metData->size() << " entries ("
+      std::cout << "Processed " << newobs << " observations from " << metData->size() << " entries ("
 	   << 100.0*(float)newobs/(6*(float)metData->size()) << "%) file: " << file << std::endl;
     } else {
-      cout << "No valid observations in file\n";
+      std::cout << "No valid observations in file\n";
     }
-    cout << obVector.size() << " total observations." << " ( " << attemptedFiles << " of " << totalFiles << " files processed ) " << endl;
+    std::cout << obVector.size() << " total observations." << " ( " << attemptedFiles << " of " << totalFiles << " files processed ) " << std::endl;
   }
 
   delete metData;
@@ -1968,7 +1974,7 @@ bool VarDriver3D::preProcessMetObs()
     }
   }
 
-  cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << endl;
+  std::cout << obVector.size() << " total observations including pseudo-obs for W and mass continuity" << std::endl;
 
 #if IO_WRITEOBS
   GPTLstart("VarDriver3D::preprocessMetObs->writeobs");
@@ -1989,7 +1995,7 @@ bool VarDriver3D::preProcessMetObs()
    *os++ = "Weight 4";
    *os++ = "Weight 5";
    *os++ = "Weight 6";
-   obstream << endl; */
+   obstream << std::endl; */
 
   ostream_iterator<real> od(obstream, "\t ");
   ostream_iterator<int> oi(obstream, "\t ");
@@ -1998,7 +2004,7 @@ bool VarDriver3D::preProcessMetObs()
     *od++ = ob.getOb();
     real invError = ob.getInverseError();
     if (!invError) {
-      cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+      std::cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
       return false;
     }
     *od++ = invError;
@@ -2017,7 +2023,7 @@ bool VarDriver3D::preProcessMetObs()
 	*od++ = ob.getWeight(var, d);
       }
     }
-    obstream << endl;
+    obstream << std::endl;
   }
   GPTLstop("VarDriver3D::preprocessMetObs->writeobs");
 #endif
@@ -2031,7 +2037,7 @@ bool VarDriver3D::preProcessMetObs()
     obs[n] = ob.getOb();
     real invError = ob.getInverseError();
     if (!invError) {
-      cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+      std::cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
       return false;
     }
     obs[n+1] = invError;
@@ -2055,15 +2061,192 @@ bool VarDriver3D::preProcessMetObs()
 
   // All done preprocessing
   if (!processedFiles) {
-    cout << "No files processed, nothing to do :(" << endl;
+    std::cout << "No files processed, nothing to do :(" << std::endl;
     // return 0;
   } else {
-    cout << "Finished preprocessing " << processedFiles << " files." << endl;
+    std::cout << "Finished preprocessing " << processedFiles << " files." << std::endl;
   }
 
   GPTLstop("VarDriver3D::preprocessMetObs");
   return true;
 }
+
+
+//bool VarDriverThermo::loadObservations(QString& metFile,const int &metFile_idim,const int &metFile_jdim,const int &metFile_kdim , QList<Observation>* obVector)
+bool VarDriver3D::loadObservations(std::string filename)
+{
+ 
+  std::cout << "Reading in WIND output file: " << filename << std::endl;
+#if 0
+  if (runMode == XYZ) {
+    ncFile = new NetCDF_XYZ(metFile_idim,metFile_jdim,metFile_kdim);
+  } else if (runMode == RTZ) {
+    ncFile = new NetCDF_RTZ(metFile_idim,metFile_jdim,metFile_kdim);
+  }
+
+  std::cout << "Read in NetCDF File ... " << std::endl;
+  if (ncFile->readNetCDF(metFile.toAscii().data()) != 0) {
+     std::cout << "Error reading NetCDF file\n";
+     exit(1);
+  }
+
+  std::cout << "Load Observations ... " << std::endl;
+
+  int nalt = metFile_kdim;
+  int nx = metFile_idim;
+  int ny = metFile_jdim;
+
+  QString file,datestr,timestr;
+  file = metFile.section("/",-1);
+  datestr = file.left(8);
+  QDate date = QDate::fromString(datestr, "yyyyMMdd");
+  timestr = file.section("_",-1).section(".",0,0);
+  QTime time;
+  if (timestr.size()==2) {
+    time = QTime::fromString(timestr, "HH");
+  } else if (timestr.size()==4) {
+    time = QTime::fromString(timestr,"HHmm");
+  } else {
+    std::cout << "Implement reading routine for filenames which don't look like yyyymmdd_hh.nc \n";
+    exit(1);
+  }
+
+  QDateTime obTime;
+  obTime = QDateTime(date, time, Qt::UTC);
+  QString obstring = obTime.toString(Qt::ISODate);
+  QDateTime startTime = frameVector.front().getTime();
+  QDateTime endTime = frameVector.back().getTime();
+  QString tcstart = startTime.toString(Qt::ISODate);
+  QString tcend = endTime.toString(Qt::ISODate);
+  int fi = startTime.secsTo(obTime);
+  if ((fi < 0) or (fi > (int)frameVector.size())) {
+     std::cout << "Time problem with observation " << fi << std::endl;
+     exit(1);
+  }
+#endif
+
+
+  //if (configHash["mode"] == "RTZ") {
+  //} else if (configHash["mode"] == "XYZ") {
+  if (runMode == RTZ) {
+    std::cout << "RTZ run mode not implemented yet " << std::endl;
+
+  } else if (runMode == XYZ) {
+    std::cout << "Entered XYZ run mode " << std::endl;
+
+#if 0
+    int nlon = nx;
+    int nlat = ny;
+    for (int i = 0; i < nlon; ++i) {
+      for (int j = 0; j < nlat; ++j) {
+        for (int k = 0; k < nalt; ++k) {
+
+          Observation varOb;
+
+          double lon = ncFile->getValue(i,j,k,(QString)"lon");
+          double lat = ncFile->getValue(i,j,k,(QString)"lat");
+          double alt = ncFile->getValue(i,j,k,(QString)"z");
+          double alt_km = alt/1000.0;
+
+          //Checking if obs in domain is still missing!
+          //    if ((r_km < imin) or (r_km > imax) or
+          //        (lambda < jmin) or (lambda > jmax) or
+          //        (alt_km < kmin) or (alt_km > kmax))
+          //        continue;
+
+          // Geographic functions
+          GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+          double referenceLon = configHash.value("ref_lon").toFloat();
+          double tcX, tcY, cartX, cartY;
+          tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
+          tm.Forward(referenceLon,lat,lon,cartX,cartY);
+          real obX = (cartX - tcX)/1000.;
+          real obY = (cartY - tcY)/1000.;
+          varOb.setType(101);
+          varOb.setCartesianX(obX);
+          varOb.setCartesianY(obY);
+          varOb.setAltitude(alt_km);
+          varOb.setTime(obTime.toTime_t());
+
+
+          // Initialize the weights
+          for (unsigned int var = 0; var < numVars; ++var) {
+             for (unsigned int d = 0; d < numDerivatives; ++d) {
+                varOb.setWeight(0.0, var, d);
+             }
+          }
+
+          double a,b,c,d,e;
+
+          a = ncFile->calc_A(i,j,k);
+          b = ncFile->calc_B(i,j,k);
+          c = ncFile->calc_C(i,j,k);
+          d = ncFile->calc_D(i,j,k);
+          e = ncFile->calc_E(i,j,k);
+
+
+          double thetarhobar = ncFile->getValue(i,j,k,(QString)"trb");
+
+
+          double u = ncFile->getValue(i,j,k,(QString)"u");
+          double v = ncFile->getValue(i,j,k,(QString)"v");
+          double w = ncFile->getValue(i,j,k,(QString)"w");
+          double wspd = u*u+v*v;
+
+
+          if (a==-999 or b==-999 or c==-999 or d==-999 or e==-999 or thetarhobar==-999){continue;}
+
+          if (a==-999 or b==-999 or c==-999 or d==-999 or e==-999 or thetarhobar==-999){std::cout << "Skip this ... \n";}
+
+          float c_p = 1005.7;
+          float g = 9.81;
+
+          varOb.setOb(a*1E3*1E3);
+          varOb.setWeight(-0.001*1E3,0,1);
+          varOb.setError(configHash.value("thermo_A_error").toFloat()); // varOb.setError(std::stof(configHash["thermo_A_error"]));
+          obVector->push_back(varOb);
+          varOb.setWeight(0,0,1);
+
+          varOb.setOb(b*1E3*1E3);
+          varOb.setWeight(-0.001*1E3,0,2);
+          varOb.setError(configHash.value("thermo_B_error").toFloat());
+          obVector->push_back(varOb);
+          varOb.setWeight(0,0,2);
+
+          varOb.setOb(c*1E3*1E3);
+          varOb.setWeight(-0.001*1E3,0,3);
+          varOb.setWeight(g*1E3*1E3/(c_p*thetarhobar*thetarhobar),1,0);
+          varOb.setError(configHash.value("thermo_C_error").toFloat());
+          obVector->push_back(varOb);
+          varOb.setWeight(0,0,3);
+          varOb.setWeight(0,1,0);
+
+          varOb.setOb(d);
+          varOb.setWeight(1,1,1);
+          varOb.setError(configHash.value("thermo_D_error").toFloat());
+          obVector->push_back(varOb);
+          varOb.setWeight(0,1,1);
+
+          varOb.setOb(e);
+          varOb.setWeight(1,1,2);
+          varOb.setError(configHash.value("thermo_E_error").toFloat());
+          obVector->push_back(varOb);
+          varOb.setWeight(0,1,2);
+
+       }
+      }
+    }
+#endif
+
+  } else {
+      std::cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";
+      return false;
+  }
+
+  return true;
+
+}
+
 
 /* Load the meteorological observations from a file into a vector */
 
@@ -2075,7 +2258,7 @@ bool VarDriver3D::loadPreProcessMetObs()
     real iPos, jPos, kPos, ob, error;
     int type;
     int64_t time;
-    cout << "Loading preprocessed observations from samurai_Observations.in" << endl;
+    std::cout << "Loading preprocessed observations from samurai_Observations.in" << std::endl;
 
     // Open and read the file
     std::string obFilename = dataPath + "/samurai_Observations.in";
@@ -2117,7 +2300,7 @@ bool VarDriver3D::loadPreProcessMetObs()
         obs[n] = ob.getOb();
         real invError = ob.getInverseError();
         if (!invError) {
-            cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
+            std::cout << "Undefined instrument error specification for " << ob.getType() << "instrument type!\n";
             return false;
         }
         obs[n+1] = invError;
@@ -2313,9 +2496,9 @@ bool VarDriver3D::adjustBackground()
   std::string bg_interpolation_error = "1.0";
   if (configHash.exists("bg_interpolation_error")) {
     bg_interpolation_error = configHash["bg_interpolation_error"];
-    cout << "Setting background interpolation error to " << bg_interpolation_error << "\n";
+    std::cout << "Setting background interpolation error to " << bg_interpolation_error << "\n";
   } else {
-    cout << "Using default background interpolation error of 1.0\n";
+    std::cout << "Using default background interpolation error of 1.0\n";
   }
   configHash.update("bg_rhou_error", bg_interpolation_error);
   configHash.update("bg_rhov_error", bg_interpolation_error);
@@ -2556,7 +2739,7 @@ bool VarDriver3D::validateConfig()
 bool VarDriver3D::loadBackgroundCoeffs()
 {
 	// Load a set of coefficients directly for the same grid
-	cout << "Loading previous coefficients from samurai_Coefficients.in" << endl;
+	std::cout << "Loading previous coefficients from samurai_Coefficients.in" << std::endl;
 
 	std::ifstream bgFile(dataPath + "/samurai_Coefficients.in");
 	if (!bgFile.is_open())
@@ -2585,9 +2768,9 @@ bool VarDriver3D::loadBackgroundCoeffs()
 			numbgCoeffs++;
 		}
 	}
-	cout << numbgCoeffs << " background coeffients loaded" << endl;
+	std::cout << numbgCoeffs << " background coeffients loaded" << std::endl;
 	if (numbgCoeffs != bStateSize) {
-	  cout << "Error loading background coefficients" << endl;
+	  std::cout << "Error loading background coefficients" << std::endl;
 	  return false;
 	}
 	return true;
@@ -2834,24 +3017,24 @@ bool VarDriver3D::validateGrid()
   // so less than 4 gridpoints will cause a memory fault
 
   if (idim < 4) {
-    cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    std::cout << "i dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
     return false;
   }
   if (jdim < 4) {
-    cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    std::cout << "j dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
     return false;
   }
   if (kdim < 4) {
-    cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
+    std::cout << "k dimension is less than 4 gridpoints and recursive filter will fail. Aborting...\n";
     return false;
   }
 
   // Define the sizes of the arrays we are passing to the cost function
 
-  cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
-  cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
-  cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
-  cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
+  std::cout << "iMin\tiMax\tiIncr\tjMin\tjMax\tjIncr\tkMin\tkMax\tkIncr\n";
+  std::cout << imin << "\t" <<  imax << "\t" <<  iincr << "\t";
+  std::cout << jmin << "\t" <<  jmax << "\t" <<  jincr << "\t";
+  std::cout << kmin << "\t" <<  kmax << "\t" <<  kincr << "\n\n";
 
   return true;
 }
@@ -2868,23 +3051,23 @@ bool VarDriver3D::loadMetObs()
     delete[] bgWeights;
 
     if (! success) {
-      cout << "Error pre-processing observations\n";
+      std::cout << "Error pre-processing observations\n";
       return false;
     }
 
   } else {
     if (!loadPreProcessMetObs()) {
-      cout << "Error loading observations\n";
+      std::cout << "Error loading observations\n";
       return false;
     }
   }
 
   if (obVector.size() == 0) {
     // No observations so quit
-    cout << "No observations loaded, unable to perform analysis.\n";
+    std::cout << "No observations loaded, unable to perform analysis.\n";
     return false;
   } else {
-    cout << "Number of New Observations: " << obVector.size() << endl;
+    std::cout << "Number of New Observations: " << obVector.size() << std::endl;
   }
   return true;
 }
