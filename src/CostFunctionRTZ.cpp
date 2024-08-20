@@ -24,9 +24,10 @@ CostFunctionRTZ::~CostFunctionRTZ()
 }
 bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
+	std::string samuraiMode = "wind";
 	cout << "Outputting " << suffix << "...\n";
 	// H --> to Mish for output
-    std::string samuraiout = "samurai_RTZ_" + suffix + ".out";
+    std::string samuraiout = "samurai_RTZ_" + samuraiMode + "_" + suffix + ".out";
     ofstream samuraistream;
     if ((*configHash)["output_txt"] == "true") {
         samuraistream.open(outputPath + "/" + samuraiout);
@@ -447,12 +448,12 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 		}
 	}
 
-  std::string fileName = "samurai_RTZ_" + suffix;
+  std::string fileName = "samurai_RTZ_" + samuraiMode + "_" + suffix;
   std::string outFileName = outputPath + "/" + fileName;
 
 	// Write the Obs to a summary text file
     if ((*configHash)["output_qc"] == "true") {
-            std::string qcout = "samurai_QC_" + suffix + ".out";
+            std::string qcout = "samurai_QC_" + samuraiMode + "_" + suffix + ".out";
             std::string qcFileName = outputPath + "/" + qcout;
         ofstream qcstream(qcFileName);
         ostream_iterator<string> os(qcstream, "\t ");
