@@ -27,6 +27,14 @@ debug_kd = 0;
 
 debug_kd_step = 0;
 
+///////////// wind_file //////////////////////////
+//
+// Needed by Samurai THERMO mode
+//
+// Type: string
+
+wind_file = "/glade/derecho/scratch/dennis/thermo-sandbox/ncar_scripts/test_wind.nc";
+
 //======================================================================
 //
 // BACKGROUND SECTION.
