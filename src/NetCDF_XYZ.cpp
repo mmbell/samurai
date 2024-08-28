@@ -68,21 +68,29 @@ NetCDF_XYZ::~NetCDF_XYZ()
 
 }
 
-int NetCDF_XYZ::readNetCDF(const char* filename) {
+int NetCDF_XYZ::readNetCDF(std::string filename) {
 	  Nc3Error err(Nc3Error::verbose_nonfatal);
-    Nc3File dataFile(filename, Nc3File::ReadOnly);
+
+    Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
 
     if(!dataFile.is_valid())
     	return NC_ERR;
      
 	// Get pointers to the latitude and longitude variables.
-    Nc3Var *lonVar, *latVar, *altVar;
-    if (!(lonVar = dataFile.get_var("lon")))
+    Nc3Var *lonVar, *latVar, *altVar, *timeVar;
+    std::cout << "before get_var(lon) " << std::endl;
+    if (!(lonVar = dataFile.get_var("longitude")))
     	return NC_ERR;
-    if (!(latVar = dataFile.get_var("lat")))
+    std::cout << "before get_var(lat) " << std::endl;
+    if (!(latVar = dataFile.get_var("latitude")))
         return NC_ERR;
-    if (!(altVar = dataFile.get_var("z")))
+    std::cout << "before get_var(z) " << std::endl;
+    if (!(altVar = dataFile.get_var("altitude")))
         return NC_ERR;  
+    std::cout << "before get_var(time) " << std::endl;
+    if (!(timeVar= dataFile.get_var("time")))
+    	return NC_ERR;
+    std::cout << "after get_var(time) " << std::endl;
      
     // Get the lat/lon data from the file.
     if (!lonVar->get(longitude, NLON))
@@ -95,36 +103,37 @@ int NetCDF_XYZ::readNetCDF(const char* filename) {
      // Get pointers to the pressure and temperature variables.
     Nc3Var *uVar,*vVar,*wVar,*dudxVar,*dvdxVar,*dwdxVar,*dudyVar,*dvdyVar,*dwdyVar,*dudzVar,*dvdzVar,*dwdzVar, *trbVar, *dpibdxVar, *dpibdyVar;
 
-    if (!(uVar = dataFile.get_var("u")))
+    if (!(uVar = dataFile.get_var("U")))
     	return NC_ERR;
-    if (!(vVar = dataFile.get_var("v")))
+    if (!(vVar = dataFile.get_var("V")))
     	return NC_ERR;
-    if (!(wVar = dataFile.get_var("w")))
+    if (!(wVar = dataFile.get_var("W")))
     	return NC_ERR;    	     
-    if (!(dudxVar = dataFile.get_var("dudx")))
+    if (!(dudxVar = dataFile.get_var("DUDX")))
     	return NC_ERR;   
-    if (!(dvdxVar = dataFile.get_var("dvdx")))
+    if (!(dvdxVar = dataFile.get_var("DVDX")))
     	return NC_ERR;   
-    if (!(dwdxVar = dataFile.get_var("dwdx")))
+    if (!(dwdxVar = dataFile.get_var("DWDX")))
     	return NC_ERR;   
-    if (!(dudyVar = dataFile.get_var("dudy")))
+    if (!(dudyVar = dataFile.get_var("DUDY")))
     	return NC_ERR;   
-    if (!(dvdyVar = dataFile.get_var("dvdy")))
+    if (!(dvdyVar = dataFile.get_var("DVDY")))
     	return NC_ERR;   
-    if (!(dwdyVar = dataFile.get_var("dwdy")))
+    if (!(dwdyVar = dataFile.get_var("DWDY")))
     	return NC_ERR;   
-    if (!(dudzVar = dataFile.get_var("dudz")))
+    if (!(dudzVar = dataFile.get_var("DUDZ")))
     	return NC_ERR;   
-    if (!(dvdzVar = dataFile.get_var("dvdz")))
+    if (!(dvdzVar = dataFile.get_var("DVDZ")))
     	return NC_ERR;   
-    if (!(dwdzVar = dataFile.get_var("dwdz")))
+    if (!(dwdzVar = dataFile.get_var("DWDZ")))
     	return NC_ERR;       	  
-    if (!(trbVar = dataFile.get_var("trb")))
-    	return NC_ERR; 
-    if (!(dpibdxVar = dataFile.get_var("dpibdx")))
-    	return NC_ERR; 
-    if (!(dpibdyVar = dataFile.get_var("dpibdy")))
-    	return NC_ERR; 
+    //std::cout << "before get_var(trb) " << std::endl;
+    //if (!(trbVar = dataFile.get_var("trb")))
+    // 	return NC_ERR; 
+    // if (!(dpibdxVar = dataFile.get_var("dpibdx")))
+    //	return NC_ERR; 
+    //if (!(dpibdyVar = dataFile.get_var("dpibdy")))
+    //	return NC_ERR; 
                 	
     if (!uVar->set_cur(NREC, 0, 0, 0))
 		return NC_ERR;
@@ -150,12 +159,12 @@ int NetCDF_XYZ::readNetCDF(const char* filename) {
 		return NC_ERR;
     if (!dwdzVar->set_cur(NREC, 0, 0, 0))
 		return NC_ERR;			
-    if (!trbVar->set_cur(NREC, 0, 0, 0))
-    return NC_ERR; 
-    if (!dpibdxVar->set_cur(NREC, 0, 0, 0))
-    return NC_ERR; 
-    if (!dpibdyVar->set_cur(NREC, 0, 0, 0))
-    return NC_ERR; 
+    //if (!trbVar->set_cur(NREC, 0, 0, 0))
+    //return NC_ERR; 
+    //if (!dpibdxVar->set_cur(NREC, 0, 0, 0))
+    //return NC_ERR; 
+    //if (!dpibdyVar->set_cur(NREC, 0, 0, 0))
+    //return NC_ERR; 
 											 
 	if (!uVar->get(u, 1, NALT, NLAT, NLON))
 		return NC_ERR;
@@ -181,17 +190,31 @@ int NetCDF_XYZ::readNetCDF(const char* filename) {
 		return NC_ERR;
  	if (!dwdzVar->get(dwdz, 1, NALT, NLAT, NLON))
 		return NC_ERR; 
-  if (!trbVar->get(thetarhobar, 1, NALT, NLAT, NLON))
-    return NC_ERR; 
-  if (!dpibdxVar->get(dpibardx, 1, NALT, NLAT, NLON))
-    return NC_ERR; 
-  if (!dpibdyVar->get(dpibardy, 1, NALT, NLAT, NLON))
-    return NC_ERR; 
+  //if (!trbVar->get(thetarhobar, 1, NALT, NLAT, NLON))
+  //  return NC_ERR; 
+  //if (!dpibdxVar->get(dpibardx, 1, NALT, NLAT, NLON))
+  //  return NC_ERR; 
+  //if (!dpibdyVar->get(dpibardy, 1, NALT, NLAT, NLON))
+  //  return NC_ERR; 
 
+   // return 1; // return an error because it is missing the trb, dpidx, dpidy variables
    return 0;
 }
 
-
+int NetCDF_XYZ::getValue(const std::string& varName)
+{
+       int value_out;
+       std::cout << "Inside getValue" << std::endl;
+       if (varName == "time") {
+	  value_out = obtime;
+       } else {
+	  std::cout << "Requested Variable unknown. \n";
+          std::cout << varName << "\n";
+	  return false;
+       }
+     return value_out;
+}
+     
 double NetCDF_XYZ::getValue(const int &i,const int &j,const int &k, const std::string& varName)
 {
 	//Returned values are all in SI units

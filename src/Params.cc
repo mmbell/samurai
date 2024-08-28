@@ -2597,7 +2597,7 @@
     tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("wind_file");
     tt->descr = tdrpStrDup("");
-    tt->help = tdrpStrDup("Need for running SAMURI in THERMO mode");
+    tt->help = tdrpStrDup("Need for running Samurai in THERMO mode");
     tt->val_offset = (char *) &wind_file - &_start_;
     tt->single_val.s = tdrpStrDup("");
     tt++;

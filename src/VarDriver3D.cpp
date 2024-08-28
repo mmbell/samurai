@@ -206,7 +206,8 @@ bool VarDriver3D::gridDependentInit()
   if (configHash["analysis_type"] == "THERMO") {
      std::string windFile = configHash["wind_file"]; 
      std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
-     this->loadObservations(windFile);
+     std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
+     this->loadObservations(windFile,idim,jdim,kdim);
      return false;
   }
 
@@ -2072,20 +2073,20 @@ bool VarDriver3D::preProcessMetObs()
 }
 
 
-//bool VarDriverThermo::loadObservations(QString& metFile,const int &metFile_idim,const int &metFile_jdim,const int &metFile_kdim , QList<Observation>* obVector)
-bool VarDriver3D::loadObservations(std::string filename)
+//bool VarDriverThermo::loadObservations(std::string  filename,const int &metFile_idim,const int &metFile_jdim,const int &metFile_kdim , QList<Observation>* obVector)
+bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,const int &metFile_jdim,const int &metFile_kdim)
 {
  
   std::cout << "Reading in WIND output file: " << filename << std::endl;
-#if 0
   if (runMode == XYZ) {
     ncFile = new NetCDF_XYZ(metFile_idim,metFile_jdim,metFile_kdim);
   } else if (runMode == RTZ) {
-    ncFile = new NetCDF_RTZ(metFile_idim,metFile_jdim,metFile_kdim);
+    // ncFile = new NetCDF_RTZ(metFile_idim,metFile_jdim,metFile_kdim);
+    std::cout << "Runmode RTZ is not supported in VarDriver3D::loadObservations" << std::endl;
   }
 
-  std::cout << "Read in NetCDF File ... " << std::endl;
-  if (ncFile->readNetCDF(metFile.toAscii().data()) != 0) {
+  std::cout << "Read in NetCDF File " << filename.c_str() << "..." << std::endl;
+  if (ncFile->readNetCDF(filename) != 0) {
      std::cout << "Error reading NetCDF file\n";
      exit(1);
   }
@@ -2096,6 +2097,22 @@ bool VarDriver3D::loadObservations(std::string filename)
   int nx = metFile_idim;
   int ny = metFile_jdim;
 
+  datetime obTime;
+
+  // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here
+  // bgTime.setTime_t(time);
+  // bgTime.setTimeSpec(Qt::UTC);
+  //std::cout << "iTime: " << itime << std::endl;
+  unsigned int foo = ncFile->getValue("time");
+  //obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo)));
+  obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo));
+
+
+
+  std::cout << "loadObservations: timeVar: " << foo << std::endl;
+  int fi = 1;
+  // std::cout << "loadObservations: timePoint: " << obTime.c_str() << std::endl;
+#if 0
   QString file,datestr,timestr;
   file = metFile.section("/",-1);
   datestr = file.left(8);
@@ -2119,11 +2136,11 @@ bool VarDriver3D::loadObservations(std::string filename)
   QString tcstart = startTime.toString(Qt::ISODate);
   QString tcend = endTime.toString(Qt::ISODate);
   int fi = startTime.secsTo(obTime);
+#endif
   if ((fi < 0) or (fi > (int)frameVector.size())) {
-     std::cout << "Time problem with observation " << fi << std::endl;
+     std::cout << "Time problem with observation " << "size(frameVector): " << (int)frameVector.size() << " " << fi << std::endl;
      exit(1);
   }
-#endif
 
 
   //if (configHash["mode"] == "RTZ") {
@@ -2134,18 +2151,19 @@ bool VarDriver3D::loadObservations(std::string filename)
   } else if (runMode == XYZ) {
     std::cout << "Entered XYZ run mode " << std::endl;
 
-#if 0
-    int nlon = nx;
-    int nlat = ny;
+    int nlon = metFile_idim;
+    int nlat = metFile_jdim;
+    int nalt = metFile_kdim;
+
     for (int i = 0; i < nlon; ++i) {
       for (int j = 0; j < nlat; ++j) {
         for (int k = 0; k < nalt; ++k) {
 
           Observation varOb;
 
-          double lon = ncFile->getValue(i,j,k,(QString)"lon");
-          double lat = ncFile->getValue(i,j,k,(QString)"lat");
-          double alt = ncFile->getValue(i,j,k,(QString)"z");
+          double lon = ncFile->getValue(i,j,k,"lon");
+          double lat = ncFile->getValue(i,j,k,"lat");
+          double alt = ncFile->getValue(i,j,k,"z");
           double alt_km = alt/1000.0;
 
           //Checking if obs in domain is still missing!
@@ -2156,10 +2174,12 @@ bool VarDriver3D::loadObservations(std::string filename)
 
           // Geographic functions
           GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
-          double referenceLon = configHash.value("ref_lon").toFloat();
+          double referenceLon = std::stof(configHash["ref_lon"]);
           double tcX, tcY, cartX, cartY;
+	  std::cout << "Before call to tm.Forward()" << std::endl;
           tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
           tm.Forward(referenceLon,lat,lon,cartX,cartY);
+#if 0
           real obX = (cartX - tcX)/1000.;
           real obY = (cartY - tcY)/1000.;
           varOb.setType(101);
@@ -2233,10 +2253,10 @@ bool VarDriver3D::loadObservations(std::string filename)
           obVector->push_back(varOb);
           varOb.setWeight(0,1,2);
 
+#endif
        }
       }
     }
-#endif
 
   } else {
       std::cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";

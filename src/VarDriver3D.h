@@ -19,6 +19,8 @@
 #include "CostFunctionCOAMPS.h"
 #include "MetObs.h"
 #include "FrameCenter.h"
+#include "NetCDF.h"
+#include "NetCDF_XYZ.h"
 #include "BkgdAdapter.h"
 #include "Xml.h"
 #include <iostream>
@@ -77,6 +79,7 @@ public:
 
 private:
 
+	NetCDF* ncFile;
 	typedef BSplineBase<real> SplineBase;
 	typedef BSpline<real> SplineD;   // This is also declared in ReferenceState.h
 
@@ -100,7 +103,7 @@ private:
 	bool loadPreProcessMetObs();
 	bool loadBGfromFile();
 	bool loadBackgroundCoeffs();
-	bool loadObservations(std::string filename);
+	bool loadObservations(std::string filename, const int &metFile_idim, const int &metFile_jdim, const int &metFile_kdim);
 	int loadBackgroundObs(const char *background_fname);
 	int loadBackgroundObs(int nx, int ny, int nsigma,
 			      char *ctdg, int delta, int iter, // time elements

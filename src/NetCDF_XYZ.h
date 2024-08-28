@@ -24,8 +24,9 @@ public:
 
  	~NetCDF_XYZ();
   
-    int readNetCDF(const char* filename);
+    int readNetCDF(std::string filename);
 	double getValue(const int &i,const int &j,const int &k,const std::string& varName);	
+	int getValue(const std::string& varName);
 	double getDerivative(const int &i,const int &j,const int &k, const std::string &var, const int &der);
 	double calc_A(const int &i,const int &j,const int &k);
 	double calc_B(const int &i,const int &j,const int &k);
@@ -39,6 +40,7 @@ protected:
   	float* longitude;
 	float* latitude;
 	float* altitude;	
+	int    obtime;
 	float* u;
 	float* v;
 	float* w;
