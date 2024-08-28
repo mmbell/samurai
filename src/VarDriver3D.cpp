@@ -203,13 +203,6 @@ bool VarDriver3D::gridDependentInit()
   std::string refSounding = configHash["ref_state"];
   refstate = new ReferenceState(refSounding);
 
-  if (configHash["analysis_type"] == "THERMO") {
-     std::string windFile = configHash["wind_file"]; 
-     std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
-     std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
-     this->loadObservations(windFile,idim,jdim,kdim);
-     return false;
-  }
 
 
   // std::cout << "Reference profile: Z\t\tQv\tRhoa\tRho\tH\tTemp\tPressure\n";
@@ -241,6 +234,14 @@ bool VarDriver3D::gridDependentInit()
       std::cout << "Error finding reference time, please check date and time in XML file\n";
       return false;
     }
+  }
+
+  if (configHash["analysis_type"] == "THERMO") {
+     std::string windFile = configHash["wind_file"]; 
+     std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
+     std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
+     this->loadObservations(windFile,idim,jdim,kdim);
+     return false;
   }
 
   // These are used to process the obs (bkg and met)
@@ -2108,7 +2109,6 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
   obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo));
 
 
-
   std::cout << "loadObservations: timeVar: " << foo << std::endl;
   int fi = 1;
   // std::cout << "loadObservations: timePoint: " << obTime.c_str() << std::endl;
@@ -2179,14 +2179,18 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
 	  std::cout << "Before call to tm.Forward()" << std::endl;
           tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
           tm.Forward(referenceLon,lat,lon,cartX,cartY);
-#if 0
+	  std::cout << "After call to tm.Forward()" << std::endl;
+
           real obX = (cartX - tcX)/1000.;
           real obY = (cartY - tcY)/1000.;
           varOb.setType(101);
           varOb.setCartesianX(obX);
           varOb.setCartesianY(obY);
           varOb.setAltitude(alt_km);
+#if 0
           varOb.setTime(obTime.toTime_t());
+#endif
+
 
 
           // Initialize the weights
@@ -2205,12 +2209,12 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
           e = ncFile->calc_E(i,j,k);
 
 
-          double thetarhobar = ncFile->getValue(i,j,k,(QString)"trb");
+          double thetarhobar = ncFile->getValue(i,j,k,"trb");
 
 
-          double u = ncFile->getValue(i,j,k,(QString)"u");
-          double v = ncFile->getValue(i,j,k,(QString)"v");
-          double w = ncFile->getValue(i,j,k,(QString)"w");
+          double u = ncFile->getValue(i,j,k,"u");
+          double v = ncFile->getValue(i,j,k,"v");
+          double w = ncFile->getValue(i,j,k,"w");
           double wspd = u*u+v*v;
 
 
@@ -2223,37 +2227,36 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
 
           varOb.setOb(a*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,1);
-          varOb.setError(configHash.value("thermo_A_error").toFloat()); // varOb.setError(std::stof(configHash["thermo_A_error"]));
-          obVector->push_back(varOb);
+          varOb.setError(std::stof(configHash["thermo_A_error"]));
+          obVector.push_back(varOb);
           varOb.setWeight(0,0,1);
 
           varOb.setOb(b*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,2);
-          varOb.setError(configHash.value("thermo_B_error").toFloat());
-          obVector->push_back(varOb);
+          varOb.setError(std::stof(configHash["thermo_B_error"]));
+          obVector.push_back(varOb);
           varOb.setWeight(0,0,2);
 
           varOb.setOb(c*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,3);
           varOb.setWeight(g*1E3*1E3/(c_p*thetarhobar*thetarhobar),1,0);
-          varOb.setError(configHash.value("thermo_C_error").toFloat());
-          obVector->push_back(varOb);
+          varOb.setError(std::stof(configHash["thermo_C_error"]));
+          obVector.push_back(varOb);
           varOb.setWeight(0,0,3);
           varOb.setWeight(0,1,0);
 
           varOb.setOb(d);
           varOb.setWeight(1,1,1);
-          varOb.setError(configHash.value("thermo_D_error").toFloat());
-          obVector->push_back(varOb);
+          varOb.setError(std::stof(configHash["thermo_D_error"]));
+          obVector.push_back(varOb);
           varOb.setWeight(0,1,1);
 
           varOb.setOb(e);
           varOb.setWeight(1,1,2);
-          varOb.setError(configHash.value("thermo_E_error").toFloat());
-          obVector->push_back(varOb);
+          varOb.setError(std::stof(configHash["thermo_E_error"]));
+          obVector.push_back(varOb);
           varOb.setWeight(0,1,2);
 
-#endif
        }
       }
     }
