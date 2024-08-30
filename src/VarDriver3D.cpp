@@ -241,13 +241,16 @@ bool VarDriver3D::gridDependentInit()
      std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
      std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
      this->loadObservations(windFile,idim,jdim,kdim);
-     return false;
+     //std::cout << "Exiting after call to VarDriver3D::loadObservations()" << std::endl;
+     //return false;
   }
 
   // These are used to process the obs (bkg and met)
-
+ 
+  std::cout << "gridDependentInit: point #1 " << std::endl;
   uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars); // bgU size
   bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;       // 2 mish points between nodes
+  std::cout << "gridDependentInit: point #2 " << std::endl;
 
   std::cout << "Physical (mish) State size = " << uStateSize << std::endl;
   std::cout << "Nodal State size = " << bStateSize << std::endl;
@@ -264,6 +267,7 @@ bool VarDriver3D::gridDependentInit()
 
   // Optionally load a set of background coefficients directly
 
+  std::cout << "gridDependentInit: point #3 " << std::endl;
   std::string loadBGcoeffs = configHash["load_bg_coefficients"];
 
   if (loadBGcoeffs == "true")
@@ -272,6 +276,8 @@ bool VarDriver3D::gridDependentInit()
 
   // Optionally load a set of background estimates and interpolate to the Gaussian mish
 
+  std::cout << "gridDependentInit: point #4 " << std::endl;
+if (configHash["analysis_type"] == "WIND") {
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
     START_TIMER(timeb);
@@ -285,6 +291,7 @@ bool VarDriver3D::gridDependentInit()
     //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
     delete bkgdAdapter;
   }
+  std::cout << "gridDependentInit: point #5 " << std::endl;
 
   // Optionally adjust the interpolated background to satisfy mass continuity
   // and match the supplied points exactly. In essence, do a SAMURAI analysis using
@@ -297,18 +304,52 @@ bool VarDriver3D::gridDependentInit()
       return false;
     }
   }
+}
+  std::cout << "gridDependentInit: point #6 " << std::endl;
 
-  START_TIMER(timem);
-  if ( ! loadMetObs() )
-    return false;
-  PRINT_TIMER("loadMetObs", timem);
+  if (configHash["analysis_type"] == "WIND") {
+     START_TIMER(timem);
+     if ( ! loadMetObs() ) return false;
+     PRINT_TIMER("loadMetObs", timem);
+  } else if (configHash["analysis_type"] == "THERMO") {
+    // Load the observations into a vector
+    obs = new real[obVector.size()*(obMetaSize+numVars*numDerivatives)];
+    for (int m=0; m < obVector.size(); m++) {
+        int n = m*(obMetaSize+numVars*numDerivatives);
+        Observation ob = obVector.at(m);
+        obs[n] = ob.getOb();
+        real invError = ob.getInverseError();
+        if (!invError) {
+            cout << "Undefined instrument error specification for " << ob.getType() << " instrument type!\n";
+            return false;
+        }
+        obs[n+1] = invError;
+        if (runMode == XYZ) {
+            obs[n+2] = ob.getCartesianX();
+            obs[n+3] = ob.getCartesianY();
+        } else if (runMode == RTZ) {
+            obs[n+2] = ob.getRadius();
+            obs[n+3] = ob.getTheta();
+        }
+        obs[n+4] = ob.getAltitude();
+        obs[n+5] = ob.getType();
+        obs[n+6] = ob.getTime();
+        for (unsigned int var = 0; var < numVars; var++) {
+            for (unsigned int d = 0; d < numDerivatives; ++d) {
+                int wgt_index = n + obMetaSize + numVars*d + var;
+                obs[wgt_index] = ob.getWeight(var, d);
 
+            }
+        }
+
+    }
+  }
   START_TIMER(timec);
   initObCost3D();
   PRINT_TIMER("initObCost3D", timec);
 
   PRINT_TIMER("gridDependentInit", timei);
-
+  std::cout << "gridDependentInit: point #7 " << std::endl;
   return true;
 }
 
@@ -2098,18 +2139,18 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
   int nx = metFile_idim;
   int ny = metFile_jdim;
 
-  datetime obTime;
+  //datetime obTime;
 
   // NCAR note: I'm still confused about times - sometimes they're reals, sometimes ints??  Treating as seconds here
   // bgTime.setTime_t(time);
   // bgTime.setTimeSpec(Qt::UTC);
   //std::cout << "iTime: " << itime << std::endl;
-  unsigned int foo = ncFile->getValue("time");
+  int64_t obTime = ncFile->getValue("time");
   //obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo)));
-  obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo));
+  //obTime = std::chrono::time_point<std::chrono::system_clock>(std::chrono::duration<unsigned int>(foo));
 
 
-  std::cout << "loadObservations: timeVar: " << foo << std::endl;
+  std::cout << "loadObservations: timeVar: " << obTime << std::endl;
   int fi = 1;
   // std::cout << "loadObservations: timePoint: " << obTime.c_str() << std::endl;
 #if 0
@@ -2154,7 +2195,7 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
     int nlon = metFile_idim;
     int nlat = metFile_jdim;
     int nalt = metFile_kdim;
-
+    std::cout << "loadObservations: nlon*nlat*nalt " << nlon*nlat*nalt << std::endl;
     for (int i = 0; i < nlon; ++i) {
       for (int j = 0; j < nlat; ++j) {
         for (int k = 0; k < nalt; ++k) {
@@ -2176,22 +2217,16 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
           GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
           double referenceLon = std::stof(configHash["ref_lon"]);
           double tcX, tcY, cartX, cartY;
-	  std::cout << "Before call to tm.Forward()" << std::endl;
           tm.Forward(referenceLon, frameVector[fi].getLat() , frameVector[fi].getLon() , tcX, tcY);
           tm.Forward(referenceLon,lat,lon,cartX,cartY);
-	  std::cout << "After call to tm.Forward()" << std::endl;
 
           real obX = (cartX - tcX)/1000.;
           real obY = (cartY - tcY)/1000.;
-          varOb.setType(101);
+          varOb.setType(MetObs::model);
           varOb.setCartesianX(obX);
           varOb.setCartesianY(obY);
           varOb.setAltitude(alt_km);
-#if 0
-          varOb.setTime(obTime.toTime_t());
-#endif
-
-
+          varOb.setTime(obTime);
 
           // Initialize the weights
           for (unsigned int var = 0; var < numVars; ++var) {
@@ -2209,7 +2244,9 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
           e = ncFile->calc_E(i,j,k);
 
 
-          double thetarhobar = ncFile->getValue(i,j,k,"trb");
+	  //JMD KLUDGE
+          //double thetarhobar = ncFile->getValue(i,j,k,"trb");
+	  double thetarhobar = 380.0;
 
 
           double u = ncFile->getValue(i,j,k,"u");
@@ -2218,7 +2255,10 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
           double wspd = u*u+v*v;
 
 
-          if (a==-999 or b==-999 or c==-999 or d==-999 or e==-999 or thetarhobar==-999){continue;}
+          if (a==-999 or b==-999 or c==-999 or d==-999 or e==-999 or thetarhobar==-999){
+	          std::cout << "loadObservations: a,b,c,d,e " << a << " " << b << " " << c << " " << " " << d << " " << e << std::endl;
+		  continue;
+	  }
 
           if (a==-999 or b==-999 or c==-999 or d==-999 or e==-999 or thetarhobar==-999){std::cout << "Skip this ... \n";}
 
@@ -2227,33 +2267,43 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
 
           varOb.setOb(a*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,1);
-          varOb.setError(std::stof(configHash["thermo_A_error"]));
+	  //JMD KLUDGE
+          //varOb.setError(std::stof(configHash["thermo_A_error"]));
+          varOb.setError(1.0);
           obVector.push_back(varOb);
           varOb.setWeight(0,0,1);
 
           varOb.setOb(b*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,2);
-          varOb.setError(std::stof(configHash["thermo_B_error"]));
+	  //JMD KLUDGE
+          // varOb.setError(std::stof(configHash["thermo_B_error"]));
+          varOb.setError(1.0);
           obVector.push_back(varOb);
           varOb.setWeight(0,0,2);
 
           varOb.setOb(c*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,3);
           varOb.setWeight(g*1E3*1E3/(c_p*thetarhobar*thetarhobar),1,0);
-          varOb.setError(std::stof(configHash["thermo_C_error"]));
+	  //JMD KLUDGE
+          // varOb.setError(std::stof(configHash["thermo_C_error"]));
+          varOb.setError(1.0);
           obVector.push_back(varOb);
           varOb.setWeight(0,0,3);
           varOb.setWeight(0,1,0);
 
           varOb.setOb(d);
           varOb.setWeight(1,1,1);
-          varOb.setError(std::stof(configHash["thermo_D_error"]));
+	  //JMD KLUDGE
+          // varOb.setError(std::stof(configHash["thermo_D_error"]));
+          varOb.setError(1.0);
           obVector.push_back(varOb);
           varOb.setWeight(0,1,1);
 
           varOb.setOb(e);
           varOb.setWeight(1,1,2);
-          varOb.setError(std::stof(configHash["thermo_E_error"]));
+	  //JMD KLUDGE
+          // varOb.setError(std::stof(configHash["thermo_E_error"]));
+          varOb.setError(1.0);
           obVector.push_back(varOb);
           varOb.setWeight(0,1,2);
 
@@ -2265,6 +2315,7 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
       std::cout << "Unrecognized run mode " << configHash["mode"] << ", Aborting...\n";
       return false;
   }
+  std::cout << "loadObservations: obVector.size(): " << obVector.size() << std::endl;
 
   return true;
 
@@ -3098,7 +3149,7 @@ bool VarDriver3D::loadMetObs()
 bool VarDriver3D::initObCost3D()
 {
   if (runMode == XYZ) {
-		if (std::stof(configHash["output_pressure_increment"]) > 0) {
+    if (std::stof(configHash["output_pressure_increment"]) > 0) {
       obCost3D = new CostFunctionXYP(projection, obVector.size(), bStateSize);
     } else if (configHash["output_COAMPS"] == "true") {
       CostFunctionCOAMPS *cf = new CostFunctionCOAMPS(projection, obVector.size(), bStateSize);

@@ -279,14 +279,18 @@ double NetCDF_XYZ::getValue(const int &i,const int &j,const int &k, const std::s
 
 double NetCDF_XYZ::calc_A(const int &i,const int &j,const int &k)
 {
-  double thetarhobar = this->getValue(i,j,k,"trb");
+  //JMD KLUDGE
+  // double thetarhobar = this->getValue(i,j,k,"trb");
+  double thetarhobar = 380.;
 	double u = this->getValue(i,j,k,"u");
 	double dudx = this->getValue(i,j,k,"dudx");
 	double v = this->getValue(i,j,k,"v");	
 	double dudy = this->getValue(i,j,k,"dudy");
 	double w = this->getValue(i,j,k,"w");	
 	double dudz = this->getValue(i,j,k,"dudz");
-  double dpibdx = this->getValue(i,j,k,"dpibdx");
+  //JMD KLUDGE
+  //double dpibdx = this->getValue(i,j,k,"dpibdx");
+  double dpibdx = 0.0;
   float c_p = 1005.7;
 
   if (thetarhobar==-999 or u==-999 or dudx*1.0E5==-999 or v==-999 or dudy*1.0E5==-999 or w==-999 or dudz*1.0E5==-999 or dpibdx*1000.0==-999){
@@ -299,14 +303,18 @@ double NetCDF_XYZ::calc_A(const int &i,const int &j,const int &k)
 
 double NetCDF_XYZ::calc_B(const int &i,const int &j,const int &k)
 {
-  double thetarhobar = this->getValue(i,j,k,"trb");
+  //JMD KLUDGE
+  // double thetarhobar = this->getValue(i,j,k,"trb");
+  double thetarhobar = 380.;
   double u = this->getValue(i,j,k,"u");
   double dvdx = this->getValue(i,j,k,"dvdx");
   double v = this->getValue(i,j,k,"v");	
   double dvdy = this->getValue(i,j,k,"dvdy");
   double w = this->getValue(i,j,k,"w");	
   double dvdz = this->getValue(i,j,k,"dvdz");
-  double dpibdy = this->getValue(i,j,k,"dpibdy");
+  //JMD KLUDGE
+  //double dpibdy = this->getValue(i,j,k,"dpibdy");
+  double dpibdy = 0.0;
   float c_p = 1005.7;
 
   if (thetarhobar==-999 or u==-999 or dvdx*1.0E5==-999 or v==-999 or dvdy*1.0E5==-999 or w==-999 or dvdz*1.0E5==-999 or dpibdy*1000.0==-999){
@@ -318,7 +326,9 @@ double NetCDF_XYZ::calc_B(const int &i,const int &j,const int &k)
 
 double NetCDF_XYZ::calc_C(const int &i,const int &j,const int &k)
 {
-  double thetarhobar = this->getValue(i,j,k,"trb");
+  //JMD KLUDGE
+  // double thetarhobar = this->getValue(i,j,k,"trb");
+  double thetarhobar = 380.;
   double u = this->getValue(i,j,k,"u");
   double dwdx = this->getValue(i,j,k,"dwdx");
   double v = this->getValue(i,j,k,"v");	
@@ -337,8 +347,10 @@ double NetCDF_XYZ::calc_C(const int &i,const int &j,const int &k)
 
 double NetCDF_XYZ::calc_D(const int &i,const int &j,const int &k)
 {
-
-  double thetarhobar = this->getValue(i,j,k,"trb");
+ 
+  //JMD KLUDGE
+  //double thetarhobar = this->getValue(i,j,k,"trb");
+  double thetarhobar = 380.;
   double dAdz = this->getDerivative(i,j,k,"A",3)*1000.0;   // per km
   double dCdx = this->getDerivative(i,j,k,"C",1)*1000.0;   // per km
   float c_p = 1005.7;
@@ -354,7 +366,9 @@ double NetCDF_XYZ::calc_D(const int &i,const int &j,const int &k)
 
 double NetCDF_XYZ::calc_E(const int &i,const int &j,const int &k)
 {
-  double thetarhobar = this->getValue(i,j,k,"trb");
+  //JMD KLUDGE
+  //double thetarhobar = this->getValue(i,j,k,"trb");
+  double thetarhobar = 380.;
   double dBdz = this->getDerivative(i,j,k,"B",3)*1000.0;  // per km
   double dCdy = this->getDerivative(i,j,k,"C",2)*1000.0;  // per km
   float	c_p = 1005.7;

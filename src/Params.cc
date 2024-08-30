@@ -3021,219 +3021,219 @@
     tt++;
     
     // Parameter 'i_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'i_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'i_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'i_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'i_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'i_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'j_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // Parameter 'k_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
     
     // trailing entry has param_name set to NULL

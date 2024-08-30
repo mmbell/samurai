@@ -273,6 +273,7 @@ void CostFunction3D::initialize(HashMap* config,
   CTHTd      = new real[nState];
   stateU     = new real[nState];
   int64_t vector_size = mObs*(obMetaSize+varDim*derivDim);
+  std::cout << "CostFunction3D::initialize: " << mObs << " " << vector_size << std::endl;
   obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
@@ -551,8 +552,10 @@ void CostFunction3D::initState(const int iteration)
   }
 
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
+  std::cout << "Before call to obAdjustments" << std::endl;
   obAdjustments();
 
+  std::cout << "Before call to obAdjustments" << std::endl;
   // Calculate the H matrix operator
   calcHmatrix();
 
@@ -1662,6 +1665,7 @@ bool CostFunction3D::setupSplines()
 void CostFunction3D::obAdjustments() {
   GPTLstart("CostFunction3D::obAdjustments");
 
+  std::cout << "CostFunction3D::obAdjustments: mObs " << mObs << std::endl;
   //JMD variable-interleave
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
   for (int m = 0; m < mObs; m++) {
@@ -1746,6 +1750,7 @@ void CostFunction3D::obAdjustments() {
   for(int m=0;m<mObs;m++) {
      obsData[m]=obsVector[m*(obMetaSize+varDim*derivDim)+1];
   }
+  std::cout << "CostFunction3D::obAdjustments: end of subroutine " << std::endl;
   #pragma acc enter data copyin(obsData)
   GPTLstop("CostFunction3D::obAdjustments");
 }
