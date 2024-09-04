@@ -22,6 +22,9 @@ CostFunctionRTZ::CostFunctionRTZ(const Projection& proj, const int& numObs, cons
 CostFunctionRTZ::~CostFunctionRTZ()
 {
 }
+bool CostFunctionRTZ::outputAnalysis_thermo(const std::string& suffix, real* Astate)
+{
+}
 bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
 	std::string samuraiMode = "wind";

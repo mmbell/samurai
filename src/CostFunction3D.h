@@ -42,7 +42,7 @@ public:
 
 CostFunction3D(const Projection& proj, const int& numObs = 0, const int& stateSize = 0);
 	virtual ~CostFunction3D();
-    void initialize(HashMap* config, real* bgU, real* obs, ReferenceState* ref, uint64_t numVar, int numDerivatives, int numObMetaData);
+    void initialize(HashMap* config, real* bgU, real* obs, ReferenceState* ref, uint64_t numVar, int numDerivatives, int numObMetaData, int analysisMode);
 	void finalize();
 	void updateBG();
 	void initState(const int iteration);
@@ -72,6 +72,7 @@ protected:
 	void calcInnovation();
 	void calcHTranspose(const real* yhat, real* Astate);
 	virtual bool outputAnalysis(const std::string& suffix, real* Astate) = 0;
+	virtual bool outputAnalysis_thermo(const std::string& suffix, real* Astate) = 0;
 	void SBtransform(const real* Ustate, real* Bstate);
 	void SBtranspose(const real* Bstate, real* Ustate);
 	void SCtransform(const real* Astate, real* Cstate);
@@ -142,6 +143,7 @@ protected:
 	uint64_t varDim; // NCAR: promoted to 64-bit, since it should auto-promote calculations with it to 64-bit
 	int derivDim;
 	int obMetaSize;
+	int analysisMode;
 
 	real bgError[7];
 	int iBCL[7], iBCR[7], jBCL[7], jBCR[7], kBCL[7], kBCR[7];

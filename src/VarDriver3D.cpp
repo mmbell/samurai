@@ -103,14 +103,16 @@ bool VarDriver3D::validateDriver()
   }
 
    // Print the analysis_type from the TDRP config file
-  std::string analysis_type = configHash["analysis_type"];
-  std::cout << "Analysis type: " << analysis_type << std::endl;
-  if(analysis_type == "WIND") {
+  //std::string analysis_type = configHash["analysis_type"];
+
+  if(configHash["analysis_type"] == "WIND") {
       numVars = 7;          // Number of variables on which to perform the anslysis
       obMetaSize = 7;       // Size of the observation Meta data
-  } else if (analysis_type == "THERMO") {
+      analysisMode = VarDriver::WIND;
+  } else if (configHash["analysis_type"] == "THERMO") {
       numVars = 3;          // Number of variables on which to perform the anslysis
       obMetaSize = 7;       // Size of the observation Meta data
+      analysisMode = VarDriver::THERMO;
   } else {
       std::cout << "Currently unsupported Analysis type: " << configHash["analysis_type"] << ", Aborting..." << std::endl;
       return false;
@@ -236,7 +238,7 @@ bool VarDriver3D::gridDependentInit()
     }
   }
 
-  if (configHash["analysis_type"] == "THERMO") {
+  if (analysisMode == VarDriver::THERMO) {
      std::string windFile = configHash["wind_file"]; 
      std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
      std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
@@ -277,7 +279,7 @@ bool VarDriver3D::gridDependentInit()
   // Optionally load a set of background estimates and interpolate to the Gaussian mish
 
   std::cout << "gridDependentInit: point #4 " << std::endl;
-if (configHash["analysis_type"] == "WIND") {
+if (analysisMode == WIND) {
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
     START_TIMER(timeb);
@@ -307,11 +309,11 @@ if (configHash["analysis_type"] == "WIND") {
 }
   std::cout << "gridDependentInit: point #6 " << std::endl;
 
-  if (configHash["analysis_type"] == "WIND") {
+  if (analysisMode == WIND) {
      START_TIMER(timem);
      if ( ! loadMetObs() ) return false;
      PRINT_TIMER("loadMetObs", timem);
-  } else if (configHash["analysis_type"] == "THERMO") {
+  } else if (analysisMode == VarDriver::THERMO) {
     // Load the observations into a vector
     obs = new real[obVector.size()*(obMetaSize+numVars*numDerivatives)];
     for (int m=0; m < obVector.size(); m++) {
@@ -2244,10 +2246,7 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
           e = ncFile->calc_E(i,j,k);
 
 
-	  //JMD KLUDGE
-          //double thetarhobar = ncFile->getValue(i,j,k,"trb");
-	  double thetarhobar = 380.0;
-
+          double thetarhobar = ncFile->getValue(i,j,k,"trb");
 
           double u = ncFile->getValue(i,j,k,"u");
           double v = ncFile->getValue(i,j,k,"v");
@@ -2594,7 +2593,7 @@ bool VarDriver3D::adjustBackground()
   } else if (runMode == RTZ) {
     bgCost3D = new CostFunctionRTZ(projection, numbgObs, bStateSize);
   }
-  bgCost3D->initialize(&configHash, bgU, bgObs, refstate, numVars, numDerivatives, obMetaSize);
+  bgCost3D->initialize(&configHash, bgU, bgObs, refstate, numVars, numDerivatives, obMetaSize, analysisMode);
 
   // Set the iteration to zero --
   // this will prevent writing the background file until after the adjustment
@@ -3162,7 +3161,7 @@ bool VarDriver3D::initObCost3D()
     obCost3D = new CostFunctionRTZ(projection, obVector.size(), bStateSize);
   }
 
-  obCost3D->initialize(&configHash, bgU, obs, refstate, numVars, numDerivatives, obMetaSize);
+  obCost3D->initialize(&configHash, bgU, obs, refstate, numVars, numDerivatives, obMetaSize, analysisMode);
   return true;
 }
 

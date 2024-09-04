@@ -137,20 +137,22 @@ void CostFunction3D::finalize()
 
 void CostFunction3D::initialize(HashMap* config,
 				real* bgU, real* obs, ReferenceState* ref,
-        uint64_t numVar, int numDerivatives, int numObMetaData)
+        uint64_t numVar, int numDerivatives, int numObMetaData,int aMode)
 {
   // Initialize number of variables
-  varDim     = numVar;
-  derivDim   = numDerivatives;
-  obMetaSize = numObMetaData;
-  configHash = config;
+  varDim       = numVar;
+  analysisMode = aMode;
+  derivDim     = numDerivatives;
+  obMetaSize   = numObMetaData;
+  configHash   = config;
 
   /* Set the output path */
 	dataPath = (*configHash)["data_directory"];
   outputPath = (*configHash)["output_directory"];
 
   // Horizontal boundary conditions
-  if ((*configHash)["analysis_type"] == "WIND") {
+  //if ((*configHash)["analysis_type"] == "WIND") {
+  if (analysisMode == VarDriver::WIND) {
     std::cout << "Horizontal boundary condidtions for WIND" << std::endl;
     iBCL[0] = bcHash[(*configHash)["i_rhou_bcL"]];
     iBCR[0] = bcHash[(*configHash)["i_rhou_bcR"]];
@@ -196,7 +198,8 @@ void CostFunction3D::initialize(HashMap* config,
     kBCR[5] = bcHash[(*configHash)["k_rhoa_bcR"]];
     kBCL[6] = bcHash[(*configHash)["k_qr_bcL"]];
     kBCR[6] = bcHash[(*configHash)["k_qr_bcR"]];
-  } else if((*configHash)["analysis_type"] == "THERMO") {
+  //} else if((*configHash)["analysis_type"] == "THERMO") {
+  } else if(analysisMode == VarDriver::THERMO) {
     std::cout << "Horizontal boundary condidtions for THERMO" << std::endl;
     iBCL[0] = bcHash[(*configHash)["i_pip_bcL"]];
     iBCR[0] = bcHash[(*configHash)["i_pip_bcR"]];
@@ -563,7 +566,12 @@ void CostFunction3D::initState(const int iteration)
   calcInnovation();
 
   // Output the original background field
-  outputAnalysis("background", bgState);
+  if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("background", bgState);
+  } else if (analysisMode == VarDriver::THERMO) {
+     outputAnalysis_thermo("background", bgState);
+  }
+
 
   std::cout << "Beginning analysis..." << std::endl;
 
@@ -770,7 +778,12 @@ void CostFunction3D::updateBG()
     SAtransform(stateB, stateA);
     FFtransform(stateA, stateC);
   }
-  outputAnalysis("increment", stateC);
+  if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("increment", stateC);
+  } else if (analysisMode == VarDriver::THERMO)  {
+     outputAnalysis_thermo("increment", stateC);
+  }
+
 
   // In BG update we are directly summing C + A
   std::string cFilename = outputPath + "/samurai_Coefficients.out";
@@ -793,7 +806,12 @@ void CostFunction3D::updateBG()
     }
   }
 
-  outputAnalysis("analysis", bgState);
+    if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("analysis", bgState);
+  } else if (analysisMode == VarDriver::THERMO) {
+     outputAnalysis_thermo("analysis", bgState);
+  }
+
   GPTLstop("CostFunction3D::updateBG");
 }
 

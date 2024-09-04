@@ -28,6 +28,9 @@ void CostFunctionCOAMPS::setSigmas(float *sigmas, int size) {
   sDim = size;
 }
 
+bool CostFunctionCOAMPS::outputAnalysis_thermo(const std::string& suffix, real* Astate)
+{
+}
 bool CostFunctionCOAMPS::outputAnalysis(const std::string& suffix, real* Astate)
 {
 /* NCAR FIXME

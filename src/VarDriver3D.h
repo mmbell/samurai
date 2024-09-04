@@ -145,6 +145,7 @@ private:
 	int jdim;
 	int kdim;
 	int runMode;
+	int analysisMode;
 
 	// These 2 control sizes of data structure. Pulling them here
 	// since they were computed the same way in 2 different places.
