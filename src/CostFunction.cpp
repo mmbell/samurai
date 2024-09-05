@@ -105,6 +105,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
   real n_init_grad, n_grad, grad_dot;
   real gg;
   real rr, pAp, rr_m1, r_norm, r0_norm, rel_resid;
+  real r0_init_norm;
   real beta, alpha;
   real initstep;
 
@@ -150,6 +151,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
     if (its == 0) {
       f_init = f_val;
       n_init_grad = n_grad;
+      r0_init_norm = n_init_grad;
       //cout << "Newton: Initial Norm of the Gradient = " << n_init_grad << endl;
     }
 
@@ -189,12 +191,14 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
       r[j] = -g[j];          //initial residual r0 = b -Ax = -g 
       p[j] = r[j];    //inital direction po = r0 
     }
+    //JMD:  I am wondering if r0_norm should be the initial residual n_init_grad
+    // r0_norm = n_grad;
     r0_norm = n_grad;
 
     neg_curve = 0; //negative curvature check 
 
     if (verbose) { 
-       std::cout << "\t\tCG iteration " << std::setw(7) << std::right << "0" << ":  r_norm = " << std::fixed << std::setw(20) << std::setprecision(8) << std::right << r0_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << 1.0  << endl;
+       std::cout << "\t\tCG iteration " << std::setw(7) << std::right << "0" << ":  r_norm = " << std::fixed << std::setw(20) << std::setprecision(8) << std::right << r0_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << r0_norm/r0_init_norm  << endl;
     }
 
   }
@@ -252,7 +256,7 @@ void CostFunction::truncatedNewton(real* qstate, real* g, const real ftol)
 	   
       //CG cconvergence check
       r_norm = sqrt(rr);
-      rel_resid = r_norm/r0_norm;
+      rel_resid = r_norm/r0_init_norm;
 
       std::cout << std::right;
       if (verbose) cout << "\t\tCG iteration " << std::setw(7) << std::right << cg_its + 1 <<  ":  r_norm = " << std::setw(20) << std::fixed << std::setprecision(8) << std::right << r_norm << "     rel_resid = " << std::setw(14) << std::setprecision(10) << std::right << rel_resid << endl;
