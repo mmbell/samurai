@@ -240,19 +240,13 @@ bool VarDriver3D::gridDependentInit()
 
   if (analysisMode == VarDriver::THERMO) {
      std::string windFile = configHash["wind_file"]; 
-     std::cout << "THERMO before reading in of observation file " << configHash["analysis_type"] << ", Aborting..." << std::endl;
-     std::cout << "idim, jdim, kdim (" << idim << " " << jdim << " " << kdim << ")" << std::endl;
      this->loadObservations(windFile,idim,jdim,kdim);
-     //std::cout << "Exiting after call to VarDriver3D::loadObservations()" << std::endl;
-     //return false;
   }
 
   // These are used to process the obs (bkg and met)
  
-  std::cout << "gridDependentInit: point #1 " << std::endl;
   uStateSize = 8 * (idim + 1) * (jdim + 1) * (kdim + 1) * (numVars); // bgU size
   bStateSize = (idim + 2) * (jdim + 2) * (kdim + 2) * numVars;       // 2 mish points between nodes
-  std::cout << "gridDependentInit: point #2 " << std::endl;
 
   std::cout << "Physical (mish) State size = " << uStateSize << std::endl;
   std::cout << "Nodal State size = " << bStateSize << std::endl;
@@ -269,7 +263,6 @@ bool VarDriver3D::gridDependentInit()
 
   // Optionally load a set of background coefficients directly
 
-  std::cout << "gridDependentInit: point #3 " << std::endl;
   std::string loadBGcoeffs = configHash["load_bg_coefficients"];
 
   if (loadBGcoeffs == "true")
@@ -278,7 +271,6 @@ bool VarDriver3D::gridDependentInit()
 
   // Optionally load a set of background estimates and interpolate to the Gaussian mish
 
-  std::cout << "gridDependentInit: point #4 " << std::endl;
 if (analysisMode == WIND) {
   int numbgObs = 0;
   if(bkgdAdapter != NULL) {
@@ -293,7 +285,6 @@ if (analysisMode == WIND) {
     //NCAR - cleanup from dangling bkgAdapter pointer, as it's not needed elsewhere:
     delete bkgdAdapter;
   }
-  std::cout << "gridDependentInit: point #5 " << std::endl;
 
   // Optionally adjust the interpolated background to satisfy mass continuity
   // and match the supplied points exactly. In essence, do a SAMURAI analysis using
@@ -307,7 +298,6 @@ if (analysisMode == WIND) {
     }
   }
 }
-  std::cout << "gridDependentInit: point #6 " << std::endl;
 
   if (analysisMode == WIND) {
      START_TIMER(timem);
@@ -351,7 +341,6 @@ if (analysisMode == WIND) {
   PRINT_TIMER("initObCost3D", timec);
 
   PRINT_TIMER("gridDependentInit", timei);
-  std::cout << "gridDependentInit: point #7 " << std::endl;
   return true;
 }
 
