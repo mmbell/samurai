@@ -763,6 +763,36 @@ paramdef float {
 } qscat_rhou_error;
 
 paramdef float {
+  p_default = 0.01;
+  p_descr = "";
+  p_help = "";
+} thermo_A_error;
+
+paramdef float {
+  p_default = 0.01;
+  p_descr = "";
+  p_help = "";
+} thermo_B_error;
+
+paramdef float {
+  p_default = 0.01;
+  p_descr = "";
+  p_help = "";
+} thermo_C_error;
+
+paramdef float {
+  p_default = 0.01;
+  p_descr = "";
+  p_help = "";
+} thermo_D_error;
+
+paramdef float {
+  p_default = 0.01;
+  p_descr = "";
+  p_help = "";
+} thermo_E_error;
+
+paramdef float {
   p_default = 2.5;
   p_descr = "";
   p_help = "";
@@ -1083,6 +1113,24 @@ paramdef float {
   p_descr = "";
   p_help = "";
 } bg_tempk_error[];
+
+paramdef float {
+  p_default = {10.0, 10.0};
+  p_descr = "";
+  p_help = "";
+} bg_pip_error[];
+
+paramdef float {
+  p_default = {10.0, 10.0};
+  p_descr = "";
+  p_help = "";
+} bg_thetarhop_error[];
+
+paramdef float {
+  p_default = {10.0, 10.0};
+  p_descr = "";
+  p_help = "";
+} bg_ftheta_error[];
 
 paramdef float {
   p_default = {4.0, 2.0};
