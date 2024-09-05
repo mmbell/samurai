@@ -28,7 +28,7 @@ bool CostFunctionRTZ::outputAnalysis_thermo(const std::string& suffix, real* Ast
 bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 {
 	std::string samuraiMode = "wind";
-	cout << "Outputting " << suffix << "...\n";
+	std::cout << "Outputting " << suffix << "...\n";
 	// H --> to Mish for output
     std::string samuraiout = "samurai_RTZ_" + samuraiMode + "_" + suffix + ".out";
     ofstream samuraistream;
@@ -545,13 +545,13 @@ bool CostFunctionRTZ::outputAnalysis(const std::string& suffix, real* Astate)
 	if ((*configHash)["output_netcdf"] == "true") {
           std::string cdfFileName = outFileName + ".nc";
         if (!writeNetCDF(cdfFileName))
-            cout << "Error writing netcdf file " << cdfFileName << endl;
+            std::cout << "Error writing netcdf file " << cdfFileName << std::endl;
     }
 	// Write out to an asi file
     if ((*configHash)["output_asi"] == "true") {
         std::string asiFileName = outFileName + ".asi";
         if (!writeAsi(asiFileName))
-            cout << "Error writing asi file " << asiFileName << endl;
+            std::cout << "Error writing asi file " << asiFileName << std::endl;
     }
 	// Set the domain back
 	adjustInternalDomain(1);
