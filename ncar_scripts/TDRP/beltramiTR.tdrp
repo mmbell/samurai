@@ -989,6 +989,36 @@ mesonet_rhow_error = 1;
 
 mesonet_tempk_error = 1;
 
+///////////// thermo_A_error /////////////////////
+//
+// Type: float
+
+thermo_A_error = 0.01;
+
+///////////// thermo_B_error /////////////////////
+//
+// Type: float
+
+thermo_B_error = 0.01;
+
+///////////// thermo_C_error /////////////////////
+//
+// Type: float
+
+thermo_C_error = 0.01;
+
+///////////// thermo_D_error /////////////////////
+//
+// Type: float
+
+thermo_D_error = 0.01;
+
+///////////// thermo_E_error /////////////////////
+//
+// Type: float
+
+thermo_E_error = 0.01;
+
 //======================================================================
 //
 // XYP SPECIFIC SECTION.
@@ -1179,6 +1209,27 @@ bg_rhow_error = { 20, 2 };
 // 1D array - variable length.
 
 bg_tempk_error = { 20, 2 };
+
+///////////// bg_pip_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_pip_error = { 10, 10 };
+
+///////////// bg_thetarhop_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_thetarhop_error = { 10, 10 };
+
+///////////// bg_ftheta_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_ftheta_error = { 10, 10 };
 
 ///////////// i_filter_length /////////////////////////
 //

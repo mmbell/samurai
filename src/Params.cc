@@ -2110,6 +2110,66 @@
     tt->single_val.f = 2.5;
     tt++;
     
+    // Parameter 'thermo_A_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_A_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_A_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_B_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_B_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_B_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_C_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_C_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_C_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_D_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_D_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_D_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_E_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_E_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_E_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
     // Parameter 'qscat_rhov_error'
     // ctype is 'float'
     
@@ -2829,6 +2889,66 @@
         tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
       tt->array_vals[0].f = 3;
       tt->array_vals[1].f = 1;
+    tt++;
+    
+    // Parameter 'bg_pip_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_pip_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_pip_error - &_start_;
+    tt->array_n_offset = (char *) &bg_pip_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
+    tt++;
+    
+    // Parameter 'bg_thetarhop_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_thetarhop_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_thetarhop_error - &_start_;
+    tt->array_n_offset = (char *) &bg_thetarhop_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
+    tt++;
+    
+    // Parameter 'bg_ftheta_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_ftheta_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_ftheta_error - &_start_;
+    tt->array_n_offset = (char *) &bg_ftheta_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
     tt++;
     
     // Parameter 'i_filter_length'

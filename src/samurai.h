@@ -59,6 +59,9 @@ struct samurai_config {
   float bg_qv_error;
   float bg_rhoa_error;
   float bg_qr_error;
+  float bg_pip_error;
+  float bg_thetarhop_error;
+  float bg_ftheta_error;
   float mc_weight;
   float neumann_u_weight;
   float neumann_v_weight;
@@ -95,6 +98,11 @@ struct samurai_config {
   float sfmr_windspeed_error;
   float qscat_rhou_error;
   float qscat_rhov_error;
+  float thermo_A_error;
+  float thermo_B_error;
+  float thermo_C_error;
+  float thermo_D_error;
+  float thermo_E_error;
   float ascat_rhou_error;
   float ascat_rhov_error;
   float amv_rhou_error;

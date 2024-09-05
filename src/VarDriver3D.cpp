@@ -301,7 +301,7 @@ if (analysisMode == WIND) {
 
   std::string adjustBG = configHash["adjust_background"];
   if ((adjustBG == "true") and numbgObs) {
-    if ( ! adjustBackground()) {
+    if ( ! adjustBackground(analysisMode)) {
       std::cout << "Error adjusting background\n";
       return false;
     }
@@ -2266,43 +2266,33 @@ bool VarDriver3D::loadObservations(std::string filename,const int &metFile_idim,
 
           varOb.setOb(a*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,1);
-	  //JMD KLUDGE
-          //varOb.setError(std::stof(configHash["thermo_A_error"]));
-          varOb.setError(1.0);
+          varOb.setError(std::stof(configHash["thermo_A_error"]));
           obVector.push_back(varOb);
           varOb.setWeight(0,0,1);
 
           varOb.setOb(b*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,2);
-	  //JMD KLUDGE
-          // varOb.setError(std::stof(configHash["thermo_B_error"]));
-          varOb.setError(1.0);
+          varOb.setError(std::stof(configHash["thermo_B_error"]));
           obVector.push_back(varOb);
           varOb.setWeight(0,0,2);
 
           varOb.setOb(c*1E3*1E3);
           varOb.setWeight(-0.001*1E3,0,3);
           varOb.setWeight(g*1E3*1E3/(c_p*thetarhobar*thetarhobar),1,0);
-	  //JMD KLUDGE
-          // varOb.setError(std::stof(configHash["thermo_C_error"]));
-          varOb.setError(1.0);
+          varOb.setError(std::stof(configHash["thermo_C_error"]));
           obVector.push_back(varOb);
           varOb.setWeight(0,0,3);
           varOb.setWeight(0,1,0);
 
           varOb.setOb(d);
           varOb.setWeight(1,1,1);
-	  //JMD KLUDGE
-          // varOb.setError(std::stof(configHash["thermo_D_error"]));
-          varOb.setError(1.0);
+          varOb.setError(std::stof(configHash["thermo_D_error"]));
           obVector.push_back(varOb);
           varOb.setWeight(0,1,1);
 
           varOb.setOb(e);
           varOb.setWeight(1,1,2);
-	  //JMD KLUDGE
-          // varOb.setError(std::stof(configHash["thermo_E_error"]));
-          varOb.setError(1.0);
+          varOb.setError(std::stof(configHash["thermo_E_error"]));
           obVector.push_back(varOb);
           varOb.setWeight(0,1,2);
 
@@ -2443,7 +2433,7 @@ int VarDriver3D::loadBackgroundObs()
   return  bgIn.size() * obMetaSize / 11;
 }
 
-bool VarDriver3D::adjustBackground()
+bool VarDriver3D::adjustBackground(int analysisMode)
 {
   // Set the minimum filter length to the background resolution, not the analysis resolution
   // to avoid artifacts when running interpolating to small mesoscale grids
@@ -2557,14 +2547,20 @@ bool VarDriver3D::adjustBackground()
   }
 
   // Store and set the background errors
-  std::string bgError[7];
-  bgError[0] = configHash["bg_rhou_error"];
-  bgError[1] = configHash["bg_rhov_error"];
-  bgError[2] = configHash["bg_rhow_error"];
-  bgError[3] = configHash["bg_tempk_error"];
-  bgError[4] = configHash["bg_qv_error"];
-  bgError[5] = configHash["bg_rhoa_error"];
-  bgError[6] = configHash["bg_qr_error"];
+  std::string bgError[numVars];
+  if(analysisMode == WIND) {
+    bgError[0] = configHash["bg_rhou_error"];
+    bgError[1] = configHash["bg_rhov_error"];
+    bgError[2] = configHash["bg_rhow_error"];
+    bgError[3] = configHash["bg_tempk_error"];
+    bgError[4] = configHash["bg_qv_error"];
+    bgError[5] = configHash["bg_rhoa_error"];
+    bgError[6] = configHash["bg_qr_error"];
+  } else if (analysisMode == THERMO) {
+    bgError[0] = configHash["bg_pip_error"];
+    bgError[1] = configHash["bg_thetarhop_error"];
+    bgError[2] = configHash["bg_ftheta_error"];
+  }
 
   std::string bg_interpolation_error = "1.0";
   if (configHash.exists("bg_interpolation_error")) {
@@ -2573,14 +2569,20 @@ bool VarDriver3D::adjustBackground()
   } else {
     std::cout << "Using default background interpolation error of 1.0\n";
   }
-  configHash.update("bg_rhou_error", bg_interpolation_error);
-  configHash.update("bg_rhov_error", bg_interpolation_error);
-  configHash.update("bg_rhow_error", bg_interpolation_error);
-  configHash.update("bg_tempk_error", bg_interpolation_error);
-  configHash.update("bg_qv_error", bg_interpolation_error);
-  configHash.update("bg_rhoa_error", bg_interpolation_error);
-  configHash.update("bg_qr_error", bg_interpolation_error);
-  configHash.update("save_mish", "true");
+  if(analysisMode == WIND) {
+    configHash.update("bg_rhou_error", bg_interpolation_error);
+    configHash.update("bg_rhov_error", bg_interpolation_error);
+    configHash.update("bg_rhow_error", bg_interpolation_error);
+    configHash.update("bg_tempk_error", bg_interpolation_error);
+    configHash.update("bg_qv_error", bg_interpolation_error);
+    configHash.update("bg_rhoa_error", bg_interpolation_error);
+    configHash.update("bg_qr_error", bg_interpolation_error);
+  } else if (analysisMode == THERMO) {
+    configHash.update("bg_pip_error", bg_interpolation_error);
+    configHash.update("bg_thetarhop_error", bg_interpolation_error);
+    configHash.update("bg_ftheta_error", bg_interpolation_error);
+  }
+   configHash.update("save_mish", "true");
 
   // Adjust the background field to the spline mish
 
@@ -2612,14 +2614,20 @@ bool VarDriver3D::adjustBackground()
 
   // Reset the background errors
 
-  configHash.update("bg_rhou_error", bgError[0]);
-  configHash.update("bg_rhov_error", bgError[1]);
-  configHash.update("bg_rhow_error", bgError[2]);
-  configHash.update("bg_tempk_error", bgError[3]);
-  configHash.update("bg_qv_error", bgError[4]);
-  configHash.update("bg_rhoa_error", bgError[5]);
-  configHash.update("bg_qr_error", bgError[6]);
-  configHash.update("save_mish", "false");
+  if(analysisMode == WIND) {
+    configHash.update("bg_rhou_error", bgError[0]);
+    configHash.update("bg_rhov_error", bgError[1]);
+    configHash.update("bg_rhow_error", bgError[2]);
+    configHash.update("bg_tempk_error", bgError[3]);
+    configHash.update("bg_qv_error", bgError[4]);
+    configHash.update("bg_rhoa_error", bgError[5]);
+    configHash.update("bg_qr_error", bgError[6]);
+    configHash.update("save_mish", "false");
+  } else if (analysisMode == THERMO) {
+    configHash.update("bg_pip_error", bgError[0]);
+    configHash.update("bg_thetarhop_error", bgError[1]);
+    configHash.update("bg_ftheta_error", bgError[2]);
+  }
 
   // Convert the dBZ back to Z for further processing
 
@@ -2683,6 +2691,18 @@ void VarDriver3D::updateAnalysisParams(const int& iteration)
     key = "bg_qr_error_" + iter;
     val = configHash[key];
     configHash.update("bg_qr_error", val);
+
+    key = "bg_pip_error_" + iter;
+    val = configHash[key];
+    configHash.update("bg_pip_error", val);
+
+    key = "bg_thetarhop_error_" + iter;
+    val = configHash[key];
+    configHash.update("bg_thetarhop_error", val);
+
+    key = "bg_ftheta_error_" + iter;
+    val = configHash[key];
+    configHash.update("bg_ftheta_error", val);
 
     key = "mc_weight_" + iter;
     val = configHash[key];

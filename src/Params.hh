@@ -622,6 +622,16 @@ public:
 
   float qscat_rhou_error;
 
+  float thermo_A_error;
+
+  float thermo_B_error;
+
+  float thermo_C_error;
+
+  float thermo_D_error;
+
+  float thermo_E_error;
+
   float qscat_rhov_error;
 
   float ascat_rhou_error;
@@ -731,6 +741,15 @@ public:
   float *_bg_tempk_error;
   int bg_tempk_error_n;
 
+  float *_bg_pip_error;
+  int bg_pip_error_n;
+
+  float *_bg_thetarhop_error;
+  int bg_thetarhop_error_n;
+
+  float *_bg_ftheta_error;
+  int bg_ftheta_error_n;
+
   float *_i_filter_length;
   int i_filter_length_n;
 
@@ -801,7 +820,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[212];
+  mutable TDRPtable _table[220];
 
   const char *_className;
 

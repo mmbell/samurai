@@ -281,13 +281,20 @@ bool Args::paramsToHash(HashMap *configHash) {
   CONFIG_INSERT_FLOAT(output_pressure_increment);
   CONFIG_INSERT_FLOAT(qscat_rhou_error);
   CONFIG_INSERT_FLOAT(qscat_rhov_error);
+  CONFIG_INSERT_FLOAT(thermo_A_error);
+  CONFIG_INSERT_FLOAT(thermo_B_error);
+  CONFIG_INSERT_FLOAT(thermo_C_error);
+  CONFIG_INSERT_FLOAT(thermo_D_error);
+  CONFIG_INSERT_FLOAT(thermo_E_error);
   CONFIG_INSERT_FLOAT(radar_fallspeed_error);
   CONFIG_INSERT_FLOAT(radar_min_error);
   CONFIG_INSERT_FLOAT(radar_sw_error);
   CONFIG_INSERT_FLOAT(rain_dbz);
   CONFIG_INSERT_FLOAT(sfmr_windspeed_error);
 
+
   for (int iter = 1; iter <= params.num_iterations; iter++) {
+    // for WIND analysis	
     CONFIG_INSERT_FLOAT_ARRAY(bg_qr_error, iter);
     CONFIG_INSERT_FLOAT_ARRAY(bg_rhoa_error, iter);
     CONFIG_INSERT_FLOAT_ARRAY(bg_rhou_error, iter);
@@ -296,6 +303,11 @@ bool Args::paramsToHash(HashMap *configHash) {
     CONFIG_INSERT_FLOAT_ARRAY(bg_tempk_error, iter);
     CONFIG_INSERT_FLOAT_ARRAY(bg_qv_error, iter);
 
+    // for THERMO analysis 
+    CONFIG_INSERT_FLOAT_ARRAY(bg_pip_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_thetarhop_error, iter);
+    CONFIG_INSERT_FLOAT_ARRAY(bg_ftheta_error, iter);
+    
     CONFIG_INSERT_FLOAT_ARRAY(i_filter_length, iter);
     CONFIG_INSERT_FLOAT_ARRAY(j_filter_length, iter);
     CONFIG_INSERT_FLOAT_ARRAY(k_filter_length, iter);

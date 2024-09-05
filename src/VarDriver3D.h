@@ -117,7 +117,7 @@ private:
 			      float *th1,
 			      float *p1);
 	int loadBackgroundObs();
-	bool adjustBackground();
+	bool adjustBackground(int analysis_mode);
 	// bool adjustBackground(const int& bStateSize);
 	void updateAnalysisParams(const int& iteration);
 
