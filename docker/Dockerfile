@@ -35,4 +35,6 @@ RUN chmod +x /app/run_samurai.sh
 
 CMD [ "./run_samurai.sh" ]
 
+CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]
+
 #python /app/samurai/ncar_scripts/validation/beltrami/compare_log_file.py /app/samurai/ncar_scripts/validation/beltrami/ref_log /app/samurai/ncar_scripts/validation/beltrami/test_log  \n\
