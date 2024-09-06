@@ -1,0 +1,10 @@
+# Author: Cena Brown
+# Affiliation: National Center for Atmospheric Research, Computational and Information Systems Laboratory
+# Created: 9/6/2024
+FROM samurai:latest
+
+LABEL maintainer="Cena Brown <cmille73@ucar.edu>"
+
+WORKDIR /app/samurai/ncar_scripts/validation
+
+CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]

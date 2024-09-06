@@ -24,6 +24,7 @@ jobs:
         os: [ubuntu-latest]
         dockerfile:
           - Dockerfile
+          - Dockerfile.validation
           - Dockerfile.coverage 
     steps:
     - name: Checkout code from a pull request or push
@@ -37,8 +38,10 @@ jobs:
 
     - name: Running the Docker image for Beltrami case
       # only run this if we are not running codecoverage tests
-      if: matrix.dockerfile != 'Dockerfile.coverage'
+      if: matrix.dockerfile != 'Dockerfile'
       run: docker run --name test-container -t samurai
+
+      if: matrix.dockerfile == 'Dockerfile.validation'
 
     - name: Run coverage tests in container
       if: matrix.dockerfile == 'Dockerfile.coverage'
