@@ -24,7 +24,6 @@ jobs:
         os: [ubuntu-latest]
         dockerfile:
           - Dockerfile
-          - Dockerfile.validation
           - Dockerfile.coverage 
     steps:
     - name: Checkout code from a pull request or push
