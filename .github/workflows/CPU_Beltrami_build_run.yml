@@ -37,15 +37,12 @@ jobs:
 
     - name: Running the Docker image for Beltrami case
       # only run this if we are not running codecoverage tests
-      if: matrix.dockerfile != 'Dockerfile'
-      run: 
-        docker run --name test-container -t samurai
-        docker exec test-container python3 /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc
-
-
+      if: matrix.dockerfile != 'Dockerfile.coverage'
+      run: docker run --name test-container -t samurai
+        
     - name: Validation - check RMSE values of Beltrami output
-      if: matrix.dockerfile != 'Dockerfile'
-      run: docker run --name test-container -t samurai make test
+      if: matrix.dockerfile != 'Dockerfile.coverage'
+      run: docker exec test-container python3 /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc
 
     - name: Run coverage tests in container
       if: matrix.dockerfile == 'Dockerfile.coverage'
