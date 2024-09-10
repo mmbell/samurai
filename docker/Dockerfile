@@ -29,12 +29,13 @@ ENV PATH="/usr/local/bin:${PATH}"
 RUN echo "#!/bin/bash \n\
 cd /app/samurai/build/release/bin/ \n\
 ./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp > /app/samurai/ncar_scripts/validation/beltrami/test_log \n\
+python3 /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc \n\
 " > /app/run_samurai.sh
 WORKDIR /app/
 RUN chmod +x /app/run_samurai.sh
 
 CMD [ "./run_samurai.sh" ]
 
-CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]
+#CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]
 
 #python /app/samurai/ncar_scripts/validation/beltrami/compare_log_file.py /app/samurai/ncar_scripts/validation/beltrami/ref_log /app/samurai/ncar_scripts/validation/beltrami/test_log  \n\
