@@ -29,10 +29,11 @@ ENV PATH="/usr/local/bin:${PATH}"
 RUN echo "#!/bin/bash \n\
 cd /app/samurai/build/release/bin/ \n\
 ./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp > /app/samurai/ncar_scripts/validation/beltrami/test_log \n\
-python3 /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc \n\
+python3 /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc > /app/beltrami_output.log \n\
 " > /app/run_samurai.sh
 WORKDIR /app/
 RUN chmod +x /app/run_samurai.sh
+RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
 
 CMD [ "./run_samurai.sh" ]
 
