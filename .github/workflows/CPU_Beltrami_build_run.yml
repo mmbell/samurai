@@ -2,9 +2,6 @@ name: Samurai CPU CI with Beltrami
 
 on:
   workflow_dispatch:
-    branches: 
-      - "main"
-      - "thermo_asap"
   push:
     branches: 
       - "main"

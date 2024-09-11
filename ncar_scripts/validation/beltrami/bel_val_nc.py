@@ -55,6 +55,27 @@ def calculate_rmse(data1, data2, variable):
 
     return rmse
 
+def find_file_in_directory(file_name, directory_name):
+    """
+    Recursively lists the contents of every folder in the specified directory looking for the file name.
+    Prints all files found in each directory.
+
+    :param file_name: The name of the file to search for.
+    :param directory_name: The path to the directory to search in.
+    :return: A list of paths where the file is found.
+    """
+    matches = []
+
+    for root, dirs, files in os.walk(directory_name):
+        print(f"Checking directory: {root}")
+        for file in files:
+            print(f"Found file: {file}")
+            if file == file_name:
+                matches.append(os.path.join(root, file))
+
+    return matches
+
+
 
 
 if os.path.isfile(ref):
@@ -66,6 +87,18 @@ if os.path.isfile(run):
     print("Comparison file exists: ", run)
 else:
     print("Comparison file does not exist at: ", run)
+    file_name = os.path.basename(run)
+    directory_name = os.path.dirname("/app/samurai/")
+    print(f"Searching for {file_name} in {directory_name}")
+    matches = find_file_in_directory(file_name, directory_name)
+    if len(matches) > 0:
+        print(f"Found {file_name} in the following locations:")
+        for match in matches:
+            print(match)
+    else:
+        print(f"Could not find {file_name} in the specified directory.")
+        sys.exit(0)
+
 
 
 print("Extracting variables: ", variables)
