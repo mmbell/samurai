@@ -2,7 +2,6 @@
 FROM samurai:latest
 
 
-
 # Set the working directory
 WORKDIR /app
 

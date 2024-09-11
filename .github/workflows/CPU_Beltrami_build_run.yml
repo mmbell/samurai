@@ -29,11 +29,22 @@ jobs:
       run: rm -rf /opt/hostedtoolcache
 
     - name: Build Docker image
-      run: docker build -f docker/Dockerfile -t samurai .
+      run: docker build -f docker/Dockerfile -t samurai:latest .
 
     - name: Running the Docker image for Beltrami case
       run: |
-        docker run -d --name test-container samurai
+        docker run -d --name test-container samurai:latest
+
+    - name: Save Docker image to cache
+      uses: actions/cache@v3
+      with:
+        path: /tmp/samurai.tar
+        key: ${{ runner.os }}-samurai-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-samurai-
+  
+    - name: Save Docker image
+      run: docker save -o /tmp/samurai.tar samurai:latest
 
   validation:
     name: Validation
@@ -48,6 +59,17 @@ jobs:
 
     - name: Delete huge unnecessary tools folder
       run: rm -rf /opt/hostedtoolcache
+
+    - name: Restore Docker image from cache
+      uses: actions/cache@v3
+      with:
+        path: /tmp/samurai.tar
+        key: ${{ runner.os }}-samurai-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-samurai-
+
+    - name: Load Docker image
+      run: docker load -i /tmp/samurai.tar
 
     - name: Build and run validation container
       run: |
