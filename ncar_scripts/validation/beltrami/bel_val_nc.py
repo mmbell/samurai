@@ -99,8 +99,6 @@ else:
         print(f"Could not find {file_name} in the specified directory.")
         sys.exit(0)
 
-
-
 print("Extracting variables: ", variables)
 refVars = extract_variables(ref, variables)
 runVars = extract_variables(run, variables)
