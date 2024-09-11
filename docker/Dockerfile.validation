@@ -10,5 +10,14 @@ RUN apt-get update && apt-get install -y python3-numpy python3-xarray
 # Make the validation script executable
 RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
 
+RUN echo "#!/bin/bash \n\
+cd /app/samurai/ncar_scripts/validation/beltrami/ \n\
+python3 bel_val_nc.py samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc \n\
+" > /app/run_validation.sh
+
+RUN chmod +x /app/run_samurai.sh
+RUN chmod +x /app/run_validation.sh
+
 # Set the CMD to run the validation script
-CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]
+CMD [ "./run_validation.sh" ]
+#CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]

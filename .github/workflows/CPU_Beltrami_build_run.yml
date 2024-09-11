@@ -52,6 +52,10 @@ jobs:
     - name: Build Docker image for validation
       run: docker build -f docker/Dockerfile -t samurai:latest .
 
+
+    - name: Create test-container
+      run: docker run -d --name test-container samurai:latest
+
     - name: Build and run validation container
       run: |
         docker build -f docker/Dockerfile.validation -t samurai-validation .
