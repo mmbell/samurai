@@ -4,8 +4,11 @@ FROM samurai:latest
 # Set the working directory
 WORKDIR /app
 
+# Ensure pip is installed
+RUN apt-get update && apt-get install -y python3-pip
+
 # Install the Python packages required by the validation scripts
-RUN pip install --no-cache-dir numpy xarray
+RUN pip3 install --no-cache-dir numpy xarray
 
 # Make the validation script executable
 RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
