@@ -25,7 +25,7 @@ RUN sed -i 's|data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami"
 ENV PATH="/app/samurai/build:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 ENV PATH="/usr/local/bin:${PATH}"
-RUN pip install --no-cache-dir numpy
+#RUN pip install --no-cache-dir numpy
 
 RUN echo "#!/bin/bash \n\
 cd /app/samurai/build/release/bin/ \n\
