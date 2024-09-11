@@ -1,6 +1,5 @@
-# Use the base image built by Dockerfile
+# Use the base image built by main Dockerfile
 FROM samurai:latest
-
 
 # Set the working directory
 WORKDIR /app

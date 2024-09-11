@@ -35,17 +35,6 @@ jobs:
       run: |
         docker run -d --name test-container samurai:latest
 
-    - name: Save Docker image to cache
-      uses: actions/cache@v3
-      with:
-        path: /tmp/samurai.tar
-        key: ${{ runner.os }}-samurai-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-samurai-
-  
-    - name: Save Docker image
-      run: docker save -o /tmp/samurai.tar samurai:latest
-
   validation:
     name: Validation
     runs-on: ubuntu-latest
@@ -60,16 +49,8 @@ jobs:
     - name: Delete huge unnecessary tools folder
       run: rm -rf /opt/hostedtoolcache
 
-    - name: Restore Docker image from cache
-      uses: actions/cache@v3
-      with:
-        path: /tmp/samurai.tar
-        key: ${{ runner.os }}-samurai-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-samurai-
-
-    - name: Load Docker image
-      run: docker load -i /tmp/samurai.tar
+    - name: Build Docker image for validation
+      run: docker build -f docker/Dockerfile -t samurai:latest .
 
     - name: Build and run validation container
       run: |
