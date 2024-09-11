@@ -5,7 +5,7 @@ FROM samurai:latest
 WORKDIR /app
 
 # Ensure pip is installed
-RUN apt-get update && apt-get install -y python3-numpy python3-xarray
+RUN apt-get update && apt-get install -y python3-numpy python3-xarray python3-netcdf4 python3-scipy
 
 # Make the validation script executable
 RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py

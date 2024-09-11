@@ -19,15 +19,15 @@ if ref is None or run is None:
     raise ValueError('Please provide reference and run log files')
 
 # Pull specified variables from the files
-variables = ['u', 'v', 'w', 'Vorticity', 'Divergence']
+variables = ['U', 'V', 'W', 'VORT', 'DIV']
 
 # Define RMSE thresholds for each variable
 rmse_thresholds = {
-    'u': 0.03396,
-    'v': 0.03396,
-    'w': 0.03957,
-    'Vorticity': 7.132e-5,
-    'Divergence': 8.618e-5
+    'U': 0.03396,
+    'V': 0.03396,
+    'W': 0.03957,
+    'VORT': 7.132e-5,
+    'DIV': 8.618e-5
 }
 
 def extract_variables(file_name, variables):
