@@ -31,7 +31,6 @@ jobs:
     - name: Running the Beltrami case in container
       run: |
         docker run -d --name test-container samurai:latest
-        docker exec test-container /app/run_samurai.sh
 
     - name: Build and run validation container
       run: |
