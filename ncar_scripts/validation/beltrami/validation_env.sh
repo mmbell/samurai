@@ -5,6 +5,7 @@ cd /app
 
 # Copy necessary output for validation and delete rest to make space
 cp /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc /app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc
+rm -rf /opt/nvidia
 rm -rf /app/samurai/build
 rm -rf /app/samurai/src
 rm -rf /app/data
