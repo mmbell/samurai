@@ -29,22 +29,7 @@ jobs:
       run: docker build -f docker/Dockerfile -t samurai:latest .
 
     - name: Running the Docker image for Beltrami case
-      run: |
-        docker run -d --name test-container samurai:latest
-
-  validation:
-    name: Validation
-    runs-on: ubuntu-latest
-    needs: build-and-run
-    steps:
-    - name: Checkout code from a pull request or push
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
-    - name: Delete huge unnecessary tools folder
-      run: rm -rf /opt/hostedtoolcache
+      run: docker run -d --name test-container samurai:latest
 
     - name: Setup validation environment in container
       run: docker exec test-container /app/samurai/ncar_scripts/validation/beltrami/validation_env.sh
