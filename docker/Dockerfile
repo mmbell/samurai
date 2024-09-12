@@ -33,7 +33,8 @@ cd /app/samurai/build/release/bin/ \n\
 " > /app/run_samurai.sh
 WORKDIR /app/
 RUN chmod +x /app/run_samurai.sh
-RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
+#RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/validation_env.sh
+#RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
 
 CMD [ "./run_samurai.sh" ]
 
