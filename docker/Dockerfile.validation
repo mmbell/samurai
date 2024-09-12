@@ -25,4 +25,3 @@ RUN chmod +x /app/run_validation.sh
 
 # Set the CMD to run the validation script
 CMD [ "./run_validation.sh" ]
-#CMD ["python3", "/app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py", "/app/samurai/ncar_scripts/validation/beltrami/samurai_XYZ_wind_analysis_ref.nc", "/app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc"]
