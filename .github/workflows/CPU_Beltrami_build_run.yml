@@ -29,13 +29,13 @@ jobs:
       run: docker build -f docker/Dockerfile -t samurai:latest .
 
     - name: Running the Beltrami case in container
-      run: |
-        docker run -d --name test-container samurai:latest
+      run: docker run -d --name test-container samurai:latest
 
-    - name: Build and run validation container
-      run: |
-        docker build -f docker/Dockerfile.validation -t samurai-validation .
-        docker run --name test-container-validation --volumes-from test-container samurai-validation
+    - name: Setup validation environment
+      run: docker build -f docker/Dockerfile.validation -t samurai-validation .
+
+    - name: Run Beltrami validation test 
+      run: docker run --name test-container-validation --volumes-from test-container samurai-validation
 
   coverage:
     name: Coverage
