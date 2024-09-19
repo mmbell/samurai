@@ -11,7 +11,7 @@ on:
 jobs:
   docker-build-and-test:
     name: Build and Test - ${{ matrix.dockerfile }}
-    runs-on: ubuntu-latest
+    runs-on: ['self-hosted']
     strategy:
       fail-fast: false
       matrix:
