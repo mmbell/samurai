@@ -27,20 +27,22 @@ jobs:
       run: rm -rf /opt/hostedtoolcache
 
     - name: Build Docker image
-      run: docker build -f docker/${{ matrix.dockerfile }} -t samurai .
+      run: |
+           module load podman
+           podman build -f docker/${{ matrix.dockerfile }} -t samurai .
 
     - name: Running the Docker image for Beltrami case
       # only run this if we are not running codecoverage tests
       if: matrix.dockerfile != 'Dockerfile.coverage'
-      run: docker run --name test-container -t samurai
+      run: podman run --name test-container -t samurai
 
     - name: Run coverage tests in container
       if: matrix.dockerfile == 'Dockerfile.coverage'
-      run: docker run --name test-container -t samurai make coverage
+      run: podman run --name test-container -t samurai make coverage
 
     - name: Copy coverage from container
       if: matrix.dockerfile == 'Dockerfile.coverage'
-      run: docker cp test-container:/app/samurai/build/coverage.info .
+      run: podman cp test-container:/app/samurai/build/coverage.info .
 
     - name: Upload coverage reports to Codecov
       if: matrix.dockerfile == 'Dockerfile.coverage'
