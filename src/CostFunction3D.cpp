@@ -137,65 +137,91 @@ void CostFunction3D::finalize()
 
 void CostFunction3D::initialize(HashMap* config,
 				real* bgU, real* obs, ReferenceState* ref,
-        uint64_t numVar, int numDerivatives, int numObMetaData)
+        uint64_t numVar, int numDerivatives, int numObMetaData,int aMode)
 {
   // Initialize number of variables
-  varDim     = numVar;
-  derivDim   = numDerivatives;
-  obMetaSize = numObMetaData;
-  configHash = config;
+  varDim       = numVar;
+  analysisMode = aMode;
+  derivDim     = numDerivatives;
+  obMetaSize   = numObMetaData;
+  configHash   = config;
 
   /* Set the output path */
 	dataPath = (*configHash)["data_directory"];
   outputPath = (*configHash)["output_directory"];
 
-  //JMD TODO:  Need to plug in the Thermo boundary conditions here.  
-  //JMD        Currently this is only the wind boundary condidtions.
   // Horizontal boundary conditions
-  iBCL[0] = bcHash[(*configHash)["i_rhou_bcL"]];
-  iBCR[0] = bcHash[(*configHash)["i_rhou_bcR"]];
-  iBCL[1] = bcHash[(*configHash)["i_rhov_bcL"]];
-  iBCR[1] = bcHash[(*configHash)["i_rhov_bcR"]];
-  iBCL[2] = bcHash[(*configHash)["i_rhow_bcL"]];
-  iBCR[2] = bcHash[(*configHash)["i_rhow_bcR"]];
-  iBCL[3] = bcHash[(*configHash)["i_tempk_bcL"]];
-  iBCR[3] = bcHash[(*configHash)["i_tempk_bcR"]];
-  iBCL[4] = bcHash[(*configHash)["i_qv_bcL"]];
-  iBCR[4] = bcHash[(*configHash)["i_qv_bcR"]];
-  iBCL[5] = bcHash[(*configHash)["i_rhoa_bcL"]];
-  iBCR[5] = bcHash[(*configHash)["i_rhoa_bcR"]];
-  iBCL[6] = bcHash[(*configHash)["i_qr_bcL"]];
-  iBCR[6] = bcHash[(*configHash)["i_qr_bcR"]];
+  //if ((*configHash)["analysis_type"] == "WIND") {
+  if (analysisMode == VarDriver::WIND) {
+    std::cout << "Horizontal boundary condidtions for WIND" << std::endl;
+    iBCL[0] = bcHash[(*configHash)["i_rhou_bcL"]];
+    iBCR[0] = bcHash[(*configHash)["i_rhou_bcR"]];
+    iBCL[1] = bcHash[(*configHash)["i_rhov_bcL"]];
+    iBCR[1] = bcHash[(*configHash)["i_rhov_bcR"]];
+    iBCL[2] = bcHash[(*configHash)["i_rhow_bcL"]];
+    iBCR[2] = bcHash[(*configHash)["i_rhow_bcR"]];
+    iBCL[3] = bcHash[(*configHash)["i_tempk_bcL"]];
+    iBCR[3] = bcHash[(*configHash)["i_tempk_bcR"]];
+    iBCL[4] = bcHash[(*configHash)["i_qv_bcL"]];
+    iBCR[4] = bcHash[(*configHash)["i_qv_bcR"]];
+    iBCL[5] = bcHash[(*configHash)["i_rhoa_bcL"]];
+    iBCR[5] = bcHash[(*configHash)["i_rhoa_bcR"]];
+    iBCL[6] = bcHash[(*configHash)["i_qr_bcL"]];
+    iBCR[6] = bcHash[(*configHash)["i_qr_bcR"]];
 
-  jBCL[0] = bcHash[(*configHash)["j_rhou_bcL"]];
-  jBCR[0] = bcHash[(*configHash)["j_rhou_bcR"]];
-  jBCL[1] = bcHash[(*configHash)["j_rhov_bcL"]];
-  jBCR[1] = bcHash[(*configHash)["j_rhov_bcR"]];
-  jBCL[2] = bcHash[(*configHash)["j_rhow_bcL"]];
-  jBCR[2] = bcHash[(*configHash)["j_rhow_bcR"]];
-  jBCL[3] = bcHash[(*configHash)["j_tempk_bcL"]];
-  jBCR[3] = bcHash[(*configHash)["j_tempk_bcR"]];
-  jBCL[4] = bcHash[(*configHash)["j_qv_bcL"]];
-  jBCR[4] = bcHash[(*configHash)["j_qv_bcR"]];
-  jBCL[5] = bcHash[(*configHash)["j_rhoa_bcL"]];
-  jBCR[5] = bcHash[(*configHash)["j_rhoa_bcR"]];
-  jBCL[6] = bcHash[(*configHash)["j_qr_bcL"]];
-  jBCR[6] = bcHash[(*configHash)["j_qr_bcR"]];
+    jBCL[0] = bcHash[(*configHash)["j_rhou_bcL"]];
+    jBCR[0] = bcHash[(*configHash)["j_rhou_bcR"]];
+    jBCL[1] = bcHash[(*configHash)["j_rhov_bcL"]];
+    jBCR[1] = bcHash[(*configHash)["j_rhov_bcR"]];
+    jBCL[2] = bcHash[(*configHash)["j_rhow_bcL"]];
+    jBCR[2] = bcHash[(*configHash)["j_rhow_bcR"]];
+    jBCL[3] = bcHash[(*configHash)["j_tempk_bcL"]];
+    jBCR[3] = bcHash[(*configHash)["j_tempk_bcR"]];
+    jBCL[4] = bcHash[(*configHash)["j_qv_bcL"]];
+    jBCR[4] = bcHash[(*configHash)["j_qv_bcR"]];
+    jBCL[5] = bcHash[(*configHash)["j_rhoa_bcL"]];
+    jBCR[5] = bcHash[(*configHash)["j_rhoa_bcR"]];
+    jBCL[6] = bcHash[(*configHash)["j_qr_bcL"]];
+    jBCR[6] = bcHash[(*configHash)["j_qr_bcR"]];
 
-  kBCL[0] = bcHash[(*configHash)["k_rhou_bcL"]];
-  kBCR[0] = bcHash[(*configHash)["k_rhou_bcR"]];
-  kBCL[1] = bcHash[(*configHash)["k_rhov_bcL"]];
-  kBCR[1] = bcHash[(*configHash)["k_rhov_bcR"]];
-  kBCL[2] = bcHash[(*configHash)["k_rhow_bcL"]];
-  kBCR[2] = bcHash[(*configHash)["k_rhow_bcR"]];
-  kBCL[3] = bcHash[(*configHash)["k_tempk_bcL"]];
-  kBCR[3] = bcHash[(*configHash)["k_tempk_bcR"]];
-  kBCL[4] = bcHash[(*configHash)["k_qv_bcL"]];
-  kBCR[4] = bcHash[(*configHash)["k_qv_bcR"]];
-  kBCL[5] = bcHash[(*configHash)["k_rhoa_bcL"]];
-  kBCR[5] = bcHash[(*configHash)["k_rhoa_bcR"]];
-  kBCL[6] = bcHash[(*configHash)["k_qr_bcL"]];
-  kBCR[6] = bcHash[(*configHash)["k_qr_bcR"]];
+    kBCL[0] = bcHash[(*configHash)["k_rhou_bcL"]];
+    kBCR[0] = bcHash[(*configHash)["k_rhou_bcR"]];
+    kBCL[1] = bcHash[(*configHash)["k_rhov_bcL"]];
+    kBCR[1] = bcHash[(*configHash)["k_rhov_bcR"]];
+    kBCL[2] = bcHash[(*configHash)["k_rhow_bcL"]];
+    kBCR[2] = bcHash[(*configHash)["k_rhow_bcR"]];
+    kBCL[3] = bcHash[(*configHash)["k_tempk_bcL"]];
+    kBCR[3] = bcHash[(*configHash)["k_tempk_bcR"]];
+    kBCL[4] = bcHash[(*configHash)["k_qv_bcL"]];
+    kBCR[4] = bcHash[(*configHash)["k_qv_bcR"]];
+    kBCL[5] = bcHash[(*configHash)["k_rhoa_bcL"]];
+    kBCR[5] = bcHash[(*configHash)["k_rhoa_bcR"]];
+    kBCL[6] = bcHash[(*configHash)["k_qr_bcL"]];
+    kBCR[6] = bcHash[(*configHash)["k_qr_bcR"]];
+  //} else if((*configHash)["analysis_type"] == "THERMO") {
+  } else if(analysisMode == VarDriver::THERMO) {
+    std::cout << "Horizontal boundary condidtions for THERMO" << std::endl;
+    iBCL[0] = bcHash[(*configHash)["i_pip_bcL"]];
+    iBCR[0] = bcHash[(*configHash)["i_pip_bcR"]];
+    iBCL[1] = bcHash[(*configHash)["i_thetarhop_bcL"]];
+    iBCR[1] = bcHash[(*configHash)["i_thetarhop_bcR"]];
+    iBCL[2] = bcHash[(*configHash)["i_ftheta_bcL"]];
+    iBCR[2] = bcHash[(*configHash)["i_ftheta_bcR"]];
+
+    jBCL[0] = bcHash[(*configHash)["j_pip_bcL"]];
+    jBCR[0] = bcHash[(*configHash)["j_pip_bcR"]];
+    jBCL[1] = bcHash[(*configHash)["j_thetarhop_bcL"]];
+    jBCR[1] = bcHash[(*configHash)["j_thetarhop_bcR"]];
+    jBCL[2] = bcHash[(*configHash)["j_ftheta_bcL"]];
+    jBCR[2] = bcHash[(*configHash)["j_ftheta_bcR"]];
+
+    kBCL[0] = bcHash[(*configHash)["k_pip_bcL"]];
+    kBCR[0] = bcHash[(*configHash)["k_pip_bcR"]];
+    kBCL[1] = bcHash[(*configHash)["k_thetarhop_bcL"]];
+    kBCR[1] = bcHash[(*configHash)["k_thetarhop_bcR"]];
+    kBCL[2] = bcHash[(*configHash)["k_ftheta_bcL"]];
+    kBCR[2] = bcHash[(*configHash)["k_ftheta_bcR"]];
+  }
 
   // Define the Reference state
   refstate = ref;
@@ -250,6 +276,7 @@ void CostFunction3D::initialize(HashMap* config,
   CTHTd      = new real[nState];
   stateU     = new real[nState];
   int64_t vector_size = mObs*(obMetaSize+varDim*derivDim);
+  std::cout << "CostFunction3D::initialize: " << mObs << " " << vector_size << std::endl;
   obsVector  = new real[vector_size];
   obsData    = new real[mObs];
   HCq        = new real[mObs+nodes];
@@ -278,11 +305,11 @@ void CostFunction3D::initialize(HashMap* config,
   kRankMax=0;
   for (int var = 0; var < varDim; ++var) {
     iRank[var] = iDim - rankHash[iBCL[var]] - rankHash[iBCR[var]];
-    if (iBCL[var] == PERIODIC) {cout << "Periodic in I dimension\n"; iRank[var]--;}
+    if (iBCL[var] == PERIODIC) {std::cout << "Periodic in I dimension" << std::endl; iRank[var]--;}
     jRank[var] = jDim - rankHash[jBCL[var]] - rankHash[jBCR[var]];
-    if (jBCL[var] == PERIODIC) {cout << "Periodic in J dimension\n"; jRank[var]--;}
+    if (jBCL[var] == PERIODIC) {std::cout << "Periodic in J dimension" << std::endl; jRank[var]--;}
     kRank[var] = kDim - rankHash[kBCL[var]] - rankHash[kBCR[var]];
-    if (kBCL[var] == PERIODIC) {cout << "Periodic in K dimension\n"; kRank[var]--;}
+    if (kBCL[var] == PERIODIC) {std::cout << "Periodic in K dimension" << std::endl; kRank[var]--;}
     // Need to verify that Rank is sufficient (>2?)
     iL[var] = new real[iRank[var]*iLDim];
     jL[var] = new real[jRank[var]*jLDim];
@@ -293,7 +320,7 @@ void CostFunction3D::initialize(HashMap* config,
     kRankMax = max(kRank[var],kRankMax);
   }
 
-  cout << "kRankMax: " << kRankMax << "\n";
+  std::cout << "kRankMax: " << kRankMax << std::endl;
 
   /* Precalculate the basis functions for lookup table option
      basisappx = configHash->value("spline_approximation").toInt();
@@ -327,7 +354,7 @@ void CostFunction3D::initState(const int iteration)
 {
   GPTLstart("CostFunction3D::initState");
   // Clear the state vector
-  cout << "Initializing state vector..." << endl;
+  std::cout << "Initializing state vector..." << std::endl;
   for (int n = 0; n < nState; n++) {
     currState[n] = 0.0;
     currGradient[n] = 0.0;
@@ -355,7 +382,9 @@ void CostFunction3D::initState(const int iteration)
     jMaxWavenumber[i] = -1.0;
     kMaxWavenumber[i] = -1.0;
   }
-	if (configHash->exists("i_max_wavenumber")) {
+  // JMD Not quite sure what is going on here.  In the TDRP files only 
+  // JMD three values exist yet this appears to be working for 7 variables
+       if (configHash->exists("i_max_wavenumber")) {
     // Set all the variables to the same filter
     for (int i = 0; i < varDim; i++) {
       iMaxWavenumber[i] = std::stof((*configHash)["i_max_wavenumber"]);
@@ -371,7 +400,7 @@ void CostFunction3D::initState(const int iteration)
     iMaxWavenumber[6] = std::stof((*configHash)["i_max_wavenumber_qr"]);
   }
 
-	if (configHash->exists("j_max_wavenumber")) {
+  if (configHash->exists("j_max_wavenumber")) {
     for (int i = 0; i < varDim; i++) {
       jMaxWavenumber[i] = std::stof((*configHash)["j_max_wavenumber"]);
     }
@@ -385,7 +414,7 @@ void CostFunction3D::initState(const int iteration)
     jMaxWavenumber[6] = std::stof((*configHash)["j_max_wavenumber_qr"]);
   }
 
-	if (configHash->exists("k_max_wavenumber")) {
+  if (configHash->exists("k_max_wavenumber")) {
     for (int i = 0; i < varDim; i++) {
       kMaxWavenumber[i] = std::stof((*configHash)["k_max_wavenumber"]);
     }
@@ -403,12 +432,12 @@ void CostFunction3D::initState(const int iteration)
   UseFFT=false;
   for (int var = 0; var < varDim; var++) {
      if ((kBCL[var] == PERIODIC) and (kMaxWavenumber[var] >= 0)) UseFFT=true;
-     // cout << "jBCL[var]: " << jBCL[var] << " jMaxWavenumber[var]: " << jMaxWavenumber[var] << "\n";
+     // std::cout << "jBCL[var]: " << jBCL[var] << " jMaxWavenumber[var]: " << jMaxWavenumber[var] << std::endl;
      if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) UseFFT=true;
      if ((iBCL[var] == PERIODIC) and (iMaxWavenumber[var] >= 0)) UseFFT=true;
   }
   if(UseFFT)
-    cout << "PERIODIC boundaries and maximum wavenumber enforcement will enable FFtransform() \n";
+    std::cout << "PERIODIC boundaries and maximum wavenumber enforcement will enable FFtransform()" << std::endl;
 
 
   // Set up the spline matrices
@@ -424,11 +453,11 @@ void CostFunction3D::initState(const int iteration)
 
   // Mass continuity weight
   mcWeight = std::stof((*configHash)["mc_weight"]);
-  cout << "Mass continuity weight set to " << mcWeight << endl;
+  std::cout << "Mass continuity weight set to " << mcWeight << std::endl;
 
   if (iteration == 1) {
 
-    cout << "Initializing background..." << endl;
+    std::cout << "Initializing background..." << std::endl;
     // Set up the background state
     for (int n = 0; n < nState; n++) {
       bgState[n] = 0.0;
@@ -450,9 +479,9 @@ void CostFunction3D::initState(const int iteration)
 	// variance.writeDebugNc("debug.out/std_errors.nc", true, mishError);
 	SBtransform(mishError, SBError);
 	// variance.writeDebugNc("debug.out/std_errors_SB.nc", false, SBError);
-  #pragma acc data copyin(SBError[0:nState]) copyout(meshError[0:nState])
-  {
-		SAtransform(SBError, meshError);
+        #pragma acc data copyin(SBError[0:nState]) copyout(meshError[0:nState])
+        {
+	   SAtransform(SBError, meshError);
 	}
 	variance.setMeshData(meshError);
 	delete[] SBError;
@@ -482,7 +511,7 @@ void CostFunction3D::initState(const int iteration)
     // FF transform to match background and increment
     #pragma acc data copyin(stateA[0:nState]) copyout(bgState[0:nState])
     {
-    FFtransform(stateA, bgState);
+      FFtransform(stateA, bgState);
     }
     // variance.writeDebugNc("debug.out/FF.nc", false, bgState);			// mesh sized DEBUG
 
@@ -493,12 +522,10 @@ void CostFunction3D::initState(const int iteration)
     // Init node variance
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-// 	  			int bIndex = varDim * iDim * jDim*kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	  			bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
-				}
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  bgStdDev[bIndex] = variance.meshValueAt(var, iIndex, jIndex, kIndex);
+	}
       }
     }
   }
@@ -509,30 +536,29 @@ void CostFunction3D::initState(const int iteration)
     real varScale = 0;
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-// 	  			int bIndex = varDim * iDim * jDim * kIndex + varDim * iDim * jIndex + varDim * iIndex + var;
-	  			int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-//                 int64_t *bIndex = (int64_t *)malloc(sizeof(int64_t));
-// 	  			*bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	  			varScale += bgState[bIndex] * bgState[bIndex];
-				}
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  int64_t bIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  varScale += bgState[bIndex] * bgState[bIndex];
+	}
       }
     }
     varScale = sqrt(varScale / (iDim * jDim * kDim));
 
     if (varScale) {
       real errPct = 100 * bgError[var] / varScale;
-      cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
-	   << " ( " << errPct << " %)" << endl;
+      std::cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
+	   << " ( " << errPct << " %)" << std::endl;
     } else {
-      cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
-	   << " ( Infinite! %)" << endl;
+      std::cout << "Variable " << var << " RMS = " << varScale << "\t BG Error = " << bgError[var]
+	   << " ( Infinite! %)" << std::endl;
     }
   }
 
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
+  std::cout << "Before call to obAdjustments" << std::endl;
   obAdjustments();
 
+  std::cout << "Before call to obAdjustments" << std::endl;
   // Calculate the H matrix operator
   calcHmatrix();
 
@@ -540,24 +566,28 @@ void CostFunction3D::initState(const int iteration)
   calcInnovation();
 
   // Output the original background field
-  outputAnalysis("background", bgState);
+  if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("background", bgState);
+  } else if (analysisMode == VarDriver::THERMO) {
+     outputAnalysis_thermo("background", bgState);
+  }
 
-  cout << "Beginning analysis...\n";
+
+  std::cout << "Beginning analysis..." << std::endl;
 
   // HTd
   calcHTranspose(innovation, stateC);
 
-#pragma acc data create(stateB[0:nState])
-{
-  // cout << "Before FFtransform ...\n";
-  FFtransform(stateC, stateA);
-  // cout << "Before SAtransform ...\n";
-  SAtransform(stateA, stateB);
-  // cout << "Before SCtransform ...\n";
-  SCtransform(stateB, CTHTd);
-}
+  #pragma acc data create(stateB[0:nState])
+  {
+    // std::cout << "Before FFtransform ..." << std::endl;
+    FFtransform(stateC, stateA);
+    // std::cout << "Before SAtransform ..." << std::endl;
+    SAtransform(stateA, stateB);
+    // std::cout << "Before SCtransform ..." << std::endl;
+    SCtransform(stateB, CTHTd);
+  }
   #pragma acc enter data copyin(CTHTd)
-
   //Htransform(stateB);
   GPTLstop("CostFunction3D::initState");
 }
@@ -572,34 +602,34 @@ real CostFunction3D::funcValue(real* state)
   obIP = 0.;
 
   GPTLstart("CostFunction3D::funcValue");
-	#pragma acc data copyin(state[0:nState])
-	{
+  #pragma acc data copyin(state[0:nState])
+  {
 
-  	GPTLstart("CostFunction3D::funcValue:updateHCq");
-  	updateHCq(state,HCq);
-  	GPTLstop("CostFunction3D::funcValue:updateHCq");
+    GPTLstart("CostFunction3D::funcValue:updateHCq");
+    updateHCq(state,HCq);
+    GPTLstop("CostFunction3D::funcValue:updateHCq");
 
-  	GPTLstart("CostFunction3D::funcValue:other");
-  	// Compute inner product of state vector
-  	#pragma omp parallel for reduction(+:qIP)
-  	#pragma acc parallel loop reduction(+:qIP)
-  	for (int n = 0; n < nState; n++) {
-    	qIP += state[n]*state[n];
-  	}
+    GPTLstart("CostFunction3D::funcValue:other");
+    // Compute inner product of state vector
+    #pragma omp parallel for reduction(+:qIP)
+    #pragma acc parallel loop reduction(+:qIP)
+    for (int n = 0; n < nState; n++) {
+      qIP += state[n]*state[n];
+    }
 
-  	// Subtract d from HCq to yield mObs length vector and compute inner product
-  	#pragma omp parallel for reduction(+:obIP)
-  	#pragma acc parallel loop reduction(+:obIP) private(obIndex,m)
-  	for (m = 0; m < mObs; m++) {
-    	//obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-    	obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
-  	}
-  	GPTLstop("CostFunction3D::funcValue:other");
-	}
+    // Subtract d from HCq to yield mObs length vector and compute inner product
+    #pragma omp parallel for reduction(+:obIP)
+    #pragma acc parallel loop reduction(+:obIP) private(obIndex,m)
+    for (m = 0; m < mObs; m++) {
+      //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+      obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
+    }
+    GPTLstop("CostFunction3D::funcValue:other");
+  }
 
- 	J = 0.5*(qIP + obIP);
- 	GPTLstop("CostFunction3D::funcValue");
- 	return J;
+  J = 0.5*(qIP + obIP);
+  GPTLstop("CostFunction3D::funcValue");
+  return J;
 }
 
 void CostFunction3D::funcGradient(real* state, real* gradient)
@@ -607,39 +637,37 @@ void CostFunction3D::funcGradient(real* state, real* gradient)
   int n;
 
   GPTLstart("CostFunction3D::funcGradient");
-	#pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
-	{
+  #pragma acc data copyin(state[0:nState]) copyout(gradient[0:nState])
+  {
+    GPTLstart("CostFunction3D::funcGradient:updateHCq");
+    updateHCq(state,HCq);
+    GPTLstop("CostFunction3D::funcGradient:updateHCq");
 
-  	GPTLstart("CostFunction3D::funcGradient:updateHCq");
-  	updateHCq(state,HCq);
-  	GPTLstop("CostFunction3D::funcGradient:updateHCq");
+    GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
+    // HTHCq
+    calcHTranspose(HCq, stateC);
+    GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
 
-  	GPTLstart("CostFunction3D::funcGradient:calcHTranspose");
-  	// HTHCq
-  	calcHTranspose(HCq, stateC);
-  	GPTLstop("CostFunction3D::funcGradient:calcHTranspose");
+    GPTLstart("CostFunction3D::funcGradient:FFtransform");
+    FFtransform(stateC, stateA);
+    GPTLstop("CostFunction3D::funcGradient:FFtransform");
 
-  	GPTLstart("CostFunction3D::funcGradient:FFtransform");
-  	FFtransform(stateC, stateA);
-  	GPTLstop("CostFunction3D::funcGradient:FFtransform");
+    GPTLstart("CostFunction3D::funcGradient:SAtransform");
+    SAtransform(stateA, stateB);
+    GPTLstop("CostFunction3D::funcGradient:SAtransform");
+    GPTLstart("CostFunction3D::funcGradient:SCtransform");
+    SCtransform(stateB, stateC);
+    GPTLstop("CostFunction3D::funcGradient:SCtransform");
 
-  	GPTLstart("CostFunction3D::funcGradient:SAtransform");
-  	SAtransform(stateA, stateB);
-  	GPTLstop("CostFunction3D::funcGradient:SAtransform");
-  	GPTLstart("CostFunction3D::funcGradient:SCtransform");
-  	SCtransform(stateB, stateC);
-  	GPTLstop("CostFunction3D::funcGradient:SCtransform");
-
-  	GPTLstart("CostFunction3D::funcGradient:gradient");
-  	#pragma acc parallel loop gang vector vector_length(32) private(n)
-  	for (n = 0; n < nState; n++) {
+    GPTLstart("CostFunction3D::funcGradient:gradient");
+    #pragma acc parallel loop gang vector vector_length(32) private(n)
+      for (n = 0; n < nState; n++) {
     	gradient[n] = state[n] + stateC[n] - CTHTd[n];
-  	}
-  	GPTLstop("CostFunction3D::funcGradient:gradient");
+      }
+     GPTLstop("CostFunction3D::funcGradient:gradient");
 
-	}
-
-  GPTLstop("CostFunction3D::funcGradient");
+   }
+   GPTLstop("CostFunction3D::funcGradient");
 }
 
 
@@ -655,46 +683,45 @@ real CostFunction3D::funcValueAndGradient(real* state, real *gradient)
 
   #pragma acc data present(state[0:nState],gradient[0:nState])
   {
-  qIP = 0.;
-  obIP = 0.;
-  //  cout << "CostFunction3D::funcValueAndGradient\n";
+    qIP = 0.;
+    obIP = 0.;
 
-  	//update global HCq variable
-  	updateHCq(state,HCq);
+    //update global HCq variable
+    updateHCq(state,HCq);
 
-  	//Func Value
-  	// Compute inner product of state vector
-  	//#pragma omp parallel for reduction(+:qIP)
-  	#pragma acc parallel loop reduction(+:qIP)
-  	for (n = 0; n < nState; n++) {
-    	qIP += state[n]*state[n];
-  	}
-  	// Subtract d from HCq to yield mObs length vector and compute inner product
-  	//#pragma omp parallel for reduction(+:obIP)
-  	#pragma acc parallel loop reduction(+:obIP) private(m)
-  	for (m = 0; m < mObs; m++) {
-			//int obIndex = m*(obMetaSize+varDim*derivDim) + 1;
-    	//obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
-    	obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
-  	}
-  	//function value J
-  	J = 0.5*(qIP + obIP);
+    //Func Value
+    // Compute inner product of state vector
+    //#pragma omp parallel for reduction(+:qIP)
+    #pragma acc parallel loop reduction(+:qIP)
+    for (n = 0; n < nState; n++) {
+      qIP += state[n]*state[n];
+    }
+    // Subtract d from HCq to yield mObs length vector and compute inner product
+    //#pragma omp parallel for reduction(+:obIP)
+    #pragma acc parallel loop reduction(+:obIP) private(m)
+    for (m = 0; m < mObs; m++) {
+      //int obIndex = m*(obMetaSize+varDim*derivDim) + 1;
+      //obIP += (HCq[m]-innovation[m])*(obsVector[obIndex])*(HCq[m]-innovation[m]);
+      obIP += (HCq[m]-innovation[m])*(obsData[m])*(HCq[m]-innovation[m]);
+    }
+    //function value J
+    J = 0.5*(qIP + obIP);
 
-  	//Now Gradient (also uses HCq)
-	calcHTranspose(HCq, stateC);
-  	FFtransform(stateC, stateA);
-  	SAtransform(stateA, stateB);
-  	SCtransform(stateB, stateC);
-  	//calc gradient
-  	#pragma acc parallel loop gang vector vector_length(32)
-  	for (int n = 0; n < nState; n++) {
-    	gradient[n] = state[n] + stateC[n] - CTHTd[n];
-  	}
+    //Now Gradient (also uses HCq)
+    calcHTranspose(HCq, stateC);
+    FFtransform(stateC, stateA);
+    SAtransform(stateA, stateB);
+    SCtransform(stateB, stateC);
+    //calc gradient
+    #pragma acc parallel loop gang vector vector_length(32)
+    for (int n = 0; n < nState; n++) {
+      gradient[n] = state[n] + stateC[n] - CTHTd[n];
+    }
 
-  	GPTLstop("CostFunction3D::funcValueAndGradient");
-	//cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << "\n";
+     GPTLstop("CostFunction3D::funcValueAndGradient");
+     //std::cout << "CostFunction3D::funcValueAndGradient: qIP, obIP " << qIP << "  " << obIP << std::endl;
    }
-	return J;
+   return J;
 
 }
 
@@ -705,7 +732,7 @@ void CostFunction3D::funcHessian(real* x, real *hessian)
   int n;
   #pragma acc data present(x[0:nState],hessian[0:nState])
   {
-    //DBG cout << "CostFunction3D::funcHessian\n";
+    //DBG std::cout << "CostFunction3D::funcHessian" << std::endl;
     //calc HCx (store in global variable HCq)
     updateHCq(x,HCq);
 
@@ -747,35 +774,44 @@ void CostFunction3D::updateBG()
   // S (SA transform) yield A's
   #pragma acc data copyin(currState[0:nState]) copyout(stateC[0:nState]) create(stateB[0:nState])
   {
-  SCtransform(currState, stateB);
-  SAtransform(stateB, stateA);
-  FFtransform(stateA, stateC);
+    SCtransform(currState, stateB);
+    SAtransform(stateB, stateA);
+    FFtransform(stateA, stateC);
   }
-  outputAnalysis("increment", stateC);
+  if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("increment", stateC);
+  } else if (analysisMode == VarDriver::THERMO)  {
+     outputAnalysis_thermo("increment", stateC);
+  }
+
 
   // In BG update we are directly summing C + A
   std::string cFilename = outputPath + "/samurai_Coefficients.out";
   ofstream cstream(cFilename);
 
   //JMD variable-interleave
-  cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement\n";
+  cstream << "Variable\tI\tJ\tK\tBackground\tAnalysis\tIncrement" << std::endl;
   for (int var = 0; var < varDim; var++) {
     for (int iIndex = 0; iIndex < iDim; iIndex++) {
       for (int jIndex = 0; jIndex < jDim; jIndex++) {
-				for (int kIndex = 0; kIndex < kDim; kIndex++) {
-	  			cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
-  	  		//int bgIndex = varDim*iDim*jDim*kIndex + varDim*iDim*jIndex +varDim*iIndex + var;
-	    		int bgIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
-	    		cstream << bgState[bgIndex] << "\t";
-	  	  	bgState[bgIndex] += stateC[bgIndex];
-	  		  cstream << bgState[bgIndex] << "\t";
-	  			cstream << stateC[bgIndex] << endl;
-  			}
+	for (int kIndex = 0; kIndex < kDim; kIndex++) {
+	  cstream << var << "\t" << iIndex << "\t" << jIndex << "\t" << kIndex << "\t";
+	  int bgIndex = INDEX(iIndex, jIndex, kIndex, iDim, jDim, varDim, var);
+	  cstream << bgState[bgIndex] << "\t";
+	  bgState[bgIndex] += stateC[bgIndex];
+	  cstream << bgState[bgIndex] << "\t";
+	  cstream << stateC[bgIndex] << std::endl;
+  	}
       }
     }
   }
 
-  outputAnalysis("analysis", bgState);
+    if(analysisMode == VarDriver::WIND) {
+     outputAnalysis("analysis", bgState);
+  } else if (analysisMode == VarDriver::THERMO) {
+     outputAnalysis_thermo("analysis", bgState);
+  }
+
   GPTLstop("CostFunction3D::updateBG");
 }
 
@@ -783,13 +819,13 @@ void CostFunction3D::calcInnovation()
 {
   GPTLstart("CostFunction3D::calcInnovation");
   // Initialize and fill the innovation vector
-  cout << "Initializing innovation vector..." << endl;
+  std::cout << "Initializing innovation vector..." << std::endl;
 
   // Use HCq to hold the transform, but C is not applied for the innovation
-#pragma acc data copyin(bgState[0:nState]) create(HCq[mObs+(iDim*jDim*kDim)])
-{
-  Htransform(bgState, HCq);
-}
+  #pragma acc data copyin(bgState[0:nState]) create(HCq[mObs+(iDim*jDim*kDim)])
+  {
+    Htransform(bgState, HCq);
+  }
 
 
   real innovationRMS = 0.;
@@ -804,7 +840,7 @@ void CostFunction3D::calcInnovation()
 
   if (mObs) innovationRMS /= mObs;
   innovationRMS = sqrt(innovationRMS);
-  cout << "Innovation RMS : " << innovationRMS << endl;
+  std::cout << "Innovation RMS : " << innovationRMS << std::endl;
   #pragma acc enter data copyin(innovation)
   GPTLstop("CostFunction3D::calcInnovation");
 }
@@ -988,7 +1024,7 @@ bool CostFunction3D::SAtransform(const real* Bstate, real* Astate)
 	     for (int m = 0; m < iRank[var]; m++) {
 	       tmp += iGamma[var][iDim*m + i]*xi[m];
 	     }
-	     // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << "\n";
+	     // std::cout << "i: " << i << " ai[" << i << "]: " << tmp << std::endl;
 	     Astate[INDEX(i, jIndex, kIndex, iDim, jDim, varDim, var)] = tmp;
 	   }
       	  }
@@ -1128,7 +1164,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
   				for (int k = 0; k < kDim; k++) {
     				b[m] += kGamma[var][kDim*m + k]*kB[k];
   				}
-  				//std::cout << m << " " << b[m] << "\n";
+  				//std::cout << m << " " << b[m] << std::endl;
 				}
 
 				// Solve for A's using compact storage
@@ -1154,7 +1190,7 @@ bool CostFunction3D::SAtranspose(const real* Astate, real* Bstate)
   				for (int m = 0; m < kRank[var]; m++) {
     				a[k] += kGamma[var][kDim*m + k]*x[m];
   				}
-  				//std::cout << k << " " << a[k] << "\n";
+  				//std::cout << k << " " << a[k] << std::endl;
 				}
 
 				for (int kIndex = 0; kIndex < kDim; kIndex++) {
@@ -1197,7 +1233,7 @@ void CostFunction3D::SBtransform(const real* Ustate, real* Bstate)
   real gausspoint = 0.5*sqrt(1./3.);
 
   for (var = 0; var < varDim; var++) {
-    cout << " min(rankHash[iBCL[var]],1): " <<  min(rankHash[iBCL[var]],1) << " max(iDim-1-rankHash[iBCR[var]],iDim-2): " << max(iDim-1-rankHash[iBCR[var]],iDim-2) << "\n";
+    std::cout << " min(rankHash[iBCL[var]],1): " <<  min(rankHash[iBCL[var]],1) << " max(iDim-1-rankHash[iBCR[var]],iDim-2): " << max(iDim-1-rankHash[iBCR[var]],iDim-2) << std::endl;
     is = min(rankHash[iBCL[var]],1);
     ie = max(iDim-1-rankHash[iBCR[var]],iDim-2);
     js = min(rankHash[jBCL[var]],1);
@@ -1624,17 +1660,17 @@ bool CostFunction3D::setupSplines()
   real Pi = acos(-1.);
 
   real cutoff_wl = std::stof((*configHash)["i_spline_cutoff"]);
-  cout << "i Spline cutoff set to " << cutoff_wl << endl;
+  std::cout << "i Spline cutoff set to " << cutoff_wl << std::endl;
   real eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(iDim, eq, iBCL, iBCR, iMin, DI, DIrecip, iLDim, iL, iGamma);
 
   cutoff_wl = std::stof((*configHash)["j_spline_cutoff"]);
-  cout << "j Spline cutoff set to " << cutoff_wl << endl;
+  std::cout << "j Spline cutoff set to " << cutoff_wl << std::endl;
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(jDim, eq, jBCL, jBCR, jMin, DJ, DJrecip, jLDim, jL, jGamma);
 
   cutoff_wl = std::stof((*configHash)["k_spline_cutoff"]);
-  cout << "k Spline cutoff set to " << cutoff_wl << endl;
+  std::cout << "k Spline cutoff set to " << cutoff_wl << std::endl;
   eq = pow( (cutoff_wl/(2*Pi)) , 6);
   calcSplineCoefficients(kDim, eq, kBCL, kBCR, kMin, DK, DKrecip, kLDim, kL, kGamma);
 
@@ -1647,6 +1683,7 @@ bool CostFunction3D::setupSplines()
 void CostFunction3D::obAdjustments() {
   GPTLstart("CostFunction3D::obAdjustments");
 
+  std::cout << "CostFunction3D::obAdjustments: mObs " << mObs << std::endl;
   //JMD variable-interleave
   // Load the obs locally and weight the nonlinear observation operators by interpolated bg fields
   for (int m = 0; m < mObs; m++) {
@@ -1665,8 +1702,8 @@ void CostFunction3D::obAdjustments() {
     if ((i < iMin) or (i > iMax)
 	or (j < jMin) or (j > jMax)
 	or (k < kMin) or (k > kMax)) {
-      cout << "Error! Observations are found outside the domain where the spline is undefined.\n";
-      cout << "This can only happen if you bypassed preprocessing -- check your samurai_Observations.in and re-run.\n";
+      std::cout << "Error! Observations are found outside the domain where the spline is undefined." << std::endl;
+      std::cout << "This can only happen if you bypassed preprocessing -- check your samurai_Observations.in and re-run." << std::endl;
     }
     real rhoprime = 0.;
     real qvprime = 0.;
@@ -1693,7 +1730,7 @@ void CostFunction3D::obAdjustments() {
 //      *bIndex = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 4;
 //      *bIndex2 = varDim * iDim * jDim * kNode + varDim * iDim * jNode + varDim * iNode + 5;
       // turn off print out January 24, 2023
-      // cout << "bIndex = " << *bIndex << endl;
+      // std::cout << "bIndex = " << *bIndex << std::endl;
 	  ibasis = Basis(iNode, i, iDim-1, iMin, DI, DIrecip, 0, iBCL[4], iBCR[4]);
 	  jbasis = Basis(jNode, j, jDim-1, jMin, DJ, DJrecip, 0, jBCL[4], jBCR[4]);
 	  kbasis = Basis(kNode, k, kDim-1, kMin, DK, DKrecip, 0, kBCL[4], kBCR[4]);
@@ -1731,6 +1768,7 @@ void CostFunction3D::obAdjustments() {
   for(int m=0;m<mObs;m++) {
      obsData[m]=obsVector[m*(obMetaSize+varDim*derivDim)+1];
   }
+  std::cout << "CostFunction3D::obAdjustments: end of subroutine " << std::endl;
   #pragma acc enter data copyin(obsData)
   GPTLstop("CostFunction3D::obAdjustments");
 }
@@ -2170,7 +2208,6 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
                                             const real& xMin, const real& DX, const real& DXrecip, const int& LDim,
                                             real* L[7], real* gamma[7])
 {
-
   for (int var = 0; var < varDim; var++) {
     int pDim = Dim;
     int mDim = Dim - rankHash[BCL[var]] - rankHash[BCR[var]];
@@ -2280,21 +2317,21 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 	GT[j][i] = G[i][j];
 	gamma[var][Dim*i + j] = G[i][j];
 	//std::cout << G[i][j] << " ";
-      } //std::cout << "\n";
-    } //std::cout << "\n";
+      } //std::cout << std::endl;
+    } //std::cout << std::endl;
 
     /* for (int i = 0; i < mDim; i++) {
        for (int j = 0; j < Dim; j++) {
        std::cout << gamma[var][Dim*i + j] << " ";
-       } std::cout << "\n";
-       } std::cout << "\n"; */
+       } std::cout << std::endl;
+       } std::cout << std::endl; */
 
     /* for (int i = 0; i < pDim; i++) {
        for (int j = 0; j < mDim; j++) {
        //std::cout << GT[i][j] << " ";
        //std::cout << gamma[var][pDim*j + i] << " ";
-       } //std::cout << "\n";
-       } //std::cout << "\n"; */
+       } //std::cout << std::endl;
+       } //std::cout << std::endl; */
 
     for (int Index = min(rankHash[BCL[var]],1); Index < max(pDim-1-rankHash[BCR[var]],pDim-2); Index++) {
       //for (int Index = 1; Index < pDim-2; Index++) {
@@ -2373,7 +2410,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 	}
 	if (i == j) {
 	  if (sum <= 0.0) {
-	    std::cout << "cholesky failed at i,j sum\n";
+	    std::cout << "cholesky failed at i,j sum" << std::endl;
 	    exit(1);
 	    break;
 	  } else {
@@ -2382,7 +2419,7 @@ void CostFunction3D::calcSplineCoefficients(const int& Dim, const real& eq, cons
 	} else {
 	  P[j][i]=sum/p[i];
 	  if (p[i] == 0.) {
-	    std::cout << "Problem! " << i << "\t" << j << "\n";
+	    std::cout << "Problem! " << i << "\t" << j << std::endl;
 	    exit(1);
 	  }
 	}
@@ -2465,7 +2502,7 @@ void CostFunction3D::FFtransform(const real* Astate, real* Cstate)
 
       // Enforce max wavenumber
       if ((jBCL[var] == PERIODIC) and (jMaxWavenumber[var] >= 0)) {
-        //cout << "FFT perform on J-pencil\n";
+        //std::cout << "FFT perform on J-pencil" << std::endl;
         for (kIndex = 0; kIndex < kDim; kIndex++) {
 	  for (iIndex = 0; iIndex < iDim; iIndex++) {
             for (jIndex = 0; jIndex < jDim; jIndex++) {

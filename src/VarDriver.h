@@ -84,6 +84,11 @@ class VarDriver
   //double calc_C_thermo(const int &i,const int &j,const int &k);
   //double calc_D_thermo(const int &i,const int &j,const int &k);
   //double calc_E_thermo(const int &i,const int &j,const int &k);
+  enum analysModes {
+        WIND,
+        THERMO,
+        WIND_THERMO
+  };
  protected:
 
   bool fixedGrid;	// Indicates if the grid dims come from the config file or run call
@@ -134,6 +139,7 @@ class VarDriver
     hdob,
     ict
   };
+
   Projection projection;
 
   bool read_met_obs_file(int suffix, std::string &filename, std::vector<MetObs>* metObVector);

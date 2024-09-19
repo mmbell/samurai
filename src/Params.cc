@@ -741,15 +741,15 @@
       tt->enum_def.fields[1].val = MODE_RTZ;
     tt->single_val.e = MODE_XYZ;
     tt++;
-
+    
     // Parameter 'analysis_type'
     // ctype is '_analysis_type_t'
     
     memset(tt, 0, sizeof(TDRPtable));
     tt->ptype = ENUM_TYPE;
     tt->param_name = tdrpStrDup("analysis_type");
-    tt->descr = tdrpStrDup("Type of analysis to perform");
-    tt->help = tdrpStrDup("TODO");
+    tt->descr = tdrpStrDup("Analysis type");
+    tt->help = tdrpStrDup("WIND for Samurai wind analysis, THERMO for Thermo analysis from samurai output file, WIND_THERMO for Wind and then Thermo analysis (in-memory)");
     tt->val_offset = (char *) &analysis_type - &_start_;
     tt->enum_def.name = tdrpStrDup("analysis_type_t");
     tt->enum_def.nfields = 3;
@@ -763,7 +763,6 @@
       tt->enum_def.fields[2].val = WIND_THERMO;
     tt->single_val.e = WIND;
     tt++;
-
     
     // Parameter 'projection'
     // ctype is '_projection_t'
@@ -2111,6 +2110,66 @@
     tt->single_val.f = 2.5;
     tt++;
     
+    // Parameter 'thermo_A_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_A_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_A_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_B_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_B_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_B_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_C_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_C_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_C_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_D_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_D_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_D_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
+    // Parameter 'thermo_E_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("thermo_E_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &thermo_E_error - &_start_;
+    tt->single_val.f = 0.01;
+    tt++;
+    
     // Parameter 'qscat_rhov_error'
     // ctype is 'float'
     
@@ -2591,6 +2650,18 @@
     tt->single_val.b = pFALSE;
     tt++;
     
+    // Parameter 'wind_file'
+    // ctype is 'char*'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = STRING_TYPE;
+    tt->param_name = tdrpStrDup("wind_file");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("Need for running Samurai in THERMO mode");
+    tt->val_offset = (char *) &wind_file - &_start_;
+    tt->single_val.s = tdrpStrDup("");
+    tt++;
+    
     // Parameter 'Comment 14'
     
     memset(tt, 0, sizeof(TDRPtable));
@@ -2820,6 +2891,66 @@
       tt->array_vals[1].f = 1;
     tt++;
     
+    // Parameter 'bg_pip_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_pip_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_pip_error - &_start_;
+    tt->array_n_offset = (char *) &bg_pip_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
+    tt++;
+    
+    // Parameter 'bg_thetarhop_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_thetarhop_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_thetarhop_error - &_start_;
+    tt->array_n_offset = (char *) &bg_thetarhop_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
+    tt++;
+    
+    // Parameter 'bg_ftheta_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("bg_ftheta_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->array_offset = (char *) &_bg_ftheta_error - &_start_;
+    tt->array_n_offset = (char *) &bg_ftheta_error_n - &_start_;
+    tt->is_array = TRUE;
+    tt->array_len_fixed = FALSE;
+    tt->array_elem_size = sizeof(float);
+    tt->array_n = 2;
+    tt->array_vals = (tdrpVal_t *)
+        tdrpMalloc(tt->array_n * sizeof(tdrpVal_t));
+      tt->array_vals[0].f = 10;
+      tt->array_vals[1].f = 10;
+    tt++;
+    
     // Parameter 'i_filter_length'
     // ctype is 'float'
     
@@ -2999,7 +3130,7 @@
       tt->array_vals[0].f = -1;
       tt->array_vals[1].f = -1;
     tt++;
-
+    
     // Parameter 'Comment 15'
     
     memset(tt, 0, sizeof(TDRPtable));
@@ -3008,208 +3139,223 @@
     tt->comment_hdr = tdrpStrDup("VARIABLES NEEDED BY THERMO");
     tt->comment_text = tdrpStrDup("");
     tt++;
-
+    
     // Parameter 'i_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'i_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'i_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'i_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'i_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'i_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("i_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &i_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'j_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("j_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &j_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_pip_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
     
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_pip_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_pip_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_pip_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_pip_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_pip_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_thetarhop_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_thetarhop_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_thetarhop_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_thetarhop_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_thetarhop_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_thetarhop_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_ftheta_bcL'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_ftheta_bcL");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_ftheta_bcL - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // Parameter 'k_ftheta_bcR'
-    // ctype is 'int'
+    // ctype is 'char*'
+    
     memset(tt, 0, sizeof(TDRPtable));
-    tt->ptype = INT_TYPE;
+    tt->ptype = STRING_TYPE;
     tt->param_name = tdrpStrDup("k_ftheta_bcR");
     tt->descr = tdrpStrDup("");
     tt->help = tdrpStrDup("");
     tt->val_offset = (char *) &k_ftheta_bcR - &_start_;
-    tt->single_val.i = -999;
+    tt->single_val.s = tdrpStrDup("R0");
     tt++;
-
+    
     // trailing entry has param_name set to NULL
     
     tt->param_name = NULL;

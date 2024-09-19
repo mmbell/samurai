@@ -22,6 +22,7 @@ public:
 
 private:
 	bool outputAnalysis(const std::string& suffix, real* Astate);
+	bool outputAnalysis_thermo(const std::string& suffix, real* Astate);
 	bool writeAsi(const std::string& asiFileName);
 	bool writeNetCDF(const std::string& netcdfFileName);
 	bool writeFlatfile(const std::string& flatFileName, const int var);

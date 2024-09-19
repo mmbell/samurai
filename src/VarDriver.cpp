@@ -1671,6 +1671,11 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 	configKeys.insert("sfmr_windspeed_error");
 	configKeys.insert("qscat_rhou_error");
 	configKeys.insert("qscat_rhov_error");
+	configKeys.insert("thermo_A_error");
+	configKeys.insert("thermo_B_error");
+	configKeys.insert("thermo_C_error");
+	configKeys.insert("thermo_D_error");
+	configKeys.insert("thermo_E_error");
 	configKeys.insert("ascat_rhou_error");
 	configKeys.insert("ascat_rhov_error");
 	configKeys.insert("amv_rhou_error");
@@ -1688,6 +1693,9 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 	configKeys.insert("bg_qv_error");
 	configKeys.insert("bg_rhoa_error");
 	configKeys.insert("bg_qr_error");
+	configKeys.insert("bg_pip_error");
+	configKeys.insert("bg_thetarhop_error");
+	configKeys.insert("bg_ftheta_error");
 
   if (fixedGrid) {
     configKeys.insert("ref_time");

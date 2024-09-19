@@ -10,9 +10,10 @@ double  *ErrorData::init(std::string fname, HashMap* config, size_t numVar)
 {
   configHash = config;
   varDim = numVar;
+
+  // JMD KLUDGE:  Don't know how to address this code for the THERMO version
   
   // set defaults from the config hash
-
   bgError[0] = std::stof((*configHash)["bg_rhou_error"]);
   bgError[1] = std::stof((*configHash)["bg_rhov_error"]);
   bgError[2] = std::stof((*configHash)["bg_rhow_error"]);
