@@ -34,19 +34,19 @@ jobs:
     - name: Running the Docker image for Beltrami case
       # only run this if we are not running codecoverage tests
       if: matrix.dockerfile != 'Dockerfile.coverage'
-      run:| 
+      run: | 
          module load podman
          podman run --name test-container -t samurai
 
     - name: Run coverage tests in container
       if: matrix.dockerfile == 'Dockerfile.coverage'
-      run:|
+      run: |
          module load podman
          podman run --name test-container -t samurai make coverage
 
     - name: Copy coverage from container
       if: matrix.dockerfile == 'Dockerfile.coverage'
-      run:| 
+      run: | 
          module load podman
          podman cp test-container:/app/samurai/build/coverage.info .
 
@@ -55,4 +55,3 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         files: coverage.info
-        token: ${{ secrets.CODECOV_TOKEN }}
