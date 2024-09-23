@@ -622,6 +622,16 @@ public:
 
   float qscat_rhou_error;
 
+  float thermo_A_error;
+
+  float thermo_B_error;
+
+  float thermo_C_error;
+
+  float thermo_D_error;
+
+  float thermo_E_error;
+
   float qscat_rhov_error;
 
   float ascat_rhou_error;
@@ -696,6 +706,8 @@ public:
 
   tdrp_bool_t use_fractl_errors;
 
+  char* wind_file;
+
   float *_mc_weight;
   int mc_weight_n;
 
@@ -729,6 +741,15 @@ public:
   float *_bg_tempk_error;
   int bg_tempk_error_n;
 
+  float *_bg_pip_error;
+  int bg_pip_error_n;
+
+  float *_bg_thetarhop_error;
+  int bg_thetarhop_error_n;
+
+  float *_bg_ftheta_error;
+  int bg_ftheta_error_n;
+
   float *_i_filter_length;
   int i_filter_length_n;
 
@@ -756,41 +777,41 @@ public:
   float *_k_max_wavenumber;
   int k_max_wavenumber_n;
 
-  int i_pip_bcL;
+  char* i_pip_bcL;
 
-  int i_pip_bcR;
+  char* i_pip_bcR;
 
-  int i_thetarhop_bcL;
+  char* i_thetarhop_bcL;
 
-  int i_thetarhop_bcR;
+  char* i_thetarhop_bcR;
 
-  int i_ftheta_bcL;
+  char* i_ftheta_bcL;
 
-  int i_ftheta_bcR;
- 
-  int j_pip_bcL;
+  char* i_ftheta_bcR;
 
-  int j_pip_bcR;
+  char* j_pip_bcL;
 
-  int j_thetarhop_bcL;
+  char* j_pip_bcR;
 
-  int j_thetarhop_bcR;
+  char* j_thetarhop_bcL;
 
-  int j_ftheta_bcL;
+  char* j_thetarhop_bcR;
 
-  int j_ftheta_bcR; 
+  char* j_ftheta_bcL;
 
-  int k_pip_bcL;
+  char* j_ftheta_bcR;
 
-  int k_pip_bcR;
+  char* k_pip_bcL;
 
-  int k_thetarhop_bcL;
+  char* k_pip_bcR;
 
-  int k_thetarhop_bcR;
+  char* k_thetarhop_bcL;
 
-  int k_ftheta_bcL;
+  char* k_thetarhop_bcR;
 
-  int k_ftheta_bcR;
+  char* k_ftheta_bcL;
+
+  char* k_ftheta_bcR;
 
   char _end_; // end of data region
               // needed for zeroing out data
@@ -799,7 +820,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[210];
+  mutable TDRPtable _table[220];
 
   const char *_className;
 

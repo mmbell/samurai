@@ -27,6 +27,14 @@ debug_kd = 0;
 
 debug_kd_step = 0;
 
+///////////// wind_file //////////////////////////
+//
+// Needed by Samurai THERMO mode
+//
+// Type: string
+
+wind_file = "../ncar_scripts/input/beltrami_test_v2.nc";
+
 //======================================================================
 //
 // BACKGROUND SECTION.
@@ -981,6 +989,36 @@ mesonet_rhow_error = 1;
 
 mesonet_tempk_error = 1;
 
+///////////// thermo_A_error /////////////////////
+//
+// Type: float
+
+thermo_A_error = 0.01;
+
+///////////// thermo_B_error /////////////////////
+//
+// Type: float
+
+thermo_B_error = 0.01;
+
+///////////// thermo_C_error /////////////////////
+//
+// Type: float
+
+thermo_C_error = 0.01;
+
+///////////// thermo_D_error /////////////////////
+//
+// Type: float
+
+thermo_D_error = 0.01;
+
+///////////// thermo_E_error /////////////////////
+//
+// Type: float
+
+thermo_E_error = 0.01;
+
 //======================================================================
 //
 // XYP SPECIFIC SECTION.
@@ -1172,6 +1210,27 @@ bg_rhow_error = { 20, 2 };
 
 bg_tempk_error = { 20, 2 };
 
+///////////// bg_pip_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_pip_error = { 10, 10 };
+
+///////////// bg_thetarhop_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_thetarhop_error = { 10, 10 };
+
+///////////// bg_ftheta_error //////////////////////////
+//
+// Type: float
+// 1D array - variable length.
+
+bg_ftheta_error = { 10, 10 };
+
 ///////////// i_filter_length /////////////////////////
 //
 // Type: float
@@ -1245,106 +1304,106 @@ k_max_wavenumber = { -1, -1 };
 //
 // Type: int
 
-i_pip_bcL = -1;
+i_pip_bcL = "R0";
 
 ///////////// i_pip_bcR ///////////////////////////////
 //
 // Type: int
 
-i_pip_bcR = -1;
+i_pip_bcR = "R0";
 
 ///////////// i_thetarhop_bcL ///////////////////////////////
 //
 // Type: int
 
-i_thetarhop_bcL = -1;
+i_thetarhop_bcL = "R0";
 
 ///////////// i_thetarhop_bcR ///////////////////////////////
 //
 // Type: int
 
-i_thetarhop_bcR = -1;
+i_thetarhop_bcR = "R0";
 
 ///////////// i_ftheta_bcL ///////////////////////////////
 //
 // Type: int
 
-i_ftheta_bcL = -1;
+i_ftheta_bcL = "R0";
 
 ///////////// i_ftheta_bcR ///////////////////////////////
 //
 // Type: int
 
-i_ftheta_bcR = -1;
+i_ftheta_bcR = "R0";
 
 ///////////// j_pip_bcL ///////////////////////////////
 //
 // Type: int
 
-j_pip_bcL = -1;
+j_pip_bcL = "R0";
 
 ///////////// j_pip_bcR ///////////////////////////////
 //
 // Type: int
 
-j_pip_bcR = -1;
+j_pip_bcR = "R0";
 
 ///////////// j_thetarhop_bcL ///////////////////////////////
 //
 // Type: int
 
-j_thetarhop_bcL = -1;
+j_thetarhop_bcL = "R0";
 
 ///////////// j_thetarhop_bcR ///////////////////////////////
 //
 // Type: int
 
-j_thetarhop_bcR = -1;
+j_thetarhop_bcR = "R0";
 
 ///////////// j_ftheta_bcL ///////////////////////////////
 //
 // Type: int
 
-j_ftheta_bcL = -1;
+j_ftheta_bcL = "R0";
 
 ///////////// j_ftheta_bcR ///////////////////////////////
 //
 // Type: int
 
-j_ftheta_bcR = -1;
+j_ftheta_bcR = "R0";
 
 ///////////// k_pip_bcL ///////////////////////////////
 //
 // Type: int
 
-k_pip_bcL = -1;
+k_pip_bcL = "R0";
 
 ///////////// k_pip_bcR ///////////////////////////////
 //
 // Type: int
 
-k_pip_bcR = -1;
+k_pip_bcR = "R0";
 
 ///////////// k_thetarhop_bcL ///////////////////////////////
 //
 // Type: int
 
-k_thetarhop_bcL = -1;
+k_thetarhop_bcL = "R0";
 
 ///////////// k_thetarhop_bcR ///////////////////////////////
 //
 // Type: int
 
-k_thetarhop_bcR = -1;
+k_thetarhop_bcR = "R0";
 
 ///////////// k_ftheta_bcL ///////////////////////////////
 //
 // Type: int
 
-k_ftheta_bcL = -1;
+k_ftheta_bcL = "R0";
 
 ///////////// k_ftheta_bcR ///////////////////////////////
 //
 // Type: int
 
-k_ftheta_bcR = -1;
+k_ftheta_bcR = "R0";

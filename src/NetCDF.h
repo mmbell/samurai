@@ -23,8 +23,9 @@ public:
 	
 	virtual ~NetCDF();
 	
-	virtual int readNetCDF(const char* filename)=0;
+	virtual int readNetCDF(std::string filename)=0;
 	virtual double getValue(const int &i,const int &j,const int &k,const std::string& varName)=0;	
+	virtual int getValue(const std::string& varName)=0;
 	virtual double getDerivative(const int &i,const int &j,const int &k, const std::string &var, const int &der)=0;
 	virtual double calc_A(const int &i,const int &j,const int &k)=0;
 	virtual double calc_B(const int &i,const int &j,const int &k)=0;

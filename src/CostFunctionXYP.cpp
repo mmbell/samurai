@@ -23,6 +23,10 @@ CostFunctionXYP::~CostFunctionXYP()
 {
 }
 
+bool CostFunctionXYP::outputAnalysis_thermo(const std::string& suffix, real* Astate)
+{
+}
+
 bool CostFunctionXYP::outputAnalysis(const std::string& suffix, real* Astate)
 {
 	// H --> to Mish for output
