@@ -698,6 +698,7 @@ bool CostFunctionXYZ::outputAnalysis(const std::string& suffix, real* Astate)
 
 bool CostFunctionXYZ::outputAnalysis_thermo(const std::string& suffix, real* Astate)
 {
+
   std::string samuraiMode = "thermo";
   std::cout << "Outputting " << suffix << "...\n";
   // H --> to Mish for output
@@ -917,7 +918,7 @@ bool CostFunctionXYZ::outputAnalysis_thermo(const std::string& suffix, real* Ast
   // Write out to a netCDF file
   if ((*configHash)["output_netcdf"] == "true") {
     std::string cdfFileName = outFileName + ".nc";
-    if (!writeNetCDF(outputPath + cdfFileName))
+    if (!writeNetCDF_thermo(outputPath + cdfFileName))
       std::cout << "Error writing netcdf file " << cdfFileName << std::endl;
   }
   // Write out to an asi file
@@ -1865,6 +1866,303 @@ bool CostFunctionXYZ::writeNetCDF(const std::string& netcdfFileName)
   delete[] y;
 
   return true;
+}
+
+bool CostFunctionXYZ::writeNetCDF_thermo(const std::string& netcdfFileName)
+{
+  Nc3Error err(Nc3Error::verbose_nonfatal);
+  int NC_ERR = 0;
+
+  // Create the file.
+  Nc3File dataFile(netcdfFileName.c_str(), Nc3File::Replace);
+
+  // Check to see if the file was created.
+  if(!dataFile.is_valid())
+    return NC_ERR;
+
+    // Define the dimensions. NetCDF will hand back an ncDim object for
+    // each.
+    Nc3Dim *lvlDim, *latDim, *lonDim, *timeDim;
+    if (!(lonDim = dataFile.add_dim("longitude", iDim)))
+        return NC_ERR;
+    if (!(latDim = dataFile.add_dim("latitude", jDim)))
+        return NC_ERR;
+    if (!(lvlDim = dataFile.add_dim("altitude", kDim)))
+        return NC_ERR;
+    // Add an unlimited dimension...
+    if (!(timeDim = dataFile.add_dim("time")))
+        return NC_ERR;
+
+    // Define the coordinate variables.
+    Nc3Var *latVar, *lonVar, *lvlVar, *timeVar, *xVar, *yVar;
+    if (!(lonVar = dataFile.add_var("longitude", nc3Float, lonDim)))
+        return NC_ERR;
+    if (!(latVar = dataFile.add_var("latitude", nc3Float, latDim)))
+        return NC_ERR;
+    if (!(xVar = dataFile.add_var("x", nc3Float, lonDim)))
+        return NC_ERR;
+    if (!(yVar = dataFile.add_var("y", nc3Float, latDim)))
+        return NC_ERR;
+    if (!(lvlVar = dataFile.add_var("altitude", nc3Float, lvlDim)))
+        return NC_ERR;
+    if (!(timeVar = dataFile.add_var("time", nc3Int, timeDim)))
+        return NC_ERR;
+
+    // Define units attributes for coordinate vars. This attaches a
+    // text attribute to each of the coordinate variables, containing
+    // the units.
+    if (!latVar->add_att("units", "degrees_north"))
+        return NC_ERR;
+    if (!lonVar->add_att("units", "degrees_east"))
+        return NC_ERR;
+    if (!xVar->add_att("units", "km"))
+        return NC_ERR;
+    if (!yVar->add_att("units", "km"))
+        return NC_ERR;
+    if (!lvlVar->add_att("units", "km"))
+        return NC_ERR;
+    if (!timeVar->add_att("units", "seconds since 1970-01-01 00:00:00 +0000"))
+        return NC_ERR;
+
+    // Define the netCDF variables
+    Nc3Var *pip, *thetarhop, *ftheta;
+    Nc3Var *dpipdx, *dthetarhopdx, *dfthetadx, *dpipdy, *dthetarhopdy, *dfthetady, *dpipdz, *dthetarhopdz, *dfthetadz;
+
+
+    if (!(pip = dataFile.add_var("PIP", nc3Float, timeDim,
+                               lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(thetarhop = dataFile.add_var("THETARHOP", nc3Float, timeDim,
+                               lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(ftheta = dataFile.add_var("FTHETA", nc3Float, timeDim,
+                               lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dpipdx = dataFile.add_var("DPIPDX", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dthetarhopdx = dataFile.add_var("DTHETARHOPDX", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dfthetadx = dataFile.add_var("DFTHETADX", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dpipdy = dataFile.add_var("DPIPDY", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dthetarhopdy = dataFile.add_var("DTHETARHOPDY", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dfthetady = dataFile.add_var("DFTHETADY", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dpipdz = dataFile.add_var("DPIPDZ", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dthetarhopdz = dataFile.add_var("DTHETARHOPDZ", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+    if (!(dfthetadz = dataFile.add_var("DFTHETADZ", nc3Float, timeDim,
+                                  lvlDim, latDim, lonDim)))
+        return NC_ERR;
+
+    // Define units attributes for data variables.
+    if (!pip->add_att("units", "???"))
+        return NC_ERR;
+    if (!thetarhop->add_att("units", "???"))
+        return NC_ERR;
+    if (!ftheta->add_att("units", "???"))
+        return NC_ERR;
+    if (!dpipdx->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dthetarhopdx->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dfthetadx->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dpipdy->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dthetarhopdy->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dfthetady->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dpipdz->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dthetarhopdz->add_att("units", "10-5s-1"))
+        return NC_ERR;
+    if (!dfthetadz->add_att("units", "10-5s-1"))
+        return NC_ERR;
+
+    // Define long names for data variables.
+    if (!pip->add_att("long_name", "pi prime"))
+        return NC_ERR;
+    if (!thetarhop->add_att("long_name", "theta rho prime"))
+        return NC_ERR;
+    if (!ftheta->add_att("long_name", "f theta"))
+        return NC_ERR;
+    if (!dpipdx->add_att("long_name", "pi prime gradient"))
+        return NC_ERR;
+    if (!dthetarhopdx->add_att("long_name", "theta rho prime gradient"))
+        return NC_ERR;
+    if (!dfthetadx->add_att("long_name", "f theta gradient"))
+        return NC_ERR;
+    if (!dpipdy->add_att("long_name", "pi prime gradient"))
+        return NC_ERR;
+    if (!dthetarhopdy->add_att("long_name", "theta rho prime gradient"))
+        return NC_ERR;
+    if (!dfthetady->add_att("long_name", "f theta gradient"))
+        return NC_ERR;
+    if (!dpipdz->add_att("long_name", "pi prime gradient"))
+        return NC_ERR;
+    if (!dthetarhopdz->add_att("long_name", "theta rho prime gradient"))
+        return NC_ERR;
+    if (!dfthetadz->add_att("long_name", "f theta gradient"))
+        return NC_ERR;
+
+    // Define missing data
+    if (!pip->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!thetarhop->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!ftheta->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dpipdx->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdx->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dfthetadx->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dpipdy->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdy->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dfthetady->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dpipdz->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdz->add_att("missing_value", -999.f))
+        return NC_ERR;
+    if (!dfthetadz->add_att("missing_value", -999.f))
+        return NC_ERR;
+
+    // Define _Fill_Value for NCL users
+    if (!pip->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!thetarhop->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!ftheta->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dpipdx->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdx->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dfthetadx->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dpipdy->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdy->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dfthetady->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dpipdz->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dthetarhopdz->add_att("_FillValue", -999.f))
+        return NC_ERR;
+    if (!dfthetadz->add_att("_FillValue", -999.f))
+        return NC_ERR;
+
+    // Write the coordinate variable data to the file.
+    real *lons = new real[iDim];
+    real *lats = new real[jDim];
+    real *levs = new real[kDim];
+    real *x = new real[iDim];
+    real *y = new real[jDim];
+    int time[2];
+
+    // Reference time and position from center file
+    time[0] = std::stoi((*configHash)["ref_time"]);
+    real latReference = std::stof((*configHash)["ref_lat"]);
+    real lonReference = std::stof((*configHash)["ref_lon"]);
+    real refX, refY;
+
+    GeographicLib::TransverseMercatorExact tm = GeographicLib::TransverseMercatorExact::UTM();
+    tm.Forward(lonReference, latReference, lonReference, refX, refY);
+    for (int iIndex = 0; iIndex < iDim; iIndex++) {
+        real i = (iMin + DI * iIndex)*1000;
+        real j = (jMin + DJ * (jDim/2))*1000;
+        real latnull = 0;
+        tm.Reverse(lonReference,refX + i, refY + j, latnull, lons[iIndex]);
+        x[iIndex] = i/1000;
+    }
+
+    for (int jIndex = 0; jIndex < jDim; jIndex++) {
+        real i = (iMin + DI * (iDim/2))*1000;
+        real j = (jMin + DJ * jIndex)*1000;
+        real lonnull = 0;
+        tm.Reverse(lonReference,refX + i, refY + j, lats[jIndex], lonnull);
+        y[jIndex] = j/1000;
+    }
+
+    if (!lonVar->put(lons, iDim))
+        return NC_ERR;
+
+    if (!latVar->put(lats, jDim))
+        return NC_ERR;
+
+    if (!xVar->put(x, iDim))
+        return NC_ERR;
+
+    if (!yVar->put(y, jDim))
+        return NC_ERR;
+
+    for (int kIndex = 0; kIndex < kDim; kIndex++) {
+        real k = kMin + DK * kIndex;
+        levs[kIndex] = k;
+    }
+    if (!lvlVar->put(levs, kDim))
+        return NC_ERR;
+
+    if (!timeVar->put(time, 1))
+        return NC_ERR;
+
+    // Write the data.
+    for (int rec = 0; rec < 1; rec++)
+    {
+        if (!pip->put_rec(&finalAnalysis[0], rec))
+            return NC_ERR;
+        if (!thetarhop->put_rec(&finalAnalysis[iDim*jDim*kDim*1], rec))
+            return NC_ERR;
+        if (!ftheta->put_rec(&finalAnalysis[iDim*jDim*kDim*2], rec))
+            return NC_ERR;
+        if (!dpipdx->put_rec(&finalAnalysis[iDim*jDim*kDim*3], rec))
+            return NC_ERR;
+        if (!dthetarhopdx->put_rec(&finalAnalysis[iDim*jDim*kDim*4], rec))
+            return NC_ERR;
+        if (!dfthetadx->put_rec(&finalAnalysis[iDim*jDim*kDim*5], rec))
+            return NC_ERR;
+        if (!dpipdy->put_rec(&finalAnalysis[iDim*jDim*kDim*6], rec))
+            return NC_ERR;
+        if (!dthetarhopdy->put_rec(&finalAnalysis[iDim*jDim*kDim*7], rec))
+            return NC_ERR;
+        if (!dfthetady->put_rec(&finalAnalysis[iDim*jDim*kDim*8], rec))
+            return NC_ERR;
+        if (!dpipdz->put_rec(&finalAnalysis[iDim*jDim*kDim*9], rec))
+            return NC_ERR;
+        if (!dthetarhopdz->put_rec(&finalAnalysis[iDim*jDim*kDim*10], rec))
+            return NC_ERR;
+        if (!dfthetadz->put_rec(&finalAnalysis[iDim*jDim*kDim*11], rec))
+            return NC_ERR;
+    }
+
+    // The file is automatically closed by the destructor. This frees
+    // up any internal netCDF resources associated with the file, and
+    // flushes any buffers.
+    delete[] lats;
+    delete[] lons;
+    delete[] levs;
+    delete[] x;
+    delete[] y;
+    return true;
+
 }
 
 bool CostFunctionXYZ::writeAsi(const std::string& asiFileName)
