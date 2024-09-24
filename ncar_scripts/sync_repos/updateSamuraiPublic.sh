@@ -2,13 +2,13 @@
 
 ##################################################################
 # This script is intended to update our release version of
-# clubb (the one "publicly" visible). It should be ran nightly.
+# samurai (the one "publicly" visible). It should be ran nightly.
 #
 # Author: Nicolas Strike, 2019
 ##################################################################
 
-# To add a new branch from clubb to clubb_release, simply add it to the array here and it will be added overnight and updated automatically. Note that there must be a space between items and the parethesis.
-branches=( main thermo_asap)
+# To add a new branch from samurai-dev to samurai (release), simply add it to the array here and it will be added overnight and updated automatically. Note that there must be a space between items and the parethesis.
+branches=( main )
 
 # List of patterns describing lfs files to untrack in git-lfs. This prevents them from being automatically downloaded when a client clones the repo, but leaves them available to download if desired (with `git lfs pull`)
 undesiredLfsPatterns=( )
@@ -17,8 +17,10 @@ undesiredLfsPatterns=( )
 maxNetworkAttempts=15
 internetConnectivityTestUrl="github.com"
 
-# Need to fill in name of private development samurai repo (Probably git@github.com:NCAR/samurai.git)
-updateSrc=
+# Need to fill in name of private development samurai repo (Probably git@github.com:NCAR/samurai-dev.git)
+
+# UNCOMMENT THE FOLLOWING LINE AND VERIFY THE REPO NAMES BEFORE RUNNING
+#updateSrc=git@github.com:NCAR/samurai-dev.git
 updateDest=git@github.com:mmbell/samurai.git
 
 updateBranch() {
