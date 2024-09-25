@@ -10,15 +10,13 @@ on:
 
 jobs:
   docker-build-and-test:
-    name: Build and Test - ${{ matrix.dockerfile }}
+    name: Build and Test 
     runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        dockerfile:
-          - Dockerfile
-          - Dockerfile.coverage 
+
     steps:
     - name: Checkout code from a pull request or push
       uses: actions/checkout@v3
@@ -26,5 +24,7 @@ jobs:
     - name: Delete huge unnecessary tools folder
       run: rm -rf /opt/hostedtoolcache
     - name: Submit the job to the derecho
-      run: qcmd -q develop -l select=1:ncpus=128:ompthreads=128:mem=230GB -A NEOL0013 -l walltime=02:30:00 -- "ncar_scripts/derecho_cpu_submit.sh"
+      run: |
+         cd ncar_scripts
+         qcmd -q develop -l select=1:ncpus=128:ompthreads=128:mem=230GB -A ${{secrets.PROJ}} -l walltime=02:30:00 -- "./derecho_cpu_submit.sh"
 
