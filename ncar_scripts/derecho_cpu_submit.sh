@@ -2,14 +2,16 @@
 #PBS -N SAMURAI
 #PBS -A NEOL0013
 #PBS -l select=1:ncpus=128:ompthreads=128:mem=230GB
-#PBS -q main
+#PBS -q develop
 #PBS -l walltime=02:30:00
 #PBS -j oe
 #PBS -k eod
  
-cd $PBS_O_WORKDIR
-cd ..
+#cd $PBS_O_WORKDIR
+#cd ..
 export SAMURAI_ROOT=$(pwd)
+
+echo $SAMURAI_ROOT
 
 ID=`date '+%Y%m%d%H%M'`
 ##################
@@ -25,6 +27,7 @@ suffix="derecho_cpu"
 for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
   ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
+  echo "log_${i}_$suffix.$ID is done"
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
