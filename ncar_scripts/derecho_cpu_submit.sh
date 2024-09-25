@@ -7,8 +7,8 @@
 #PBS -j oe
 #PBS -k eod
  
-#cd $PBS_O_WORKDIR
-#cd ..
+cd $PBS_O_WORKDIR
+cd ..
 export SAMURAI_ROOT=$(pwd)
 
 echo $SAMURAI_ROOT
