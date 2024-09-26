@@ -2,7 +2,7 @@
 #PBS -N SAMURAI
 #PBS -A NEOL0013
 #PBS -l select=1:ncpus=64:ompthreads=1:mem=300GB:ngpus=1
-#PBS -q main
+#PBS -q develop
 #PBS -l walltime=02:30:00
 #PBS -j oe
 #PBS -k eod
@@ -36,6 +36,7 @@ do
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
+  echo "log_${i}_$suffix.$ID is done"
   mv $SAMURAI_ROOT/run/timing.0 ${i}_${suffix}/timing.$ID
   mv $SAMURAI_ROOT/run/samurai* log* ${i}_${suffix}
 done
