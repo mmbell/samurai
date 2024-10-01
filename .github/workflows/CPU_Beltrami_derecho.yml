@@ -24,10 +24,12 @@ jobs:
     - name: Delete huge unnecessary tools folder
       run: rm -rf /opt/hostedtoolcache
     - name: Submit the job to the derecho
+      if: ${{vars.proc}} == 'CPU'
       run: |
          cd ncar_scripts
-         if: ${{vars.proc}} == 'CPU'
          qcmd -q develop -l select=1:ncpus=128:ompthreads=128:mem=230GB -A ${{secrets.PROJ}} -l walltime=02:30:00 -- "./derecho_CPU_submit.sh"
-         if: ${{vars.proc}} == 'GPU'
+      if: ${{vars.proc}} == 'GPU'
+      run: |
+         cd ncar_scripts
          qcmd -q develop -l select=1:ncpus=64:ompthreads=1:mem=300GB:ngpus=1 -A ${{secrets.PROJ}} -l walltime=02:30:00 -- "./derecho_a100_submit.sh"
 
