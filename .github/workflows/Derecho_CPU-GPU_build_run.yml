@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     branches: [ "main" ]
   push:
-    branches: [ "derecho_ci" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -35,6 +35,11 @@ jobs:
     - name: Get output and log files
       working-directory: ${{github.workspace}}/ncar_scripts
       run: |
-         tar cvzf apar.tgz *_cpu/log* *_gpu/log*
-         mv apar.tgz $SCRATCH/.
-         
+         if grep -qv "Analysis successful!" *_cpu/log* *_gpu/log*; then
+          echo "Testings are not successful."
+          tar cvzf apar.tgz *_cpu/log* *_gpu/log*
+          mv apar.tgz $SCRATCH/.
+          exit 1
+         else
+          echo "Testings are successful."
+         fi 
