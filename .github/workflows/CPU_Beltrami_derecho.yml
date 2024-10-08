@@ -1,4 +1,4 @@
-name: Samurai CPU test with Beltrami
+name: Samurai CPU/GPU tests on Derecho
 
 on:
   workflow_dispatch:
@@ -35,6 +35,6 @@ jobs:
     - name: Get output and log files
       working-directory: ${{github.workspace}}/ncar_scripts
       run: |
-         tar cvzf apar.tgz *_cpu *_gpu
+         tar cvzf apar.tgz *_cpu/log* *_gpu/log*
          mv apar.tgz $SCRATCH/.
          
