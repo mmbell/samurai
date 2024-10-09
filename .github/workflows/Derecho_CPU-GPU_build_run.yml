@@ -46,3 +46,4 @@ jobs:
           mv apar.tgz $SCRATCH/.
           exit 1
          fi 
+        done
