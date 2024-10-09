@@ -35,11 +35,14 @@ jobs:
     - name: Get output and log files
       working-directory: ${{github.workspace}}/ncar_scripts
       run: |
-         if grep -qv "Analysis successful!" *_cpu/log* *_gpu/log*; then
-          echo "Testings are not successful."
+        log_files=(`ls *_cpu/log* *_gpu/log*`)
+        
+        for log_file in "${log_files[@]}"; do
+         if grep -q "Analysis successful!"  "$log_file"; then
+          echo "$log_file is completed successful."
+         else
+          echo "$log_file is not completed successful."
           tar cvzf apar.tgz *_cpu/log* *_gpu/log*
           mv apar.tgz $SCRATCH/.
           exit 1
-         else
-          echo "Testings are successful."
          fi 
