@@ -6,6 +6,7 @@ on:
     branches: 
       - "main"
       - "thermo_asap"
+      - "pr_114"
   pull_request:
     branches: 
       - "main"
@@ -31,12 +32,13 @@ jobs:
     - name: Running the Beltrami case in container
       run: docker run -d --name test-container samurai:latest
 
-   #uncomment to include validation tests   
-   # - name: Setup validation environment
-   #   run: docker build -f docker/Dockerfile.validation -t samurai-validation .
+   #uncomment to build validation tests   
+    - name: Setup validation environment
+      run: docker build -f docker/Dockerfile.validation -t samurai-validation .
 
-   # - name: Run Beltrami validation test 
-   #   run: docker run --name test-container-validation --volumes-from test-container samurai-validation
+   #uncomment to run validation tests
+    - name: Run Beltrami validation test 
+      run: docker run --name test-container-validation --volumes-from test-container samurai-validation
 
   coverage:
     name: Coverage
