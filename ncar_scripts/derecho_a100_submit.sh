@@ -37,7 +37,6 @@ do
      mkdir ${i}_${suffix}
   fi
   echo "log_${i}_$suffix.$ID is done"
-  rm $SAMURAI_ROOT/run/timing.0
   mv $SAMURAI_ROOT/run/timing.0 ${i}_${suffix}/timing.$ID
   mv $SAMURAI_ROOT/run/samurai* log* ${i}_${suffix}
 done
