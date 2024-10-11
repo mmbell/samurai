@@ -36,14 +36,16 @@ jobs:
       working-directory: ${{github.workspace}}/ncar_scripts
       run: |
         log_files=(`ls *_cpu/log* *_gpu/log*`)
-        
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+         tar cvzf apar.${{ github.event.pull_request.number }}.${{ github.sha }}.tgz *_cpu/log* *_gpu/log* *_cpu/timing* *_gpu/timing*
+         mv apar.*.tgz /glade/campaign/cisl/asap/haiyingx/samurai-results/.
+        fi
         for log_file in "${log_files[@]}"; do
          if grep -q "Analysis successful!"  "$log_file"; then
           echo "$log_file is completed successful."
          else
-          echo "$log_file is not completed successful."
-          tar cvzf apar.tgz *_cpu/log* *_gpu/log*
-          mv apar.tgz $SCRATCH/.
+          echo "$log_file is not completed successful in this commit ${{ github.sha }}"
           exit 1
          fi 
         done
+        

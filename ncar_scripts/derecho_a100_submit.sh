@@ -2,7 +2,7 @@
 #PBS -N SAMURAI
 #PBS -A NEOL0013
 #PBS -l select=1:ncpus=64:ompthreads=1:mem=300GB:ngpus=1
-#PBS -q develop
+#PBS -q main
 #PBS -l walltime=02:30:00
 #PBS -j oe
 #PBS -k eod
