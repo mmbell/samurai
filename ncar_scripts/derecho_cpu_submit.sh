@@ -24,7 +24,7 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="derecho_cpu"
-for i in beltrami #supercell hurricane typhoonChanthu2020 # hurricane_4panel
+for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
   ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   echo "log_${i}_$suffix.$ID is done"
