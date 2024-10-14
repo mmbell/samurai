@@ -37,7 +37,8 @@ jobs:
       run: |
         log_files=(`ls *_cpu/log* *_gpu/log*`)
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-         tar cvzf apar.${{ github.event.pull_request.number }}.${{ github.sha }}.tgz *_cpu/log* *_gpu/log* *_cpu/timing* *_gpu/timing*
+         calculatedSha=$(git rev-parse --short ${{ github.event.pull_request.head.sha }})
+         tar cvzf apar.${{ github.event.pull_request.number }}.$calculatedSha.tgz *_cpu/log* *_gpu/log* *_cpu/timing* *_gpu/timing*
          mv apar.*.tgz /glade/campaign/cisl/asap/haiyingx/samurai-results/.
         fi
         for log_file in "${log_files[@]}"; do
