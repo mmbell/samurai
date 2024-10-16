@@ -39,7 +39,7 @@ jobs:
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
          calculatedSha=$(git rev-parse --short ${{ github.event.pull_request.head.sha }})
          tar cvzf apar.${{ github.event.pull_request.number }}.$calculatedSha.tgz *_cpu/log* *_gpu/log* *_cpu/timing* *_gpu/timing*
-         mv apar.*.tgz /glade/campaign/cisl/asap/haiyingx/samurai-results/.
+         mv apar.*.tgz /glade/campaign/cisl/asap/samurai/logs/.
         fi
         for log_file in "${log_files[@]}"; do
          if grep -q "Analysis successful!"  "$log_file"; then
