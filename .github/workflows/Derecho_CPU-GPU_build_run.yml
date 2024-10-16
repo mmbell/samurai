@@ -26,7 +26,7 @@ jobs:
     - name: Submit the job to the derecho CPU
       run: |
          cd ncar_scripts
-         hostname
+         export PATH=/glade/u/apps/derecho/23.09/opt/utils/bin:$PATH
          qcmd -q main -l select=1:ncpus=128:ompthreads=128:mem=230GB -A ${{secrets.PROJ}} -l walltime=02:30:00 -- "./derecho_cpu_submit.sh"
     - name: Submit the job to the derecho GPU
       run: |
