@@ -7,12 +7,21 @@ if [[ ! -v SAMURAI_ROOT ]]; then
 fi
 cd $SAMURAI_ROOT
 
-# Generate a "run" folder
-if [ -d "run" ]; then
-    rm -rf run
+# Check the number of arguments
+if [ "$#" -ne 2 ]; then
+    echo "Error: Incorrect number of arguments provided."
+    echo "Usage: $0 [ID] [INPUT_NAMELIST]"
+    exit 911
 fi
-mkdir run
-cd run
+ID=${1}
+INPUT_NAMELIST=${2}
+
+# Generate a "run" folder
+if [ -d "run_${ID}" ]; then
+    rm -rf run_${ID}
+fi
+mkdir run_${ID}
+cd run_${ID}
 
 EXE="../bin/samurai"
 
@@ -36,4 +45,4 @@ else
   export OMP_NUM_THREADS=1
 fi
 
-${EXE} -params $*
+${EXE} -params $INPUT_NAMELIST
