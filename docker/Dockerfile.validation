@@ -1,0 +1,27 @@
+# Use the base image built by main Dockerfile
+FROM samurai:latest
+
+# Set the working directory
+WORKDIR /app
+
+# Ensure pip is installed
+RUN apt-get update && apt-get install --reinstall zlib1g
+RUN apt-get install -y python3-venv
+RUN python3 -m venv /app/venv && \
+    /app/venv/bin/pip install --upgrade pip && \
+    /app/venv/bin/pip install numpy xarray netCDF4 scipy cftime 
+
+# Make the validation script executable
+RUN chmod +x /app/samurai/ncar_scripts/validation/beltrami/bel_val_nc.py
+
+RUN echo "#!/bin/bash \n\
+cd /app/samurai/build/release/bin/ \n\
+./samurai -params /app/samurai/ncar_scripts/TDRP/beltrami.tdrp | tee /app/samurai/ncar_scripts/validation/beltrami/test_log \n\
+cd /app/samurai/ncar_scripts/validation/beltrami/ \n\
+/app/venv/bin/python3 bel_val_nc.py samurai_XYZ_wind_analysis_ref.nc /app/samurai/build/release/bin/samurai_XYZ_wind_analysis.nc \n\
+" > /app/run_validation.sh
+
+RUN chmod +x /app/run_validation.sh
+
+# Set the CMD to run the validation script
+CMD [ "./run_validation.sh" ]
