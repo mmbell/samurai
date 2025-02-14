@@ -1,33 +1,42 @@
 #!/bin/bash -l
 #PBS -N SAMURAI
 #PBS -A NEOL0013
-#PBS -l select=1:ncpus=36:ompthreads=36:mem=350GB
-#PBS -q casper
-#PBS -l walltime=00:30:00
+#PBS -l select=1:ncpus=64:ompthreads=1:mem=300GB:ngpus=1
+#PBS -q develop
+#PBS -l walltime=02:30:00
 #PBS -j oe
 #PBS -k eod
-
+ 
 cd $PBS_O_WORKDIR
 cd ..
 export SAMURAI_ROOT=$(pwd)
+
 ID=`date '+%Y%m%d%H%M'`
+
+sed -i 's/cc70/cc80/g' CMakeLists.txt
+sed -i 's/cc90/cc80/g' CMakeLists.txt
 
 ##################
 # Build the code #
 ##################
-cd ncar_scripts
-./ncar_build.sh cpu $ID
+sed -i 's/cc70/cc80/g' CMakeLists.txt
+sed -i 's/cc90/cc80/g' CMakeLists.txt
+
+cd ncar_scripts 
+./ncar_build.sh gpu $ID
 
 ##############
 # Run a case #
 ##############
-suffix="casper_cpu"
+suffix="derecho_gpu"
 for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
+
   ./ncar_run.sh $ID $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
+  echo "log_${i}_$suffix.$ID is done"
   mv $SAMURAI_ROOT/run_${ID}/timing.0 ${i}_${suffix}/timing.$ID
   mv $SAMURAI_ROOT/run_${ID}/samurai* log* ${i}_${suffix}
 done
