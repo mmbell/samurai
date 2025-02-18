@@ -5,7 +5,8 @@ FROM samurai:latest
 WORKDIR /app
 
 # Ensure pip is installed
-RUN apt-get update && apt-get install --reinstall zlib1g
+RUN apt-get update 
+#&& apt-get install --reinstall zlib1g
 RUN apt-get install -y python3-venv
 RUN python3 -m venv /app/venv && \
     /app/venv/bin/pip install --upgrade pip && \
