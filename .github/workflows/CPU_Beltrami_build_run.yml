@@ -32,11 +32,11 @@ jobs:
       run: docker run -d --name test-container samurai:latest
 
    #uncomment to include validation tests   
-   # - name: Setup validation environment
-   #   run: docker build -f docker/Dockerfile.validation -t samurai-validation .
+    - name: Setup validation environment
+      run: docker build -f docker/Dockerfile.validation -t samurai-validation .
 
-   # - name: Run Beltrami validation test 
-   #   run: docker run --name test-container-validation --volumes-from test-container samurai-validation
+    - name: Run Beltrami validation test 
+      run: docker run --name test-container-validation --volumes-from test-container samurai-validation
 
   coverage:
     name: Coverage
