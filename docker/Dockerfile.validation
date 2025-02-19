@@ -1,11 +1,13 @@
 # Use the base image built by main Dockerfile
 FROM samurai:latest
+#FROM ubuntu:20.04
 
 # Set the working directory
 WORKDIR /app
 
 # Ensure pip is installed
-RUN apt-get update && apt-get install --reinstall zlib1g
+#RUN apt-get update && 
+RUN apt-get install --reinstall zlib1g
 RUN apt-get install -y python3-venv
 RUN python3 -m venv /app/venv && \
     /app/venv/bin/pip install --upgrade pip && \
