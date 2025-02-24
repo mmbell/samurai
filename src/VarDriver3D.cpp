@@ -110,7 +110,7 @@ bool VarDriver3D::validateDriver()
       obMetaSize = 7;       // Size of the observation Meta data
       analysisMode = VarDriver::WIND;
   } else if (configHash["analysis_type"] == "THERMO") {
-      numVars = 3;          // Number of variables on which to perform the anslysis
+      numVars = 7;          // Number of variables on which to perform the anslysis
       obMetaSize = 7;       // Size of the observation Meta data
       analysisMode = VarDriver::THERMO;
   } else {
