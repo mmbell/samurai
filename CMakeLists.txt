@@ -47,7 +47,7 @@ set(SOLVER_CG_EPSILON 1.0e-18)
 set(SOLVER_CG_BETA_TYPE 2)
 
 # type of convergenve for Samurai CG(1 = ~step size(orig), 2 = ||g(X)||/||g(X0)||)
-set(SOLVER_CG_CONV_TYPE 1)
+set(SOLVER_CG_CONV_TYPE 2)
 
 # Controls whether to just do the I/O portion of the run; this is just for testing
 set(IO_BENCHMARK 0)
