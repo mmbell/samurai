@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     branches: [ "main" ]
   push:
-    branches: [ "main" ]
+    branches: [ "derecho_ci" ]
   pull_request:
     branches: [ "main" ]
 
@@ -50,3 +50,9 @@ jobs:
          fi 
         done
         
+    - name: Validate beltrami wind analysis
+      working-directory: ${{github.workspace}}/ncar_scripts/validation/beltrami
+      run: |
+        module load conda
+        conda activate npl
+        python bel_val_nc.py samurai_XYZ_wind_analysis_ref.nc ../../beltrami_derecho_gpu/samurai_XYZ_wind_analysis.nc
