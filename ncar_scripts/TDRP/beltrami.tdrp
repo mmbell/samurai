@@ -134,7 +134,7 @@ projection = PROJ_TRANSVERSE_MERCATOR_EXACT;
 //
 // Type: string
 
-data_directory = "/glade/u/home/jcdehart/input";
+data_directory = "/input";
 
 ///////////// output_directory ////////////////////////
 //
