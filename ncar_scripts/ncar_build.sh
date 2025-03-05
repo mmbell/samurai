@@ -24,6 +24,7 @@ else
     # Assume it is Derecho
     module load ncarenv/23.09
 fi
+module reset
 if [ "$MODE" == "GPU" ]; then
    if [ "$NCAR_HOST" == "casper" ]; then 
       module load nvhpc/23.7
@@ -39,7 +40,7 @@ module load fftw/3.3.10
 module load netcdf/4.9.2
 module load cmake/3.26.3
 module load ncarcompilers/1.0.0
-
+module list
 # Export the path to the pre-built LROSE library, which is currently pointed to Jian's directory
 if [ "$NCAR_HOST" == "casper" ]; then
     if [ "$MODE" == "GPU" ]; then

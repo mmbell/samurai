@@ -29,6 +29,7 @@ cd ncar_scripts
 # Run a case #
 ##############
 suffix="derecho_gpu"
+module list
 for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
 
