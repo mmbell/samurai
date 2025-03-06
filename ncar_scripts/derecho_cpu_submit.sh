@@ -11,12 +11,14 @@ cd $PBS_O_WORKDIR
 cd ..
 export SAMURAI_ROOT=$(pwd)
 
+echo $SAMURAI_ROOT
+
 ID=`date '+%Y%m%d%H%M'`
 ##################
 # Build the code #
 ##################
 cd ncar_scripts 
-./ncar_build.sh
+./ncar_build.sh cpu $ID
 
 ##############
 # Run a case #
@@ -24,10 +26,11 @@ cd ncar_scripts
 suffix="derecho_cpu"
 for i in beltrami supercell hurricane typhoonChanthu2020 # hurricane_4panel
 do
-  ./ncar_run.sh $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
+  ./ncar_run.sh $ID $SAMURAI_ROOT/ncar_scripts/TDRP/${i}.tdrp >& log_${i}_$suffix.$ID
+  echo "log_${i}_$suffix.$ID is done"
   if [ ! -d  ${i}_${suffix} ]; then
      mkdir ${i}_${suffix}
   fi
-  mv $SAMURAI_ROOT/run/timing.0 ${i}_${suffix}/timing.$ID
-  mv $SAMURAI_ROOT/run/samurai* log* ${i}_${suffix}
+  mv $SAMURAI_ROOT/run_${ID}/timing.0 ${i}_${suffix}/timing.$ID
+  mv $SAMURAI_ROOT/run_${ID}/samurai* log*${suffix}* ${i}_${suffix}
 done
