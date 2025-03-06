@@ -6,7 +6,9 @@ on:
   push:
     branches: [ "thermo_asap" ]
   pull_request:
-    branches: [ "main" ]
+    branches: 
+      - "main"
+      - "thermo_asap"
 
 jobs:
   docker-build-and-test:
