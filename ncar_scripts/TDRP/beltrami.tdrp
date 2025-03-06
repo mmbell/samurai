@@ -134,7 +134,7 @@ projection = PROJ_TRANSVERSE_MERCATOR_EXACT;
 //
 // Type: string
 
-data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami";
+data_directory = "/input";
 
 ///////////// output_directory ////////////////////////
 //

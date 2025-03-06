@@ -33,7 +33,7 @@ debug_kd_step = 0;
 //
 // Type: string
 
-wind_file = "../ncar_scripts/input/beltrami_test_v2.nc";
+wind_file = "../ncar_scripts/input/beltrami_test_updatedsounding.nc";
 
 //======================================================================
 //
