@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     branches: [ "main" ]
   push:
-    branches: [ "thermo_asap_ci" ]
+    branches: [ "thermo_asap" ]
   pull_request:
     branches: [ "main" ]
 
