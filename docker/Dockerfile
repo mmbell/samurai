@@ -20,7 +20,7 @@ RUN cd samurai && \
     cmake -DUSE_GPU=false -DDEBUG_COMPILE=false .. && \
     make -j 2 VERBOSE=1
 
-RUN sed -i 's|data_directory = "/glade/campaign/cisl/asap/samurai/data/beltrami";|data_directory = "/app/data/samurai_data/beltrami";|g' /app/samurai/ncar_scripts/TDRP/beltrami.tdrp
+RUN sed -i 's|data_directory = ".*"|data_directory = "/app/data/samurai_data/beltrami";|g' /app/samurai/ncar_scripts/TDRP/beltrami.tdrp
 
 ENV PATH="/app/samurai/build:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
