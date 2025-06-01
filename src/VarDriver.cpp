@@ -1333,116 +1333,39 @@ bool VarDriver::read_insitu(std::string& filename, std::vector<MetObs>* metObVec
 
   while (std::getline(metFile, line)) {
 		auto parts = LineSplit(line, ' ');
-		datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%d_%H:%M:%S");
+		datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%dT%H:%M:%S");
+    //std::cout << "DEBUG: datetime : " << parts[0] << std::endl;
 		ob.setTime(datetime_);
     ob.setLat(std::stof(parts[1]));
     ob.setLon(std::stof(parts[2]));
     ob.setAltitude(std::stof(parts[3]));
     ob.setPressure(std::stof(parts[4]));
-		ob.setTemperature(std::stof(parts[5]));
-    ob.setDewpoint(std::stof(parts[6]));
-    ob.setZonalVelocity(std::stof(parts[7]));
-    ob.setMeridionalVelocity(std::stof(parts[8]));
-    ob.setWindDirection(std::stof(parts[9]));
-    ob.setWindSpeed(std::stof(parts[10]));
-    ob.setVerticalVelocity(std::stof(parts[11]));
-
+    float temp = std::stof(parts[5]);
+    if (temp < -100.0) {
+      // Bad data
+      ob.setTemperature(-999.0);
+    } else {
+      // Assume this is a temperature in Celsius
+      ob.setTemperature(temp + 273.15);
+    }
+    float dewp = std::stof(parts[6]);
+    if (dewp < -100.0) {
+      // Bad data
+      ob.setDewpoint(-999.0);
+    } else {
+      // Assume this is a temperature in Celsius
+      ob.setDewpoint(dewp + 273.15);
+    }
+    ob.setWindDirection(std::stof(parts[7]));
+    ob.setWindSpeed(std::stof(parts[8]));
+    ob.setVerticalVelocity(std::stof(parts[9]));
     ob.setObType(MetObs::insitu);
     metObVector->push_back(ob);
   }
 	std::cout << "Successfully read the in situ file" << std::endl;
   metFile.close();
   return true;
-/*fixme
-  QTextStream in(&metFile);
-  QString datestr, timestr, platform;
-  QDateTime datetime;
-  QFileInfo info(metFile);
-  QString fileName = info.fileName();
-  datestr = fileName.left(8);
-  QDate startDate = QDate::fromString(datestr, "yyyyMMdd");
-  // Get the platform name
-  platform = fileName;
-  platform.remove(0,8);
-  platform.chop(7);
-  MetObs ob;
-  ob.setStationName(platform);
-  while (!in.atEnd()) {
-    QString line = in.readLine();
-    QDate date;
-    timestr = line.left(6);
-    int hour = timestr.left(2).toInt();
-    if (hour > 23) {
-      date = startDate.addDays(1);
-      hour -= 24;
-      QString newhr;
-      newhr.setNum(hour);
-      if (hour < 10) {
-	timestr.replace(0,1,"0");
-	timestr.replace(1,1,newhr);
-      } else {
-	timestr.replace(0,2,newhr);
-      }
-    } else {
-      date = startDate;
-    }
-    QTime time = QTime::fromString(timestr, "HHmmss");
-    datetime = QDateTime(date, time, Qt::UTC);
-    ob.setTime(datetime);
 
-    QStringList lineparts = line.split(QRegExp("\\s+"));
-    if ((lineparts[1].toFloat() != -32768) or (lineparts[1].toFloat() != -32767)) {
-      ob.setLat(lineparts[1].toFloat());
-    } else {
-      ob.setLat(-999.0);
-    }
-    if ((lineparts[2].toFloat() != -32768) or (lineparts[2].toFloat() != -32767)) {
-      ob.setLon(lineparts[2].toFloat());
-    } else {
-      ob.setLon(-999.0);
-    }
-    if ((lineparts[3].toFloat() != -32768) or (lineparts[3].toFloat() != -32767)) {
-      ob.setAltitude(lineparts[3].toFloat());
-    } else {
-      ob.setAltitude(-999.0);
-    }
-    if (lineparts[4].toFloat() > 0) {
-      ob.setPressure(lineparts[4].toFloat());
-    } else {
-      ob.setPressure(-999.0);
-    }
-    if (lineparts[5].toFloat() > -273) {
-      float temp = lineparts[5].toFloat();
-      if (temp < 100) temp += 273.15;
-      ob.setTemperature(temp);
-    } else {
-      ob.setTemperature(-999.0);
-    }
-    if (lineparts[6].toFloat() > -273) {
-      float dewp = lineparts[6].toFloat();
-      if (dewp < 100) dewp += 273.15;
-      ob.setDewpoint(dewp);
-    } else {
-      ob.setDewpoint(-999.0);
-    }
-    if (lineparts[8].toFloat() >= 0) {
-      ob.setWindDirection(lineparts[7].toFloat());
-      ob.setWindSpeed(lineparts[8].toFloat());
-    } else {
-      ob.setWindDirection(-999.0);
-      ob.setWindSpeed(-999.0);
-    }
-    if ((lineparts[9].toFloat() != -32768) or (lineparts[9].toFloat() != -32767)) {
-      ob.setVerticalVelocity(lineparts[9].toFloat());
-    }  else {
-      ob.setVerticalVelocity(-999.0);
-    }
-    ob.setObType(MetObs::insitu);
-    metObVector->push_back(ob);
-  }
-*/
-  metFile.close();
-  return true;
 }
 
 bool VarDriver::read_mtp(std::string& filename, std::vector<MetObs>* metObVector)
