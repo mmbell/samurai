@@ -56,9 +56,11 @@ VarDriver::VarDriver()
 	dataSuffix["hgt"] = terrain;
 	dataSuffix["model"] = model;
 	dataSuffix["rf"] = crsim;
-    dataSuffix["list"] = hrdradial;
-    dataSuffix["hdob"] = hdob;
-    dataSuffix["ict"] = ict;
+  dataSuffix["list"] = hrdradial;
+  dataSuffix["hdob"] = hdob;
+  dataSuffix["ict"] = ict;
+  dataSuffix["dawn"] = dawn;
+  dataSuffix["hamsr"] = hamsr;
 
   // By default we have fixed grid dimensions coming from the config file
   fixedGrid = true;
@@ -339,6 +341,18 @@ bool VarDriver::read_met_obs_file(int suffix, std::string &filename, std::vector
       return false;
     }
       break;
+  case(dawn):
+    if (!read_dawn(metFile, metData)) {
+      cout << "Error reading dawn file" << endl;
+      return false;
+    }
+      break;
+  case(hamsr):
+    if (!read_hamsr(metFile, metData)) {
+      cout << "Error reading hamsr file" << endl;
+      return false;
+    }
+      break;    
   default:
     cout << "Unknown data type, skipping..." << endl;
     return false;
@@ -1312,6 +1326,33 @@ bool VarDriver::read_insitu(std::string& filename, std::vector<MetObs>* metObVec
   if (!metFile.is_open()) {
     return false;
 	}
+
+	MetObs ob;
+	datetime datetime_;
+	std::string line;
+
+  while (std::getline(metFile, line)) {
+		auto parts = LineSplit(line, ' ');
+		datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%d_%H:%M:%S");
+		ob.setTime(datetime_);
+    ob.setLat(std::stof(parts[1]));
+    ob.setLon(std::stof(parts[2]));
+    ob.setAltitude(std::stof(parts[3]));
+    ob.setPressure(std::stof(parts[4]));
+		ob.setTemperature(std::stof(parts[5]));
+    ob.setDewpoint(std::stof(parts[6]));
+    ob.setZonalVelocity(std::stof(parts[7]));
+    ob.setMeridionalVelocity(std::stof(parts[8]));
+    ob.setWindDirection(std::stof(parts[9]));
+    ob.setWindSpeed(std::stof(parts[10]));
+    ob.setVerticalVelocity(std::stof(parts[11]));
+
+    ob.setObType(MetObs::insitu);
+    metObVector->push_back(ob);
+  }
+	std::cout << "Successfully read the in situ file" << std::endl;
+  metFile.close();
+  return true;
 /*fixme
   QTextStream in(&metFile);
   QString datestr, timestr, platform;
@@ -1649,6 +1690,8 @@ bool VarDriver::parseXMLconfig(const XMLNode& config)
 	configKeys.insert("output_asi");
 	configKeys.insert("preprocess_obs");
 	configKeys.insert("mask_reflectivity");
+  configKeys.insert("dawn_rhou_error");
+	configKeys.insert("dawn_rhov_error");
 	configKeys.insert("dropsonde_rhou_error");
 	configKeys.insert("dropsonde_rhov_error");
 	configKeys.insert("dropsonde_rhow_error");
@@ -3042,6 +3085,306 @@ bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVect
 }
 
 bool VarDriver::read_ict(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  Nc3Error err(Nc3Error::verbose_nonfatal);
+
+  // Read the file.
+  Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
+
+  // Check to see if the file was read.
+  if(!dataFile.is_valid())
+    return false;
+
+  // Get the number of records
+  // Nc3Dim* recnum;
+  Nc3Dim* recnum;
+  if (!(recnum = dataFile.get_dim("time")))
+    return false;
+  int NREC = recnum->size();
+
+  Nc3Var *latVar, *lonVar, *altVar, *timeVar, *tempVar,
+    *rhVar, *wdirVar, *wspdVar, *pressVar;
+  if (!(latVar = dataFile.get_var("lat")))
+    return false;
+  if (!(lonVar = dataFile.get_var("lon")))
+    return false;
+  if (!(altVar = dataFile.get_var("alt")))
+    return false;
+  if (!(timeVar = dataFile.get_var("time")))
+    return false;
+  if (!(tempVar  = dataFile.get_var("tdry")))
+    return false;
+  if (!(rhVar = dataFile.get_var("rh")))
+    return false;
+  if (!(wdirVar = dataFile.get_var("wdir")))
+    return false;
+  if (!(wspdVar = dataFile.get_var("wspd")))
+    return false;
+  if (!(pressVar = dataFile.get_var("pres")))
+    return false;
+
+  real lat[NREC], lon[NREC], alt[NREC], obtime[NREC], temp[NREC],
+    rh[NREC], wdir[NREC], wspd[NREC], press[NREC];
+  if (!latVar->get(lat, NREC))
+    return false;
+  if (!lonVar->get(lon, NREC))
+    return false;
+  if (!altVar->get(alt, NREC))
+    return false;
+  if (!timeVar->get(obtime, NREC))
+    return false;
+  if (!tempVar->get(temp, NREC))
+    return false;
+  if (!rhVar->get(rh, NREC))
+    return false;
+  if (!wdirVar->get(wdir, NREC))
+    return false;
+  if (!wspdVar->get(wspd, NREC))
+    return false;
+  if (!pressVar->get(press, NREC))
+    return false;
+
+  datetime datetime_;
+  std::vector<std::string> fileparts = LineSplit(filename, '_');
+
+  // Get the platform name
+  MetObs ob;
+  ob.setStationName(fileparts[0]);
+  for (int rec = 0; rec < NREC; rec++)
+    {
+      if ((lat[rec] != -999.0) and (lat[rec] < 1.0e32)) {
+    ob.setLat(lat[rec]);
+      } else {
+    ob.setLat(-999.0);
+      }
+      if ((lon[rec] != -999.0) and (lon[rec] < 1.0e32)) {
+    ob.setLon(lon[rec]);
+      } else {
+    ob.setLon(-999.0);
+      }
+      if ((alt[rec] != -999.0) and (alt[rec] < 1.0e32)) {
+    ob.setAltitude(alt[rec]);
+      } else {
+    ob.setAltitude(-999.0);
+      }
+
+      auto combined = fileparts[5] + fileparts[6];
+      datetime datetime_ = ParseDate(combined.c_str(), "%Y%m%d%H%M%S") + std::chrono::seconds(long(obtime[rec]));
+      ob.setTime(datetime_);
+
+      if ((temp[rec] != -999.0) and (temp[rec] < 1.0e32)) {
+    ob.setTemperature(temp[rec]+273.15);
+      } else {
+    ob.setTemperature(-999.0);
+      }
+      if ((rh[rec] != -999.0) and (rh[rec] < 1.0e32)) {
+    ob.setRH(rh[rec]);
+      } else {
+    ob.setRH(-999.0);
+      }
+      if ((wdir[rec] != -999.0) and (wdir[rec] < 1.0e32)) {
+    ob.setWindDirection(wdir[rec]);
+      } else {
+    ob.setWindDirection(-999.0);
+      }
+      if ((wspd[rec] != -999.0) and (wspd[rec] < 1.0e32)) {
+    ob.setWindSpeed(wspd[rec]);
+      } else {
+    ob.setWindSpeed(-999.0);
+      }
+      if ((press[rec] != -999.0) and (press[rec] < 1.0e32)) {
+    ob.setPressure(press[rec]);
+      } else {
+    ob.setPressure(-999.0);
+      }
+
+      ob.setObType(MetObs::dropsonde);
+      metObVector->push_back(ob);
+    }
+
+  return true;
+
+}
+
+bool VarDriver::read_dawn(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  std::ifstream metFile(filename);
+  if (!metFile.is_open()) {
+    return false;
+  }
+
+  MetObs ob;
+  datetime datetime_;
+  std::string line;
+
+  while (std::getline(metFile, line)) {
+    auto parts = LineSplit(line, ',');
+    datetime datetime_ = ParseTime(parts[0].c_str(), "%Y-%m-%dT%H:%M:%S");
+    ob.setTime(datetime_);
+    ob.setLat(std::stof(parts[1]));
+    ob.setLon(std::stof(parts[2]));
+    ob.setAltitude(std::stof(parts[3]));
+    ob.setZonalVelocity(std::stof(parts[4]));
+    ob.setMeridionalVelocity(std::stof(parts[5]));
+    ob.setObType(MetObs::dawn);
+    metObVector->push_back(ob);
+  }
+  std::cout << "Successfully read the in situ file" << std::endl;
+  metFile.close();
+  return true;
+}
+
+bool VarDriver::read_dawn_netcdf(std::string& filename, std::vector<MetObs>* metObVector)
+{
+  Nc3Error err(Nc3Error::verbose_nonfatal);
+
+  // Read the file.
+  Nc3File dataFile(filename.c_str(), Nc3File::ReadOnly);
+
+  // Check to see if the file was read.
+  if(!dataFile.is_valid())
+    return false;
+  
+  // Get the number of records
+  int num_dims = dataFile.num_dims();
+  if (num_dims < 2) {
+    std::cout << "Error: Not enough dimensions in file" << std::endl;
+    return false;
+  } else {
+    std::cout << "Number of dimensions in file: " << num_dims << std::endl;
+  }
+  Nc3Dim* recnum;
+  if (!(recnum = dataFile.get_dim("time"))) {
+    std::cout << "Error reading time dimension" << std::endl;
+    return false;
+  }
+  int NREC = recnum->size();
+
+  // Get the number of height levels
+  Nc3Dim* z_level;
+  //if (!(z_level = dataFile.get_dim("z")))
+  //{
+  //  std::cout << "Error reading z dimension" << std::endl;
+  //  return false;
+  //}
+  int NLVL = 434; //z_level->size();
+  
+  Nc3Var *latVar, *lonVar, *altVar, *timeVar, *wdirVar, *wspdVar;
+  if (!(latVar = dataFile.get_var("lat")))
+  {
+    std::cout << "Error reading latitude variable" << std::endl;
+    return false;
+  }
+  if (!(lonVar = dataFile.get_var("lon")))
+  {
+    std::cout << "Error reading longitude variable" << std::endl;
+    return false;
+  }
+  if (!(altVar = dataFile.get_var("z")))
+  {
+    std::cout << "Error reading altitude variable" << std::endl;
+    return false;
+  }
+  if (!(timeVar = dataFile.get_var("time")))
+  {
+    std::cout << "Error reading time variable" << std::endl;
+    return false;
+  }
+  if (!(wdirVar = dataFile.get_var("smoothed_Wind_Direction")))
+  {
+    std::cout << "Error reading smoothed wind dir" << std::endl;
+    return false;
+  }
+  if (!(wspdVar = dataFile.get_var("smoothed_Wind_Speed")))
+  {
+    std::cout << "Error reading smoothed wind speed" << std::endl;
+    return false;
+  }
+
+  real lat[NREC], lon[NREC], alt[NLVL], obtime[NREC], wdir[NREC*NLVL], wspd[NREC*NLVL];
+  if (!latVar->get(lat, NREC))
+  {
+    std::cout << "Error reading latitude" << std::endl;
+    return false;
+  }
+  if (!lonVar->get(lon, NREC))
+  {
+    std::cout << "Error reading longitude" << std::endl;
+    return false;
+  }
+  if (!altVar->get(alt, NLVL))
+  {
+    std::cout << "Error reading altitude" << std::endl;
+    return false;
+  }
+  if (!timeVar->get(obtime, NREC))
+  {
+    std::cout << "Error reading obtime" << std::endl;
+    return false;
+  }
+  if (!wdirVar->get(wdir, NREC*NLVL))
+  {
+    std::cout << "Error reading wind direction" << std::endl;
+    return false;
+  }
+  if (!wspdVar->get(wspd, NREC*NLVL))
+  {
+    std::cout << "Error reading wind speed" << std::endl;
+    return false;
+  }
+
+  datetime datetime_;
+  std::vector<std::string> fileparts = LineSplit(filename, '_');
+
+  // Get the platform name
+  MetObs ob;
+  // Set the station name using the second part of the filename split by '_'
+  ob.setStationName(fileparts[1]);
+  for (int rec = 0; rec < NREC; rec++)
+    {
+      if ((lat[rec] != -999.0) and (lat[rec] < 1.0e32)) {
+    ob.setLat(lat[rec]);
+      } else {
+    ob.setLat(-999.0);
+      }
+      if ((lon[rec] != -999.0) and (lon[rec] < 1.0e32)) {
+    ob.setLon(lon[rec]);
+      } else {
+    ob.setLon(-999.0);
+      }
+
+    auto combined = fileparts[2];
+    datetime datetime_ = ParseDate(combined.c_str(), "%Y%m%d") + std::chrono::seconds(long(obtime[rec]));
+    ob.setTime(datetime_);
+  
+    for (int lvl = 0; lvl < NLVL; lvl++) {
+      if ((alt[lvl] != -999.0) and (alt[lvl] < 1.0e32)) {
+        ob.setAltitude(alt[lvl]);
+          } else {
+        ob.setAltitude(-999.0);
+      }
+      if ((wdir[rec * NLVL + lvl] != -999.0) and (wdir[rec * NLVL + lvl] < 1.0e32)) {
+      ob.setWindDirection(wdir[rec * NLVL + lvl]);
+        } else {
+      ob.setWindDirection(-999.0);
+        }
+
+      if ((wspd[rec * NLVL + lvl] != -999.0) and (wspd[rec * NLVL + lvl] < 1.0e32)) {
+      ob.setWindSpeed(wspd[rec * NLVL + lvl]);
+        } else {
+      ob.setWindSpeed(-999.0);
+        }
+    }
+
+    ob.setObType(MetObs::dawn);
+    metObVector->push_back(ob);
+    }
+
+  return true;
+
+}
+
+bool VarDriver::read_hamsr(std::string& filename, std::vector<MetObs>* metObVector)
 {
   Nc3Error err(Nc3Error::verbose_nonfatal);
 

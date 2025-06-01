@@ -1721,7 +1721,7 @@ void CostFunction3D::obAdjustments() {
     }
     if ((type == MetObs::radar) or (type == MetObs::qscat)
 	or (type == MetObs::ascat) or (type == MetObs::AMV)
-	or (type == MetObs::lidar)) {
+	or (type == MetObs::lidar) or (type == MetObs::dawn)) {
       obsVector[mi] *= rhoBG;
     }
   }

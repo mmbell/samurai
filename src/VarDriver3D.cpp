@@ -1004,6 +1004,39 @@ bool VarDriver3D::preProcessMetObs()
 	}
 	break;
 
+	case (MetObs::dawn):
+	varOb.setType(MetObs::dawn);
+	u = metOb.getZonalVelocity();
+	v = metOb.getMeridionalVelocity();
+	if (u != -999) {
+	  // rho u
+	  // Multiply by rho later from grid values
+	  varOb.setWeight(1., 0);
+	  if (runMode == XYZ) {
+	    rhou = (u - Um);
+	  } else if (runMode == RTZ) {
+	    rhou = ((u - Um)*obX + (v - Vm)*obY)/obRadius;
+	  }
+	  //cout << "RhoU: " << rhou << endl;
+	  varOb.setOb(rhou);
+	  varOb.setError(std::stof(configHash["dawn_rhou_error"]));
+	  obVector.push_back(varOb);
+	  varOb.setWeight(0., 0);
+
+	  varOb.setWeight(1., 1);
+	  // Multiply by rho later from grid values
+	  if (runMode == XYZ) {
+	    rhov = (v - Vm);
+	  } else if (runMode == RTZ) {
+	    rhov = (-(u - Um)*obY + (v - Vm)*obX)/obRadius;
+	  }
+	  varOb.setOb(rhov);
+	  varOb.setError(std::stof(configHash["dawn_rhov_error"]));
+	  obVector.push_back(varOb);
+	  varOb.setWeight(0., 1);
+	}
+	break;
+
 			case (MetObs::terrain):
 	{
 		varOb.setType(MetObs::terrain);

@@ -151,7 +151,9 @@ class MetObs
     terrain,
     model,
     crsim,
-    hrdradial
+    hrdradial,
+    dawn,
+    hamsr
     // add terrain type
   };
 

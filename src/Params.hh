@@ -672,6 +672,10 @@ public:
 
   float mesonet_tempk_error;
 
+  float dawn_rhou_error;
+
+  float dawn_rhov_error;
+
   float output_latlon_increment;
 
   float output_pressure_increment;
@@ -767,7 +771,7 @@ public:
   int i_ftheta_bcL;
 
   int i_ftheta_bcR;
- 
+
   int j_pip_bcL;
 
   int j_pip_bcR;
@@ -778,7 +782,7 @@ public:
 
   int j_ftheta_bcL;
 
-  int j_ftheta_bcR; 
+  int j_ftheta_bcR;
 
   int k_pip_bcL;
 
@@ -799,7 +803,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[210];
+  mutable TDRPtable _table[213];
 
   const char *_className;
 

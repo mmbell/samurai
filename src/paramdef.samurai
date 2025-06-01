@@ -914,6 +914,18 @@ paramdef float {
   p_help = "";
 } mesonet_tempk_error; // TODO Check default value
 
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} dawn_rhou_error;
+
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} dawn_rhov_error;
+
 //////////////////////////////////////////////////////////
 
 commentdef {
