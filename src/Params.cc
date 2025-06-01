@@ -749,7 +749,7 @@
     tt->ptype = ENUM_TYPE;
     tt->param_name = tdrpStrDup("analysis_type");
     tt->descr = tdrpStrDup("Analysis type");
-    tt->help = tdrpStrDup("");
+    tt->help = tdrpStrDup("WIND for Samurai wind analysis, THERMO for Thermo analysis from samurai output file, WIND_THERMO for Wind and then Thermo analysis (in-memory)");
     tt->val_offset = (char *) &analysis_type - &_start_;
     tt->enum_def.name = tdrpStrDup("analysis_type_t");
     tt->enum_def.nfields = 3;
