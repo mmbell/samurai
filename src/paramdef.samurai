@@ -111,7 +111,7 @@ typedef enum {
 paramdef enum analysis_type_t {
   p_default = WIND;
   p_descr = "Analysis type";
-  p_help = "WIND for Samurai wind analysis, THERMO for Thermo analysis from samurai output file, WIND_THERMO for Wind and then Thermo analysis (in-memory)"
+  p_help = "WIND for Samurai wind analysis, THERMO for Thermo analysis from samurai output file, WIND_THERMO for Wind and then Thermo analysis (in-memory)";
 } analysis_type;
 
 typedef enum {
