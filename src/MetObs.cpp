@@ -360,6 +360,16 @@ void MetObs::setModelQv(const float& qv)
 	mixingRatio = qv;
 }
 
+float MetObs::getMixingRatio() const
+{
+	return mixingRatio;
+}
+
+void MetObs::setMixingRatio(const float& qv)
+{
+	mixingRatio = qv;
+}
+
 int MetObs::getObType() const
 {
 	return obType;

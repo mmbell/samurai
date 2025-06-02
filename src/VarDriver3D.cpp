@@ -1037,7 +1037,34 @@ bool VarDriver3D::preProcessMetObs()
 	}
 	break;
 
-			case (MetObs::terrain):
+	case (MetObs::hamsr):
+	{
+		varOb.setType(MetObs::hamsr);
+		real tempk = metOb.getTemperature();
+		real qv = metOb.getMixingRatio();
+		real p = metOb.getPressure();
+		if (tempk != -999) {
+			// temperature 1 K error
+			varOb.setWeight(1., 3);
+			varOb.setOb(tempk - tBar);
+			varOb.setError(std::stof(configHash["hamsr_tempk_error"]));
+			obVector.push_back(varOb);
+			varOb.setWeight(0., 3);
+		}
+		if (qv != -999) {
+			// Qv 0.5 g/kg error
+			varOb.setWeight(1., 4);
+			qv = refstate->bhypTransform(qv);
+			varOb.setOb(qv-qBar);
+			varOb.setError(std::stof(configHash["hamsr_qv_error"]));
+			obVector.push_back(varOb);
+			varOb.setWeight(0., 4);
+		}
+
+	}
+	break;
+
+	case (MetObs::terrain):
 	{
 		varOb.setType(MetObs::terrain);
 		real dhdx = metOb.getTerrainDX();

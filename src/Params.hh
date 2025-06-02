@@ -676,6 +676,10 @@ public:
 
   float dawn_rhov_error;
 
+  float hamsr_tempk_error;
+
+  float hamsr_qv_error;
+
   float output_latlon_increment;
 
   float output_pressure_increment;
@@ -803,7 +807,7 @@ private:
 
   void _init();
 
-  mutable TDRPtable _table[213];
+  mutable TDRPtable _table[215];
 
   const char *_className;
 

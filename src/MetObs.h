@@ -104,6 +104,9 @@ class MetObs
   float getModelQv() const;
   void setModelQv(const float& qv);
 
+  float getMixingRatio() const;
+  void setMixingRatio(const float& qv);
+
   float getModelMoistDensity() const;
   void setModelMoistDensity(const float& rho);
 

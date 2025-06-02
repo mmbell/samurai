@@ -2434,6 +2434,30 @@
     tt->single_val.f = 2;
     tt++;
     
+    // Parameter 'hamsr_tempk_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("hamsr_tempk_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &hamsr_tempk_error - &_start_;
+    tt->single_val.f = 2;
+    tt++;
+    
+    // Parameter 'hamsr_qv_error'
+    // ctype is 'float'
+    
+    memset(tt, 0, sizeof(TDRPtable));
+    tt->ptype = FLOAT_TYPE;
+    tt->param_name = tdrpStrDup("hamsr_qv_error");
+    tt->descr = tdrpStrDup("");
+    tt->help = tdrpStrDup("");
+    tt->val_offset = (char *) &hamsr_qv_error - &_start_;
+    tt->single_val.f = 2;
+    tt++;
+    
     // Parameter 'Comment 10'
     
     memset(tt, 0, sizeof(TDRPtable));

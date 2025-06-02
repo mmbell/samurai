@@ -196,6 +196,8 @@ bool Args::paramsToHash(HashMap *configHash) {
   CONFIG_INSERT_FLOAT(dbz_pseudow_weight);
   CONFIG_INSERT_FLOAT(dawn_rhou_error);
   CONFIG_INSERT_FLOAT(dawn_rhov_error);
+  CONFIG_INSERT_FLOAT(hamsr_tempk_error);
+  CONFIG_INSERT_FLOAT(hamsr_qv_error);
   CONFIG_INSERT_FLOAT(dropsonde_qv_error);
   CONFIG_INSERT_FLOAT(dropsonde_rhoa_error);
   CONFIG_INSERT_FLOAT(dropsonde_rhou_error);

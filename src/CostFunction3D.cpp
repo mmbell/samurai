@@ -1663,7 +1663,11 @@ void CostFunction3D::obAdjustments() {
 	or (j < jMin) or (j > jMax)
 	or (k < kMin) or (k > kMax)) {
       cout << "Error! Observations are found outside the domain where the spline is undefined.\n";
-      cout << "This can only happen if you bypassed preprocessing -- check your samurai_Observations.in and re-run.\n";
+      cout << i << "," << j << "," << k << "\n";
+      cout << "iMin = " << iMin << ", iMax = " << iMax << "\n";
+      cout << "jMin = " << jMin << ", jMax = " << jMax << "\n";
+      cout << "kMin = " << kMin << ", kMax = " << kMax << "\n";
+      cout << "This should only happen if you bypassed preprocessing -- check your samurai_Observations.in and re-run.\n";
     }
     real rhoprime = 0.;
     real qvprime = 0.;

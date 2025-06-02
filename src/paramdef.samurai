@@ -926,6 +926,18 @@ paramdef float {
   p_help = "";
 } dawn_rhov_error;
 
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} hamsr_tempk_error;
+
+paramdef float {
+  p_default = 2.0;
+  p_descr = "";
+  p_help = "";
+} hamsr_qv_error;
+
 //////////////////////////////////////////////////////////
 
 commentdef {
