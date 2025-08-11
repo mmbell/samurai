@@ -43,8 +43,10 @@
 */
 #define MAX_AUX 9
 
+#ifdef NOTNOW
 #ifndef __cplusplus
 typedef enum {false = 0, true = 1} bool;  /* mimic C++ */
+#endif
 #endif
 
 typedef struct {
