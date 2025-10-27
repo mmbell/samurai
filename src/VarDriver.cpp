@@ -2928,8 +2928,12 @@ bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVect
         }
         obPressure = obPressure / 10.0;
         
-        real obAlt = std::stof(obdata[4]);
-        
+        string altitude = obdata[4];
+        real obAlt = -999.0;
+        if (altitude.compare("////") != 0) {
+          obAlt = std::stof(altitude);
+        }
+
         string press = obdata[5];
         real obSfcpress = -999.0;
         if (press.compare("////") != 0) {
@@ -2961,7 +2965,11 @@ bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVect
         }
         obDewp = (obDewp/10.0) + 273.15;
         
-        real obWdir = std::stof(obdata[8].substr(0,3));
+        real obWdir = -999.0;
+        string wdir = obdata[8].substr(0,3);
+        if (wdir.compare("///") != 0) {
+            std::stof(wdir);
+        }
         //real obWspd30s = std::stof(obdata[8].substr(3,3)) * 0.514;
         string wspd = obdata[9];
         real obWspd10s = -999.0;
