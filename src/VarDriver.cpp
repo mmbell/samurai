@@ -2921,12 +2921,16 @@ bool VarDriver::read_hdobs(std::string& filename, std::vector<MetObs>* metObVect
             obLon = -obLon;
         }
         
-        real obPressure = std::stof(obdata[3]);
-        // Check to see if pressure is above 1000 hPa
-        if (obPressure < 1000.0) {
-            obPressure = obPressure + 10000.0;
+        string pressure = obdata[3];
+        real obPressure = -999.0;
+        if (pressure.compare("////") != 0) {
+            obPressure = std::stof(pressure);
+            // Check to see if pressure is above 1000 hPa
+            if (obPressure < 1000.0) {
+                obPressure = obPressure + 10000.0;
+            }
+            obPressure = obPressure / 10.0;
         }
-        obPressure = obPressure / 10.0;
         
         string altitude = obdata[4];
         real obAlt = -999.0;
