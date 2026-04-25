@@ -44,7 +44,13 @@
 #define MAX_AUX 9
 
 #ifndef __cplusplus
-typedef enum {false = 0, true = 1} bool;  /* mimic C++ */
+
+  #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+    #include <stdbool.h>
+  #else
+    typedef enum { false = 0, true = 1 } bool;
+  #endif
+
 #endif
 
 typedef struct {
